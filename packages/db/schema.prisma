@@ -1,0 +1,340 @@
+// Padel School Manager — Prisma Schema
+// Documentación: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────
+// USUARIOS Y AUTENTICACIÓN
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  student
+  coach
+  admin
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  role             UserRole @default(student)
+  name             String
+  avatarUrl        String?
+  phone            String?
+  stripeCustomerId String?  @unique
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relaciones
+  currentLevelId   String?
+  currentLevel     Level?           @relation("CurrentLevel", fields: [currentLevelId], references: [id])
+  levelHistory     UserLevel[]
+  bookings         Booking[]
+  classBag         ClassBag?
+  bagTransactions  BagTransaction[]
+  payments         Payment[]
+  chatThreads      ChatThread[]
+  sentMessages     ChatMessage[]    @relation("SentMessages")
+  uploadedMaterials Material[]
+  notifications    Notification[]
+  coachSchedules   Schedule[]       @relation("CoachSchedules")
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// NIVELES DE JUEGO
+// ─────────────────────────────────────────────
+
+model Level {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  color       String   @default("#6366f1")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  // Relaciones
+  usersWithThisLevel User[]      @relation("CurrentLevel")
+  userHistory        UserLevel[]
+  materials          MaterialLevel[]
+
+  @@map("levels")
+}
+
+model UserLevel {
+  id         String   @id @default(uuid())
+  userId     String
+  levelId    String
+  assignedBy String
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level Level @relation(fields: [levelId], references: [id])
+
+  @@map("user_levels")
+}
+
+// ─────────────────────────────────────────────
+// PISTAS Y HORARIOS
+// ─────────────────────────────────────────────
+
+enum CourtType {
+  indoor
+  outdoor
+  covered
+}
+
+model Court {
+  id        String    @id @default(uuid())
+  name      String
+  type      CourtType @default(indoor)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  schedules Schedule[]
+
+  @@map("courts")
+}
+
+enum RecurrenceType {
+  none
+  weekly
+  biweekly
+}
+
+model Schedule {
+  id          String         @id @default(uuid())
+  courtId     String
+  coachId     String
+  startTime   DateTime
+  endTime     DateTime
+  recurrence  RecurrenceType @default(weekly)
+  maxStudents Int            @default(4)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+
+  court    Court     @relation(fields: [courtId], references: [id])
+  coach    User      @relation("CoachSchedules", fields: [coachId], references: [id])
+  bookings Booking[]
+
+  @@map("schedules")
+}
+
+// ─────────────────────────────────────────────
+// RESERVAS
+// ─────────────────────────────────────────────
+
+enum BookingStatus {
+  confirmed
+  no_show
+  cancelled
+  pending
+}
+
+enum BookingSource {
+  subscription
+  bag
+  pay_per_class
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  scheduleId String
+  studentId  String
+  status     BookingStatus @default(confirmed)
+  source     BookingSource @default(subscription)
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  schedule        Schedule         @relation(fields: [scheduleId], references: [id])
+  student         User             @relation(fields: [studentId], references: [id])
+  bagTransaction  BagTransaction?
+  payment         Payment?
+
+  @@unique([scheduleId, studentId])
+  @@map("bookings")
+}
+
+// ─────────────────────────────────────────────
+// BOLSA DE CLASES
+// ─────────────────────────────────────────────
+
+model ClassBag {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bagTransactions BagTransaction[]
+
+  @@map("class_bag")
+}
+
+enum BagTransactionType {
+  credit
+  debit
+}
+
+model BagTransaction {
+  id        String             @id @default(uuid())
+  userId    String
+  classBagId String
+  delta     Int
+  type      BagTransactionType
+  reason    String
+  bookingId String?            @unique
+  createdAt DateTime           @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  classBag  ClassBag  @relation(fields: [classBagId], references: [id])
+  booking   Booking?  @relation(fields: [bookingId], references: [id])
+
+  @@map("bag_transactions")
+}
+
+// ─────────────────────────────────────────────
+// PAGOS (STRIPE)
+// ─────────────────────────────────────────────
+
+enum PaymentType {
+  subscription
+  pay_per_class
+  class_pack
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+}
+
+model Payment {
+  id                   String        @id @default(uuid())
+  userId               String
+  bookingId            String?       @unique
+  stripePaymentIntentId String?      @unique
+  stripeSubscriptionId  String?      @unique
+  amount               Int
+  currency             String        @default("eur")
+  type                 PaymentType
+  status               PaymentStatus @default(pending)
+  metadata             Json?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id])
+  booking Booking? @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────
+// CHAT DE SOPORTE
+// ─────────────────────────────────────────────
+
+enum ThreadStatus {
+  active
+  resolved
+}
+
+model ChatThread {
+  id        String       @id @default(uuid())
+  userId    String
+  status    ThreadStatus @default(active)
+  subject   String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id])
+  messages ChatMessage[]
+
+  @@map("chat_threads")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  threadId  String
+  senderId  String
+  content   String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User       @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@map("chat_messages")
+}
+
+// ─────────────────────────────────────────────
+// MATERIALES DIDÁCTICOS (PDFs)
+// ─────────────────────────────────────────────
+
+model Material {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  fileUrl     String
+  fileSize    Int?
+  uploadedBy  String
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  uploader User            @relation(fields: [uploadedBy], references: [id])
+  levels   MaterialLevel[]
+
+  @@map("materials")
+}
+
+model MaterialLevel {
+  materialId String
+  levelId    String
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  level    Level    @relation(fields: [levelId], references: [id], onDelete: Cascade)
+
+  @@id([materialId, levelId])
+  @@map("material_levels")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICACIONES
+// ─────────────────────────────────────────────
+
+enum NotificationType {
+  booking_confirmed
+  booking_cancelled
+  class_reminder
+  chat_message
+  level_updated
+  payment_succeeded
+  payment_failed
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}

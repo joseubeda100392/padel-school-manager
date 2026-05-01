@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"c:\\\\Users\\\\josemaria.ubeda\\\\Documents\\\\CLAUDE - PADEL SCHOOL MANAGER\")",
+      "Bash(dir \"c:\\\\Users\\\\josemaria.ubeda\\\\.claude\\\\projects\\\\c--Users-josemaria-ubeda-Documents-padel-shop-test-padel-shop-test\\\\memory\")"
+    ]
+  }
+}
