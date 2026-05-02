@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { router } from 'expo-router'
 import { createClient } from '@/lib/supabase'
+
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://padel-school-manager-production.up.railway.app'
 
 export default function StudentScheduleScreen() {
   const [schedules, setSchedules] = useState<any[]>([])
@@ -37,9 +40,37 @@ export default function StudentScheduleScreen() {
     setLoading(false)
   }
 
+  async function payClass(scheduleId: string) {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    setBooking(scheduleId)
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ type: 'single_class', scheduleId }),
+      })
+      const json = await res.json()
+      if (!res.ok) { Alert.alert('Error', json.error); setBooking(null); return }
+      const payUrl = `${API_BASE}/pay?url=${encodeURIComponent(json.redsysUrl)}&Ds_MerchantParameters=${encodeURIComponent(json.merchantParameters)}&Ds_Signature=${encodeURIComponent(json.signature)}`
+      await Linking.openURL(payUrl)
+    } catch {
+      Alert.alert('Error', 'No se pudo iniciar el pago')
+    }
+    setBooking(null)
+  }
+
   async function bookClass(scheduleId: string) {
     if (bagBalance <= 0) {
-      Alert.alert('Sin clases', 'No tienes clases disponibles en tu bolsa.')
+      Alert.alert(
+        'Sin clases en bolsa',
+        '¿Qué quieres hacer?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Comprar bono', onPress: () => router.push('/(student)/buy-pack') },
+          { text: 'Pagar esta clase', onPress: () => payClass(scheduleId) },
+        ]
+      )
       return
     }
     setBooking(scheduleId)
