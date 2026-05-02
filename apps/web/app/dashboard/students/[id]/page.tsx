@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { StudentLevelForm } from './student-level-form'
 import { BagAdjustForm } from './bag-adjust-form'
+import { StudentEditForm } from './student-edit-form'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -115,6 +116,18 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             <dd className="mt-1 text-sm text-gray-900">{formatDate(student.created_at as string)}</dd>
           </div>
         </dl>
+      </div>
+
+      {/* Editar info */}
+      <div className="mb-6">
+        <StudentEditForm student={{
+          id: student.id as string,
+          name: student.name as string,
+          email: student.email as string,
+          phone: (student as any).phone ?? '',
+          role: student.role as string,
+          is_active: (student as any).is_active ?? true,
+        }} />
       </div>
 
       {/* Nivel + Bolsa */}

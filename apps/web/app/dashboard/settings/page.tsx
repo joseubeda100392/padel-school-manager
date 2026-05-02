@@ -4,14 +4,16 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface AppConfig {
-  pay_per_class_price: number
+  pay_per_class_price_60: number
+  pay_per_class_price_90: number
   classes_per_pack: number
   pack_price: number
   school_name: string
 }
 
 const defaults: AppConfig = {
-  pay_per_class_price: 1200,
+  pay_per_class_price_60: 1200,
+  pay_per_class_price_90: 1500,
   classes_per_pack: 10,
   pack_price: 9000,
   school_name: 'Mi Escuela de Pádel',
@@ -196,58 +198,61 @@ export default function SettingsPage() {
       </div>
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-semibold text-gray-900">Precios y bolsa de clases</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Precio clase suelta (€)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={config.pay_per_class_price / 100}
-                  onChange={(e) => setConfig({ ...config, pay_per_class_price: Math.round(Number(e.target.value) * 100) })}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                />
-                <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-              </div>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Clases por bono
-              </label>
+        <h2 className="mb-4 font-semibold text-gray-900">Precios de clase suelta</h2>
+        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase 1 hora (€)</label>
+            <div className="relative">
               <input
-                type="number"
-                min={1}
-                value={config.classes_per_pack}
-                onChange={(e) => setConfig({ ...config, classes_per_pack: Number(e.target.value) })}
+                type="number" min={0} step={0.5}
+                value={config.pay_per_class_price_60 / 100}
+                onChange={(e) => setConfig({ ...config, pay_per_class_price_60: Math.round(Number(e.target.value) * 100) })}
                 className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
               />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Precio del bono (€)
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={config.pack_price / 100}
-                  onChange={(e) => setConfig({ ...config, pack_price: Math.round(Number(e.target.value) * 100) })}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                />
-                <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-              </div>
+              <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
             </div>
           </div>
-          <p className="text-xs text-gray-400">
-            Precio por clase en bono: {config.classes_per_pack > 0 ? ((config.pack_price / config.classes_per_pack) / 100).toFixed(2) : '0.00'} € (ahorro del {config.pay_per_class_price > 0 ? Math.round((1 - config.pack_price / config.classes_per_pack / config.pay_per_class_price) * 100) : 0}%)
-          </p>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase 1h 30 min (€)</label>
+            <div className="relative">
+              <input
+                type="number" min={0} step={0.5}
+                value={config.pay_per_class_price_90 / 100}
+                onChange={(e) => setConfig({ ...config, pay_per_class_price_90: Math.round(Number(e.target.value) * 100) })}
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
+              <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+            </div>
+          </div>
         </div>
+
+        <h2 className="mb-4 font-semibold text-gray-900">Bono de clases</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
+            <input
+              type="number" min={1}
+              value={config.classes_per_pack}
+              onChange={(e) => setConfig({ ...config, classes_per_pack: Number(e.target.value) })}
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
+            <div className="relative">
+              <input
+                type="number" min={0} step={0.5}
+                value={config.pack_price / 100}
+                onChange={(e) => setConfig({ ...config, pack_price: Math.round(Number(e.target.value) * 100) })}
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
+              <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+            </div>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-gray-400">
+          Precio por clase en bono: {config.classes_per_pack > 0 ? ((config.pack_price / config.classes_per_pack) / 100).toFixed(2) : '0.00'} €
+        </p>
       </div>
 
       <button

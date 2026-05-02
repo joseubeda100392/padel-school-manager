@@ -13,7 +13,7 @@ export default function NewSchedulePage() {
     level_id: '',
     date: '',
     start_time: '09:00',
-    end_time: '10:00',
+    duration: 60,
     recurrence: 'weekly',
     max_students: 4,
   })
@@ -51,13 +51,7 @@ export default function NewSchedulePage() {
     setError('')
 
     const startDateTime = new Date(`${form.date}T${form.start_time}:00`)
-    const endDateTime = new Date(`${form.date}T${form.end_time}:00`)
-
-    if (endDateTime <= startDateTime) {
-      setError('La hora de fin debe ser posterior a la de inicio')
-      setLoading(false)
-      return
-    }
+    const endDateTime = new Date(startDateTime.getTime() + form.duration * 60 * 1000)
 
     const supabase = createClient()
     const { error: err } = await supabase.from('schedules').insert({
@@ -163,13 +157,15 @@ export default function NewSchedulePage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Hora fin *</label>
-            <input
-              type="time"
-              value={form.end_time}
-              onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Duración</label>
+            <select
+              value={form.duration}
+              onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}
               className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            />
+            >
+              <option value={60}>1 hora</option>
+              <option value={90}>1 hora 30 min</option>
+            </select>
           </div>
         </div>
 

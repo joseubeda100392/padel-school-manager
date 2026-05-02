@@ -60,6 +60,7 @@ export default async function ClubsPage() {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Usuarios</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alta</th>
+              <th className="px-6 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -86,6 +87,12 @@ export default async function ClubsPage() {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">{formatDate(club.created_at)}</td>
+                <td className="px-6 py-4">
+                  <a href={`/dashboard/clubs/${club.id}/edit`}
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                    Editar
+                  </a>
+                </td>
               </tr>
             ))}
           </tbody>

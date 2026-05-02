@@ -9,7 +9,6 @@ import {
   getRedsysUrl,
 } from '@/lib/redsys'
 
-// Tipo de pago: clase suelta o bono de clases
 type PaymentType = 'single_class' | 'class_pack'
 
 export async function POST(req: NextRequest) {
@@ -23,16 +22,38 @@ export async function POST(req: NextRequest) {
 
   const { type, scheduleId }: { type: PaymentType; scheduleId?: string } = await req.json()
 
-  // Obtener precio desde app_config
   const { data: configs } = await adminSupabase
     .from('app_config')
     .select('key, value')
-    .in('key', ['pay_per_class_price', 'pack_price', 'classes_per_pack'])
+    .in('key', ['pay_per_class_price_60', 'pay_per_class_price_90', 'pack_price', 'classes_per_pack'])
 
   const cfg = Object.fromEntries((configs ?? []).map((c: any) => [c.key, c.value]))
-  const amount = type === 'single_class'
-    ? parseInt(cfg.pay_per_class_price ?? '1200')
-    : parseInt(cfg.pack_price ?? '9000')
+
+  let amount: number
+  let productDesc: string
+
+  if (type === 'single_class') {
+    // Determinar duración de la clase para usar el precio correcto
+    let durationMin = 60
+    if (scheduleId) {
+      const { data: schedule } = await adminSupabase
+        .from('schedules')
+        .select('start_time, end_time')
+        .eq('id', scheduleId)
+        .single()
+      if (schedule) {
+        durationMin = Math.round(
+          (new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000
+        )
+      }
+    }
+    const priceKey = durationMin >= 80 ? 'pay_per_class_price_90' : 'pay_per_class_price_60'
+    amount = parseInt(cfg[priceKey] ?? (durationMin >= 80 ? '1500' : '1200'))
+    productDesc = durationMin >= 80 ? 'Clase de pádel 1h 30min' : 'Clase de pádel 1h'
+  } else {
+    amount = parseInt(cfg.pack_price ?? '9000')
+    productDesc = 'Bono de clases de pádel'
+  }
 
   const orderId = generateOrderId()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://padel-school-manager-production.up.railway.app'
@@ -47,7 +68,7 @@ export async function POST(req: NextRequest) {
     DS_MERCHANT_MERCHANTURL: `${appUrl}/api/payments/webhook`,
     DS_MERCHANT_URLOK: `${appUrl}/pay/success`,
     DS_MERCHANT_URLKO: `${appUrl}/pay/error`,
-    DS_MERCHANT_PRODUCTDESCRIPTION: type === 'single_class' ? 'Clase de padel' : 'Bono de clases de padel',
+    DS_MERCHANT_PRODUCTDESCRIPTION: productDesc,
   })
 
   const signature = generateSignature(
@@ -56,7 +77,6 @@ export async function POST(req: NextRequest) {
     merchantParams,
   )
 
-  // Guardar pago pendiente en BD
   await adminSupabase.from('payments').insert({
     user_id: user.id,
     redsys_order_id: orderId,

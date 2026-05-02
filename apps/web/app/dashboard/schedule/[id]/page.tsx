@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
+import { ScheduleActions } from './schedule-actions'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -9,7 +10,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   const { data: schedule } = await supabase
     .from('schedules')
-    .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name, email)')
+    .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name, email), level:levels(name, color)')
     .eq('id', params.id)
     .single()
 
@@ -28,10 +29,13 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-6 flex items-center gap-3">
-        <a href="/dashboard/schedule" className="text-sm text-gray-500 hover:text-gray-700">← Horarios</a>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Detalle de clase</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <a href="/dashboard/schedule" className="text-sm text-gray-500 hover:text-gray-700">← Horarios</a>
+          <span className="text-gray-300">/</span>
+          <h1 className="text-2xl font-bold text-gray-900">Detalle de clase</h1>
+        </div>
+        <ScheduleActions scheduleId={params.id} />
       </div>
 
       {/* Info de la clase */}
