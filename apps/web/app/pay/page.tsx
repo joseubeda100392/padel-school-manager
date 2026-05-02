@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-export default function PayPage() {
+function PayForm() {
   const params = useSearchParams()
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -18,15 +18,23 @@ export default function PayPage() {
   }, [redsysUrl])
 
   return (
+    <form ref={formRef} action={redsysUrl} method="POST" className="hidden">
+      <input type="hidden" name="Ds_SignatureVersion" value="HMAC_SHA256_V1" />
+      <input type="hidden" name="Ds_MerchantParameters" value={merchantParameters} />
+      <input type="hidden" name="Ds_Signature" value={signature} />
+    </form>
+  )
+}
+
+export default function PayPage() {
+  return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="text-center">
         <div className="mb-4 text-4xl">💳</div>
         <p className="text-gray-600">Redirigiendo al pago seguro...</p>
-        <form ref={formRef} action={redsysUrl} method="POST" className="hidden">
-          <input type="hidden" name="Ds_SignatureVersion" value="HMAC_SHA256_V1" />
-          <input type="hidden" name="Ds_MerchantParameters" value={merchantParameters} />
-          <input type="hidden" name="Ds_Signature" value={signature} />
-        </form>
+        <Suspense>
+          <PayForm />
+        </Suspense>
       </div>
     </div>
   )
