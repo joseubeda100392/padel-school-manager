@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { notFound } from 'next/navigation'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatCurrency } from '@/lib/utils'
 import { StudentLevelForm } from './student-level-form'
 import { BagAdjustForm } from './bag-adjust-form'
 
@@ -9,6 +9,27 @@ const roleLabel: Record<string, string> = {
   student: 'Alumno',
   coach: 'Monitor',
   admin: 'Admin',
+}
+
+const statusBadge: Record<string, string> = {
+  succeeded: 'bg-green-100 text-green-700',
+  pending: 'bg-yellow-100 text-yellow-700',
+  failed: 'bg-red-100 text-red-700',
+  refunded: 'bg-gray-100 text-gray-500',
+}
+
+const statusLabel: Record<string, string> = {
+  succeeded: 'Cobrado',
+  pending: 'Pendiente',
+  failed: 'Fallido',
+  refunded: 'Reembolsado',
+}
+
+const typeLabel: Record<string, string> = {
+  subscription: 'Suscripción',
+  pay_per_class: 'Clase suelta',
+  bag_pack: 'Bono de clases',
+  manual: 'Manual',
 }
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
@@ -21,6 +42,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: bag },
     { data: levelHistory },
     { data: bagHistory },
+    { data: payments },
   ] = await Promise.all([
     supabase
       .from('users')
@@ -42,17 +64,26 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .select('id, delta, reason, created_at')
       .eq('user_id', params.id)
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(10),
+    supabase
+      .from('payments')
+      .select('id, amount, type, status, currency, created_at')
+      .eq('user_id', params.id)
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
 
   if (!student) notFound()
 
-  // Verificar que el alumno pertenece al club del admin
   if (clubId && (student as any).club_id && (student as any).club_id !== clubId) notFound()
+
+  const totalPagado = (payments ?? [])
+    .filter((p: any) => p.status === 'succeeded')
+    .reduce((acc: number, p: any) => acc + p.amount, 0)
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <a href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">
           ← Alumnos
         </a>
@@ -63,12 +94,13 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </span>
       </div>
 
+      {/* Info básica */}
       <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-4 font-semibold text-gray-900">Información</h2>
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
             <dt className="text-xs font-medium uppercase text-gray-500">Email</dt>
-            <dd className="mt-1 text-sm text-gray-900">{student.email}</dd>
+            <dd className="mt-1 break-all text-sm text-gray-900">{student.email}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium uppercase text-gray-500">Rol</dt>
@@ -85,6 +117,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </dl>
       </div>
 
+      {/* Nivel + Bolsa */}
       <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Nivel de juego</h2>
@@ -127,6 +160,49 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       </div>
 
+      {/* Historial de pagos */}
+      <div className="mb-6 rounded-xl bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <h2 className="font-semibold text-gray-900">Historial de pagos</h2>
+          {totalPagado > 0 && (
+            <span className="text-sm font-semibold text-green-700">
+              Total: {formatCurrency(totalPagado)}
+            </span>
+          )}
+        </div>
+        {!payments?.length ? (
+          <p className="px-6 py-8 text-center text-sm text-gray-400">Sin pagos registrados.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[400px]">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Tipo</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {payments.map((p: any) => (
+                  <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-3 text-sm text-gray-700">{typeLabel[p.type] ?? p.type ?? '—'}</td>
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-900">{formatCurrency(p.amount, p.currency ?? 'EUR')}</td>
+                    <td className="px-6 py-3">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                        {statusLabel[p.status] ?? p.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-sm text-gray-500">{formatDate(p.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Historial de niveles */}
       {levelHistory && levelHistory.length > 0 && (
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Historial de niveles</h2>
