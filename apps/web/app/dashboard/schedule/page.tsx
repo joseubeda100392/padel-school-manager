@@ -1,20 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubId } from '@/lib/get-club'
 import ScheduleTable from './schedule-table'
 
 export default async function SchedulePage() {
   const supabase = createClient()
+  const clubId = await getClubId()
 
-  const { data: schedules } = await supabase
+  const schedulesQuery = supabase
     .from('schedules')
     .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name)')
     .order('start_time', { ascending: true })
     .limit(100)
 
-  const { data: courts } = await supabase
+  const courtsQuery = supabase
     .from('courts')
     .select('id, name')
     .eq('is_active', true)
     .order('name')
+
+  const [{ data: schedules }, { data: courts }] = await Promise.all([
+    clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
+    clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
+  ])
 
   return (
     <div>

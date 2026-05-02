@@ -1,8 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubId } from '@/lib/get-club'
 import { formatCurrency } from '@/lib/utils'
 
 export default async function AnalyticsPage() {
   const supabase = createClient()
+  const clubId = await getClubId()
+
+  const filter = (q: any) => clubId ? q.eq('club_id', clubId) : q
 
   const [
     { count: totalStudents },
@@ -11,14 +15,11 @@ export default async function AnalyticsPage() {
     { data: levels },
     { data: bagStats },
   ] = await Promise.all([
-    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true),
-    supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true),
-    supabase.from('payments').select('amount, type, status, currency').eq('status', 'succeeded'),
-    supabase
-      .from('levels')
-      .select('id, name, color, users(count)')
-      .order('order'),
-    supabase.from('class_bag').select('balance'),
+    filter(supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
+    filter(supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true)),
+    filter(supabase.from('payments').select('amount, type, status, currency').eq('status', 'succeeded')),
+    filter(supabase.from('levels').select('id, name, color, users(count)')).order('order'),
+    filter(supabase.from('class_bag').select('balance')),
   ])
 
   const totalRevenue = payments?.reduce((acc, p: any) => acc + p.amount, 0) ?? 0
