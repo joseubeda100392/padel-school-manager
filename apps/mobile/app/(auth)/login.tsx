@@ -14,7 +14,7 @@ import {
 import { router } from 'expo-router'
 import { createClient } from '@/lib/supabase'
 
-type Step = 'club' | 'login' | 'register'
+type Step = 'club' | 'login' | 'register' | 'forgot'
 
 interface Club {
   id: string
@@ -42,6 +42,11 @@ export default function LoginScreen() {
   const [regPassword, setRegPassword] = useState('')
   const [regPassword2, setRegPassword2] = useState('')
   const [registering, setRegistering] = useState(false)
+
+  // Recuperar contraseña
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSent, setForgotSent] = useState(false)
+  const [forgotLoading, setForgotLoading] = useState(false)
 
   const supabase = createClient()
 
@@ -77,6 +82,25 @@ export default function LoginScreen() {
     setRegEmail('')
     setRegPassword('')
     setRegPassword2('')
+    setForgotEmail('')
+    setForgotSent(false)
+  }
+
+  async function handleForgotPassword() {
+    if (!forgotEmail.trim()) {
+      Alert.alert('Error', 'Introduce tu email')
+      return
+    }
+    setForgotLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim().toLowerCase(), {
+      redirectTo: 'padelschool://reset-password',
+    })
+    setForgotLoading(false)
+    if (error) {
+      Alert.alert('Error', error.message)
+    } else {
+      setForgotSent(true)
+    }
   }
 
   async function handleLogin() {
@@ -275,6 +299,60 @@ export default function LoginScreen() {
                 <Text className="font-semibold text-green-600">Regístrate</Text>
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { setForgotEmail(email); setStep('forgot') }} className="mt-1">
+              <Text className="text-center text-sm text-gray-400">¿Olvidaste tu contraseña?</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Paso: Recuperar contraseña */}
+        {step === 'forgot' && (
+          <View className="gap-4">
+            <TouchableOpacity onPress={() => setStep('login')} className="mb-2">
+              <Text className="text-sm text-green-600">← Volver al login</Text>
+            </TouchableOpacity>
+
+            <Text className="text-center text-lg font-bold text-gray-900">Recuperar contraseña</Text>
+
+            {forgotSent ? (
+              <View className="items-center gap-3 rounded-xl bg-green-50 p-6">
+                <Text className="text-4xl">📧</Text>
+                <Text className="text-center font-semibold text-green-800">
+                  ¡Email enviado!
+                </Text>
+                <Text className="text-center text-sm text-green-700">
+                  Revisa tu bandeja de entrada y sigue el enlace para crear una nueva contraseña.
+                </Text>
+                <TouchableOpacity onPress={() => setStep('login')} className="mt-2">
+                  <Text className="text-sm font-semibold text-green-600">Volver al login</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <Text className="text-center text-sm text-gray-500">
+                  Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
+                </Text>
+                <TextInput
+                  className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900"
+                  placeholder="Email"
+                  value={forgotEmail}
+                  onChangeText={setForgotEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                />
+                <TouchableOpacity
+                  className={`mt-2 rounded-xl py-4 ${forgotLoading ? 'bg-green-400' : 'bg-green-600'}`}
+                  onPress={handleForgotPassword}
+                  disabled={forgotLoading}
+                >
+                  <Text className="text-center font-semibold text-white">
+                    {forgotLoading ? 'Enviando...' : 'Enviar enlace'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         )}
 
