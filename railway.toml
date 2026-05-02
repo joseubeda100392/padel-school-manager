@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npx pnpm@9 install --frozen-lockfile && npx pnpm@9 --filter web build"
+buildCommand = "npm install -g pnpm@9 && pnpm install --no-frozen-lockfile && pnpm --filter web build"
 
 [deploy]
 startCommand = "node apps/web/.next/standalone/server.js"
