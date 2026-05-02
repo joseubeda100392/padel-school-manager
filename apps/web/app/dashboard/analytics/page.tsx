@@ -22,7 +22,7 @@ export default async function AnalyticsPage() {
     filter(supabase.from('class_bag').select('balance')),
   ])
 
-  const totalRevenue = payments?.reduce((acc, p: any) => acc + p.amount, 0) ?? 0
+  const totalRevenue = payments?.reduce((acc: number, p: any) => acc + p.amount, 0) ?? 0
   const revenueByType = (payments ?? []).reduce((acc: Record<string, number>, p: any) => {
     acc[p.type] = (acc[p.type] ?? 0) + p.amount
     return acc
