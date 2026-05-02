@@ -1,13 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubId } from '@/lib/get-club'
 import { ChatWindow } from './chat-window'
 
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
+  const clubId = await getClubId()
 
-  const { data: threads } = await supabase
+  const threadQuery = supabase
     .from('chat_threads')
     .select('*, user:users(name, email), lastMessage:chat_messages(content, created_at)')
     .order('created_at', { ascending: false })
+
+  const { data: threads } = await (clubId ? threadQuery.eq('club_id', clubId) : threadQuery)
 
   const activeThreadId = searchParams.thread ?? threads?.[0]?.id ?? null
 

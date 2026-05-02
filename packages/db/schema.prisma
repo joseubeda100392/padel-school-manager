@@ -12,6 +12,47 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────
+// CLUBES (tabla maestra multi-tenant)
+// ─────────────────────────────────────────────
+
+enum ClubPlan {
+  trial
+  basic
+  pro
+}
+
+model Club {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  plan      ClubPlan @default(trial)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Config pagos (Redsys)
+  redsysMerchantCode   String?
+  redsysMerchantKey    String?
+  redsysMerchantTerminal String?
+
+  // Relaciones
+  users        User[]
+  levels       Level[]
+  courts       Court[]
+  schedules    Schedule[]
+  bookings     Booking[]
+  classBags    ClassBag[]
+  bagTransactions BagTransaction[]
+  payments     Payment[]
+  chatThreads  ChatThread[]
+  materials    Material[]
+  notifications Notification[]
+
+  @@map("clubs")
+}
+
+// ─────────────────────────────────────────────
 // USUARIOS Y AUTENTICACIÓN
 // ─────────────────────────────────────────────
 
@@ -19,6 +60,7 @@ enum UserRole {
   student
   coach
   admin
+  super_admin
 }
 
 model User {
@@ -28,10 +70,13 @@ model User {
   name             String
   avatarUrl        String?
   phone            String?
-  stripeCustomerId String?  @unique
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  // Multi-tenant
+  clubId           String?
+  club             Club?            @relation(fields: [clubId], references: [id])
 
   // Relaciones
   currentLevelId   String?
@@ -56,17 +101,22 @@ model User {
 
 model Level {
   id          String   @id @default(uuid())
-  name        String   @unique
+  name        String
   description String?
   color       String   @default("#6366f1")
   order       Int      @default(0)
   createdAt   DateTime @default(now())
+
+  // Multi-tenant
+  clubId      String?
+  club        Club?   @relation(fields: [clubId], references: [id])
 
   // Relaciones
   usersWithThisLevel User[]      @relation("CurrentLevel")
   userHistory        UserLevel[]
   materials          MaterialLevel[]
 
+  @@unique([clubId, name])
   @@map("levels")
 }
 
@@ -101,6 +151,10 @@ model Court {
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
 
+  // Multi-tenant
+  clubId    String?
+  club      Club?   @relation(fields: [clubId], references: [id])
+
   schedules Schedule[]
 
   @@map("courts")
@@ -122,6 +176,10 @@ model Schedule {
   maxStudents Int            @default(4)
   isActive    Boolean        @default(true)
   createdAt   DateTime       @default(now())
+
+  // Multi-tenant
+  clubId      String?
+  club        Club?   @relation(fields: [clubId], references: [id])
 
   court    Court     @relation(fields: [courtId], references: [id])
   coach    User      @relation("CoachSchedules", fields: [coachId], references: [id])
@@ -157,6 +215,10 @@ model Booking {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
+  // Multi-tenant
+  clubId     String?
+  club       Club?   @relation(fields: [clubId], references: [id])
+
   schedule        Schedule         @relation(fields: [scheduleId], references: [id])
   student         User             @relation(fields: [studentId], references: [id])
   bagTransaction  BagTransaction?
@@ -176,6 +238,10 @@ model ClassBag {
   balance   Int      @default(0)
   updatedAt DateTime @updatedAt
 
+  // Multi-tenant
+  clubId    String?
+  club      Club?   @relation(fields: [clubId], references: [id])
+
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   bagTransactions BagTransaction[]
 
@@ -188,24 +254,28 @@ enum BagTransactionType {
 }
 
 model BagTransaction {
-  id        String             @id @default(uuid())
-  userId    String
+  id         String             @id @default(uuid())
+  userId     String
   classBagId String
-  delta     Int
-  type      BagTransactionType
-  reason    String
-  bookingId String?            @unique
-  createdAt DateTime           @default(now())
+  delta      Int
+  type       BagTransactionType
+  reason     String
+  bookingId  String?            @unique
+  createdAt  DateTime           @default(now())
 
-  user      User      @relation(fields: [userId], references: [id])
-  classBag  ClassBag  @relation(fields: [classBagId], references: [id])
-  booking   Booking?  @relation(fields: [bookingId], references: [id])
+  // Multi-tenant
+  clubId     String?
+  club       Club?   @relation(fields: [clubId], references: [id])
+
+  user     User     @relation(fields: [userId], references: [id])
+  classBag ClassBag @relation(fields: [classBagId], references: [id])
+  booking  Booking? @relation(fields: [bookingId], references: [id])
 
   @@map("bag_transactions")
 }
 
 // ─────────────────────────────────────────────
-// PAGOS (STRIPE)
+// PAGOS (REDSYS / STRIPE)
 // ─────────────────────────────────────────────
 
 enum PaymentType {
@@ -222,18 +292,23 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id                   String        @id @default(uuid())
-  userId               String
-  bookingId            String?       @unique
-  stripePaymentIntentId String?      @unique
-  stripeSubscriptionId  String?      @unique
-  amount               Int
-  currency             String        @default("eur")
-  type                 PaymentType
-  status               PaymentStatus @default(pending)
-  metadata             Json?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  id                    String        @id @default(uuid())
+  userId                String
+  bookingId             String?       @unique
+  stripePaymentIntentId String?       @unique
+  stripeSubscriptionId  String?       @unique
+  redsysOrderId         String?       @unique
+  amount                Int
+  currency              String        @default("eur")
+  type                  PaymentType
+  status                PaymentStatus @default(pending)
+  metadata              Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Multi-tenant
+  clubId                String?
+  club                  Club?   @relation(fields: [clubId], references: [id])
 
   user    User     @relation(fields: [userId], references: [id])
   booking Booking? @relation(fields: [bookingId], references: [id])
@@ -258,6 +333,10 @@ model ChatThread {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
+  // Multi-tenant
+  clubId    String?
+  club      Club?   @relation(fields: [clubId], references: [id])
+
   user     User          @relation(fields: [userId], references: [id])
   messages ChatMessage[]
 
@@ -265,12 +344,12 @@ model ChatThread {
 }
 
 model ChatMessage {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   threadId  String
   senderId  String
   content   String
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender User       @relation("SentMessages", fields: [senderId], references: [id])
@@ -292,6 +371,10 @@ model Material {
   isPublished Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Multi-tenant
+  clubId      String?
+  club        Club?   @relation(fields: [clubId], references: [id])
 
   uploader User            @relation(fields: [uploadedBy], references: [id])
   levels   MaterialLevel[]
@@ -333,6 +416,10 @@ model Notification {
   data      Json?
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
+
+  // Multi-tenant
+  clubId    String?
+  club      Club?   @relation(fields: [clubId], references: [id])
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

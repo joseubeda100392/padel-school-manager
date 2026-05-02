@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubId } from '@/lib/get-club'
 import { notFound } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
 import { StudentLevelForm } from './student-level-form'
@@ -12,6 +13,7 @@ const roleLabel: Record<string, string> = {
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
+  const clubId = await getClubId()
 
   const [
     { data: student },
@@ -25,7 +27,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .select('*, currentLevel:levels(id, name, color)')
       .eq('id', params.id)
       .single(),
-    supabase.from('levels').select('id, name, color').order('order'),
+    clubId
+      ? supabase.from('levels').select('id, name, color').eq('club_id', clubId).order('order')
+      : supabase.from('levels').select('id, name, color').order('order'),
     supabase.from('class_bag').select('balance').eq('user_id', params.id).single(),
     supabase
       .from('user_levels')
@@ -42,6 +46,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   ])
 
   if (!student) notFound()
+
+  // Verificar que el alumno pertenece al club del admin
+  if (clubId && (student as any).club_id && (student as any).club_id !== clubId) notFound()
 
   return (
     <div className="max-w-4xl">

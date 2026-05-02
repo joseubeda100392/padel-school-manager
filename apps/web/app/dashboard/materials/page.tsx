@@ -1,13 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubId } from '@/lib/get-club'
 import { formatDate } from '@/lib/utils'
 
 export default async function MaterialsPage() {
   const supabase = createClient()
+  const clubId = await getClubId()
 
-  const { data: materials } = await supabase
+  const query = supabase
     .from('materials')
     .select('*, material_levels(level:levels(name, color))')
     .order('created_at', { ascending: false })
+
+  const { data: materials } = await (clubId ? query.eq('club_id', clubId) : query)
 
   return (
     <div>

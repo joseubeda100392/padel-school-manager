@@ -4,9 +4,9 @@
     "slug": "padel-school-manager",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "scheme": "padelschool",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/images/icon.png",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
@@ -34,28 +34,26 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/notification-icon.png",
-          "color": "#16a34a"
-        }
-      ],
+      "expo-notifications",
       [
         "@stripe/stripe-react-native",
         {
           "merchantIdentifier": "merchant.com.padelschool.manager",
           "enableGooglePay": true
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
+    "newArchEnabled": true,
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "your-eas-project-id"
+        "projectId": "12deb875-4ef1-49e3-aef8-2855bee8da99"
       }
-    }
+    },
+    "owner": "joseubeda"
   }
 }

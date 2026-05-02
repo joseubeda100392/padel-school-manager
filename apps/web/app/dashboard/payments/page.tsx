@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubId } from '@/lib/get-club'
 import { formatDate, formatCurrency } from '@/lib/utils'
 
 const statusBadge: Record<string, string> = {
@@ -24,12 +25,15 @@ const typeLabel: Record<string, string> = {
 
 export default async function PaymentsPage() {
   const supabase = createClient()
+  const clubId = await getClubId()
 
-  const { data: payments } = await supabase
+  const query = supabase
     .from('payments')
     .select('*, user:users(name, email)')
     .order('created_at', { ascending: false })
     .limit(200)
+
+  const { data: payments } = await (clubId ? query.eq('club_id', clubId) : query)
 
   const total = payments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
   const pending = payments?.filter((p: any) => p.status === 'pending').length ?? 0

@@ -2,7 +2,8 @@
 // ENUMS
 // ─────────────────────────────────────────────
 
-export type UserRole = 'student' | 'coach' | 'admin'
+export type UserRole = 'student' | 'coach' | 'admin' | 'super_admin'
+export type ClubPlan = 'trial' | 'basic' | 'pro'
 export type CourtType = 'indoor' | 'outdoor' | 'covered'
 export type RecurrenceType = 'none' | 'weekly' | 'biweekly'
 export type BookingStatus = 'confirmed' | 'no_show' | 'cancelled' | 'pending'
@@ -21,6 +22,24 @@ export type NotificationType =
   | 'payment_failed'
 
 // ─────────────────────────────────────────────
+// CLUB (tabla maestra multi-tenant)
+// ─────────────────────────────────────────────
+
+export interface Club {
+  id: string
+  name: string
+  slug: string
+  logoUrl?: string | null
+  plan: ClubPlan
+  isActive: boolean
+  redsysMerchantCode?: string | null
+  redsysMerchantKey?: string | null
+  redsysMerchantTerminal?: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ─────────────────────────────────────────────
 // ENTIDADES BASE
 // ─────────────────────────────────────────────
 
@@ -31,8 +50,8 @@ export interface User {
   name: string
   avatarUrl?: string | null
   phone?: string | null
-  stripeCustomerId?: string | null
   isActive: boolean
+  clubId?: string | null
   currentLevelId?: string | null
   createdAt: Date
   updatedAt: Date
@@ -44,6 +63,7 @@ export interface Level {
   description?: string | null
   color: string
   order: number
+  clubId?: string | null
   createdAt: Date
 }
 
@@ -61,6 +81,7 @@ export interface Court {
   name: string
   type: CourtType
   isActive: boolean
+  clubId?: string | null
   createdAt: Date
 }
 
@@ -73,6 +94,7 @@ export interface Schedule {
   recurrence: RecurrenceType
   maxStudents: number
   isActive: boolean
+  clubId?: string | null
   createdAt: Date
 }
 
@@ -83,6 +105,7 @@ export interface Booking {
   status: BookingStatus
   source: BookingSource
   notes?: string | null
+  clubId?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -91,6 +114,7 @@ export interface ClassBag {
   id: string
   userId: string
   balance: number
+  clubId?: string | null
   updatedAt: Date
 }
 
@@ -102,6 +126,7 @@ export interface BagTransaction {
   type: BagTransactionType
   reason: string
   bookingId?: string | null
+  clubId?: string | null
   createdAt: Date
 }
 
@@ -111,11 +136,13 @@ export interface Payment {
   bookingId?: string | null
   stripePaymentIntentId?: string | null
   stripeSubscriptionId?: string | null
+  redsysOrderId?: string | null
   amount: number
   currency: string
   type: PaymentType
   status: PaymentStatus
   metadata?: Record<string, unknown> | null
+  clubId?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -125,6 +152,7 @@ export interface ChatThread {
   userId: string
   status: ThreadStatus
   subject?: string | null
+  clubId?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -146,6 +174,7 @@ export interface Material {
   fileSize?: number | null
   uploadedBy: string
   isPublished: boolean
+  clubId?: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -163,6 +192,7 @@ export interface Notification {
   body: string
   data?: Record<string, unknown> | null
   isRead: boolean
+  clubId?: string | null
   createdAt: Date
 }
 

@@ -14,22 +14,23 @@ export async function POST(req: NextRequest) {
 
   const { data: caller } = await adminSupabase
     .from('users')
-    .select('role')
+    .select('role, club_id')
     .eq('id', user.id)
     .single()
 
-  if (caller?.role !== 'admin') {
+  if (caller?.role !== 'admin' && caller?.role !== 'super_admin') {
     return NextResponse.json({ error: 'Solo los administradores pueden crear usuarios' }, { status: 403 })
   }
 
   const { email, name, role, levelId, tempPassword } = await req.json()
+  const clubId = caller.club_id
 
   // Crear usuario en Supabase Auth
   const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
     email,
     password: tempPassword,
     email_confirm: true,
-    user_metadata: { name, role },
+    user_metadata: { name, role, club_id: clubId },
   })
 
   if (authError) {
@@ -42,24 +43,23 @@ export async function POST(req: NextRequest) {
     email,
     name,
     role,
+    club_id: clubId,
     current_level_id: levelId || null,
   })
 
   if (dbError) {
-    // Limpiar usuario de Auth si falla la BD
     await adminSupabase.auth.admin.deleteUser(authData.user.id)
     return NextResponse.json({ error: dbError.message }, { status: 400 })
   }
 
-  // Crear bolsa de clases vacía para alumnos siempre
   if (role === 'student') {
     await adminSupabase.from('class_bag').insert({
       user_id: authData.user.id,
+      club_id: clubId,
       balance: 0,
     })
   }
 
-  // Guardar nivel inicial en historial si se asignó
   if (levelId) {
     await adminSupabase.from('user_levels').insert({
       user_id: authData.user.id,

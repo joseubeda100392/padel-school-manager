@@ -1,20 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
+import { getClubId } from '@/lib/get-club'
 import { LevelCard } from '@/components/levels/level-card'
 
 export default async function LevelsPage() {
   const supabase = createClient()
+  const clubId = await getClubId()
 
-  const { data: levels } = await supabase
-    .from('levels')
-    .select('*')
-    .order('order', { ascending: true })
+  const buildQuery = (query: any) => clubId ? query.eq('club_id', clubId) : query
 
-  // Contar alumnos por nivel
-  const { data: counts } = await supabase
-    .from('users')
-    .select('current_level_id')
-    .eq('role', 'student')
-    .not('current_level_id', 'is', null)
+  const { data: levels } = await buildQuery(
+    supabase.from('levels').select('*')
+  ).order('order', { ascending: true })
+
+  const { data: counts } = await buildQuery(
+    supabase
+      .from('users')
+      .select('current_level_id')
+      .eq('role', 'student')
+      .not('current_level_id', 'is', null)
+  )
 
   const countMap: Record<string, number> = {}
   counts?.forEach((u: any) => {
