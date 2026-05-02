@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { constructWebhookEvent } from '@padel/stripe'
 import { prisma } from '@padel/db'
