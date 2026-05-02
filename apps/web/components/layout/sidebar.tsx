@@ -27,16 +27,19 @@ const navItems = [
   { href: '/dashboard/settings', label: 'Configuración', icon: Settings },
 ]
 
-export function Sidebar() {
+export function Sidebar({ clubName }: { clubName?: string }) {
   const pathname = usePathname()
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
       <div className="flex items-center gap-3 border-b border-gray-200 p-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-600">
           <span className="text-sm font-bold text-white">P</span>
         </div>
-        <span className="font-semibold text-gray-900">Padel Manager</span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-gray-900">{clubName ?? 'Padel Manager'}</p>
+          {clubName && <p className="text-xs text-gray-400">Panel admin</p>}
+        </div>
       </div>
 
       <nav className="flex-1 space-y-1 p-4">
