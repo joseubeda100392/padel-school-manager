@@ -71,12 +71,13 @@ export default async function AnalyticsPage() {
           )}
           <div className="space-y-3">
             {Object.entries(revenueByType).map(([type, amount]) => {
-              const pct = totalRevenue > 0 ? Math.round((amount / totalRevenue) * 100) : 0
+              const amt = amount as number
+              const pct = totalRevenue > 0 ? Math.round((amt / totalRevenue) * 100) : 0
               return (
                 <div key={type}>
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span className="text-gray-700">{typeLabel[type] ?? type}</span>
-                    <span className="font-medium text-gray-900">{formatCurrency(amount as number)}</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(amt)}</span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
                     <div className="h-full rounded-full bg-green-500" style={{ width: `${pct}%` }} />
