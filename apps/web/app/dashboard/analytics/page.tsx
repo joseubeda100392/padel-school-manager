@@ -28,7 +28,7 @@ export default async function AnalyticsPage() {
     return acc
   }, {})
 
-  const totalBagClasses = bagStats?.reduce((acc, b: any) => acc + (b.balance ?? 0), 0) ?? 0
+  const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance ?? 0), 0) ?? 0
 
   const typeLabel: Record<string, string> = {
     subscription: 'Suscripción',
