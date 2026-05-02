@@ -8,7 +8,7 @@ export default async function SchedulePage() {
 
   const schedulesQuery = supabase
     .from('schedules')
-    .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name)')
+    .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name), level:levels(name, color)')
     .order('start_time', { ascending: true })
     .limit(100)
 

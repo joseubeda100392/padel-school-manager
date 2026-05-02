@@ -6,9 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 export default function NewSchedulePage() {
   const [courts, setCourts] = useState<any[]>([])
   const [coaches, setCoaches] = useState<any[]>([])
+  const [levels, setLevels] = useState<any[]>([])
   const [form, setForm] = useState({
     court_id: '',
     coach_id: '',
+    level_id: '',
     date: '',
     start_time: '09:00',
     end_time: '10:00',
@@ -17,7 +19,6 @@ export default function NewSchedulePage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
   const [clubId, setClubId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,12 +28,15 @@ export default function NewSchedulePage() {
       setClubId(cid)
       const courtsQ = supabase.from('courts').select('id, name').eq('is_active', true).order('name')
       const coachesQ = supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name')
+      const levelsQ = supabase.from('levels').select('id, name, color').order('order')
       Promise.all([
         cid ? courtsQ.eq('club_id', cid) : courtsQ,
         cid ? coachesQ.eq('club_id', cid) : coachesQ,
-      ]).then(([{ data: c }, { data: u }]) => {
+        cid ? levelsQ.eq('club_id', cid) : levelsQ,
+      ]).then(([{ data: c }, { data: u }, { data: l }]) => {
         if (c) setCourts(c)
         if (u) setCoaches(u)
+        if (l) setLevels(l)
       })
     })
   }, [])
@@ -59,6 +63,7 @@ export default function NewSchedulePage() {
     const { error: err } = await supabase.from('schedules').insert({
       court_id: form.court_id,
       coach_id: form.coach_id,
+      level_id: form.level_id || null,
       start_time: startDateTime.toISOString(),
       end_time: endDateTime.toISOString(),
       recurrence: form.recurrence,
@@ -119,6 +124,21 @@ export default function NewSchedulePage() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nivel requerido</label>
+          <select
+            value={form.level_id}
+            onChange={(e) => setForm({ ...form, level_id: e.target.value })}
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+          >
+            <option value="">Abierto a todos los niveles</option>
+            {levels.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-400">Solo verán esta clase los alumnos con ese nivel asignado.</p>
         </div>
 
         <div>
