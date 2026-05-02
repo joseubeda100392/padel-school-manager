@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
-  transpilePackages: ['@padel/db', '@padel/types', '@padel/stripe'],
+transpilePackages: ['@padel/db', '@padel/types', '@padel/stripe'],
   images: {
     remotePatterns: [
       {
