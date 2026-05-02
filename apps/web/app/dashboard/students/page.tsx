@@ -20,7 +20,7 @@ export default async function StudentsPage() {
 
   let studentsQuery = supabase
     .from('users')
-    .select('id, name, email, role, is_active, created_at, current_level_id')
+    .select('id, name, email, role, is_active, created_at, current_level_id, avatar_url')
     .order('created_at', { ascending: false })
 
   let levelsQuery = supabase.from('levels').select('id, name, color')
@@ -80,7 +80,14 @@ export default async function StudentsPage() {
               return (
                 <tr key={s.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
-                    <a href={`/dashboard/students/${s.id}`} className="font-medium text-gray-900 hover:text-green-600">
+                    <a href={`/dashboard/students/${s.id}`} className="flex items-center gap-3 font-medium text-gray-900 hover:text-green-600">
+                      {s.avatar_url ? (
+                        <img src={s.avatar_url} alt={s.name} className="h-8 w-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">
+                          {(s.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
+                        </div>
+                      )}
                       {s.name}
                     </a>
                   </td>
