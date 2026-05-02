@@ -35,9 +35,6 @@ export default async function StudentsPage() {
     levelsQuery,
   ])
 
-  // DEBUG temporal — borrar tras verificar
-  console.log('DEBUG clubId:', clubId, 'user:', user?.email, 'metadata:', JSON.stringify(user?.user_metadata))
-
   const levelMap = Object.fromEntries((levels ?? []).map((l: any) => [l.id, l]))
 
   return (
