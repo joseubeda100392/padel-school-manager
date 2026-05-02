@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Solo los administradores pueden crear usuarios' }, { status: 403 })
   }
 
-  const { email, name, role, levelId, tempPassword } = await req.json()
-  const clubId = caller.club_id
+  const { email, name, role, levelId, tempPassword, clubIdOverride } = await req.json()
+  const clubId = clubIdOverride ?? caller.club_id
 
   // Crear usuario en Supabase Auth
   const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({

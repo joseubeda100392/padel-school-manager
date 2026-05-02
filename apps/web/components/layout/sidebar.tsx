@@ -12,6 +12,7 @@ import {
   BarChart3,
   Settings,
   Trophy,
+  Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -27,8 +28,13 @@ const navItems = [
   { href: '/dashboard/settings', label: 'Configuración', icon: Settings },
 ]
 
-export function Sidebar({ clubName }: { clubName?: string }) {
+const superAdminItems = [
+  { href: '/dashboard/clubs', label: 'Clubes', icon: Building2 },
+]
+
+export function Sidebar({ clubName, role }: { clubName?: string; role?: string }) {
   const pathname = usePathname()
+  const isSuperAdmin = role === 'super_admin'
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
@@ -37,12 +43,38 @@ export function Sidebar({ clubName }: { clubName?: string }) {
           <span className="text-sm font-bold text-white">P</span>
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-gray-900">{clubName ?? 'Padel Manager'}</p>
-          {clubName && <p className="text-xs text-gray-400">Panel admin</p>}
+          <p className="truncate text-sm font-semibold text-gray-900">
+            {isSuperAdmin ? 'Super Admin' : (clubName ?? 'Padel Manager')}
+          </p>
+          <p className="text-xs text-gray-400">
+            {isSuperAdmin ? 'Todos los clubes' : 'Panel admin'}
+          </p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+        {isSuperAdmin && (
+          <>
+            <p className="mb-1 px-3 text-xs font-medium uppercase tracking-wide text-gray-400">Super Admin</p>
+            {superAdminItems.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  pathname.startsWith(href)
+                    ? 'bg-green-50 text-green-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {label}
+              </Link>
+            ))}
+            <div className="my-2 border-t border-gray-100" />
+            <p className="mb-1 px-3 text-xs font-medium uppercase tracking-wide text-gray-400">Panel</p>
+          </>
+        )}
         {navItems.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
