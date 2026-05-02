@@ -56,7 +56,8 @@ export default async function StudentsPage() {
       </div>
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px]">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nombre</th>
@@ -120,6 +121,7 @@ export default async function StudentsPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

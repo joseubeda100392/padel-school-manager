@@ -45,7 +45,7 @@ export default async function PaymentsPage() {
         <p className="text-sm text-gray-500">{payments?.length ?? 0} transacciones</p>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Total cobrado</p>
           <p className="mt-1 text-2xl font-bold text-gray-900">{formatCurrency(total)}</p>
@@ -61,7 +61,8 @@ export default async function PaymentsPage() {
       </div>
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[540px]">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alumno</th>
@@ -99,6 +100,7 @@ export default async function PaymentsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

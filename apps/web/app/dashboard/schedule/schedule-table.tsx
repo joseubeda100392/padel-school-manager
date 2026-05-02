@@ -17,7 +17,8 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
 
   return (
     <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-      <table className="w-full">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[500px]">
         <thead>
           <tr className="border-b border-gray-100 bg-gray-50">
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Día</th>
@@ -60,6 +61,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
