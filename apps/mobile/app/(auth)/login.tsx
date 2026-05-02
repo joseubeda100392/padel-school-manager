@@ -9,11 +9,12 @@ import {
   Platform,
   FlatList,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native'
 import { router } from 'expo-router'
 import { createClient } from '@/lib/supabase'
 
-type Step = 'club' | 'login'
+type Step = 'club' | 'login' | 'register'
 
 interface Club {
   id: string
@@ -21,15 +22,27 @@ interface Club {
   slug: string
 }
 
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://padel-school-manager-production.up.railway.app'
+
 export default function LoginScreen() {
   const [step, setStep] = useState<Step>('club')
   const [clubSearch, setClubSearch] = useState('')
   const [clubs, setClubs] = useState<Club[]>([])
   const [selectedClub, setSelectedClub] = useState<Club | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
+
+  // Login
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Registro
+  const [regName, setRegName] = useState('')
+  const [regEmail, setRegEmail] = useState('')
+  const [regPassword, setRegPassword] = useState('')
+  const [regPassword2, setRegPassword2] = useState('')
+  const [registering, setRegistering] = useState(false)
+
   const supabase = createClient()
 
   async function searchClubs(text: string) {
@@ -56,6 +69,16 @@ export default function LoginScreen() {
     setStep('login')
   }
 
+  function goBackToClub() {
+    setStep('club')
+    setEmail('')
+    setPassword('')
+    setRegName('')
+    setRegEmail('')
+    setRegPassword('')
+    setRegPassword2('')
+  }
+
   async function handleLogin() {
     if (!selectedClub) return
     setLoading(true)
@@ -68,7 +91,6 @@ export default function LoginScreen() {
       return
     }
 
-    // Verificar que el usuario pertenece al club seleccionado
     const { data: userData } = await supabase
       .from('users')
       .select('role, club_id')
@@ -92,12 +114,78 @@ export default function LoginScreen() {
     setLoading(false)
   }
 
+  async function handleRegister() {
+    if (!selectedClub) return
+
+    if (!regName.trim() || !regEmail.trim() || !regPassword) {
+      Alert.alert('Error', 'Rellena todos los campos')
+      return
+    }
+    if (regPassword !== regPassword2) {
+      Alert.alert('Error', 'Las contraseñas no coinciden')
+      return
+    }
+    if (regPassword.length < 6) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
+    setRegistering(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: regName.trim(),
+          email: regEmail.trim().toLowerCase(),
+          password: regPassword,
+          clubId: selectedClub.id,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) {
+        Alert.alert('Error al registrarse', json.error ?? 'Inténtalo de nuevo')
+        setRegistering(false)
+        return
+      }
+
+      // Login automático tras registro
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email: regEmail.trim().toLowerCase(),
+        password: regPassword,
+      })
+
+      if (error) {
+        Alert.alert('Cuenta creada', 'Ya puedes iniciar sesión con tu email y contraseña.')
+        setStep('login')
+        setEmail(regEmail.trim().toLowerCase())
+        setRegistering(false)
+        return
+      }
+
+      const role = data.user.user_metadata?.role
+      if (role === 'coach') {
+        router.replace('/(coach)/home')
+      } else {
+        router.replace('/(student)/home')
+      }
+    } catch {
+      Alert.alert('Error', 'No se pudo conectar. Comprueba tu conexión.')
+    }
+    setRegistering(false)
+  }
+
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-white"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View className="flex-1 justify-center px-6">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Logo */}
         <View className="mb-10 items-center">
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl bg-green-600">
@@ -112,51 +200,44 @@ export default function LoginScreen() {
         {/* Paso 1: Seleccionar club */}
         {step === 'club' && (
           <View className="gap-4">
-            <View>
-              <TextInput
-                className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900"
-                placeholder="Nombre del club..."
-                value={clubSearch}
-                onChangeText={searchClubs}
-                autoCapitalize="words"
-              />
-              {searchLoading && (
-                <ActivityIndicator className="mt-2" color="#16a34a" />
-              )}
-              {clubs.length > 0 && (
-                <View className="mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                  <FlatList
-                    data={clubs}
-                    keyExtractor={(c) => c.id}
-                    scrollEnabled={false}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        onPress={() => selectClub(item)}
-                        className="border-b border-gray-50 px-4 py-3"
-                      >
-                        <Text className="font-medium text-gray-900">{item.name}</Text>
-                        <Text className="text-xs text-gray-400">{item.slug}</Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                </View>
-              )}
-              {clubSearch.length >= 2 && clubs.length === 0 && !searchLoading && (
-                <Text className="mt-2 text-center text-sm text-gray-400">
-                  No se encontró ningún club
-                </Text>
-              )}
-            </View>
+            <TextInput
+              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900"
+              placeholder="Nombre del club..."
+              value={clubSearch}
+              onChangeText={searchClubs}
+              autoCapitalize="words"
+            />
+            {searchLoading && <ActivityIndicator className="mt-2" color="#16a34a" />}
+            {clubs.length > 0 && (
+              <View className="mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <FlatList
+                  data={clubs}
+                  keyExtractor={(c) => c.id}
+                  scrollEnabled={false}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      onPress={() => selectClub(item)}
+                      className="border-b border-gray-50 px-4 py-3"
+                    >
+                      <Text className="font-medium text-gray-900">{item.name}</Text>
+                      <Text className="text-xs text-gray-400">{item.slug}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            )}
+            {clubSearch.length >= 2 && clubs.length === 0 && !searchLoading && (
+              <Text className="mt-2 text-center text-sm text-gray-400">
+                No se encontró ningún club
+              </Text>
+            )}
           </View>
         )}
 
         {/* Paso 2: Login */}
         {step === 'login' && (
           <View className="gap-4">
-            <TouchableOpacity
-              onPress={() => { setStep('club'); setEmail(''); setPassword('') }}
-              className="mb-2"
-            >
+            <TouchableOpacity onPress={goBackToClub} className="mb-2">
               <Text className="text-sm text-green-600">← Cambiar club</Text>
             </TouchableOpacity>
 
@@ -184,12 +265,84 @@ export default function LoginScreen() {
               disabled={loading}
             >
               <Text className="text-center font-semibold text-white">
-                {loading ? 'Accediendo...' : 'Entrar'}
+                {loading ? 'Accediendo...' : 'Iniciar sesión'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setStep('register')} className="mt-2">
+              <Text className="text-center text-sm text-gray-500">
+                ¿No tienes cuenta?{' '}
+                <Text className="font-semibold text-green-600">Regístrate</Text>
               </Text>
             </TouchableOpacity>
           </View>
         )}
-      </View>
+
+        {/* Paso 3: Registro */}
+        {step === 'register' && (
+          <View className="gap-4">
+            <TouchableOpacity onPress={() => setStep('login')} className="mb-2">
+              <Text className="text-sm text-green-600">← Volver al login</Text>
+            </TouchableOpacity>
+
+            <Text className="text-center text-lg font-bold text-gray-900">Crear cuenta</Text>
+            <Text className="text-center text-sm text-gray-400">
+              Te unes a <Text className="font-medium text-gray-600">{selectedClub?.name}</Text>
+            </Text>
+
+            <TextInput
+              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900"
+              placeholder="Nombre completo"
+              value={regName}
+              onChangeText={setRegName}
+              autoCapitalize="words"
+              autoComplete="name"
+            />
+            <TextInput
+              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900"
+              placeholder="Email"
+              value={regEmail}
+              onChangeText={setRegEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+            <TextInput
+              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900"
+              placeholder="Contraseña (mín. 6 caracteres)"
+              value={regPassword}
+              onChangeText={setRegPassword}
+              secureTextEntry
+              autoComplete="new-password"
+            />
+            <TextInput
+              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900"
+              placeholder="Repetir contraseña"
+              value={regPassword2}
+              onChangeText={setRegPassword2}
+              secureTextEntry
+              autoComplete="new-password"
+            />
+
+            <TouchableOpacity
+              className={`mt-2 rounded-xl py-4 ${registering ? 'bg-green-400' : 'bg-green-600'}`}
+              onPress={handleRegister}
+              disabled={registering}
+            >
+              <Text className="text-center font-semibold text-white">
+                {registering ? 'Creando cuenta...' : 'Crear cuenta'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setStep('login')} className="mt-2">
+              <Text className="text-center text-sm text-gray-500">
+                ¿Ya tienes cuenta?{' '}
+                <Text className="font-semibold text-green-600">Inicia sesión</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
