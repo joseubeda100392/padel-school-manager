@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface AppConfig {
@@ -27,12 +27,25 @@ export default function SettingsPage() {
   const [addingCourt, setAddingCourt] = useState(false)
   const [courtError, setCourtError] = useState('')
 
+  const [profile, setProfile] = useState<{ id: string; name: string; email: string; avatar_url?: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     const supabase = createClient()
     Promise.all([
+      supabase.auth.getUser(),
       supabase.from('app_config').select('key, value'),
       supabase.from('courts').select('*').order('name'),
-    ]).then(([{ data: cfg }, { data: c }]) => {
+    ]).then(async ([{ data: { user } }, { data: cfg }, { data: c }]) => {
+      if (user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('name, email, avatar_url')
+          .eq('id', user.id)
+          .single()
+        if (userData) setProfile({ id: user.id, ...userData })
+      }
       if (cfg) {
         const merged = { ...defaults }
         cfg.forEach((row: any) => {
@@ -47,6 +60,32 @@ export default function SettingsPage() {
       setLoading(false)
     })
   }, [])
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !profile) return
+
+    setUploading(true)
+    try {
+      const supabase = createClient()
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(`${profile.id}/avatar.jpg`, file, { upsert: true, contentType: file.type })
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(`${profile.id}/avatar.jpg`)
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`
+
+      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id)
+      setProfile((prev) => prev ? { ...prev, avatar_url: publicUrl } : prev)
+    } catch (err: any) {
+      alert('Error al subir la foto: ' + (err.message ?? err))
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   async function saveConfig() {
     setSaving(true)
@@ -88,11 +127,59 @@ export default function SettingsPage() {
 
   if (loading) return <div className="text-gray-400">Cargando...</div>
 
+  const initials = (profile?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
         <p className="text-sm text-gray-500">Ajustes generales de la escuela</p>
+      </div>
+
+      {/* Sección foto de perfil */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-4 font-semibold text-gray-900">Mi perfil</h2>
+        <div className="flex items-center gap-5">
+          <div className="relative shrink-0">
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={profile.name}
+                className="h-20 w-20 rounded-full object-cover ring-2 ring-green-500"
+              />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 ring-2 ring-green-500">
+                <span className="text-2xl font-bold text-green-700">{initials}</span>
+              </div>
+            )}
+            {uploading && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                <svg className="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">{profile?.name}</p>
+            <p className="mb-3 text-sm text-gray-400">{profile?.email}</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            >
+              {uploading ? 'Subiendo...' : 'Cambiar foto'}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
