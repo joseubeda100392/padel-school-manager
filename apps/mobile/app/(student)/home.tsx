@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { createClient } from '@/lib/supabase'
+import { registerPushToken } from '@/lib/push-token'
 
 export default function StudentHomeScreen() {
   const [user, setUser] = useState<any>(null)
@@ -35,6 +36,7 @@ export default function StudentHomeScreen() {
     setBag(bagData?.balance ?? 0)
     setNextClass(schedules?.[0] ?? null)
     setLoading(false)
+    registerPushToken(authUser.id)
   }
 
   async function handleLogout() {

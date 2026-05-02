@@ -13,6 +13,7 @@ import {
   Settings,
   Trophy,
   Building2,
+  Bell,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/dashboard/chat', label: 'Chat Soporte', icon: MessageSquare },
   { href: '/dashboard/materials', label: 'Materiales', icon: BookOpen },
   { href: '/dashboard/analytics', label: 'Estadísticas', icon: BarChart3 },
+  { href: '/dashboard/notifications', label: 'Notificaciones', icon: Bell },
   { href: '/dashboard/settings', label: 'Configuración', icon: Settings },
 ]
 
