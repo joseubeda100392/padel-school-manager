@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { getClubId } from '@/lib/get-club'
 import { formatDate } from '@/lib/utils'
 
 const roleLabel: Record<string, string> = {
@@ -16,17 +15,24 @@ const roleBadge: Record<string, string> = {
 
 export default async function StudentsPage() {
   const supabase = createClient()
-  const clubId = await getClubId()
+  const { data: { user } } = await supabase.auth.getUser()
+  const clubId = user?.user_metadata?.club_id as string | null ?? null
 
-  const buildQuery = (query: any) => clubId ? query.eq('club_id', clubId) : query
+  let studentsQuery = supabase
+    .from('users')
+    .select('id, name, email, role, is_active, created_at, current_level_id')
+    .order('created_at', { ascending: false })
+
+  let levelsQuery = supabase.from('levels').select('id, name, color')
+
+  if (clubId) {
+    studentsQuery = studentsQuery.eq('club_id', clubId)
+    levelsQuery = levelsQuery.eq('club_id', clubId)
+  }
 
   const [{ data: students, error }, { data: levels }] = await Promise.all([
-    buildQuery(
-      supabase
-        .from('users')
-        .select('id, name, email, role, is_active, created_at, current_level_id')
-    ).order('created_at', { ascending: false }),
-    buildQuery(supabase.from('levels').select('id, name, color')),
+    studentsQuery,
+    levelsQuery,
   ])
 
   const levelMap = Object.fromEntries((levels ?? []).map((l: any) => [l.id, l]))
