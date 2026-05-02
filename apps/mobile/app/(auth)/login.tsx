@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -26,10 +26,9 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://padel-school-manage
 
 export default function LoginScreen() {
   const [step, setStep] = useState<Step>('club')
-  const [clubSearch, setClubSearch] = useState('')
   const [clubs, setClubs] = useState<Club[]>([])
   const [selectedClub, setSelectedClub] = useState<Club | null>(null)
-  const [searchLoading, setSearchLoading] = useState(false)
+  const [clubsLoading, setClubsLoading] = useState(true)
 
   // Login
   const [email, setEmail] = useState('')
@@ -50,22 +49,17 @@ export default function LoginScreen() {
 
   const supabase = createClient()
 
-  async function searchClubs(text: string) {
-    setClubSearch(text)
-    if (text.length < 2) {
-      setClubs([])
-      return
-    }
-    setSearchLoading(true)
-    const { data } = await supabase
+  useEffect(() => {
+    supabase
       .from('clubs')
       .select('id, name, slug')
       .eq('is_active', true)
-      .ilike('name', `%${text}%`)
-      .limit(8)
-    setClubs(data ?? [])
-    setSearchLoading(false)
-  }
+      .order('name')
+      .then(({ data }) => {
+        setClubs(data ?? [])
+        setClubsLoading(false)
+      })
+  }, [])
 
   function selectClub(club: Club) {
     setSelectedClub(club)
@@ -76,6 +70,7 @@ export default function LoginScreen() {
 
   function goBackToClub() {
     setStep('club')
+    setSelectedClub(null)
     setEmail('')
     setPassword('')
     setRegName('')
@@ -167,9 +162,11 @@ export default function LoginScreen() {
         }),
       })
 
-      const json = await res.json()
+      let json: any = {}
+      try { json = await res.json() } catch {}
       if (!res.ok) {
-        Alert.alert('Error al registrarse', json.error ?? 'Inténtalo de nuevo')
+        const msg = json.error || json.message || `Error ${res.status}`
+        Alert.alert('Error al registrarse', msg)
         setRegistering(false)
         return
       }
@@ -223,17 +220,14 @@ export default function LoginScreen() {
 
         {/* Paso 1: Seleccionar club */}
         {step === 'club' && (
-          <View className="gap-4">
-            <TextInput
-              className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900"
-              placeholder="Nombre del club..."
-              value={clubSearch}
-              onChangeText={searchClubs}
-              autoCapitalize="words"
-            />
-            {searchLoading && <ActivityIndicator className="mt-2" color="#16a34a" />}
-            {clubs.length > 0 && (
-              <View className="mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <View className="gap-3">
+            <Text className="text-center text-sm text-gray-500">Selecciona tu club para continuar</Text>
+            {clubsLoading ? (
+              <ActivityIndicator color="#16a34a" />
+            ) : clubs.length === 0 ? (
+              <Text className="mt-4 text-center text-sm text-gray-400">No hay clubes disponibles</Text>
+            ) : (
+              <View className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <FlatList
                   data={clubs}
                   keyExtractor={(c) => c.id}
@@ -241,19 +235,13 @@ export default function LoginScreen() {
                   renderItem={({ item }) => (
                     <TouchableOpacity
                       onPress={() => selectClub(item)}
-                      className="border-b border-gray-50 px-4 py-3"
+                      className="border-b border-gray-100 px-4 py-4"
                     >
-                      <Text className="font-medium text-gray-900">{item.name}</Text>
-                      <Text className="text-xs text-gray-400">{item.slug}</Text>
+                      <Text className="font-semibold text-gray-900">{item.name}</Text>
                     </TouchableOpacity>
                   )}
                 />
               </View>
-            )}
-            {clubSearch.length >= 2 && clubs.length === 0 && !searchLoading && (
-              <Text className="mt-2 text-center text-sm text-gray-400">
-                No se encontró ningún club
-              </Text>
             )}
           </View>
         )}
