@@ -18,14 +18,22 @@ export default function NewSchedulePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const [clubId, setClubId] = useState<string | null>(null)
+
   useEffect(() => {
     const supabase = createClient()
-    Promise.all([
-      supabase.from('courts').select('id, name').eq('is_active', true).order('name'),
-      supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name'),
-    ]).then(([{ data: c }, { data: u }]) => {
-      if (c) setCourts(c)
-      if (u) setCoaches(u)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const cid = user?.user_metadata?.club_id ?? null
+      setClubId(cid)
+      const courtsQ = supabase.from('courts').select('id, name').eq('is_active', true).order('name')
+      const coachesQ = supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name')
+      Promise.all([
+        cid ? courtsQ.eq('club_id', cid) : courtsQ,
+        cid ? coachesQ.eq('club_id', cid) : coachesQ,
+      ]).then(([{ data: c }, { data: u }]) => {
+        if (c) setCourts(c)
+        if (u) setCoaches(u)
+      })
     })
   }, [])
 
@@ -56,6 +64,7 @@ export default function NewSchedulePage() {
       recurrence: form.recurrence,
       max_students: form.max_students,
       is_active: true,
+      club_id: clubId,
     })
 
     if (err) {

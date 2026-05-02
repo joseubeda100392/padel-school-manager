@@ -65,7 +65,7 @@ export default async function SchedulePage() {
               </tr>
             )}
             {schedules?.map((s: any) => (
-              <tr key={s.id} className="hover:bg-gray-50">
+              <tr key={s.id} className="cursor-pointer hover:bg-gray-50" onClick={() => { window.location.href = `/dashboard/schedule/${s.id}` }}>
                 <td className="px-6 py-4">
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 text-xs font-semibold text-green-700">
                     {dayName(s.start_time)}
