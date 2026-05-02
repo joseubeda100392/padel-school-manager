@@ -26,7 +26,7 @@ export default async function AnalyticsPage() {
   const revenueByType = (payments ?? []).reduce((acc: Record<string, number>, p: any) => {
     acc[p.type] = (acc[p.type] ?? 0) + p.amount
     return acc
-  }, {})
+  }, {} as Record<string, number>)
 
   const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance ?? 0), 0) ?? 0
 
