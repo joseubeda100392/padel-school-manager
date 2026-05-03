@@ -25,15 +25,6 @@ export default function AttendanceForm({ bookings: initial, scheduleId }: { book
     await supabase.from('bookings').update({ status }).eq('id', bookingId)
     setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, status } : b))
     setSaving(null)
-
-    // Si el admin marca no_show, puede que se libere hueco — notificar
-    if (status === 'no_show') {
-      fetch(`/api/notifications/class-spot-available`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduleId }),
-      }).catch(() => {})
-    }
   }
 
   if (bookings.length === 0) {
