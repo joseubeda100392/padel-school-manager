@@ -9,6 +9,7 @@ interface AppConfig {
   classes_per_pack: number
   pack_price: number
   school_name: string
+  cancellation_hours: number
 }
 
 const defaults: AppConfig = {
@@ -17,6 +18,7 @@ const defaults: AppConfig = {
   classes_per_pack: 10,
   pack_price: 9000,
   school_name: 'Mi Escuela de Pádel',
+  cancellation_hours: 24,
 }
 
 export default function SettingsPage() {
@@ -252,6 +254,29 @@ export default function SettingsPage() {
         </div>
         <p className="mt-2 text-xs text-gray-400">
           Precio por clase en bono: {config.classes_per_pack > 0 ? ((config.pack_price / config.classes_per_pack) / 100).toFixed(2) : '0.00'} €
+        </p>
+      </div>
+
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-1 font-semibold text-gray-900">Política de cancelación</h2>
+        <p className="mb-4 text-xs text-gray-400">
+          Si el alumno cancela con menos de X horas de antelación, la clase <strong>no</strong> se devuelve a su bolsa.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="number" min={0} max={168}
+            value={config.cancellation_hours}
+            onChange={(e) => setConfig({ ...config, cancellation_hours: Number(e.target.value) })}
+            className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+          />
+          <span className="text-sm text-gray-500">horas antes del inicio de la clase</span>
+        </div>
+        <p className="mt-2 text-xs text-gray-400">
+          {config.cancellation_hours === 0
+            ? 'Con 0 horas: se puede cancelar siempre con devolución.'
+            : `Ejemplo: si la clase empieza a las 10:00, hay que cancelar antes de las ${
+                (() => { const d = new Date(); d.setHours(10 - config.cancellation_hours % 24, 0); return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) })()
+              } del día anterior.`}
         </p>
       </div>
 

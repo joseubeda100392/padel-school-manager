@@ -21,6 +21,11 @@ export function StudentEditForm({ student }: Props) {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
+  const [newEmail, setNewEmail] = useState(student.email ?? '')
+  const [savingEmail, setSavingEmail] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [emailDone, setEmailDone] = useState(false)
+
   async function handleSave() {
     if (!form.name.trim()) { setError('El nombre es obligatorio'); return }
     setSaving(true)
@@ -36,6 +41,24 @@ export function StudentEditForm({ student }: Props) {
     if (err) { setError(err.message); return }
     setDone(true)
     setTimeout(() => { setDone(false); router.refresh() }, 1500)
+  }
+
+  async function handleChangeEmail() {
+    const email = newEmail.trim().toLowerCase()
+    if (!email || !email.includes('@')) { setEmailError('Email no válido'); return }
+    if (email === student.email) { setEmailError('El email es el mismo que el actual'); return }
+    setSavingEmail(true)
+    setEmailError('')
+    const res = await fetch('/api/admin/update-user-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: student.id, email }),
+    })
+    const json = await res.json()
+    setSavingEmail(false)
+    if (!res.ok) { setEmailError(json.error ?? 'Error al cambiar email'); return }
+    setEmailDone(true)
+    setTimeout(() => { setEmailDone(false); router.refresh() }, 2000)
   }
 
   async function handleDelete() {
@@ -83,6 +106,31 @@ export function StudentEditForm({ student }: Props) {
           className="w-full rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60">
           {saving ? 'Guardando...' : done ? '¡Guardado!' : 'Guardar cambios'}
         </button>
+      </div>
+
+      {/* Cambio de email separado */}
+      <div className="mt-6 border-t border-gray-100 pt-5">
+        <h3 className="mb-1 text-sm font-semibold text-gray-900">Cambiar email</h3>
+        <p className="mb-3 text-xs text-gray-400">
+          El cambio es inmediato — no requiere confirmación por correo.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            placeholder="nuevo@email.com"
+            className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+          />
+          <button
+            onClick={handleChangeEmail}
+            disabled={savingEmail}
+            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            {savingEmail ? '...' : emailDone ? '¡Listo!' : 'Cambiar'}
+          </button>
+        </div>
+        {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
       </div>
 
       <div className="mt-6 border-t border-gray-100 pt-4">

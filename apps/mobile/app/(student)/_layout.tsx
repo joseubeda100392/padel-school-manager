@@ -46,6 +46,8 @@ export default function StudentLayout() {
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />
+      <Tabs.Screen name="history" options={{ href: null }} />
+      <Tabs.Screen name="buy-pack" options={{ href: null }} />
     </Tabs>
   )
 }

@@ -12,7 +12,25 @@ import {
   ScrollView,
 } from 'react-native'
 import { router } from 'expo-router'
+import * as Notifications from 'expo-notifications'
+import * as Device from 'expo-device'
 import { createClient } from '@/lib/supabase'
+
+async function registerPushToken(userId: string) {
+  if (!Device.isDevice) return
+  const { status: existing } = await Notifications.getPermissionsAsync()
+  const { status } = existing === 'granted'
+    ? { status: existing }
+    : await Notifications.requestPermissionsAsync()
+  if (status !== 'granted') return
+  try {
+    const { data: token } = await Notifications.getExpoPushTokenAsync()
+    if (token) {
+      const supabase = createClient()
+      await supabase.from('users').update({ push_token: token }).eq('id', userId)
+    }
+  } catch {}
+}
 
 type Step = 'club' | 'login' | 'register' | 'forgot'
 
@@ -133,6 +151,7 @@ export default function LoginScreen() {
     }
 
     const role = userData?.role ?? data.user.user_metadata?.role
+    await registerPushToken(data.user.id)
     if (role === 'coach') {
       router.replace('/(coach)/home')
     } else {
@@ -194,6 +213,7 @@ export default function LoginScreen() {
       }
 
       const role = data.user.user_metadata?.role
+      await registerPushToken(data.user.id)
       if (role === 'coach') {
         router.replace('/(coach)/home')
       } else {
