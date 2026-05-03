@@ -25,6 +25,23 @@ export default function StudentsTable({ students, levelMap }: Props) {
   const [role, setRole] = useState('')
   const [status, setStatus] = useState('')
 
+  function exportCSV() {
+    const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta']
+    const rows = filtered.map((s) => [
+      s.name ?? '',
+      s.email ?? '',
+      roleLabel[s.role] ?? s.role,
+      s.is_active ? 'Activo' : 'Inactivo',
+      s.phone ?? '',
+      formatDate(s.created_at),
+    ])
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'alumnos.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const filtered = students.filter((s) => {
     const matchQ = !q || s.name?.toLowerCase().includes(q.toLowerCase()) || s.email?.toLowerCase().includes(q.toLowerCase())
     const matchRole = !role || s.role === role
@@ -69,6 +86,12 @@ export default function StudentsTable({ students, levelMap }: Props) {
             Limpiar
           </button>
         )}
+        <button
+          onClick={exportCSV}
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          ↓ CSV
+        </button>
       </div>
 
       <p className="mb-3 text-sm text-gray-400">

@@ -36,6 +36,23 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
     return matchQ && matchStatus
   })
 
+  function exportCSV() {
+    const headers = ['Alumno', 'Email', 'Tipo', 'Importe (€)', 'Estado', 'Fecha']
+    const rows = filtered.map((p) => [
+      p.user?.name ?? '',
+      p.user?.email ?? '',
+      typeLabel[p.type] ?? p.type,
+      (p.amount / 100).toFixed(2),
+      statusLabel[p.status] ?? p.status,
+      formatDate(p.created_at),
+    ])
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'pagos.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const total = filtered.reduce((acc, p) => p.status === 'succeeded' ? acc + p.amount : acc, 0)
 
   return (
@@ -67,6 +84,12 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
             Limpiar
           </button>
         )}
+        <button
+          onClick={exportCSV}
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          ↓ CSV
+        </button>
       </div>
 
       <p className="mb-3 text-sm text-gray-400">

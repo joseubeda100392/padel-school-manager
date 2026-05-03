@@ -76,6 +76,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Monitor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Recurrencia</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Ocupación</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -118,6 +119,19 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.recurrence === 'weekly' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
                       {s.recurrence === 'weekly' ? 'Semanal' : s.recurrence === 'biweekly' ? 'Quincenal' : 'Única'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {s.max_students > 0 && (
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            className={`h-1.5 rounded-full ${(s.bookings_count / s.max_students) >= 1 ? 'bg-red-500' : (s.bookings_count / s.max_students) >= 0.7 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                            style={{ width: `${Math.min((s.bookings_count / s.max_students) * 100, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500">{s.bookings_count ?? 0}/{s.max_students}</span>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

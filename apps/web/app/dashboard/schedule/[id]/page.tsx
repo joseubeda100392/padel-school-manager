@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
 import { ScheduleActions } from './schedule-actions'
+import AttendanceForm from './attendance-form'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -66,47 +67,22 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
         </div>
       </div>
 
-      {/* Lista de alumnos */}
+      {/* Lista de alumnos + asistencia */}
       <div className="rounded-xl bg-white shadow-sm">
         <div className="border-b border-gray-100 px-6 py-4">
           <h2 className="font-semibold text-gray-900">Alumnos apuntados</h2>
+          <p className="mt-0.5 text-xs text-gray-400">Marca ✓ o ✗ para registrar la asistencia</p>
         </div>
-        {enrolled === 0 ? (
-          <p className="px-6 py-10 text-center text-sm text-gray-400">Ningún alumno apuntado aún.</p>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {bookings?.map((b: any) => {
-              const student = b.student
-              const initials = (student?.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
-              return (
-                <div key={b.id} className="flex items-center gap-4 px-6 py-4">
-                  {student?.avatar_url ? (
-                    <img src={student.avatar_url} className="h-10 w-10 rounded-full object-cover" alt={student.name} />
-                  ) : (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500">
-                      {initials}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900">{student?.name}</p>
-                    <p className="text-sm text-gray-400">{student?.email}</p>
-                  </div>
-                  {student?.currentLevel && (
-                    <span
-                      className="rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                      style={{ backgroundColor: student.currentLevel.color }}
-                    >
-                      {student.currentLevel.name}
-                    </span>
-                  )}
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${b.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {b.status === 'confirmed' ? 'Confirmado' : b.status}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <AttendanceForm bookings={(bookings ?? []).map((b: any) => ({
+          id: b.id,
+          status: b.status,
+          student: {
+            name: b.student?.name,
+            email: b.student?.email,
+            avatar_url: b.student?.avatar_url,
+            currentLevel: b.student?.currentLevel ?? null,
+          }
+        }))} />
       </div>
     </div>
   )

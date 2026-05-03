@@ -1,16 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import ScheduleTable from './schedule-table'
+import WeeklyCalendar from './weekly-calendar'
+import ScheduleViewToggle from './schedule-view-toggle'
 
-export default async function SchedulePage() {
+export default async function SchedulePage({ searchParams }: { searchParams: { view?: string } }) {
   const supabase = createClient()
   const clubId = await getClubId()
+  const view = searchParams.view === 'week' ? 'week' : 'list'
 
   const schedulesQuery = supabase
     .from('schedules')
-    .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name), level:levels(name, color)')
+    .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name), level:levels(name, color), bookings(count)')
+    .eq('is_active', true)
     .order('start_time', { ascending: true })
-    .limit(100)
+    .limit(200)
 
   const courtsQuery = supabase
     .from('courts')
@@ -18,24 +22,32 @@ export default async function SchedulePage() {
     .eq('is_active', true)
     .order('name')
 
-  const [{ data: schedules }, { data: courts }] = await Promise.all([
+  const [{ data: rawSchedules }, { data: courts }] = await Promise.all([
     clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
   ])
 
+  const schedules = (rawSchedules ?? []).map((s: any) => ({
+    ...s,
+    bookings_count: s.bookings?.[0]?.count ?? 0,
+  }))
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Horarios</h1>
-          <p className="text-sm text-gray-500">{schedules?.length ?? 0} clases programadas</p>
+          <p className="text-sm text-gray-500">{schedules.length} clases programadas</p>
         </div>
-        <a
-          href="/dashboard/schedule/new"
-          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-        >
-          + Nueva clase
-        </a>
+        <div className="flex items-center gap-3">
+          <ScheduleViewToggle current={view} />
+          <a
+            href="/dashboard/schedule/new"
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          >
+            + Nueva clase
+          </a>
+        </div>
       </div>
 
       {courts && courts.length === 0 && (
@@ -44,7 +56,10 @@ export default async function SchedulePage() {
         </div>
       )}
 
-      <ScheduleTable schedules={schedules ?? []} />
+      {view === 'week'
+        ? <WeeklyCalendar schedules={schedules} />
+        : <ScheduleTable schedules={schedules} />
+      }
     </div>
   )
 }
