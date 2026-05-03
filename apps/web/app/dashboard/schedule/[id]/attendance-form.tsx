@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 interface Booking {
   id: string
   status: string
+  scheduleId: string
   student: {
     name: string
     email: string
@@ -14,7 +15,7 @@ interface Booking {
   }
 }
 
-export default function AttendanceForm({ bookings: initial }: { bookings: Booking[] }) {
+export default function AttendanceForm({ bookings: initial, scheduleId }: { bookings: Booking[]; scheduleId: string }) {
   const [bookings, setBookings] = useState(initial)
   const [saving, setSaving] = useState<string | null>(null)
 
@@ -24,6 +25,15 @@ export default function AttendanceForm({ bookings: initial }: { bookings: Bookin
     await supabase.from('bookings').update({ status }).eq('id', bookingId)
     setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, status } : b))
     setSaving(null)
+
+    // Si el admin marca no_show, puede que se libere hueco — notificar
+    if (status === 'no_show') {
+      fetch(`/api/notifications/class-spot-available`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleId }),
+      }).catch(() => {})
+    }
   }
 
   if (bookings.length === 0) {

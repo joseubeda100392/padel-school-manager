@@ -73,16 +73,20 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           <h2 className="font-semibold text-gray-900">Alumnos apuntados</h2>
           <p className="mt-0.5 text-xs text-gray-400">Marca ✓ o ✗ para registrar la asistencia</p>
         </div>
-        <AttendanceForm bookings={(bookings ?? []).map((b: any) => ({
-          id: b.id,
-          status: b.status,
-          student: {
-            name: b.student?.name,
-            email: b.student?.email,
-            avatar_url: b.student?.avatar_url,
-            currentLevel: b.student?.currentLevel ?? null,
-          }
-        }))} />
+        <AttendanceForm
+          scheduleId={params.id}
+          bookings={(bookings ?? []).map((b: any) => ({
+            id: b.id,
+            status: b.status,
+            scheduleId: params.id,
+            student: {
+              name: b.student?.name,
+              email: b.student?.email,
+              avatar_url: b.student?.avatar_url,
+              currentLevel: b.student?.currentLevel ?? null,
+            }
+          }))}
+        />
       </div>
     </div>
   )

@@ -165,6 +165,16 @@ export default function StudentScheduleScreen() {
             setBagBalance((b) => b + 1)
           }
           setMyBookings((prev) => { const s = new Set(prev); s.delete(scheduleId); return s })
+
+          // Notificar a alumnos del mismo nivel que hay plaza libre
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            fetch(`${API_BASE}/api/notifications/class-spot-available`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+              body: JSON.stringify({ scheduleId }),
+            })
+          } catch {}
         }
       }
     ])
