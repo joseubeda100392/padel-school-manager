@@ -23,14 +23,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const { data, error } = await admin.from('group_enrollments').insert({
+  const { data, error } = await admin.from('group_enrollments').upsert({
     schedule_id: scheduleId,
     student_id: studentId,
     club_id: adminUser.club_id,
     monthly_price: monthlyPrice ?? 0,
     status: 'active',
     enrolled_by: user.id,
-  }).select().single()
+  }, { onConflict: 'schedule_id,student_id' }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ data })

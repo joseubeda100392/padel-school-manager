@@ -42,7 +42,8 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   const start = new Date(schedule.start_time)
   const end = new Date(schedule.end_time)
-  const enrolled = bookings?.length ?? 0
+  const groupCount = groupEnrollments?.length ?? 0
+  const enrolled = (bookings?.length ?? 0) + groupCount
 
   return (
     <div className="max-w-2xl">
