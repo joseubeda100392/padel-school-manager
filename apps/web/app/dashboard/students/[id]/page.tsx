@@ -38,7 +38,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const clubId = await getClubId()
 
   const [
-    { data: student },
+    { data: student, error: studentError },
     { data: levels },
     { data: bag },
     { data: levelHistory },
@@ -47,7 +47,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   ] = await Promise.all([
     supabase
       .from('users')
-      .select('*, currentLevel:levels!current_level_id(id, name, color)')
+      .select('*')
       .eq('id', params.id)
       .single(),
     clubId
@@ -74,9 +74,22 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .limit(20),
   ])
 
-  if (!student) notFound()
+  if (studentError || !student) {
+    return (
+      <div className="rounded-xl bg-red-50 p-6 text-red-700">
+        <p className="font-semibold">Error al cargar el alumno</p>
+        <p className="text-sm">{studentError?.message ?? 'No encontrado'}</p>
+        <a href="/dashboard/students" className="mt-3 block text-sm underline">← Volver</a>
+      </div>
+    )
+  }
 
   if (clubId && (student as any).club_id && (student as any).club_id !== clubId) notFound()
+
+  const currentLevelId = (student as any).current_level_id as string | null
+  const currentLevel = currentLevelId
+    ? (levels ?? []).find((l: any) => l.id === currentLevelId) ?? null
+    : null
 
   const totalPagado = (payments ?? [])
     .filter((p: any) => p.status === 'succeeded')
@@ -134,12 +147,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Nivel de juego</h2>
-          {(student as any).currentLevel && (
+          {currentLevel && (
             <div
               className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-white"
-              style={{ backgroundColor: (student as any).currentLevel.color }}
+              style={{ backgroundColor: (currentLevel as any).color }}
             >
-              {(student as any).currentLevel.name}
+              {(currentLevel as any).name}
             </div>
           )}
           <StudentLevelForm
