@@ -47,7 +47,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   ] = await Promise.all([
     supabase
       .from('users')
-      .select('*, currentLevel:levels(id, name, color)')
+      .select('*, currentLevel:levels!current_level_id(id, name, color)')
       .eq('id', params.id)
       .single(),
     clubId
@@ -56,7 +56,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     supabase.from('class_bag').select('balance').eq('user_id', params.id).single(),
     supabase
       .from('user_levels')
-      .select('id, created_at, level:levels(name, color), assignedBy:users!user_levels_assigned_by_fkey(name)')
+      .select('id, created_at, level:levels(name, color), assigned_by')
       .eq('user_id', params.id)
       .order('created_at', { ascending: false })
       .limit(10),
@@ -225,8 +225,8 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                 <div className="flex items-center gap-3">
                   <span className="h-3 w-3 rounded-full" style={{ backgroundColor: entry.level?.color }} />
                   <span className="text-sm font-medium text-gray-900">{entry.level?.name}</span>
-                  {entry.assignedBy && (
-                    <span className="text-xs text-gray-400">por {entry.assignedBy.name}</span>
+                  {entry.assigned_by && (
+                    <span className="text-xs text-gray-400">asignado</span>
                   )}
                 </div>
                 <span className="text-xs text-gray-400">{formatDate(entry.created_at)}</span>
