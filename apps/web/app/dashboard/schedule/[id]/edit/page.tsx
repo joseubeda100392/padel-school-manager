@@ -22,7 +22,9 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
 
       const [{ data: s }, { data: c }, { data: u }, { data: l }] = await Promise.all([
         supabase.from('schedules').select('*').eq('id', params.id).single(),
-        supabase.from('courts').select('id, name').eq('is_active', true).order('name'),
+        cid
+          ? supabase.from('courts').select('id, name').eq('is_active', true).eq('club_id', cid).order('name')
+          : supabase.from('courts').select('id, name').eq('is_active', true).order('name'),
         cid
           ? supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).eq('club_id', cid).order('name')
           : supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name'),

@@ -113,9 +113,11 @@ export default function SettingsPage() {
     setAddingCourt(true)
     setCourtError('')
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: userData } = await supabase.from('users').select('club_id').eq('id', user!.id).single()
     const { data, error } = await supabase
       .from('courts')
-      .insert({ name: newCourt.name.trim(), type: newCourt.type, is_active: true })
+      .insert({ name: newCourt.name.trim(), type: newCourt.type, is_active: true, club_id: userData?.club_id ?? null })
       .select()
       .single()
     if (error) {
