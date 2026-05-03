@@ -22,7 +22,7 @@ interface Club {
   slug: string
 }
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://padel-school-manager-production.up.railway.app'
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://web-production-f1316.up.railway.app'
 
 export default function LoginScreen() {
   const [step, setStep] = useState<Step>('club')
@@ -63,14 +63,22 @@ export default function LoginScreen() {
 
   function selectClub(club: Club) {
     setSelectedClub(club)
-    setClubs([])
-    setClubSearch(club.name)
     setStep('login')
   }
 
   function goBackToClub() {
     setStep('club')
     setSelectedClub(null)
+    setClubsLoading(true)
+    supabase
+      .from('clubs')
+      .select('id, name, slug')
+      .eq('is_active', true)
+      .order('name')
+      .then(({ data }) => {
+        setClubs(data ?? [])
+        setClubsLoading(false)
+      })
     setEmail('')
     setPassword('')
     setRegName('')
