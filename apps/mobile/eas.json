@@ -9,7 +9,7 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://jfgzizbqinjikyrmvcuc.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ3ppemJxaW5qaWt5cm12Y3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MzMwNDUsImV4cCI6MjA5MzIwOTA0NX0.iO9kbThjQ9J7mhIuJQfk7ZQmXsuvqySYmo0Al01XpiI",
-        "EXPO_PUBLIC_API_URL": "https://padel-school-manager-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://web-production-f1316.up.railway.app"
       }
     },
     "preview": {
@@ -18,7 +18,7 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://jfgzizbqinjikyrmvcuc.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ3ppemJxaW5qaWt5cm12Y3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MzMwNDUsImV4cCI6MjA5MzIwOTA0NX0.iO9kbThjQ9J7mhIuJQfk7ZQmXsuvqySYmo0Al01XpiI",
-        "EXPO_PUBLIC_API_URL": "https://padel-school-manager-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://web-production-f1316.up.railway.app"
       }
     },
     "production": {
@@ -26,7 +26,7 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://jfgzizbqinjikyrmvcuc.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZ3ppemJxaW5qaWt5cm12Y3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MzMwNDUsImV4cCI6MjA5MzIwOTA0NX0.iO9kbThjQ9J7mhIuJQfk7ZQmXsuvqySYmo0Al01XpiI",
-        "EXPO_PUBLIC_API_URL": "https://padel-school-manager-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://web-production-f1316.up.railway.app"
       }
     }
   },
