@@ -33,12 +33,20 @@ export default async function StudentsPage() {
           <p className="text-sm text-gray-500">{students?.length ?? 0} usuarios registrados</p>
           {error && <p className="mt-1 text-xs text-red-500">Error: {error.message}</p>}
         </div>
-        <a
-          href="/dashboard/students/new"
-          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-        >
-          + Nuevo usuario
-        </a>
+        <div className="flex gap-2">
+          <a
+            href="/dashboard/students/import"
+            className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+          >
+            ↑ Importar Excel
+          </a>
+          <a
+            href="/dashboard/students/new"
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          >
+            + Nuevo usuario
+          </a>
+        </div>
       </div>
 
       <StudentsTable students={students ?? []} levelMap={levelMap} />
