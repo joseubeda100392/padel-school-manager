@@ -52,6 +52,12 @@ Ecosistema digital para escuelas de pádel compuesto por:
 - Sin manejo de errores para escenarios imposibles
 - Imports absolutos desde `@/` en cada app
 - Gestor de paquetes: **pnpm** (no npm, no yarn)
+- **Todo el código web es responsive por defecto**, sin que el usuario lo pida:
+  - Tablas siempre dentro de `overflow-x-auto`
+  - Grids empiezan en 1 columna: `grid-cols-1 sm:grid-cols-2`
+  - Flex rows con `flex-wrap` cuando los elementos pueden no caber
+  - Cabeceras con botones: `flex-wrap gap-2`
+  - Inputs y botones: `w-full` en móvil, anchos fijos solo en `sm:` en adelante
 
 ## Variables de Entorno
 Variables en `.env.local` (nunca en git). Ver `.env.example` para la lista completa.

@@ -114,7 +114,7 @@ export function StudentEditForm({ student }: Props) {
         <p className="mb-3 text-xs text-gray-400">
           El cambio es inmediato — no requiere confirmación por correo.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
             type="email"
             value={newEmail}
@@ -125,9 +125,9 @@ export function StudentEditForm({ student }: Props) {
           <button
             onClick={handleChangeEmail}
             disabled={savingEmail}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 sm:w-auto"
           >
-            {savingEmail ? '...' : emailDone ? '¡Listo!' : 'Cambiar'}
+            {savingEmail ? '...' : emailDone ? '¡Listo!' : 'Cambiar email'}
           </button>
         </div>
         {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}

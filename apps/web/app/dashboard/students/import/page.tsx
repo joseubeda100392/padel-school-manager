@@ -133,7 +133,7 @@ export default function ImportStudentsPage() {
 
       {/* Paso 1: Plantilla */}
       <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="font-semibold text-gray-900">1. Descarga la plantilla</h2>
             <p className="mt-1 text-sm text-gray-500">
@@ -178,7 +178,7 @@ export default function ImportStudentsPage() {
       {/* Preview */}
       {rows.length > 0 && !results && (
         <div className="mb-4 rounded-xl bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
             <div>
               <h2 className="font-semibold text-gray-900">3. Confirma los datos</h2>
               <p className="text-sm text-gray-500">{rows.length} alumnos listos para importar</p>
@@ -186,7 +186,7 @@ export default function ImportStudentsPage() {
             <button
               onClick={handleImport}
               disabled={importing}
-              className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+              className="w-full rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 sm:w-auto"
             >
               {importing ? 'Importando...' : `Importar ${rows.length} alumnos`}
             </button>
@@ -221,7 +221,7 @@ export default function ImportStudentsPage() {
       {/* Resultados */}
       {results && (
         <div className="rounded-xl bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
             <div>
               <h2 className="font-semibold text-gray-900">Resultado de la importación</h2>
               <div className="mt-1 flex gap-4 text-sm">
@@ -229,7 +229,7 @@ export default function ImportStudentsPage() {
                 {errors.length > 0 && <span className="text-red-600">✗ {errors.length} errores</span>}
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={downloadResults}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
