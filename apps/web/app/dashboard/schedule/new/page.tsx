@@ -23,21 +23,24 @@ export default function NewSchedulePage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      const cid = user?.user_metadata?.club_id ?? null
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
+      const cid = userData?.club_id ?? null
       setClubId(cid)
-      const courtsQ = supabase.from('courts').select('id, name').eq('is_active', true).order('name')
-      const coachesQ = supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name')
-      const levelsQ = supabase.from('levels').select('id, name, color').order('order')
-      Promise.all([
-        cid ? courtsQ.eq('club_id', cid) : courtsQ,
-        cid ? coachesQ.eq('club_id', cid) : coachesQ,
-        cid ? levelsQ.eq('club_id', cid) : levelsQ,
-      ]).then(([{ data: c }, { data: u }, { data: l }]) => {
-        if (c) setCourts(c)
-        if (u) setCoaches(u)
-        if (l) setLevels(l)
-      })
+
+      const [{ data: c }, { data: u }, { data: l }] = await Promise.all([
+        supabase.from('courts').select('id, name').eq('is_active', true).order('name'),
+        cid
+          ? supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).eq('club_id', cid).order('name')
+          : supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name'),
+        cid
+          ? supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order')
+          : supabase.from('levels').select('id, name, color').order('order'),
+      ])
+      if (c) setCourts(c)
+      if (u) setCoaches(u)
+      if (l) setLevels(l)
     })
   }, [])
 

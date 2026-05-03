@@ -15,35 +15,41 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      const cid = user?.user_metadata?.club_id ?? null
-      Promise.all([
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
+      const cid = userData?.club_id ?? null
+
+      const [{ data: s }, { data: c }, { data: u }, { data: l }] = await Promise.all([
         supabase.from('schedules').select('*').eq('id', params.id).single(),
-        cid ? supabase.from('courts').select('id, name').eq('is_active', true).eq('club_id', cid) : supabase.from('courts').select('id, name').eq('is_active', true),
-        cid ? supabase.from('users').select('id, name').eq('role', 'coach').eq('club_id', cid) : supabase.from('users').select('id, name').eq('role', 'coach'),
-        cid ? supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order') : supabase.from('levels').select('id, name, color').order('order'),
-      ]).then(([{ data: s }, { data: c }, { data: u }, { data: l }]) => {
-        if (s) {
-          const start = new Date(s.start_time)
-          const end = new Date(s.end_time)
-          const diffMin = Math.round((end.getTime() - start.getTime()) / 60000)
-          const duration = diffMin === 90 ? 90 : 60
-          setForm({
-            court_id: s.court_id ?? '',
-            coach_id: s.coach_id ?? '',
-            level_id: s.level_id ?? '',
-            date: start.toISOString().split('T')[0],
-            start_time: start.toTimeString().slice(0, 5),
-            duration,
-            recurrence: s.recurrence ?? 'weekly',
-            max_students: s.max_students ?? 4,
-            is_active: s.is_active ?? true,
-          })
-        }
-        if (c) setCourts(c)
-        if (u) setCoaches(u)
-        if (l) setLevels(l)
-      })
+        supabase.from('courts').select('id, name').eq('is_active', true).order('name'),
+        cid
+          ? supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).eq('club_id', cid).order('name')
+          : supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name'),
+        cid
+          ? supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order')
+          : supabase.from('levels').select('id, name, color').order('order'),
+      ])
+
+      if (s) {
+        const start = new Date(s.start_time)
+        const end = new Date(s.end_time)
+        const diffMin = Math.round((end.getTime() - start.getTime()) / 60000)
+        setForm({
+          court_id: s.court_id ?? '',
+          coach_id: s.coach_id ?? '',
+          level_id: s.level_id ?? '',
+          date: start.toISOString().split('T')[0],
+          start_time: start.toTimeString().slice(0, 5),
+          duration: diffMin === 90 ? 90 : 60,
+          recurrence: s.recurrence ?? 'weekly',
+          max_students: s.max_students ?? 4,
+          is_active: s.is_active ?? true,
+        })
+      }
+      if (c) setCourts(c)
+      if (u) setCoaches(u)
+      if (l) setLevels(l)
     })
   }, [params.id])
 
