@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
 import { ScheduleActions } from './schedule-actions'
 import AttendanceForm from './attendance-form'
+import GroupEnrollment from './group-enrollment'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -23,6 +24,21 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     .eq('schedule_id', params.id)
     .neq('status', 'cancelled')
     .order('created_at')
+
+  const { data: groupEnrollments } = await supabase
+    .from('group_enrollments')
+    .select('id, monthly_price, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email)')
+    .eq('schedule_id', params.id)
+    .eq('status', 'active')
+    .order('enrolled_at')
+
+  const { data: allStudents } = await supabase
+    .from('users')
+    .select('id, name, email')
+    .eq('role', 'student')
+    .eq('is_active', true)
+    .eq('club_id', schedule.club_id)
+    .order('name')
 
   const start = new Date(schedule.start_time)
   const end = new Date(schedule.end_time)
@@ -65,6 +81,22 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           </div>
           <p className="mt-1 text-xs text-gray-400">{schedule.max_students - enrolled} plazas libres</p>
         </div>
+      </div>
+
+      {/* Grupo fijo */}
+      <div className="mb-6">
+        <GroupEnrollment
+          scheduleId={params.id}
+          initialEnrollments={(groupEnrollments ?? []).map((e: any) => ({
+            id: e.id,
+            monthly_price: e.monthly_price,
+            paid_until: e.paid_until,
+            status: e.status,
+            student: { id: e.student?.id, name: e.student?.name, email: e.student?.email },
+          }))}
+          availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
+          defaultMonthlyPrice={6000}
+        />
       </div>
 
       {/* Lista de alumnos + asistencia */}

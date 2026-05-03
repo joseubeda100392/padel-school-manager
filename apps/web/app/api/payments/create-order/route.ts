@@ -9,7 +9,9 @@ import {
   getRedsysUrl,
 } from '@/lib/redsys'
 
-type PaymentType = 'single_class' | 'class_pack'
+type PaymentType = 'single_class' | 'class_pack' | 'fixed_group_month'
+
+const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
 export async function POST(req: NextRequest) {
   const adminSupabase = createAdminClient(
@@ -20,7 +22,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { type, scheduleId, packType }: { type: PaymentType; scheduleId?: string; packType?: '60' | '90' } = await req.json()
+  const { type, scheduleId, packType, enrollmentId }: { type: PaymentType; scheduleId?: string; packType?: '60' | '90'; enrollmentId?: string } = await req.json()
 
   const { data: configs } = await adminSupabase
     .from('app_config')
@@ -50,6 +52,18 @@ export async function POST(req: NextRequest) {
     const priceKey = durationMin >= 80 ? 'pay_per_class_price_90' : 'pay_per_class_price_60'
     amount = parseInt(cfg[priceKey] ?? (durationMin >= 80 ? '1500' : '1200'))
     productDesc = durationMin >= 80 ? 'Clase de pádel 1h 30min' : 'Clase de pádel 1h'
+  } else if (type === 'fixed_group_month') {
+    if (!enrollmentId) return NextResponse.json({ error: 'enrollmentId requerido' }, { status: 400 })
+    const { data: enrollment } = await adminSupabase
+      .from('group_enrollments')
+      .select('monthly_price, student_id')
+      .eq('id', enrollmentId)
+      .eq('student_id', user.id)
+      .single()
+    if (!enrollment) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
+    amount = enrollment.monthly_price
+    const now = new Date()
+    productDesc = `Cuota grupo fijo ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
   } else {
     const is90 = packType === '90'
     amount = parseInt(cfg[is90 ? 'pack_price_90' : 'pack_price_60'] ?? (is90 ? '12000' : '9000'))
@@ -89,6 +103,7 @@ export async function POST(req: NextRequest) {
       schedule_id: scheduleId ?? null,
       classes_per_pack: classesToAdd,
       pack_type: packType ?? null,
+      enrollment_id: enrollmentId ?? null,
     },
   })
 

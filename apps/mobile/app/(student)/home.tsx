@@ -1,15 +1,27 @@
 import { useEffect, useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { createClient } from '@/lib/supabase'
 import { registerPushToken } from '@/lib/push-token'
 
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://web-production-f1316.up.railway.app'
+const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+
+function isPaidThisMonth(paidUntil: string | null) {
+  if (!paidUntil) return false
+  const now = new Date()
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  return new Date(paidUntil) >= endOfMonth
+}
+
 export default function StudentHomeScreen() {
   const [user, setUser] = useState<any>(null)
   const [bag, setBag] = useState<number>(0)
   const [nextClass, setNextClass] = useState<any>(null)
+  const [pendingEnrollments, setPendingEnrollments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [payingId, setPayingId] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -20,7 +32,7 @@ export default function StudentHomeScreen() {
     const { data: { user: authUser } } = await supabase.auth.getUser()
     if (!authUser) return
 
-    const [{ data: userData }, { data: bagData }, { data: schedules }] = await Promise.all([
+    const [{ data: userData }, { data: bagData }, { data: schedules }, { data: enrollments }] = await Promise.all([
       supabase.from('users').select('name, current_level_id, currentLevel:levels(name, color)').eq('id', authUser.id).single(),
       supabase.from('class_bag').select('balance').eq('user_id', authUser.id).single(),
       supabase.from('bookings')
@@ -30,13 +42,40 @@ export default function StudentHomeScreen() {
         .gte('schedules.start_time', new Date().toISOString())
         .order('created_at', { ascending: true })
         .limit(1),
+      supabase.from('group_enrollments')
+        .select('id, monthly_price, paid_until, schedule:schedules(start_time)')
+        .eq('student_id', authUser.id)
+        .eq('status', 'active'),
     ])
+
+    const pending = (enrollments ?? []).filter((e: any) => !isPaidThisMonth(e.paid_until))
 
     setUser(userData)
     setBag(bagData?.balance ?? 0)
     setNextClass(schedules?.[0] ?? null)
+    setPendingEnrollments(pending)
     setLoading(false)
     registerPushToken(authUser.id)
+  }
+
+  async function handlePayFee(enrollmentId: string) {
+    setPayingId(enrollmentId)
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${API_BASE}/api/payments/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ type: 'fixed_group_month', enrollmentId }),
+      })
+      const json = await res.json()
+      if (!res.ok) { Alert.alert('Error', json.error); setPayingId(null); return }
+      const payUrl = `${API_BASE}/pay?url=${encodeURIComponent(json.redsysUrl)}&Ds_MerchantParameters=${encodeURIComponent(json.merchantParameters)}&Ds_Signature=${encodeURIComponent(json.signature)}`
+      await Linking.openURL(payUrl)
+    } catch {
+      Alert.alert('Error', 'No se pudo iniciar el pago')
+    }
+    setPayingId(null)
   }
 
   async function handleLogout() {
@@ -75,6 +114,34 @@ export default function StudentHomeScreen() {
             <Text className="text-sm text-gray-600">Salir</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Cuotas pendientes de grupo fijo */}
+        {pendingEnrollments.map((e: any) => {
+          const now = new Date()
+          const monthName = MONTH_NAMES[now.getMonth()]
+          const year = now.getFullYear()
+          const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
+          const start = e.schedule?.start_time ? new Date(e.schedule.start_time) : null
+          const groupLabel = start ? `${days[start.getDay()]} ${start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` : 'Grupo fijo'
+          const isPaying = payingId === e.id
+          return (
+            <View key={e.id} className="mb-4 rounded-2xl bg-red-500 p-5">
+              <Text className="text-sm font-medium text-red-100">Cuota pendiente · {groupLabel}</Text>
+              <Text className="mt-1 text-2xl font-bold text-white">
+                {(e.monthly_price / 100).toFixed(2)}€ · {monthName} {year}
+              </Text>
+              <TouchableOpacity
+                onPress={() => handlePayFee(e.id)}
+                disabled={isPaying}
+                className="mt-4 rounded-xl bg-white py-2.5"
+              >
+                <Text className="text-center text-sm font-bold text-red-600">
+                  {isPaying ? 'Redirigiendo...' : `Pagar cuota ${monthName} · ${(e.monthly_price / 100).toFixed(2)}€`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )
+        })}
 
         {/* Bolsa de clases */}
         <TouchableOpacity

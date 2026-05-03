@@ -55,7 +55,6 @@ export async function POST(req: NextRequest) {
   const meta = payment.metadata ?? {}
 
   if (payment.type === 'single_class' && meta.schedule_id) {
-    // Crear reserva
     await adminSupabase.from('bookings').insert({
       schedule_id: meta.schedule_id,
       student_id: payment.user_id,
@@ -64,7 +63,6 @@ export async function POST(req: NextRequest) {
       club_id: meta.club_id ?? null,
     })
   } else if (payment.type === 'class_pack') {
-    // Sumar clases a la bolsa
     const classesToAdd = meta.classes_per_pack ?? 10
     const { data: bag } = await adminSupabase
       .from('class_bag')
@@ -78,12 +76,19 @@ export async function POST(req: NextRequest) {
       .update({ balance: newBalance })
       .eq('user_id', payment.user_id)
 
-    // Registrar transacción
     await adminSupabase.from('bag_transactions').insert({
       user_id: payment.user_id,
       delta: classesToAdd,
       reason: 'pack_purchase',
     })
+  } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
+    const now = new Date()
+    const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    await adminSupabase
+      .from('group_enrollments')
+      .update({ paid_until: paidUntil })
+      .eq('id', meta.enrollment_id)
+      .eq('student_id', payment.user_id)
   }
 
   return NextResponse.json({ ok: true })
