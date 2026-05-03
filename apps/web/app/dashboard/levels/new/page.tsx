@@ -18,7 +18,9 @@ export default function NewLevelPage() {
     setLoading(true)
     setError('')
 
-    const { error: err } = await supabase.from('levels').insert({ name, description, color })
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: userData } = await supabase.from('users').select('club_id').eq('id', user!.id).single()
+    const { error: err } = await supabase.from('levels').insert({ name, description, color, club_id: userData?.club_id ?? null })
 
     if (err) {
       setError(err.message)
