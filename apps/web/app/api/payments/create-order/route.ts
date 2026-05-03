@@ -20,20 +20,20 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { type, scheduleId }: { type: PaymentType; scheduleId?: string } = await req.json()
+  const { type, scheduleId, packType }: { type: PaymentType; scheduleId?: string; packType?: '60' | '90' } = await req.json()
 
   const { data: configs } = await adminSupabase
     .from('app_config')
     .select('key, value')
-    .in('key', ['pay_per_class_price_60', 'pay_per_class_price_90', 'pack_price', 'classes_per_pack'])
+    .in('key', ['pay_per_class_price_60', 'pay_per_class_price_90', 'pack_price_60', 'classes_per_pack_60', 'pack_price_90', 'classes_per_pack_90'])
 
   const cfg = Object.fromEntries((configs ?? []).map((c: any) => [c.key, c.value]))
 
   let amount: number
   let productDesc: string
+  let classesToAdd = 0
 
   if (type === 'single_class') {
-    // Determinar duración de la clase para usar el precio correcto
     let durationMin = 60
     if (scheduleId) {
       const { data: schedule } = await adminSupabase
@@ -51,8 +51,10 @@ export async function POST(req: NextRequest) {
     amount = parseInt(cfg[priceKey] ?? (durationMin >= 80 ? '1500' : '1200'))
     productDesc = durationMin >= 80 ? 'Clase de pádel 1h 30min' : 'Clase de pádel 1h'
   } else {
-    amount = parseInt(cfg.pack_price ?? '9000')
-    productDesc = 'Bono de clases de pádel'
+    const is90 = packType === '90'
+    amount = parseInt(cfg[is90 ? 'pack_price_90' : 'pack_price_60'] ?? (is90 ? '12000' : '9000'))
+    classesToAdd = parseInt(cfg[is90 ? 'classes_per_pack_90' : 'classes_per_pack_60'] ?? '10')
+    productDesc = is90 ? 'Bono clases de pádel 1h 30min' : 'Bono clases de pádel 1h'
   }
 
   const orderId = generateOrderId()
@@ -85,7 +87,8 @@ export async function POST(req: NextRequest) {
     status: 'pending',
     metadata: {
       schedule_id: scheduleId ?? null,
-      classes_per_pack: parseInt(cfg.classes_per_pack ?? '10'),
+      classes_per_pack: classesToAdd,
+      pack_type: packType ?? null,
     },
   })
 

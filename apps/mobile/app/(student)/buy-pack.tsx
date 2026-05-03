@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react'
-import { View, Text, TouchableOpacity, Linking, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, TouchableOpacity, Linking, Alert, ActivityIndicator, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { createClient } from '@/lib/supabase'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://padel-school-manager-production.up.railway.app'
 
+interface PackConfig {
+  price: number
+  count: number
+}
+
 export default function BuyPackScreen() {
-  const [config, setConfig] = useState<{ packPrice: number; classesPerPack: number; singlePrice: number } | null>(null)
+  const [pack60, setPack60] = useState<PackConfig>({ price: 9000, count: 10 })
+  const [pack90, setPack90] = useState<PackConfig>({ price: 12000, count: 10 })
   const [balance, setBalance] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [paying, setPaying] = useState(false)
+  const [paying, setPaying] = useState<'60' | '90' | null>(null)
 
   useEffect(() => {
     loadData()
@@ -21,22 +27,28 @@ export default function BuyPackScreen() {
     if (!user) return
 
     const [{ data: cfg }, { data: bag }] = await Promise.all([
-      supabase.from('app_config').select('key, value').in('key', ['pack_price', 'classes_per_pack', 'pay_per_class_price']),
+      supabase.from('app_config').select('key, value').in('key', [
+        'pack_price_60', 'classes_per_pack_60',
+        'pack_price_90', 'classes_per_pack_90',
+      ]),
       supabase.from('class_bag').select('balance').eq('user_id', user.id).single(),
     ])
 
     const map = Object.fromEntries((cfg ?? []).map((c: any) => [c.key, c.value]))
-    setConfig({
-      packPrice: parseInt(map.pack_price ?? '9000'),
-      classesPerPack: parseInt(map.classes_per_pack ?? '10'),
-      singlePrice: parseInt(map.pay_per_class_price ?? '1200'),
+    setPack60({
+      price: parseInt(map.pack_price_60 ?? '9000'),
+      count: parseInt(map.classes_per_pack_60 ?? '10'),
+    })
+    setPack90({
+      price: parseInt(map.pack_price_90 ?? '12000'),
+      count: parseInt(map.classes_per_pack_90 ?? '10'),
     })
     setBalance(bag?.balance ?? 0)
     setLoading(false)
   }
 
-  async function handleBuyPack() {
-    setPaying(true)
+  async function handleBuyPack(packType: '60' | '90') {
+    setPaying(packType)
     try {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -47,18 +59,18 @@ export default function BuyPackScreen() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token}`,
         },
-        body: JSON.stringify({ type: 'class_pack' }),
+        body: JSON.stringify({ type: 'class_pack', packType }),
       })
 
       const json = await res.json()
-      if (!res.ok) { Alert.alert('Error', json.error); setPaying(false); return }
+      if (!res.ok) { Alert.alert('Error', json.error); setPaying(null); return }
 
       const payUrl = `${API_BASE}/pay?url=${encodeURIComponent(json.redsysUrl)}&Ds_MerchantParameters=${encodeURIComponent(json.merchantParameters)}&Ds_Signature=${encodeURIComponent(json.signature)}`
       await Linking.openURL(payUrl)
     } catch {
       Alert.alert('Error', 'No se pudo iniciar el pago')
     }
-    setPaying(false)
+    setPaying(null)
   }
 
   if (loading) {
@@ -69,60 +81,61 @@ export default function BuyPackScreen() {
     )
   }
 
-  const pricePerClass = config ? (config.packPrice / config.classesPerPack / 100).toFixed(2) : '0'
-  const saving = config ? Math.round((1 - config.packPrice / config.classesPerPack / config.singlePrice) * 100) : 0
+  const pricePerClass60 = pack60.count > 0 ? (pack60.price / pack60.count / 100).toFixed(2) : '0'
+  const pricePerClass90 = pack90.count > 0 ? (pack90.price / pack90.count / 100).toFixed(2) : '0'
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <View className="border-b border-gray-100 bg-white px-4 py-4">
         <Text className="text-xl font-bold text-gray-900">Comprar bono</Text>
-        <Text className="text-sm text-gray-500">Bolsa actual: <Text className="font-semibold text-green-600">{balance} clases</Text></Text>
-      </View>
-
-      <View className="flex-1 px-4 py-6">
-        {/* Bono */}
-        <View className="mb-4 rounded-2xl bg-green-600 p-6">
-          <Text className="text-sm font-medium text-green-100">Bono de clases</Text>
-          <Text className="mt-1 text-5xl font-bold text-white">{config?.classesPerPack}</Text>
-          <Text className="mt-1 text-green-100">clases · {pricePerClass}€/clase</Text>
-          {saving > 0 && (
-            <View className="mt-3 self-start rounded-full bg-white/20 px-3 py-1">
-              <Text className="text-xs font-semibold text-white">Ahorra un {saving}%</Text>
-            </View>
-          )}
-          <Text className="mt-4 text-3xl font-bold text-white">
-            {config ? (config.packPrice / 100).toFixed(2) : '0'}€
-          </Text>
-        </View>
-
-        {/* Clase suelta comparativa */}
-        <View className="mb-6 rounded-2xl bg-white p-5 shadow-sm">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-sm text-gray-600">Precio clase suelta</Text>
-            <Text className="font-semibold text-gray-900">
-              {config ? (config.singlePrice / 100).toFixed(2) : '0'}€/clase
-            </Text>
-          </View>
-          <View className="mt-2 flex-row items-center justify-between">
-            <Text className="text-sm text-gray-600">Precio con bono</Text>
-            <Text className="font-semibold text-green-600">{pricePerClass}€/clase</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          onPress={handleBuyPack}
-          disabled={paying}
-          className={`rounded-xl py-4 ${paying ? 'bg-green-400' : 'bg-green-600'}`}
-        >
-          <Text className="text-center text-base font-bold text-white">
-            {paying ? 'Redirigiendo al pago...' : `Comprar bono · ${config ? (config.packPrice / 100).toFixed(2) : '0'}€`}
-          </Text>
-        </TouchableOpacity>
-
-        <Text className="mt-4 text-center text-xs text-gray-400">
-          Pago seguro procesado por Redsys. Las clases se añaden a tu bolsa automáticamente tras el pago.
+        <Text className="text-sm text-gray-500">
+          Bolsa actual: <Text className="font-semibold text-green-600">{balance} {balance === 1 ? 'clase' : 'clases'}</Text>
         </Text>
       </View>
+
+      <ScrollView className="flex-1 px-4 py-6">
+        {/* Bono 1 hora */}
+        <View className="mb-4 rounded-2xl bg-green-600 p-6">
+          <Text className="text-sm font-medium text-green-100">Bono · Clases de 1 hora</Text>
+          <Text className="mt-1 text-5xl font-bold text-white">{pack60.count}</Text>
+          <Text className="mt-1 text-green-100">clases · {pricePerClass60}€/clase</Text>
+          <Text className="mt-4 text-3xl font-bold text-white">
+            {(pack60.price / 100).toFixed(2)}€
+          </Text>
+          <TouchableOpacity
+            onPress={() => handleBuyPack('60')}
+            disabled={paying !== null}
+            className={`mt-5 rounded-xl py-3 ${paying === '60' ? 'bg-white/30' : 'bg-white/20'}`}
+          >
+            <Text className="text-center text-base font-bold text-white">
+              {paying === '60' ? 'Redirigiendo...' : `Comprar · ${(pack60.price / 100).toFixed(2)}€`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Bono 1h 30min */}
+        <View className="mb-6 rounded-2xl bg-green-700 p-6">
+          <Text className="text-sm font-medium text-green-100">Bono · Clases de 1h 30min</Text>
+          <Text className="mt-1 text-5xl font-bold text-white">{pack90.count}</Text>
+          <Text className="mt-1 text-green-100">clases · {pricePerClass90}€/clase</Text>
+          <Text className="mt-4 text-3xl font-bold text-white">
+            {(pack90.price / 100).toFixed(2)}€
+          </Text>
+          <TouchableOpacity
+            onPress={() => handleBuyPack('90')}
+            disabled={paying !== null}
+            className={`mt-5 rounded-xl py-3 ${paying === '90' ? 'bg-white/30' : 'bg-white/20'}`}
+          >
+            <Text className="text-center text-base font-bold text-white">
+              {paying === '90' ? 'Redirigiendo...' : `Comprar · ${(pack90.price / 100).toFixed(2)}€`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text className="text-center text-xs text-gray-400">
+          Pago seguro procesado por Redsys. Las clases se añaden a tu bolsa automáticamente tras el pago.
+        </Text>
+      </ScrollView>
     </SafeAreaView>
   )
 }
