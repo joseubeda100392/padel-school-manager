@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
   const enrolledIds = (enrolled ?? []).map((b: any) => b.student_id)
 
   // Alumnos elegibles: mismo nivel (o todos si la clase no tiene nivel), con push_token
-  let query = adminSupabase
+  // Tipado como any para evitar que TS pierda el hilo con el query builder encadenado
+  let query: any = adminSupabase
     .from('users')
     .select('id, push_token, name')
     .eq('role', 'student')
