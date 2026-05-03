@@ -55,13 +55,22 @@ export async function POST(req: NextRequest) {
   const meta = payment.metadata ?? {}
 
   if (payment.type === 'single_class' && meta.schedule_id) {
-    await adminSupabase.from('bookings').insert({
-      schedule_id: meta.schedule_id,
-      student_id: payment.user_id,
-      status: 'confirmed',
-      source: 'pay_per_class',
-      club_id: meta.club_id ?? null,
-    })
+    const { data: existing } = await adminSupabase
+      .from('bookings')
+      .select('id')
+      .eq('schedule_id', meta.schedule_id)
+      .eq('student_id', payment.user_id)
+      .neq('status', 'cancelled')
+      .maybeSingle()
+    if (!existing) {
+      await adminSupabase.from('bookings').insert({
+        schedule_id: meta.schedule_id,
+        student_id: payment.user_id,
+        status: 'confirmed',
+        source: 'pay_per_class',
+        club_id: meta.club_id ?? null,
+      })
+    }
   } else if (payment.type === 'class_pack') {
     const classesToAdd = meta.classes_per_pack ?? 10
     const { data: bag } = await adminSupabase

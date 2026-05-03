@@ -53,11 +53,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (role === 'student') {
-    await adminSupabase.from('class_bag').insert({
+    await adminSupabase.from('class_bag').upsert({
       user_id: authData.user.id,
       club_id: clubId,
       balance: 0,
-    })
+    }, { onConflict: 'user_id' })
   }
 
   if (levelId) {
