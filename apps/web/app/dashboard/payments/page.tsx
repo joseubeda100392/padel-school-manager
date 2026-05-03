@@ -1,27 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
-import { formatDate, formatCurrency } from '@/lib/utils'
-
-const statusBadge: Record<string, string> = {
-  succeeded: 'bg-green-100 text-green-700',
-  pending: 'bg-yellow-100 text-yellow-700',
-  failed: 'bg-red-100 text-red-700',
-  refunded: 'bg-gray-100 text-gray-500',
-}
-
-const statusLabel: Record<string, string> = {
-  succeeded: 'Completado',
-  pending: 'Pendiente',
-  failed: 'Fallido',
-  refunded: 'Reembolsado',
-}
-
-const typeLabel: Record<string, string> = {
-  subscription: 'Suscripción',
-  pay_per_class: 'Clase suelta',
-  bag_pack: 'Bolsa de clases',
-  manual: 'Manual',
-}
+import { formatCurrency } from '@/lib/utils'
+import PaymentsTable from './payments-table'
 
 export default async function PaymentsPage() {
   const supabase = createClient()
@@ -60,48 +40,7 @@ export default async function PaymentsPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[540px]">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alumno</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Tipo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {!payments?.length && (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                  No hay pagos aún.
-                </td>
-              </tr>
-            )}
-            {payments?.map((p: any) => (
-              <tr key={p.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <p className="text-sm font-medium text-gray-900">{p.user?.name ?? '—'}</p>
-                  <p className="text-xs text-gray-400">{p.user?.email}</p>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">{typeLabel[p.type] ?? p.type}</td>
-                <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                  {formatCurrency(p.amount, p.currency ?? 'EUR')}
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                    {statusLabel[p.status] ?? p.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">{formatDate(p.created_at)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
-      </div>
+      <PaymentsTable payments={payments ?? []} />
     </div>
   )
 }
