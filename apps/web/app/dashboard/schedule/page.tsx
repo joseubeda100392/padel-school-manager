@@ -22,14 +22,25 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     .eq('is_active', true)
     .order('name')
 
-  const [{ data: rawSchedules }, { data: courts }] = await Promise.all([
+  const enrollmentsQuery = supabase
+    .from('group_enrollments')
+    .select('schedule_id')
+    .eq('status', 'active')
+
+  const [{ data: rawSchedules }, { data: courts }, { data: enrollments }] = await Promise.all([
     clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
+    enrollmentsQuery,
   ])
+
+  const enrollmentCountMap: Record<string, number> = {}
+  ;(enrollments ?? []).forEach((e: any) => {
+    enrollmentCountMap[e.schedule_id] = (enrollmentCountMap[e.schedule_id] ?? 0) + 1
+  })
 
   const schedules = (rawSchedules ?? []).map((s: any) => ({
     ...s,
-    bookings_count: s.bookings?.[0]?.count ?? 0,
+    bookings_count: (s.bookings?.[0]?.count ?? 0) + (enrollmentCountMap[s.id] ?? 0),
   }))
 
   return (

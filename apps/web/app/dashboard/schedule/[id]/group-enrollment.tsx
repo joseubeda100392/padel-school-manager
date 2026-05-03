@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Enrollment {
   id: string
@@ -36,6 +37,7 @@ export default function GroupEnrollment({
   availableStudents: Student[]
   defaultMonthlyPrice: number
 }) {
+  const router = useRouter()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [monthlyPrice, setMonthlyPrice] = useState(defaultMonthlyPrice)
@@ -62,6 +64,7 @@ export default function GroupEnrollment({
       const student = availableStudents.find((s) => s.id === selectedStudentId)!
       setEnrollments((prev) => [...prev, { ...json.data, student }])
       setSelectedStudentId('')
+      router.refresh()
     }
     setAdding(false)
   }
@@ -72,6 +75,7 @@ export default function GroupEnrollment({
     await fetch(`/api/group-enrollments/${id}`, { method: 'DELETE' })
     setEnrollments((prev) => prev.filter((e) => e.id !== id))
     setLoadingId(null)
+    router.refresh()
   }
 
   async function handleMarkPaid(id: string) {
