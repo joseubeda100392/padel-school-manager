@@ -11,11 +11,7 @@ export default async function PaymentsPage() {
   const clubId = await getClubId()
 
   const now = new Date()
-  const y = now.getFullYear()
-  const m = now.getMonth() + 1
-  const lastDay = new Date(y, m, 0).getDate()
-  const endOfMonth = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-  const currentMonthLabel = `${MONTHS[now.getMonth()]} ${y}`
+  const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
 
   const paymentsQuery = supabase
     .from('payments')
@@ -23,21 +19,13 @@ export default async function PaymentsPage() {
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const [{ data: payments }, { data: unpaidRaw }] = await Promise.all([
+  const [{ data: payments }, { data: unpaidList }] = await Promise.all([
     clubId ? paymentsQuery.eq('club_id', clubId) : paymentsQuery,
-    supabase
-      .from('group_enrollments')
-      .select('id, monthly_price, paid_until, student:users(id, name, email), schedule:schedules(id, start_time, club_id)')
-      .eq('status', 'active')
-      .or(`paid_until.is.null,paid_until.lt.${endOfMonth}`)
-      .limit(100),
+    supabase.rpc('get_pending_payments', { p_club_id: clubId ?? null }),
   ])
 
-  const unpaidList = (unpaidRaw ?? []).filter((e: any) =>
-    !clubId || !e.schedule || e.schedule.club_id === clubId
-  )
-
   const total = payments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
+  const unpaid = unpaidList ?? []
 
   return (
     <div className="space-y-6">
@@ -58,8 +46,8 @@ export default async function PaymentsPage() {
         </div>
         <div className="rounded-xl border-l-4 border-l-yellow-500 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Sin pagar este mes</p>
-          <p className={`mt-2 text-2xl font-bold ${unpaidList.length > 0 ? 'text-yellow-600' : 'text-gray-900'}`}>
-            {unpaidList.length}
+          <p className={`mt-2 text-2xl font-bold ${unpaid.length > 0 ? 'text-yellow-600' : 'text-gray-900'}`}>
+            {unpaid.length}
           </p>
         </div>
       </div>
@@ -68,9 +56,9 @@ export default async function PaymentsPage() {
       <div className="rounded-xl bg-white shadow-sm">
         <div className="border-b border-gray-100 px-6 py-4">
           <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {currentMonthLabel}</h2>
-          <p className="text-xs text-gray-400">{unpaidList.length} alumnos sin pagar</p>
+          <p className="text-xs text-gray-400">{unpaid.length} alumnos sin pagar</p>
         </div>
-        {unpaidList.length === 0 ? (
+        {unpaid.length === 0 ? (
           <p className="px-6 py-8 text-center text-sm text-green-600 font-medium">✓ Todos los alumnos han pagado este mes</p>
         ) : (
           <div className="overflow-x-auto">
@@ -85,16 +73,16 @@ export default async function PaymentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {unpaidList.map((e: any) => {
-                  const dow = e.schedule?.start_time ? new Date(e.schedule.start_time).getDay() : null
-                  const time = e.schedule?.start_time
-                    ? new Date(e.schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                {unpaid.map((e: any) => {
+                  const dow = e.start_time ? new Date(e.start_time).getDay() : null
+                  const time = e.start_time
+                    ? new Date(e.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
                     : null
                   return (
                     <tr key={e.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-900">{e.student?.name ?? '—'}</p>
-                        <p className="text-xs text-gray-400">{e.student?.email}</p>
+                        <p className="text-sm font-medium text-gray-900">{e.student_name ?? '—'}</p>
+                        <p className="text-xs text-gray-400">{e.student_email}</p>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {dow !== null ? `${DAYS[dow]} ${time}` : '—'}
@@ -109,7 +97,7 @@ export default async function PaymentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <a
-                          href={`/dashboard/schedule/${e.schedule?.id}`}
+                          href={`/dashboard/schedule/${e.schedule_id}`}
                           className="text-xs font-medium text-green-600 hover:underline"
                         >
                           Marcar pagado →

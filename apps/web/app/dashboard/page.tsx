@@ -13,11 +13,7 @@ export default async function DashboardPage() {
   const filter = (q: any) => clubId ? q.eq('club_id', clubId) : q
 
   const now = new Date()
-  const y = now.getFullYear()
-  const m = now.getMonth() + 1
-  const lastDay = new Date(y, m, 0).getDate()
-  const endOfMonth = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-  const currentMonthLabel = `${MONTHS[now.getMonth()]} ${y}`
+  const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
 
   const [
     { count: totalStudents },
@@ -25,24 +21,15 @@ export default async function DashboardPage() {
     { data: classesToday },
     { data: pendingCount },
     { data: recentStudents },
-    { data: unpaidRaw },
+    { data: unpaidList },
   ] = await Promise.all([
     filter(supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
     filter(supabase.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
     supabase.rpc('count_classes_today', { p_club_id: clubId ?? null }),
     supabase.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
     filter(supabase.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
-    supabase
-      .from('group_enrollments')
-      .select('id, monthly_price, paid_until, student:users(id, name, email), schedule:schedules(id, start_time, club_id)')
-      .eq('status', 'active')
-      .or(`paid_until.is.null,paid_until.lt.${endOfMonth}`)
-      .limit(50),
+    supabase.rpc('get_pending_payments', { p_club_id: clubId ?? null }),
   ])
-
-  const unpaidList = (unpaidRaw ?? []).filter((e: any) =>
-    !clubId || !e.schedule || e.schedule.club_id === clubId
-  )
 
   const stats = [
     { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500', border: 'border-l-blue-500' },
@@ -79,13 +66,13 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <div>
               <h2 className="font-semibold text-gray-900">Sin pagar — {currentMonthLabel}</h2>
-              <p className="text-xs text-gray-400">{unpaidList.length} mensualidades pendientes</p>
+              <p className="text-xs text-gray-400">{unpaidList?.length ?? 0} mensualidades pendientes</p>
             </div>
             <a href="/dashboard/payments" className="text-xs font-medium text-green-600 hover:underline">
               Ver pagos →
             </a>
           </div>
-          {unpaidList.length === 0 ? (
+          {!unpaidList?.length ? (
             <div className="px-6 py-10 text-center">
               <p className="text-2xl">✓</p>
               <p className="mt-1 text-sm font-medium text-green-600">Todo el mundo al día</p>
@@ -93,18 +80,18 @@ export default async function DashboardPage() {
           ) : (
             <ul className="divide-y divide-gray-50">
               {unpaidList.map((e: any) => {
-                const dow = e.schedule?.start_time ? new Date(e.schedule.start_time).getDay() : null
-                const time = e.schedule?.start_time
-                  ? new Date(e.schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                const dow = e.start_time ? new Date(e.start_time).getDay() : null
+                const time = e.start_time
+                  ? new Date(e.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
                   : null
-                const initials = (e.student?.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+                const initials = (e.student_name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
                 return (
                   <li key={e.id} className="flex items-center gap-4 px-6 py-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
                       {initials}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-gray-900">{e.student?.name ?? '—'}</p>
+                      <p className="truncate text-sm font-medium text-gray-900">{e.student_name ?? '—'}</p>
                       {dow !== null && (
                         <p className="text-xs text-gray-400">{DAYS[dow]} {time}</p>
                       )}
