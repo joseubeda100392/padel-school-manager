@@ -69,7 +69,7 @@ export default async function MaterialsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <div className="text-right">
                 <p className="text-xs text-gray-400">{formatDate(m.created_at)}</p>
                 <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${m.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -86,6 +86,12 @@ export default async function MaterialsPage() {
                   Abrir
                 </a>
               )}
+              <a
+                href={`/dashboard/materials/${m.id}/edit`}
+                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Editar
+              </a>
             </div>
           </div>
         ))}

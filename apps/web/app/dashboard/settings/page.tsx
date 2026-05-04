@@ -35,6 +35,8 @@ export default function SettingsPage() {
   const [newCourt, setNewCourt] = useState({ name: '', type: 'indoor' })
   const [addingCourt, setAddingCourt] = useState(false)
   const [courtError, setCourtError] = useState('')
+  const [editingCourtId, setEditingCourtId] = useState<string | null>(null)
+  const [editingCourt, setEditingCourt] = useState({ name: '', type: 'indoor' })
 
   const [profile, setProfile] = useState<{ id: string; name: string; email: string; avatar_url?: string } | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -139,6 +141,31 @@ export default function SettingsPage() {
     const supabase = createClient()
     await supabase.from('courts').update({ is_active: !active }).eq('id', id)
     setCourts((prev) => prev.map((c) => (c.id === id ? { ...c, is_active: !active } : c)))
+  }
+
+  function startEditCourt(court: any) {
+    setEditingCourtId(court.id)
+    setEditingCourt({ name: court.name, type: court.type })
+  }
+
+  async function saveEditCourt(id: string) {
+    if (!editingCourt.name.trim()) return
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('courts')
+      .update({ name: editingCourt.name.trim(), type: editingCourt.type })
+      .eq('id', id)
+    if (!error) {
+      setCourts((prev) => prev.map((c) => c.id === id ? { ...c, name: editingCourt.name.trim(), type: editingCourt.type } : c))
+      setEditingCourtId(null)
+    }
+  }
+
+  async function deleteCourt(id: string) {
+    if (!confirm('¿Eliminar esta pista?')) return
+    const supabase = createClient()
+    await supabase.from('courts').delete().eq('id', id)
+    setCourts((prev) => prev.filter((c) => c.id !== id))
   }
 
   if (loading) return <div className="text-gray-400">Cargando...</div>
@@ -339,17 +366,60 @@ export default function SettingsPage() {
         <h2 className="mb-4 font-semibold text-gray-900">Pistas</h2>
         <div className="mb-4 space-y-2">
           {courts.map((court) => (
-            <div key={court.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{court.name}</p>
-                <p className="text-xs text-gray-400">{court.type === 'indoor' ? 'Interior' : 'Exterior'}</p>
-              </div>
-              <button
-                onClick={() => toggleCourt(court.id, court.is_active)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ${court.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
-              >
-                {court.is_active ? 'Activa' : 'Inactiva'}
-              </button>
+            <div key={court.id} className="rounded-lg border border-gray-100 px-4 py-3">
+              {editingCourtId === court.id ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    value={editingCourt.name}
+                    onChange={(e) => setEditingCourt({ ...editingCourt, name: e.target.value })}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveEditCourt(court.id); if (e.key === 'Escape') setEditingCourtId(null) }}
+                    className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                    autoFocus
+                  />
+                  <select
+                    value={editingCourt.type}
+                    onChange={(e) => setEditingCourt({ ...editingCourt, type: e.target.value })}
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                  >
+                    <option value="indoor">Interior</option>
+                    <option value="outdoor">Exterior</option>
+                  </select>
+                  <button onClick={() => saveEditCourt(court.id)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">
+                    Guardar
+                  </button>
+                  <button onClick={() => setEditingCourtId(null)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{court.name}</p>
+                    <p className="text-xs text-gray-400">{court.type === 'indoor' ? 'Interior' : 'Exterior'}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleCourt(court.id, court.is_active)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${court.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                    >
+                      {court.is_active ? 'Activa' : 'Inactiva'}
+                    </button>
+                    <button
+                      onClick={() => startEditCourt(court)}
+                      className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => deleteCourt(court.id)}
+                      className="rounded-lg border border-red-100 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           {courts.length === 0 && (

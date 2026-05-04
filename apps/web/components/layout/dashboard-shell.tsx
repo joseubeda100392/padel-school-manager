@@ -8,9 +8,10 @@ interface DashboardShellProps {
   children: React.ReactNode
   clubName?: string
   role?: string
+  userName?: string
 }
 
-export function DashboardShell({ children, clubName, role }: DashboardShellProps) {
+export function DashboardShell({ children, clubName, role, userName }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -25,7 +26,7 @@ export function DashboardShell({ children, clubName, role }: DashboardShellProps
 
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-30 transition-transform duration-200 md:static md:translate-x-0 md:z-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar clubName={clubName} role={role} onClose={() => setSidebarOpen(false)} />
+        <Sidebar clubName={clubName} role={role} userName={userName} onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Contenido */}

@@ -8,13 +8,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const clubId = user?.user_metadata?.club_id as string | undefined
 
   let clubName: string | undefined
-  if (clubId && role !== 'super_admin') {
-    const { data } = await supabase.from('clubs').select('name').eq('id', clubId).single()
-    clubName = data?.name ?? undefined
-  }
+  let userName: string | undefined
+
+  const [clubResult, userResult] = await Promise.all([
+    clubId && role !== 'super_admin'
+      ? supabase.from('clubs').select('name').eq('id', clubId).single()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase.from('users').select('name').eq('id', user.id).single()
+      : Promise.resolve({ data: null }),
+  ])
+
+  clubName = (clubResult as any).data?.name ?? undefined
+  userName = (userResult as any).data?.name ?? user?.user_metadata?.name ?? undefined
 
   return (
-    <DashboardShell clubName={clubName} role={role}>
+    <DashboardShell clubName={clubName} role={role} userName={userName}>
       {children}
     </DashboardShell>
   )

@@ -35,22 +35,25 @@ const superAdminItems = [
   { href: '/dashboard/clubs', label: 'Clubes', icon: Building2 },
 ]
 
-export function Sidebar({ clubName, role, onClose }: { clubName?: string; role?: string; onClose?: () => void }) {
+export function Sidebar({ clubName, role, userName, onClose }: { clubName?: string; role?: string; userName?: string; onClose?: () => void }) {
   const pathname = usePathname()
   const isSuperAdmin = role === 'super_admin'
+  const initials = userName
+    ? userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+    : 'P'
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
       <div className="flex items-center gap-3 border-b border-gray-200 p-4 md:p-6">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-600">
-          <span className="text-sm font-bold text-white">P</span>
+          <span className="text-sm font-bold text-white">{initials}</span>
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-gray-900">
             {isSuperAdmin ? 'Super Admin' : (clubName ?? 'Padel Manager')}
           </p>
-          <p className="text-xs text-gray-400">
-            {isSuperAdmin ? 'Todos los clubes' : 'Panel admin'}
+          <p className="truncate text-xs text-gray-400">
+            {userName ?? (isSuperAdmin ? 'Todos los clubes' : 'Panel admin')}
           </p>
         </div>
         {onClose && (
