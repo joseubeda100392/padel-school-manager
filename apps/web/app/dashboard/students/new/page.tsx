@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function NewStudentPage() {
+  const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'student' | 'coach'>('student')
@@ -40,7 +42,8 @@ export default function NewStudentPage() {
       return
     }
 
-    window.location.href = '/dashboard/students'
+    router.refresh()
+    router.push('/dashboard/students')
   }
 
   return (

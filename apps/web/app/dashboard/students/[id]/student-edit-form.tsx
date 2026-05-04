@@ -66,6 +66,7 @@ export function StudentEditForm({ student }: Props) {
     setDeleting(true)
     const supabase = createClient()
     await supabase.from('users').delete().eq('id', student.id)
+    router.refresh()
     router.push('/dashboard/students')
   }
 

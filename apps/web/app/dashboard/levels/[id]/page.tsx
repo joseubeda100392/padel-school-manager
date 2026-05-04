@@ -34,6 +34,7 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
     }).eq('id', params.id)
     setSaving(false)
     if (err) { setError(err.message); return }
+    router.refresh()
     router.push('/dashboard/levels')
   }
 
@@ -43,6 +44,7 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
     const supabase = createClient()
     await supabase.from('users').update({ current_level_id: null }).eq('current_level_id', params.id)
     await supabase.from('levels').delete().eq('id', params.id)
+    router.refresh()
     router.push('/dashboard/levels')
   }
 

@@ -14,6 +14,7 @@ export function ScheduleActions({ scheduleId }: { scheduleId: string }) {
     const supabase = createClient()
     await supabase.from('bookings').delete().eq('schedule_id', scheduleId)
     await supabase.from('schedules').delete().eq('id', scheduleId)
+    router.refresh()
     router.push('/dashboard/schedule')
   }
 

@@ -31,6 +31,7 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
       is_active: form.is_active,
     }).eq('id', params.id)
     if (err) { setError(err.message); setLoading(false); return }
+    router.refresh()
     router.push('/dashboard/clubs')
   }
 
@@ -39,6 +40,7 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
     setDeleting(true)
     const supabase = createClient()
     await supabase.from('clubs').delete().eq('id', params.id)
+    router.refresh()
     router.push('/dashboard/clubs')
   }
 

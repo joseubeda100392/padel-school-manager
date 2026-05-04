@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function BagAdjustForm({ studentId, currentBalance }: Props) {
+  const router = useRouter()
   const [amount, setAmount] = useState(1)
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
@@ -37,7 +39,7 @@ export function BagAdjustForm({ studentId, currentBalance }: Props) {
     }
 
     setSaving(false)
-    window.location.reload()
+    router.refresh()
   }
 
   return (

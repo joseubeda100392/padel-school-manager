@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Level {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function StudentLevelForm({ studentId, currentLevelId, levels }: Props) {
+  const router = useRouter()
   const [selected, setSelected] = useState(currentLevelId ?? '')
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
@@ -38,6 +40,7 @@ export function StudentLevelForm({ studentId, currentLevelId, levels }: Props) {
 
     setSaving(false)
     setDone(true)
+    router.refresh()
     setTimeout(() => setDone(false), 2000)
   }
 
