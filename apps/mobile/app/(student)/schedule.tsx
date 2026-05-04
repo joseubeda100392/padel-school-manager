@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native'
+import { useEffect, useState, useCallback } from 'react'
+import { View, Text, FlatList, TouchableOpacity, Alert, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { createClient } from '@/lib/supabase'
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://web-production-f1316.up.railway.app'
+const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 export default function StudentScheduleScreen() {
   const [schedules, setSchedules] = useState<any[]>([])
@@ -163,7 +164,6 @@ export default function StudentScheduleScreen() {
           }
           setMyBookings((prev) => { const s = new Set(prev); s.delete(scheduleId); return s })
 
-          // Notificar a alumnos del mismo nivel que hay plaza libre
           try {
             const { data: { session } } = await supabase.auth.getSession()
             fetch(`${API_BASE}/api/notifications/class-spot-available`, {
@@ -177,12 +177,73 @@ export default function StudentScheduleScreen() {
     ])
   }
 
-  const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  const renderItem = useCallback(({ item: s }: { item: any }) => {
+    const isBooked = myBookings.has(s.id)
+    const start = new Date(s.start_time)
+    const end = new Date(s.end_time)
+    const durationMin = (end.getTime() - start.getTime()) / 60000
+    const price = durationMin <= 65 ? price60 : price90
+    const isBusy = booking === s.id
 
-  function getClassPrice(startTime: string, endTime: string) {
-    const durationMin = (new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000
-    return durationMin <= 65 ? price60 : price90
-  }
+    return (
+      <View className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
+        <View className="flex-row items-center gap-2 flex-wrap mb-1.5">
+          <View className="rounded-lg bg-green-50 px-2 py-1">
+            <Text className="text-xs font-semibold text-green-700">{DAYS[start.getDay()]}</Text>
+          </View>
+          <Text className="font-semibold text-gray-900">
+            {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+            {' — '}
+            {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+          {s.level && (
+            <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: s.level.color }}>
+              <Text className="text-xs font-semibold text-white">{s.level.name}</Text>
+            </View>
+          )}
+        </View>
+        <Text className="text-sm text-gray-500">{s.court?.name} · {s.coach?.name}</Text>
+        <Text className="mt-0.5 text-xs text-gray-400">
+          Máx. {s.max_students} alumnos · {s.recurrence === 'weekly' ? 'Semanal' : s.recurrence === 'biweekly' ? 'Quincenal' : 'Única'}
+        </Text>
+
+        <View className="mt-3">
+          {isBooked ? (
+            <TouchableOpacity
+              onPress={() => cancelBooking(s.id)}
+              disabled={isBusy}
+              className="rounded-xl bg-red-50 py-2.5"
+            >
+              <Text className="text-center text-sm font-semibold text-red-600">
+                {isBusy ? '...' : 'Cancelar reserva'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={() => bookWithBag(s.id)}
+                disabled={isBusy}
+                className={`flex-1 rounded-xl py-2.5 ${bagBalance > 0 ? 'bg-green-600' : 'bg-gray-200'}`}
+              >
+                <Text className={`text-center text-sm font-semibold ${bagBalance > 0 ? 'text-white' : 'text-gray-500'}`}>
+                  {isBusy ? '...' : `Bolsa (${bagBalance})`}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => payClass(s.id)}
+                disabled={isBusy}
+                className="flex-1 rounded-xl border border-green-600 py-2.5"
+              >
+                <Text className="text-center text-sm font-semibold text-green-700">
+                  {isBusy ? '...' : `Pagar ${(price / 100).toFixed(2)} €`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    )
+  }, [myBookings, booking, bagBalance, price60, price90])
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -198,81 +259,21 @@ export default function StudentScheduleScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-4 py-4">
-        {loading && <Text className="text-center text-gray-400">Cargando...</Text>}
-        {!loading && schedules.length === 0 && (
-          <Text className="mt-8 text-center text-gray-400">
-            {studentLevelId ? 'No hay clases disponibles para tu nivel.' : 'No hay clases programadas.'}
-          </Text>
-        )}
-
-        {schedules.map((s: any) => {
-          const isBooked = myBookings.has(s.id)
-          const start = new Date(s.start_time)
-          const end = new Date(s.end_time)
-          const price = getClassPrice(s.start_time, s.end_time)
-          const isBusy = booking === s.id
-
-          return (
-            <View key={s.id} className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
-              <View className="flex-row items-center gap-2 flex-wrap mb-1.5">
-                <View className="rounded-lg bg-green-50 px-2 py-1">
-                  <Text className="text-xs font-semibold text-green-700">{days[start.getDay()]}</Text>
-                </View>
-                <Text className="font-semibold text-gray-900">
-                  {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                  {' — '}
-                  {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-                {s.level && (
-                  <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: s.level.color }}>
-                    <Text className="text-xs font-semibold text-white">{s.level.name}</Text>
-                  </View>
-                )}
-              </View>
-              <Text className="text-sm text-gray-500">{s.court?.name} · {s.coach?.name}</Text>
-              <Text className="mt-0.5 text-xs text-gray-400">
-                Máx. {s.max_students} alumnos · {s.recurrence === 'weekly' ? 'Semanal' : s.recurrence === 'biweekly' ? 'Quincenal' : 'Única'}
-              </Text>
-
-              <View className="mt-3">
-                {isBooked ? (
-                  <TouchableOpacity
-                    onPress={() => cancelBooking(s.id)}
-                    disabled={isBusy}
-                    className="rounded-xl bg-red-50 py-2.5"
-                  >
-                    <Text className="text-center text-sm font-semibold text-red-600">
-                      {isBusy ? '...' : 'Cancelar reserva'}
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View className="flex-row gap-2">
-                    <TouchableOpacity
-                      onPress={() => bookWithBag(s.id)}
-                      disabled={isBusy}
-                      className={`flex-1 rounded-xl py-2.5 ${bagBalance > 0 ? 'bg-green-600' : 'bg-gray-200'}`}
-                    >
-                      <Text className={`text-center text-sm font-semibold ${bagBalance > 0 ? 'text-white' : 'text-gray-500'}`}>
-                        {isBusy ? '...' : `Bolsa (${bagBalance})`}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => payClass(s.id)}
-                      disabled={isBusy}
-                      className="flex-1 rounded-xl border border-green-600 py-2.5"
-                    >
-                      <Text className="text-center text-sm font-semibold text-green-700">
-                        {isBusy ? '...' : `Pagar ${(price / 100).toFixed(2)} €`}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            </View>
+      <FlatList
+        data={schedules}
+        keyExtractor={(s) => s.id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+        ListEmptyComponent={
+          loading ? (
+            <Text className="text-center text-gray-400">Cargando...</Text>
+          ) : (
+            <Text className="mt-8 text-center text-gray-400">
+              {studentLevelId ? 'No hay clases disponibles para tu nivel.' : 'No hay clases programadas.'}
+            </Text>
           )
-        })}
-      </ScrollView>
+        }
+      />
     </SafeAreaView>
   )
 }

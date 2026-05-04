@@ -18,17 +18,14 @@ export default function StudentMaterialsScreen() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { data: userData } = await supabase
-      .from('users')
-      .select('current_level_id')
-      .eq('id', user.id)
-      .single()
-
-    const { data: allMaterials } = await supabase
-      .from('materials')
-      .select('*, material_levels(level_id)')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false })
+    const [{ data: userData }, { data: allMaterials }] = await Promise.all([
+      supabase.from('users').select('current_level_id').eq('id', user.id).single(),
+      supabase
+        .from('materials')
+        .select('*, material_levels(level_id)')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false }),
+    ])
 
     const filtered = (allMaterials ?? []).filter((m: any) => {
       if (!m.material_levels || m.material_levels.length === 0) return true
