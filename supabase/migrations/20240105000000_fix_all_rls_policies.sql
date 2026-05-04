@@ -1,10 +1,13 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- REVISIÓN COMPLETA DE POLÍTICAS RLS
--- Añade WITH CHECK explícito, super_admin y políticas faltantes en todas las tablas
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ─── USERS ───────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "users_admin_all" ON users;
+DROP POLICY IF EXISTS "users_authenticated_read" ON users;
+
+CREATE POLICY "users_authenticated_read" ON users FOR SELECT
+  USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "users_admin_all" ON users FOR ALL
   USING (
@@ -14,20 +17,21 @@ CREATE POLICY "users_admin_all" ON users FOR ALL
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
--- Los coaches y alumnos pueden leer cualquier perfil (necesario para mostrar nombres en clases)
-CREATE POLICY IF NOT EXISTS "users_authenticated_read" ON users FOR SELECT
-  USING (auth.uid() IS NOT NULL);
-
 -- ─── LEVELS ──────────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "levels_authenticated_read" ON levels FOR SELECT
+DROP POLICY IF EXISTS "levels_authenticated_read" ON levels;
+DROP POLICY IF EXISTS "levels_admin_write" ON levels;
+DROP POLICY IF EXISTS "levels_admin_update" ON levels;
+DROP POLICY IF EXISTS "levels_admin_delete" ON levels;
+
+CREATE POLICY "levels_authenticated_read" ON levels FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY IF NOT EXISTS "levels_admin_write" ON levels FOR INSERT
+CREATE POLICY "levels_admin_write" ON levels FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "levels_admin_update" ON levels FOR UPDATE
+CREATE POLICY "levels_admin_update" ON levels FOR UPDATE
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   )
@@ -35,33 +39,41 @@ CREATE POLICY IF NOT EXISTS "levels_admin_update" ON levels FOR UPDATE
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "levels_admin_delete" ON levels FOR DELETE
+CREATE POLICY "levels_admin_delete" ON levels FOR DELETE
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
 -- ─── USER_LEVELS ─────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "user_levels_self_read" ON user_levels FOR SELECT
+DROP POLICY IF EXISTS "user_levels_self_read" ON user_levels;
+DROP POLICY IF EXISTS "user_levels_admin_write" ON user_levels;
+
+CREATE POLICY "user_levels_self_read" ON user_levels FOR SELECT
   USING (
     user_id = auth.uid() OR
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin', 'coach'))
   );
 
-CREATE POLICY IF NOT EXISTS "user_levels_admin_write" ON user_levels FOR INSERT
+CREATE POLICY "user_levels_admin_write" ON user_levels FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
 -- ─── COURTS ──────────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "courts_authenticated_read" ON courts FOR SELECT
+DROP POLICY IF EXISTS "courts_authenticated_read" ON courts;
+DROP POLICY IF EXISTS "courts_admin_write" ON courts;
+DROP POLICY IF EXISTS "courts_admin_update" ON courts;
+DROP POLICY IF EXISTS "courts_admin_delete" ON courts;
+
+CREATE POLICY "courts_authenticated_read" ON courts FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY IF NOT EXISTS "courts_admin_write" ON courts FOR INSERT
+CREATE POLICY "courts_admin_write" ON courts FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "courts_admin_update" ON courts FOR UPDATE
+CREATE POLICY "courts_admin_update" ON courts FOR UPDATE
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   )
@@ -69,21 +81,26 @@ CREATE POLICY IF NOT EXISTS "courts_admin_update" ON courts FOR UPDATE
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "courts_admin_delete" ON courts FOR DELETE
+CREATE POLICY "courts_admin_delete" ON courts FOR DELETE
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
 -- ─── SCHEDULES ───────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "schedules_authenticated_read" ON schedules FOR SELECT
+DROP POLICY IF EXISTS "schedules_authenticated_read" ON schedules;
+DROP POLICY IF EXISTS "schedules_admin_write" ON schedules;
+DROP POLICY IF EXISTS "schedules_admin_update" ON schedules;
+DROP POLICY IF EXISTS "schedules_admin_delete" ON schedules;
+
+CREATE POLICY "schedules_authenticated_read" ON schedules FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY IF NOT EXISTS "schedules_admin_write" ON schedules FOR INSERT
+CREATE POLICY "schedules_admin_write" ON schedules FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin', 'coach'))
   );
 
-CREATE POLICY IF NOT EXISTS "schedules_admin_update" ON schedules FOR UPDATE
+CREATE POLICY "schedules_admin_update" ON schedules FOR UPDATE
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin', 'coach'))
   )
@@ -91,13 +108,15 @@ CREATE POLICY IF NOT EXISTS "schedules_admin_update" ON schedules FOR UPDATE
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin', 'coach'))
   );
 
-CREATE POLICY IF NOT EXISTS "schedules_admin_delete" ON schedules FOR DELETE
+CREATE POLICY "schedules_admin_delete" ON schedules FOR DELETE
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin', 'coach'))
   );
 
 -- ─── BOOKINGS ────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "bookings_admin_all" ON bookings;
+DROP POLICY IF EXISTS "bookings_student_insert" ON bookings;
+DROP POLICY IF EXISTS "bookings_student_update" ON bookings;
 
 CREATE POLICY "bookings_admin_all" ON bookings FOR ALL
   USING (
@@ -107,22 +126,24 @@ CREATE POLICY "bookings_admin_all" ON bookings FOR ALL
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin', 'coach'))
   );
 
--- Los alumnos pueden insertar y cancelar sus propias reservas
-CREATE POLICY IF NOT EXISTS "bookings_student_insert" ON bookings FOR INSERT
+CREATE POLICY "bookings_student_insert" ON bookings FOR INSERT
   WITH CHECK (student_id = auth.uid());
 
-CREATE POLICY IF NOT EXISTS "bookings_student_update" ON bookings FOR UPDATE
+CREATE POLICY "bookings_student_update" ON bookings FOR UPDATE
   USING (student_id = auth.uid())
   WITH CHECK (student_id = auth.uid());
 
 -- ─── CLASS_BAG ───────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "class_bag_self_read" ON class_bag FOR SELECT
+DROP POLICY IF EXISTS "class_bag_self_read" ON class_bag;
+DROP POLICY IF EXISTS "class_bag_admin_all" ON class_bag;
+
+CREATE POLICY "class_bag_self_read" ON class_bag FOR SELECT
   USING (
     user_id = auth.uid() OR
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "class_bag_admin_all" ON class_bag FOR ALL
+CREATE POLICY "class_bag_admin_all" ON class_bag FOR ALL
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   )
@@ -131,25 +152,31 @@ CREATE POLICY IF NOT EXISTS "class_bag_admin_all" ON class_bag FOR ALL
   );
 
 -- ─── BAG_TRANSACTIONS ────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "bag_transactions_self_read" ON bag_transactions FOR SELECT
+DROP POLICY IF EXISTS "bag_transactions_self_read" ON bag_transactions;
+DROP POLICY IF EXISTS "bag_transactions_admin_write" ON bag_transactions;
+
+CREATE POLICY "bag_transactions_self_read" ON bag_transactions FOR SELECT
   USING (
     user_id = auth.uid() OR
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "bag_transactions_admin_write" ON bag_transactions FOR INSERT
+CREATE POLICY "bag_transactions_admin_write" ON bag_transactions FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
 -- ─── PAYMENTS ────────────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "payments_self_read" ON payments FOR SELECT
+DROP POLICY IF EXISTS "payments_self_read" ON payments;
+DROP POLICY IF EXISTS "payments_admin_all" ON payments;
+
+CREATE POLICY "payments_self_read" ON payments FOR SELECT
   USING (
     user_id = auth.uid() OR
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "payments_admin_all" ON payments FOR ALL
+CREATE POLICY "payments_admin_all" ON payments FOR ALL
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   )
@@ -169,32 +196,32 @@ CREATE POLICY "materials_admin_all" ON materials FOR ALL
   );
 
 -- ─── MATERIAL_LEVELS ─────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "material_levels_authenticated_read" ON material_levels FOR SELECT
+DROP POLICY IF EXISTS "material_levels_authenticated_read" ON material_levels;
+DROP POLICY IF EXISTS "material_levels_admin_write" ON material_levels;
+DROP POLICY IF EXISTS "material_levels_admin_delete" ON material_levels;
+
+CREATE POLICY "material_levels_authenticated_read" ON material_levels FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY IF NOT EXISTS "material_levels_admin_write" ON material_levels FOR INSERT
+CREATE POLICY "material_levels_admin_write" ON material_levels FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "material_levels_admin_delete" ON material_levels FOR DELETE
+CREATE POLICY "material_levels_admin_delete" ON material_levels FOR DELETE
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
 -- ─── CHAT ────────────────────────────────────────────────────────────────────
--- Insertar mensajes: el propio usuario o admin/coach
-CREATE POLICY IF NOT EXISTS "chat_messages_insert" ON chat_messages FOR INSERT
-  WITH CHECK (
-    sender_id = auth.uid()
-  );
+DROP POLICY IF EXISTS "chat_threads_insert" ON chat_threads;
+DROP POLICY IF EXISTS "chat_threads_admin_update" ON chat_threads;
+DROP POLICY IF EXISTS "chat_messages_insert" ON chat_messages;
 
--- Insertar hilos: el propio usuario
-CREATE POLICY IF NOT EXISTS "chat_threads_insert" ON chat_threads FOR INSERT
+CREATE POLICY "chat_threads_insert" ON chat_threads FOR INSERT
   WITH CHECK (user_id = auth.uid());
 
--- Admin puede actualizar hilos (marcar como resuelto)
-CREATE POLICY IF NOT EXISTS "chat_threads_admin_update" ON chat_threads FOR UPDATE
+CREATE POLICY "chat_threads_admin_update" ON chat_threads FOR UPDATE
   USING (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   )
@@ -202,12 +229,18 @@ CREATE POLICY IF NOT EXISTS "chat_threads_admin_update" ON chat_threads FOR UPDA
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
+CREATE POLICY "chat_messages_insert" ON chat_messages FOR INSERT
+  WITH CHECK (sender_id = auth.uid());
+
 -- ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
-CREATE POLICY IF NOT EXISTS "notifications_admin_insert" ON notifications FOR INSERT
+DROP POLICY IF EXISTS "notifications_admin_insert" ON notifications;
+DROP POLICY IF EXISTS "notifications_self_update" ON notifications;
+
+CREATE POLICY "notifications_admin_insert" ON notifications FOR INSERT
   WITH CHECK (
     EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role::text IN ('admin', 'super_admin'))
   );
 
-CREATE POLICY IF NOT EXISTS "notifications_self_update" ON notifications FOR UPDATE
+CREATE POLICY "notifications_self_update" ON notifications FOR UPDATE
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
