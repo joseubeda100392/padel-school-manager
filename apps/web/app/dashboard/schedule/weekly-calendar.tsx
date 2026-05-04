@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -27,19 +27,23 @@ function getWeekDates(offset: number) {
 export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
-  const weekDates = getWeekDates(weekOffset)
 
-  const byDay: Record<number, any[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
-  schedules.forEach((s) => {
-    const idx = JS_DAY_TO_IDX[new Date(s.start_time).getDay()]
-    if (idx !== undefined) byDay[idx].push(s)
-  })
+  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset])
 
-  const formatWeekRange = () => {
+  const byDay = useMemo(() => {
+    const map: Record<number, any[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
+    schedules.forEach((s) => {
+      const idx = JS_DAY_TO_IDX[new Date(s.start_time).getDay()]
+      if (idx !== undefined) map[idx].push(s)
+    })
+    return map
+  }, [schedules])
+
+  const weekRange = useMemo(() => {
     const from = weekDates[0].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
     const to = weekDates[6].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
     return `${from} — ${to}`
-  }
+  }, [weekDates])
 
   return (
     <div>
@@ -52,7 +56,7 @@ export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
           ← Anterior
         </button>
         <div className="text-center">
-          <p className="text-sm font-semibold text-gray-900">{formatWeekRange()}</p>
+          <p className="text-sm font-semibold text-gray-900">{weekRange}</p>
           {weekOffset !== 0 && (
             <button onClick={() => setWeekOffset(0)} className="text-xs text-green-600 hover:underline">
               Volver a hoy

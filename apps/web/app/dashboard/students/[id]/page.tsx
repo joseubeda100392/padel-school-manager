@@ -47,7 +47,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   ] = await Promise.all([
     supabase
       .from('users')
-      .select('*')
+      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url')
       .eq('id', params.id)
       .single(),
     clubId

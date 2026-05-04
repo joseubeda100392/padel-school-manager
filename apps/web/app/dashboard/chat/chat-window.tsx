@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 interface Message {
   id: string
@@ -23,11 +24,13 @@ interface Props {
 }
 
 export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
+  const supabaseRef = useRef(createClient())
+  const supabase = supabaseRef.current
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -67,7 +70,8 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
 
   async function resolve() {
     await supabase.from('chat_threads').update({ status: 'resolved' }).eq('id', thread.id)
-    window.location.href = '/dashboard/chat'
+    router.refresh()
+    router.push('/dashboard/chat')
   }
 
   return (

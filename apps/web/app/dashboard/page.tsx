@@ -14,9 +14,9 @@ export default async function DashboardPage() {
     { count: pendingPayments },
     { data: recentStudents },
   ] = await Promise.all([
-    filter(supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
-    filter(supabase.from('materials').select('*', { count: 'exact', head: true }).eq('is_published', true)),
-    filter(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+    filter(supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
+    filter(supabase.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
+    filter(supabase.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
     filter(supabase.from('users').select('id,name,email,created_at').eq('role', 'student').order('created_at', { ascending: false }).limit(5)),
   ])
 

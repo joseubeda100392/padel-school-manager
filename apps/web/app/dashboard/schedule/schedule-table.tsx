@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 
 const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -18,14 +18,17 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
   const [q, setQ] = useState('')
   const [day, setDay] = useState('')
 
-  const filtered = schedules.filter((s) => {
-    const matchQ = !q ||
-      s.court?.name?.toLowerCase().includes(q.toLowerCase()) ||
-      s.coach?.name?.toLowerCase().includes(q.toLowerCase()) ||
-      s.level?.name?.toLowerCase().includes(q.toLowerCase())
-    const matchDay = !day || String(new Date(s.start_time).getDay()) === day
-    return matchQ && matchDay
-  })
+  const filtered = useMemo(() => {
+    const qLower = q.toLowerCase()
+    return schedules.filter((s) => {
+      const matchQ = !q ||
+        (s.court?.name ?? '').toLowerCase().includes(qLower) ||
+        (s.coach?.name ?? '').toLowerCase().includes(qLower) ||
+        (s.level?.name ?? '').toLowerCase().includes(qLower)
+      const matchDay = !day || String(new Date(s.start_time).getDay()) === day
+      return matchQ && matchDay
+    })
+  }, [schedules, q, day])
 
   return (
     <>

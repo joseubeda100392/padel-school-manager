@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { formatDate } from '@/lib/utils'
 
 const roleLabel: Record<string, string> = {
@@ -42,12 +42,15 @@ export default function StudentsTable({ students, levelMap }: Props) {
     URL.revokeObjectURL(url)
   }
 
-  const filtered = students.filter((s) => {
-    const matchQ = !q || s.name?.toLowerCase().includes(q.toLowerCase()) || s.email?.toLowerCase().includes(q.toLowerCase())
-    const matchRole = !role || s.role === role
-    const matchStatus = status === '' || (status === 'active' ? s.is_active : !s.is_active)
-    return matchQ && matchRole && matchStatus
-  })
+  const filtered = useMemo(() => {
+    const qLower = q.toLowerCase()
+    return students.filter((s) => {
+      const matchQ = !q || (s.name ?? '').toLowerCase().includes(qLower) || (s.email ?? '').toLowerCase().includes(qLower)
+      const matchRole = !role || s.role === role
+      const matchStatus = status === '' || (status === 'active' ? s.is_active : !s.is_active)
+      return matchQ && matchRole && matchStatus
+    })
+  }, [students, q, role, status])
 
   return (
     <>
