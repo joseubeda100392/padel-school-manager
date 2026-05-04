@@ -61,6 +61,8 @@ export default function NewMaterialPage() {
 
     const { data: urlData } = supabase.storage.from('materials').getPublicUrl(path)
 
+    const clubId = user.user_metadata?.club_id ?? null
+
     const { data: material, error: insertError } = await supabase
       .from('materials')
       .insert({
@@ -69,6 +71,7 @@ export default function NewMaterialPage() {
         file_url: urlData.publicUrl,
         uploaded_by: user.id,
         is_published: isPublished,
+        club_id: clubId,
       })
       .select('id')
       .single()
