@@ -36,12 +36,11 @@ export default function StudentHomeScreen() {
       supabase.from('users').select('name, current_level_id, currentLevel:levels(name, color)').eq('id', authUser.id).single(),
       supabase.from('class_bag').select('balance').eq('user_id', authUser.id).single(),
       supabase.from('bookings')
-        .select('*, schedule:schedules(start_time, end_time, court:courts(name), coach:users!schedules_coach_id_fkey(name))')
+        .select('*, schedule:schedules(start_time, end_time, is_active, recurrence, court:courts(name), coach:users!schedules_coach_id_fkey(name))')
         .eq('student_id', authUser.id)
         .eq('status', 'confirmed')
-        .gte('schedules.start_time', new Date().toISOString())
         .order('created_at', { ascending: true })
-        .limit(1),
+        .limit(20),
       supabase.from('group_enrollments')
         .select('id, monthly_price, paid_until, schedule:schedules(start_time)')
         .eq('student_id', authUser.id)
@@ -50,9 +49,17 @@ export default function StudentHomeScreen() {
 
     const pending = (enrollments ?? []).filter((e: any) => !isPaidThisMonth(e.paid_until))
 
+    // Próxima clase: clases activas con recurrencia o start_time futuro
+    const now = new Date()
+    const upcomingBooking = (schedules ?? []).find((b: any) => {
+      if (!b.schedule?.is_active) return false
+      if (b.schedule.recurrence !== 'none') return true
+      return new Date(b.schedule.start_time) > now
+    }) ?? null
+
     setUser(userData)
     setBag(bagData?.balance ?? 0)
-    setNextClass(schedules?.[0] ?? null)
+    setNextClass(upcomingBooking)
     setPendingEnrollments(pending)
     setLoading(false)
     registerPushToken(authUser.id)

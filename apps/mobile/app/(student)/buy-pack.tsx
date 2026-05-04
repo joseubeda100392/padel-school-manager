@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Linking, Alert, ActivityIndicator, Scroll
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { createClient } from '@/lib/supabase'
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://padel-school-manager-production.up.railway.app'
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://web-production-f1316.up.railway.app'
 
 interface PackConfig {
   price: number

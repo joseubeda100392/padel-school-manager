@@ -212,7 +212,8 @@ export default function LoginScreen() {
         return
       }
 
-      const role = data.user.user_metadata?.role
+      const { data: newUserData } = await supabase.from('users').select('role').eq('id', data.user.id).single()
+      const role = newUserData?.role ?? data.user.user_metadata?.role
       await registerPushToken(data.user.id)
       if (role === 'coach') {
         router.replace('/(coach)/home')

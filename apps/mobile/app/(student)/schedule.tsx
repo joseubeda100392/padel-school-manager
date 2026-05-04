@@ -98,15 +98,12 @@ export default function StudentScheduleScreen() {
     }
     setBooking(scheduleId)
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    const clubId = user?.user_metadata?.club_id ?? null
 
     const { error } = await supabase.from('bookings').insert({
       schedule_id: scheduleId,
       student_id: userId,
       status: 'confirmed',
       source: 'bag',
-      club_id: clubId,
     })
 
     if (error) {
