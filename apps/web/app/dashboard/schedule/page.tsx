@@ -41,6 +41,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const schedules = (rawSchedules ?? []).map((s: any) => ({
     ...s,
     bookings_count: (s.bookings?.[0]?.count ?? 0) + (enrollmentCountMap[s.id] ?? 0),
+    is_fixed_group: (enrollmentCountMap[s.id] ?? 0) > 0,
   }))
 
   return (

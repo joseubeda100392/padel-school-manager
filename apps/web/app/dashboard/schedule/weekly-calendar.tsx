@@ -102,11 +102,18 @@ export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
                   <button
                     key={s.id}
                     onClick={() => router.push(`/dashboard/schedule/${s.id}`)}
-                    className="w-full rounded-lg bg-white p-2 text-left shadow-sm ring-1 ring-gray-100 hover:ring-green-400 transition-all"
+                    className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all hover:ring-green-400 ${s.is_fixed_group ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
                   >
-                    <p className="text-xs font-semibold text-gray-900">
-                      {timeOnly(s.start_time)}
-                    </p>
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs font-semibold text-gray-900">
+                        {timeOnly(s.start_time)}
+                      </p>
+                      {s.is_fixed_group && (
+                        <span className="shrink-0 rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-semibold text-orange-700">
+                          FIJO
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-500 truncate">{s.court?.name ?? '—'}</p>
                     <p className="text-xs text-gray-400 truncate">{s.coach?.name ?? '—'}</p>
                     {s.level && (

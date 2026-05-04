@@ -119,9 +119,16 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.recurrence === 'weekly' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {s.recurrence === 'weekly' ? 'Semanal' : s.recurrence === 'biweekly' ? 'Quincenal' : 'Única'}
-                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.recurrence === 'weekly' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {s.recurrence === 'weekly' ? 'Semanal' : s.recurrence === 'biweekly' ? 'Quincenal' : 'Única'}
+                      </span>
+                      {s.is_fixed_group && (
+                        <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-700">
+                          Grupo fijo
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     {s.max_students > 0 && (
