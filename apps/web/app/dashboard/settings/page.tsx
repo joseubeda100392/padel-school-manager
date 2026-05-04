@@ -30,6 +30,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [courts, setCourts] = useState<any[]>([])
   const [newCourt, setNewCourt] = useState({ name: '', type: 'indoor' })
   const [addingCourt, setAddingCourt] = useState(false)
@@ -97,13 +98,19 @@ export default function SettingsPage() {
 
   async function saveConfig() {
     setSaving(true)
+    setSaveError('')
     const supabase = createClient()
-    await Promise.all(
+    const results = await Promise.all(
       Object.entries(config).map(([key, value]) =>
         supabase.from('app_config').upsert({ key, value: String(value) }, { onConflict: 'key' })
       )
     )
+    const firstError = results.find((r) => r.error)?.error
     setSaving(false)
+    if (firstError) {
+      setSaveError(firstError.message)
+      return
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -316,6 +323,11 @@ export default function SettingsPage() {
         </p>
       </div>
 
+      {saveError && (
+        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+          Error al guardar: {saveError}
+        </div>
+      )}
       <button
         onClick={saveConfig}
         disabled={saving}
