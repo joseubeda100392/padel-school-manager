@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { getClubId } from '@/lib/get-club'
 import StudentsTable from './students-table'
 
 export default async function StudentsPage() {
   const supabase = createClient()
-  const clubId = await getClubId()
+  const { data: { user } } = await supabase.auth.getUser()
+  const clubId = user?.user_metadata?.club_id as string | null ?? null
 
   let studentsQuery = supabase
     .from('users')
