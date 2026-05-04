@@ -42,19 +42,18 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    Promise.all([
-      supabase.auth.getUser(),
-      supabase.from('app_config').select('key, value'),
-      supabase.from('courts').select('*').order('name'),
-    ]).then(async ([{ data: { user } }, { data: cfg }, { data: c }]) => {
-      if (user) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('name, email, avatar_url')
-          .eq('id', user.id)
-          .single()
-        if (userData) setProfile({ id: user.id, ...userData })
-      }
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      const clubId = user?.user_metadata?.club_id ?? null
+      const [{ data: cfg }, { data: c }, { data: userData }] = await Promise.all([
+        supabase.from('app_config').select('key, value'),
+        clubId
+          ? supabase.from('courts').select('*').eq('club_id', clubId).order('name')
+          : supabase.from('courts').select('*').order('name'),
+        user
+          ? supabase.from('users').select('name, email, avatar_url').eq('id', user.id).single()
+          : Promise.resolve({ data: null, error: null }),
+      ])
+      if (userData && user) setProfile({ id: user.id, ...userData })
       if (cfg) {
         const merged = { ...defaults }
         cfg.forEach((row: any) => {

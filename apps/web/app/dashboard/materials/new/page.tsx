@@ -23,7 +23,10 @@ export default function NewMaterialPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.from('levels').select('id, name, color').order('order').then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      const clubId = user?.user_metadata?.club_id ?? null
+      const query = supabase.from('levels').select('id, name, color').order('order')
+      const { data } = await (clubId ? query.eq('club_id', clubId) : query)
       if (data) setLevels(data)
     })
   }, [])

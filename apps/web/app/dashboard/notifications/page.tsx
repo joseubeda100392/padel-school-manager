@@ -14,10 +14,16 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    Promise.all([
-      supabase.from('levels').select('id, name, color').order('name'),
-      supabase.from('push_campaigns').select('*, level:levels(name), sender:users!push_campaigns_sent_by_fkey(name)').order('created_at', { ascending: false }).limit(20),
-    ]).then(([{ data: lvls }, { data: camps }]) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      const clubId = user?.user_metadata?.club_id ?? null
+      const [{ data: lvls }, { data: camps }] = await Promise.all([
+        clubId
+          ? supabase.from('levels').select('id, name, color').eq('club_id', clubId).order('name')
+          : supabase.from('levels').select('id, name, color').order('name'),
+        clubId
+          ? supabase.from('push_campaigns').select('*, level:levels(name), sender:users!push_campaigns_sent_by_fkey(name)').eq('club_id', clubId).order('created_at', { ascending: false }).limit(20)
+          : supabase.from('push_campaigns').select('*, level:levels(name), sender:users!push_campaigns_sent_by_fkey(name)').order('created_at', { ascending: false }).limit(20),
+      ])
       setLevels(lvls ?? [])
       setCampaigns(camps ?? [])
     })
@@ -42,11 +48,14 @@ export default function NotificationsPage() {
       setFilterLevelId('')
       // Recargar historial
       const supabase = createClient()
-      const { data } = await supabase
+      const { data: { user } } = await supabase.auth.getUser()
+      const clubId = user?.user_metadata?.club_id ?? null
+      const reloadQuery = supabase
         .from('push_campaigns')
         .select('*, level:levels(name), sender:users!push_campaigns_sent_by_fkey(name)')
         .order('created_at', { ascending: false })
         .limit(20)
+      const { data } = await (clubId ? reloadQuery.eq('club_id', clubId) : reloadQuery)
       setCampaigns(data ?? [])
     } else {
       setResult({ ok: false, error: json.error })
