@@ -11,8 +11,11 @@ export default async function PaymentsPage() {
   const clubId = await getClubId()
 
   const now = new Date()
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
-  const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  const lastDay = new Date(y, m, 0).getDate()
+  const endOfMonth = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  const currentMonthLabel = `${MONTHS[now.getMonth()]} ${y}`
 
   const paymentsQuery = supabase
     .from('payments')
@@ -31,7 +34,7 @@ export default async function PaymentsPage() {
   ])
 
   const unpaidList = (unpaidRaw ?? []).filter((e: any) =>
-    !clubId || e.schedule?.club_id === clubId
+    !clubId || !e.schedule || e.schedule.club_id === clubId
   )
 
   const total = payments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
