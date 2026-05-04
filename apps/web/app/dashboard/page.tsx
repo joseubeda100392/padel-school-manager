@@ -11,19 +11,21 @@ export default async function DashboardPage() {
   const [
     { count: totalStudents },
     { count: totalMaterials },
-    { count: pendingPayments },
+    { data: classesToday },
+    { data: pendingPayments },
     { data: recentStudents },
   ] = await Promise.all([
     filter(supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
     filter(supabase.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
-    filter(supabase.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
+    supabase.rpc('count_classes_today', { p_club_id: clubId ?? null }),
+    supabase.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
     filter(supabase.from('users').select('id,name,email,created_at').eq('role', 'student').order('created_at', { ascending: false }).limit(5)),
   ])
 
   const stats = [
     { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500' },
-    { label: 'Clases hoy', value: '—', icon: CalendarDays, color: 'bg-green-500' },
-    { label: 'Cobros pendientes', value: pendingPayments ?? 0, icon: CreditCard, color: 'bg-yellow-500' },
+    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-green-500' },
+    { label: 'Cobros pendientes', value: (pendingPayments as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500' },
     { label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500' },
   ]
 
