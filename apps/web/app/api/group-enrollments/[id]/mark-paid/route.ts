@@ -19,14 +19,22 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
+  const { data: enrollment } = await admin
+    .from('group_enrollments')
+    .select('student_id, monthly_price')
+    .eq('id', params.id)
+    .single()
+
+  if (!enrollment) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
+
   const now = new Date()
   const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
 
   await admin.from('group_enrollments').update({ paid_until: paidUntil }).eq('id', params.id)
 
   await admin.from('payments').insert({
-    user_id: (await admin.from('group_enrollments').select('student_id').eq('id', params.id).single()).data?.student_id,
-    amount: 0,
+    user_id: enrollment.student_id,
+    amount: enrollment.monthly_price,
     type: 'fixed_group_month',
     status: 'completed',
     metadata: { enrollment_id: params.id, method: 'cash', paid_until: paidUntil },

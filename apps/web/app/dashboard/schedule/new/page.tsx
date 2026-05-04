@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function NewSchedulePage() {
+  const router = useRouter()
   const [courts, setCourts] = useState<any[]>([])
   const [coaches, setCoaches] = useState<any[]>([])
   const [levels, setLevels] = useState<any[]>([])
@@ -77,7 +79,8 @@ export default function NewSchedulePage() {
       return
     }
 
-    window.location.href = '/dashboard/schedule'
+    router.refresh()
+    router.push('/dashboard/schedule')
   }
 
   return (

@@ -77,6 +77,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
     }).eq('id', params.id)
 
     if (err) { setError(err.message); setLoading(false); return }
+    router.refresh()
     router.push(`/dashboard/schedule/${params.id}`)
   }
 
