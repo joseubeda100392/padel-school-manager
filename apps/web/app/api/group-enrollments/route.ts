@@ -23,12 +23,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const [{ data: schedule }, { data: student }] = await Promise.all([
+  const [{ data: schedule }, { data: student }, { data: existingEnrollments }] = await Promise.all([
     admin.from('schedules').select('level_id').eq('id', scheduleId).single(),
     admin.from('users').select('current_level_id').eq('id', studentId).single(),
+    admin.from('group_enrollments')
+      .select('student:users!group_enrollments_student_id_fkey(current_level_id)')
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'active'),
   ])
 
-  if (schedule?.level_id && student?.current_level_id !== schedule.level_id) {
+  // Nivel requerido: el del horario, o inferido de los alumnos ya inscritos
+  const enrolledLevels = [...new Set(
+    (existingEnrollments ?? []).map((e: any) => e.student?.current_level_id).filter(Boolean)
+  )]
+  const effectiveLevelId: string | null = schedule?.level_id ?? (enrolledLevels.length === 1 ? enrolledLevels[0] : null)
+
+  if (effectiveLevelId && student?.current_level_id !== effectiveLevelId) {
     return NextResponse.json({ error: 'El nivel del alumno no coincide con el nivel de la clase' }, { status: 400 })
   }
 

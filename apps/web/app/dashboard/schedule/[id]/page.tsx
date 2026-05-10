@@ -30,10 +30,18 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   const { data: groupEnrollments } = await supabase
     .from('group_enrollments')
-    .select('id, monthly_price, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email)')
+    .select('id, monthly_price, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
     .eq('schedule_id', params.id)
     .eq('status', 'active')
     .order('enrolled_at')
+
+  // Nivel efectivo: el del horario, o inferido de los alumnos ya inscritos si todos comparten nivel
+  const enrolledLevelIds = (groupEnrollments ?? [])
+    .map((e: any) => e.student?.current_level_id)
+    .filter(Boolean)
+  const uniqueEnrolledLevels = [...new Set(enrolledLevelIds)]
+  const inferredLevelId = uniqueEnrolledLevels.length === 1 ? uniqueEnrolledLevels[0] : null
+  const effectiveLevelId: string | null = schedule.level_id ?? inferredLevelId
 
   const studentsQuery = supabase
     .from('users')
@@ -44,8 +52,8 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     .order('name')
 
   const { data: allStudents } = await (
-    schedule.level_id
-      ? studentsQuery.eq('current_level_id', schedule.level_id)
+    effectiveLevelId
+      ? studentsQuery.eq('current_level_id', effectiveLevelId)
       : studentsQuery
   )
 
@@ -76,6 +84,24 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
             <p className="mt-0.5 text-xs text-gray-400">
               {schedule.recurrence === 'weekly' ? 'Semanal' : schedule.recurrence === 'biweekly' ? 'Quincenal' : 'Clase única'} · Inicio: {formatDate(schedule.start_time)}
             </p>
+            <div className="mt-2 flex items-center gap-2">
+              {schedule.level ? (
+                <span
+                  className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+                  style={{ backgroundColor: schedule.level.color }}
+                >
+                  {schedule.level.name}
+                </span>
+              ) : inferredLevelId ? (
+                <span className="inline-block rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-700">
+                  Nivel inferido de alumnos
+                </span>
+              ) : (
+                <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-400">
+                  Sin nivel · <a href={`/dashboard/schedule/${params.id}/edit`} className="underline hover:text-gray-600">Asignar nivel</a>
+                </span>
+              )}
+            </div>
           </div>
           <div className="text-right">
             <p className="text-3xl font-bold text-gray-900">{enrolled}<span className="text-lg text-gray-400">/{schedule.max_students}</span></p>
