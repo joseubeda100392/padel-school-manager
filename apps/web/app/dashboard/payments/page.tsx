@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
+import { formatCurrency } from '@/lib/utils'
 import PaymentsTable from './payments-table'
 import { UnpaidList } from './unpaid-list'
 
