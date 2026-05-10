@@ -5,6 +5,8 @@ import { formatDate, formatCurrency } from '@/lib/utils'
 import { StudentLevelForm } from './student-level-form'
 import { BagAdjustForm } from './bag-adjust-form'
 import { StudentEditForm } from './student-edit-form'
+import { StudentEnrollments } from './student-enrollments'
+import { StudentMakeups } from './student-makeups'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -44,10 +46,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: levelHistory },
     { data: bagHistory },
     { data: payments },
+    { data: enrollments },
+    { data: makeups },
   ] = await Promise.all([
     supabase
       .from('users')
-      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url')
+      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url, start_date, end_date')
       .eq('id', params.id)
       .single(),
     clubId
@@ -72,6 +76,17 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .eq('user_id', params.id)
       .order('created_at', { ascending: false })
       .limit(20),
+    supabase
+      .from('group_enrollments')
+      .select('id, monthly_price, paid_until, status, start_date, end_date, schedule:schedules(id, start_time, court:courts(name))')
+      .eq('student_id', params.id)
+      .eq('status', 'active')
+      .order('enrolled_at', { ascending: false }),
+    supabase
+      .from('makeups')
+      .select('id, original_date, makeup_date, status, notes, schedule:schedules(id, start_time)')
+      .eq('student_id', params.id)
+      .order('created_at', { ascending: false }),
   ])
 
   if (studentError || !student) {
@@ -140,7 +155,21 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           phone: (student as any).phone ?? '',
           role: student.role as string,
           is_active: (student as any).is_active ?? true,
+          start_date: (student as any).start_date ?? '',
+          end_date: (student as any).end_date ?? '',
         }} />
+      </div>
+
+      {/* Clases y cuotas */}
+      <div className="mb-6">
+        <StudentEnrollments initialEnrollments={(enrollments ?? []).map((e: any) => ({
+          id: e.id,
+          monthly_price: e.monthly_price,
+          paid_until: e.paid_until,
+          start_date: e.start_date,
+          end_date: e.end_date,
+          schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
+        }))} />
       </div>
 
       {/* Nivel + Bolsa */}
@@ -185,6 +214,20 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           )}
         </div>
       </div>
+
+      {/* Recuperaciones */}
+      {makeups && makeups.length > 0 && (
+        <div className="mb-6">
+          <StudentMakeups initialMakeups={(makeups ?? []).map((m: any) => ({
+            id: m.id,
+            original_date: m.original_date,
+            makeup_date: m.makeup_date,
+            status: m.status,
+            notes: m.notes,
+            schedule: m.schedule ? { id: m.schedule.id, start_time: m.schedule.start_time } : null,
+          }))} />
+        </div>
+      )}
 
       {/* Historial de pagos */}
       <div className="mb-6 rounded-xl bg-white shadow-sm">

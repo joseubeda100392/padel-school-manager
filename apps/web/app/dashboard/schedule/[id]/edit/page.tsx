@@ -45,6 +45,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
           start_time: start.toTimeString().slice(0, 5),
           duration: diffMin === 90 ? 90 : 60,
           recurrence: s.recurrence ?? 'weekly',
+          recurrence_end_date: s.recurrence_end_date ?? '',
           max_students: s.max_students ?? 4,
           is_active: s.is_active ?? true,
         })
@@ -72,6 +73,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
       start_time: startDateTime.toISOString(),
       end_time: endDateTime.toISOString(),
       recurrence: form.recurrence,
+      recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
       max_students: form.max_students,
       is_active: form.is_active,
     }).eq('id', params.id)
@@ -158,6 +160,16 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
               className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
           </div>
         </div>
+
+        {form.recurrence !== 'none' && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha fin de recurrencia</label>
+            <input type="date" value={form.recurrence_end_date} min={form.date}
+              onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })}
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+            <p className="mt-1 text-xs text-gray-400">Opcional. Deja vacío si la clase no tiene fecha de fin.</p>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <input type="checkbox" id="is_active" checked={form.is_active}

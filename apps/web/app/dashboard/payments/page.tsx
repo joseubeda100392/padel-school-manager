@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
-import { formatCurrency } from '@/lib/utils'
 import PaymentsTable from './payments-table'
+import { UnpaidList } from './unpaid-list'
 
-const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
 export default async function PaymentsPage() {
@@ -58,58 +57,7 @@ export default async function PaymentsPage() {
           <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {currentMonthLabel}</h2>
           <p className="text-xs text-gray-400">{unpaid.length} alumnos sin pagar</p>
         </div>
-        {unpaid.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-green-600 font-medium">✓ Todos los alumnos han pagado este mes</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px]">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alumno</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Clase</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Último pago</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {unpaid.map((e: any) => {
-                  const dow = e.start_time ? new Date(e.start_time).getDay() : null
-                  const time = e.start_time
-                    ? new Date(e.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-                    : null
-                  return (
-                    <tr key={e.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-gray-900">{e.student_name ?? '—'}</p>
-                        <p className="text-xs text-gray-400">{e.student_email}</p>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {dow !== null ? `${DAYS[dow]} ${time}` : '—'}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-yellow-600">
-                        {formatCurrency(e.monthly_price)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-400">
-                        {e.paid_until
-                          ? new Date(e.paid_until).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : 'Nunca'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <a
-                          href={`/dashboard/schedule/${e.schedule_id}`}
-                          className="text-xs font-medium text-green-600 hover:underline"
-                        >
-                          Marcar pagado →
-                        </a>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <UnpaidList items={unpaid as any[]} monthLabel={currentMonthLabel} />
       </div>
 
       {/* Historial de transacciones */}

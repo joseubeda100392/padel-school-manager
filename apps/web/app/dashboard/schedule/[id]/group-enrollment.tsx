@@ -43,6 +43,8 @@ export default function GroupEnrollment({
   const [monthlyPrice, setMonthlyPrice] = useState(defaultMonthlyPrice)
   const [adding, setAdding] = useState(false)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
+  const [editingPriceValue, setEditingPriceValue] = useState(0)
 
   const now = new Date()
   const currentMonth = MONTH_NAMES[now.getMonth()]
@@ -76,6 +78,20 @@ export default function GroupEnrollment({
     setEnrollments((prev) => prev.filter((e) => e.id !== id))
     setLoadingId(null)
     router.refresh()
+  }
+
+  async function handleUpdatePrice(id: string) {
+    setLoadingId(id)
+    await fetch(`/api/group-enrollments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monthly_price: editingPriceValue }),
+    })
+    setEnrollments((prev) =>
+      prev.map((e) => e.id === id ? { ...e, monthly_price: editingPriceValue } : e)
+    )
+    setEditingPriceId(null)
+    setLoadingId(null)
   }
 
   async function handleMarkPaid(id: string) {
@@ -112,9 +128,27 @@ export default function GroupEnrollment({
                   <p className="font-medium text-gray-900">{e.student.name}</p>
                   <p className="text-xs text-gray-400">{e.student.email}</p>
                 </div>
-                <span className="text-sm font-medium text-gray-600">
-                  {(e.monthly_price / 100).toFixed(2)}€/mes
-                </span>
+                {editingPriceId === e.id ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number" min={0} step={0.5}
+                      value={editingPriceValue / 100}
+                      onChange={(ev) => setEditingPriceValue(Math.round(Number(ev.target.value) * 100))}
+                      className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-green-500 focus:outline-none"
+                      autoFocus
+                    />
+                    <button onClick={() => handleUpdatePrice(e.id)} className="text-xs font-medium text-green-600">✓</button>
+                    <button onClick={() => setEditingPriceId(null)} className="text-xs text-gray-400">✕</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setEditingPriceId(e.id); setEditingPriceValue(e.monthly_price) }}
+                    className="text-sm font-medium text-gray-600 hover:text-green-600"
+                    title="Editar cuota"
+                  >
+                    {(e.monthly_price / 100).toFixed(2)}€/mes ✎
+                  </button>
+                )}
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                   {paid ? `Pagado` : `Pendiente ${currentMonth}`}
                 </span>

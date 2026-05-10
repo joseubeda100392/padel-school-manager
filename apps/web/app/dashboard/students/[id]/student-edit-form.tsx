@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
-  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean }
+  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string }
 }
 
 export function StudentEditForm({ student }: Props) {
@@ -15,6 +15,8 @@ export function StudentEditForm({ student }: Props) {
     phone: student.phone ?? '',
     role: student.role ?? 'student',
     is_active: student.is_active ?? true,
+    start_date: student.start_date ?? '',
+    end_date: student.end_date ?? '',
   })
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -36,6 +38,8 @@ export function StudentEditForm({ student }: Props) {
       phone: form.phone.trim() || null,
       role: form.role,
       is_active: form.is_active,
+      start_date: form.start_date || null,
+      end_date: form.end_date || null,
     }).eq('id', student.id)
     setSaving(false)
     if (err) { setError(err.message); return }
@@ -93,6 +97,19 @@ export function StudentEditForm({ student }: Props) {
             <option value="coach">Monitor</option>
             <option value="admin">Admin</option>
           </select>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha de alta</label>
+            <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha de baja</label>
+            <input type="date" value={form.end_date} min={form.start_date}
+              onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <input type="checkbox" id="is_active_edit" checked={form.is_active}
