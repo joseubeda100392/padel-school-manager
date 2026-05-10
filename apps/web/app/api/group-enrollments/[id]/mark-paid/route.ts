@@ -21,7 +21,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const { data: enrollment } = await admin
     .from('group_enrollments')
-    .select('student_id, monthly_price')
+    .select('student_id, monthly_price, club_id')
     .eq('id', params.id)
     .single()
 
@@ -34,6 +34,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   await admin.from('payments').insert({
     user_id: enrollment.student_id,
+    club_id: enrollment.club_id,
     amount: enrollment.monthly_price,
     type: 'fixed_group_month',
     status: 'completed',

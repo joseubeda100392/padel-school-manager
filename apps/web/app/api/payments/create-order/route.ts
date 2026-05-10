@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const { data: userProfile } = await adminSupabase.from('users').select('club_id').eq('id', user.id).single()
+  const clubId = userProfile?.club_id ?? null
+
   const { type, scheduleId, packType, enrollmentId }: { type: PaymentType; scheduleId?: string; packType?: '60' | '90'; enrollmentId?: string } = await req.json()
 
   const { data: configs } = await adminSupabase
@@ -95,6 +98,7 @@ export async function POST(req: NextRequest) {
 
   await adminSupabase.from('payments').insert({
     user_id: user.id,
+    club_id: clubId,
     redsys_order_id: orderId,
     amount,
     type,
