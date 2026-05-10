@@ -20,6 +20,7 @@ export default function StudentHomeScreen() {
   const [bag, setBag] = useState<number>(0)
   const [nextClass, setNextClass] = useState<any>(null)
   const [pendingEnrollments, setPendingEnrollments] = useState<any[]>([])
+  const [pendingMakeups, setPendingMakeups] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState<string | null>(null)
 
@@ -32,7 +33,7 @@ export default function StudentHomeScreen() {
     const { data: { user: authUser } } = await supabase.auth.getUser()
     if (!authUser) return
 
-    const [{ data: userData }, { data: bagData }, { data: schedules }, { data: enrollments }] = await Promise.all([
+    const [{ data: userData }, { data: bagData }, { data: schedules }, { data: enrollments }, { data: makeups }] = await Promise.all([
       supabase.from('users').select('name, current_level_id, currentLevel:levels(name, color)').eq('id', authUser.id).single(),
       supabase.from('class_bag').select('balance').eq('user_id', authUser.id).single(),
       supabase.from('bookings')
@@ -45,6 +46,11 @@ export default function StudentHomeScreen() {
         .select('id, monthly_price, paid_until, schedule:schedules(start_time)')
         .eq('student_id', authUser.id)
         .eq('status', 'active'),
+      supabase.from('makeups')
+        .select('id, original_date, makeup_date, notes, originalSchedule:schedules!makeups_original_schedule_id_fkey(start_time, court:courts(name))')
+        .eq('student_id', authUser.id)
+        .eq('status', 'pending')
+        .order('makeup_date', { ascending: true }),
     ])
 
     const pending = (enrollments ?? []).filter((e: any) => !isPaidThisMonth(e.paid_until))
@@ -61,6 +67,7 @@ export default function StudentHomeScreen() {
     setBag(bagData?.balance ?? 0)
     setNextClass(upcomingBooking)
     setPendingEnrollments(pending)
+    setPendingMakeups(makeups ?? [])
     setLoading(false)
     registerPushToken(authUser.id)
   }
@@ -149,6 +156,28 @@ export default function StudentHomeScreen() {
             </View>
           )
         })}
+
+        {/* Recuperaciones pendientes */}
+        {pendingMakeups.length > 0 && (
+          <View className="mb-4 rounded-2xl bg-orange-500 p-5">
+            <Text className="text-sm font-medium text-orange-100">
+              {pendingMakeups.length === 1 ? 'Tienes 1 recuperación pendiente' : `Tienes ${pendingMakeups.length} recuperaciones pendientes`}
+            </Text>
+            {pendingMakeups.map((m: any) => {
+              const makeupDate = m.makeup_date
+                ? new Date(m.makeup_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+                : '—'
+              const courtName = m.originalSchedule?.court?.name ?? ''
+              return (
+                <View key={m.id} className="mt-3 rounded-xl bg-white/20 px-4 py-3">
+                  <Text className="font-semibold text-white">Recuperación: {makeupDate}</Text>
+                  {courtName ? <Text className="mt-0.5 text-xs text-orange-100">{courtName}</Text> : null}
+                  {m.notes ? <Text className="mt-0.5 text-xs text-orange-100">{m.notes}</Text> : null}
+                </View>
+              )
+            })}
+          </View>
+        )}
 
         {/* Bolsa de clases */}
         <TouchableOpacity

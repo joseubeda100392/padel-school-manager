@@ -17,7 +17,7 @@ export default function CoachMaterialsScreen() {
     const supabase = createClient()
     const { data } = await supabase
       .from('materials')
-      .select('*, material_levels(level:levels(name, color))')
+      .select('*, material_levels(level:levels(name, color)), schedule:schedules(start_time, court:courts(name))')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
 
@@ -54,27 +54,36 @@ export default function CoachMaterialsScreen() {
           <Text className="mt-8 text-center text-gray-400">No hay materiales publicados.</Text>
         )}
 
-        {materials.map((m: any) => (
+        {materials.map((m: any) => {
+          const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
+          const start = m.schedule?.start_time ? new Date(m.schedule.start_time) : null
+          const classLabel = start
+            ? `Clase ${DAYS[start.getDay()]} ${start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}${m.schedule?.court?.name ? ' · ' + m.schedule.court.name : ''}`
+            : null
+          return (
           <View key={m.id} className="mb-3 rounded-2xl bg-white p-4 shadow-sm">
             <View className="flex-row items-center gap-3">
-              <View className="h-12 w-12 items-center justify-center rounded-xl bg-red-100">
-                <Text className="text-xs font-bold text-red-600">PDF</Text>
+              <View className={`h-12 w-12 items-center justify-center rounded-xl ${classLabel ? 'bg-blue-100' : 'bg-red-100'}`}>
+                <Text className={`text-xs font-bold ${classLabel ? 'text-blue-600' : 'text-red-600'}`}>PDF</Text>
               </View>
               <View className="flex-1">
                 <Text className="font-semibold text-gray-900">{m.title}</Text>
+                {classLabel && <Text className="mt-0.5 text-xs text-blue-500">{classLabel}</Text>}
                 {m.description && (
                   <Text className="mt-0.5 text-sm text-gray-500" numberOfLines={1}>{m.description}</Text>
                 )}
-                <View className="mt-1 flex-row flex-wrap gap-1">
-                  {m.material_levels?.map((ml: any, i: number) => (
-                    <View key={i} className="rounded-full px-2 py-0.5" style={{ backgroundColor: ml.level?.color + '22' }}>
-                      <Text className="text-xs font-medium" style={{ color: ml.level?.color }}>{ml.level?.name}</Text>
-                    </View>
-                  ))}
-                  {(!m.material_levels || m.material_levels.length === 0) && (
-                    <Text className="text-xs text-gray-400">Todos los niveles</Text>
-                  )}
-                </View>
+                {!classLabel && (
+                  <View className="mt-1 flex-row flex-wrap gap-1">
+                    {m.material_levels?.map((ml: any, i: number) => (
+                      <View key={i} className="rounded-full px-2 py-0.5" style={{ backgroundColor: ml.level?.color + '22' }}>
+                        <Text className="text-xs font-medium" style={{ color: ml.level?.color }}>{ml.level?.name}</Text>
+                      </View>
+                    ))}
+                    {(!m.material_levels || m.material_levels.length === 0) && (
+                      <Text className="text-xs text-gray-400">Todos los niveles</Text>
+                    )}
+                  </View>
+                )}
               </View>
             </View>
 
@@ -96,7 +105,8 @@ export default function CoachMaterialsScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        ))}
+        )
+        })}
       </ScrollView>
     </SafeAreaView>
   )
