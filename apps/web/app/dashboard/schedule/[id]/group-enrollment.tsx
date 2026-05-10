@@ -42,6 +42,7 @@ export default function GroupEnrollment({
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [monthlyPrice, setMonthlyPrice] = useState(defaultMonthlyPrice)
   const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
   const [editingPriceValue, setEditingPriceValue] = useState(0)
@@ -56,6 +57,7 @@ export default function GroupEnrollment({
   async function handleAdd() {
     if (!selectedStudentId) return
     setAdding(true)
+    setAddError('')
     const res = await fetch('/api/group-enrollments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -67,6 +69,8 @@ export default function GroupEnrollment({
       setEnrollments((prev) => [...prev, { ...json.data, student }])
       setSelectedStudentId('')
       router.refresh()
+    } else {
+      setAddError(json.error ?? 'No se pudo añadir al alumno')
     }
     setAdding(false)
   }
@@ -176,6 +180,9 @@ export default function GroupEnrollment({
 
       <div className="border-t border-gray-100 px-6 py-4">
         <p className="mb-3 text-xs font-medium text-gray-500">Añadir alumno al grupo fijo</p>
+        {addError && (
+          <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{addError}</p>
+        )}
         <div className="flex flex-wrap gap-2">
           <select
             value={selectedStudentId}
