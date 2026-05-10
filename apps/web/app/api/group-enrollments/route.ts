@@ -23,6 +23,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
+  const [{ data: schedule }, { data: student }] = await Promise.all([
+    admin.from('schedules').select('level_id').eq('id', scheduleId).single(),
+    admin.from('users').select('current_level_id').eq('id', studentId).single(),
+  ])
+
+  if (schedule?.level_id && student?.current_level_id !== schedule.level_id) {
+    return NextResponse.json({ error: 'El nivel del alumno no coincide con el nivel de la clase' }, { status: 400 })
+  }
+
   const { data, error } = await admin.from('group_enrollments').upsert({
     schedule_id: scheduleId,
     student_id: studentId,

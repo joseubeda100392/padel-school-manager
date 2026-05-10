@@ -35,13 +35,19 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     .eq('status', 'active')
     .order('enrolled_at')
 
-  const { data: allStudents } = await supabase
+  const studentsQuery = supabase
     .from('users')
     .select('id, name, email')
     .eq('role', 'student')
     .eq('is_active', true)
     .eq('club_id', schedule.club_id)
     .order('name')
+
+  const { data: allStudents } = await (
+    schedule.level_id
+      ? studentsQuery.eq('current_level_id', schedule.level_id)
+      : studentsQuery
+  )
 
   const start = new Date(schedule.start_time)
   const end = new Date(schedule.end_time)
