@@ -146,6 +146,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           bookings={(bookings ?? []).map((b: any) => ({
             id: b.id,
             status: b.status,
+            source: b.source ?? null,
             scheduleId: params.id,
             student: {
               name: b.student?.name,

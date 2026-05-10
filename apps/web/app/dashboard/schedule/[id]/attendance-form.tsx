@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 interface Booking {
   id: string
   status: string
+  source?: string | null
   scheduleId: string
   student: {
     name: string
@@ -70,6 +71,16 @@ export default function AttendanceForm({ bookings: initial, scheduleId }: { book
                   style={{ backgroundColor: student.currentLevel.color }}
                 >
                   {student.currentLevel.name}
+                </span>
+              )}
+              {b.source === 'bag' && (
+                <span className="hidden sm:inline rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-700">
+                  Bolsa
+                </span>
+              )}
+              {b.source === 'pay_per_class' && (
+                <span className="hidden sm:inline rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+                  Pago único
                 </span>
               )}
               <div className="flex gap-2">
