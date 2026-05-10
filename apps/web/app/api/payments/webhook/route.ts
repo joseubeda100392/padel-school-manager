@@ -73,23 +73,32 @@ export async function POST(req: NextRequest) {
     }
   } else if (payment.type === 'class_pack') {
     const classesToAdd = meta.classes_per_pack ?? 10
+
+    // Ensure class_bag row exists then increment
+    await adminSupabase
+      .from('class_bag')
+      .upsert({ user_id: payment.user_id, balance: 0 }, { onConflict: 'user_id', ignoreDuplicates: true })
+
     const { data: bag } = await adminSupabase
       .from('class_bag')
-      .select('balance')
+      .select('id, balance')
       .eq('user_id', payment.user_id)
       .single()
 
-    const newBalance = (bag?.balance ?? 0) + classesToAdd
-    await adminSupabase
-      .from('class_bag')
-      .update({ balance: newBalance })
-      .eq('user_id', payment.user_id)
+    if (bag) {
+      await adminSupabase
+        .from('class_bag')
+        .update({ balance: bag.balance + classesToAdd, updated_at: new Date().toISOString() })
+        .eq('id', bag.id)
 
-    await adminSupabase.from('bag_transactions').insert({
-      user_id: payment.user_id,
-      delta: classesToAdd,
-      reason: 'pack_purchase',
-    })
+      await adminSupabase.from('bag_transactions').insert({
+        user_id: payment.user_id,
+        class_bag_id: bag.id,
+        delta: classesToAdd,
+        type: 'credit',
+        reason: `Compra de bono — ${classesToAdd} clases`,
+      })
+    }
   } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
     const now = new Date()
     const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
