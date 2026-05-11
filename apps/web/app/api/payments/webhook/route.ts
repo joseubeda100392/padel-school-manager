@@ -21,21 +21,7 @@ export async function POST(req: NextRequest) {
   const order = response.Ds_Order
   const responseCode = response.Ds_Response ?? '9999'
 
-  // Verificar firma
-  const valid = verifySignature(
-    process.env.REDSYS_SECRET_KEY ?? '',
-    order,
-    merchantParameters,
-    signature,
-  )
-
-  if (!valid) {
-    return NextResponse.json({ error: 'Firma inválida' }, { status: 400 })
-  }
-
-  const success = isPaymentSuccessful(responseCode)
-
-  // Buscar pago pendiente
+  // Buscar pago para obtener club_id y así usar la clave secreta correcta
   const { data: payment } = await adminSupabase
     .from('payments')
     .select('*')
@@ -44,7 +30,25 @@ export async function POST(req: NextRequest) {
 
   if (!payment) return NextResponse.json({ error: 'Pago no encontrado' }, { status: 404 })
 
-  // Actualizar estado del pago
+  // Resolver la clave secreta del club (fallback a env var global)
+  let secretKey = process.env.REDSYS_SECRET_KEY ?? ''
+  if (payment.club_id) {
+    const { data: club } = await adminSupabase
+      .from('clubs')
+      .select('redsys_secret_key')
+      .eq('id', payment.club_id)
+      .single()
+    if (club?.redsys_secret_key) secretKey = club.redsys_secret_key
+  }
+
+  // Verificar firma con la clave del club
+  const valid = verifySignature(secretKey, order, merchantParameters, signature)
+  if (!valid) {
+    return NextResponse.json({ error: 'Firma inválida' }, { status: 400 })
+  }
+
+  const success = isPaymentSuccessful(responseCode)
+
   await adminSupabase
     .from('payments')
     .update({ status: success ? 'completed' : 'failed' })
@@ -74,13 +78,13 @@ export async function POST(req: NextRequest) {
         student_id: payment.user_id,
         status: 'confirmed',
         source: 'pay_per_class',
-        club_id: meta.club_id ?? null,
+        club_id: payment.club_id ?? null,
       })
     }
+
   } else if (payment.type === 'class_pack') {
     const classesToAdd = meta.classes_per_pack ?? 10
 
-    // Ensure class_bag row exists then increment
     await adminSupabase
       .from('class_bag')
       .upsert({ user_id: payment.user_id, balance: 0 }, { onConflict: 'user_id', ignoreDuplicates: true })
@@ -105,6 +109,7 @@ export async function POST(req: NextRequest) {
         reason: `Compra de bono — ${classesToAdd} clases`,
       })
     }
+
   } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
     const now = new Date()
     const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]

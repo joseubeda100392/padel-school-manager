@@ -3,8 +3,8 @@ import { createHmac, createCipheriv } from 'crypto'
 const REDSYS_URL_TEST = 'https://sis-t.redsys.es:25443/sis/realizarPago'
 const REDSYS_URL_PROD = 'https://sis.redsys.es/sis/realizarPago'
 
-export function getRedsysUrl(): string {
-  return process.env.REDSYS_ENV === 'production' ? REDSYS_URL_PROD : REDSYS_URL_TEST
+export function getRedsysUrl(env?: string | null): string {
+  return (env ?? process.env.REDSYS_ENV) === 'production' ? REDSYS_URL_PROD : REDSYS_URL_TEST
 }
 
 function encrypt3DES(key: Buffer, data: string): Buffer {

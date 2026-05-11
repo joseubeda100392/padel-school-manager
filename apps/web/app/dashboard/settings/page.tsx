@@ -42,6 +42,12 @@ export default function SettingsPage() {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [redsys, setRedsys] = useState({ merchantCode: '', secretKey: '', terminal: '001', env: 'test', secretKeyMasked: '', hasSecretKey: false })
+  const [redsysSaving, setRedsysSaving] = useState(false)
+  const [redsysSaved, setRedsysSaved] = useState(false)
+  const [redsysError, setRedsysError] = useState('')
+  const [showSecretKey, setShowSecretKey] = useState(false)
+
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -67,6 +73,14 @@ export default function SettingsPage() {
         setConfig(merged)
       }
       if (c) setCourts(c)
+
+      // Cargar configuración Redsys del club
+      const redsysRes = await fetch('/api/club/redsys')
+      if (redsysRes.ok) {
+        const data = await redsysRes.json()
+        setRedsys(prev => ({ ...prev, ...data, secretKey: '' }))
+      }
+
       setLoading(false)
     })
   }, [])
@@ -166,6 +180,37 @@ export default function SettingsPage() {
     const supabase = createClient()
     await supabase.from('courts').delete().eq('id', id)
     setCourts((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  async function saveRedsys() {
+    setRedsysSaving(true)
+    setRedsysError('')
+    const res = await fetch('/api/club/redsys', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        merchantCode: redsys.merchantCode,
+        secretKey: redsys.secretKey || undefined,
+        terminal: redsys.terminal,
+        env: redsys.env,
+      }),
+    })
+    setRedsysSaving(false)
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      setRedsysError(j.error ?? 'Error al guardar')
+      return
+    }
+    // Actualizar estado local
+    setRedsys(prev => ({
+      ...prev,
+      secretKey: '',
+      hasSecretKey: prev.hasSecretKey || !!prev.secretKey,
+      secretKeyMasked: prev.secretKey ? '••••••••' + prev.secretKey.slice(-4) : prev.secretKeyMasked,
+    }))
+    setShowSecretKey(false)
+    setRedsysSaved(true)
+    setTimeout(() => setRedsysSaved(false), 2000)
   }
 
   if (loading) return <div className="text-gray-400">Cargando...</div>
@@ -457,6 +502,108 @@ export default function SettingsPage() {
             Error: {courtError}
           </p>
         )}
+      </div>
+
+      {/* TPV Redsys */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-1 font-semibold text-gray-900">TPV Redsys</h2>
+        <p className="mb-5 text-xs text-gray-400">
+          Credenciales del terminal de pago de tu banco. Cada club tiene las suyas.
+        </p>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Código de comercio</label>
+              <input
+                type="text"
+                value={redsys.merchantCode}
+                onChange={e => setRedsys({ ...redsys, merchantCode: e.target.value })}
+                placeholder="Ej: 999008881"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Terminal</label>
+              <input
+                type="text"
+                value={redsys.terminal}
+                onChange={e => setRedsys({ ...redsys, terminal: e.target.value })}
+                placeholder="001"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              Clave secreta SHA-256 (Base64)
+              {redsys.hasSecretKey && !showSecretKey && (
+                <span className="ml-2 font-normal text-xs text-gray-400">{redsys.secretKeyMasked}</span>
+              )}
+            </label>
+            {showSecretKey ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={redsys.secretKey}
+                  onChange={e => setRedsys({ ...redsys, secretKey: e.target.value })}
+                  placeholder="Pega aquí la clave del panel Redsys"
+                  className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none font-mono"
+                />
+                <button
+                  onClick={() => { setShowSecretKey(false); setRedsys(prev => ({ ...prev, secretKey: '' })) }}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-500 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowSecretKey(true)}
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                {redsys.hasSecretKey ? 'Cambiar clave secreta' : 'Introducir clave secreta'}
+              </button>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Entorno</label>
+            <div className="flex gap-3">
+              {[{ value: 'test', label: 'Pruebas (test)' }, { value: 'production', label: 'Producción (real)' }].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setRedsys({ ...redsys, env: opt.value })}
+                  className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+                    redsys.env === opt.value
+                      ? opt.value === 'production' ? 'bg-green-600 text-white' : 'bg-blue-500 text-white'
+                      : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {redsys.env === 'production' && (
+              <p className="mt-2 text-xs text-orange-600 font-medium">
+                Entorno real: los pagos serán cobros reales.
+              </p>
+            )}
+          </div>
+
+          {redsysError && (
+            <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{redsysError}</p>
+          )}
+
+          <button
+            onClick={saveRedsys}
+            disabled={redsysSaving}
+            className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+          >
+            {redsysSaving ? 'Guardando...' : redsysSaved ? '¡Guardado!' : 'Guardar TPV'}
+          </button>
+        </div>
       </div>
     </div>
   )
