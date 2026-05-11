@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import { formatDate, formatTime, getDayOfWeek } from '@/lib/utils'
 import { ScheduleActions } from './schedule-actions'
@@ -10,6 +11,10 @@ const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', '
 
 export default async function ScheduleDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
 
   const { data: schedule } = await supabase
     .from('schedules')
@@ -19,14 +24,14 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   if (!schedule) notFound()
 
-  const { data: bookings } = await supabase
+  const { data: bookings } = await admin
     .from('bookings')
     .select('*, student:users!bookings_student_id_fkey(name, email, avatar_url, current_level_id, currentLevel:levels(name, color))')
     .eq('schedule_id', params.id)
     .neq('status', 'cancelled')
     .order('created_at')
 
-  const { data: groupEnrollments } = await supabase
+  const { data: groupEnrollments } = await admin
     .from('group_enrollments')
     .select('id, monthly_price, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
     .eq('schedule_id', params.id)
@@ -36,7 +41,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
   const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
   const today = new Date().toISOString().split('T')[0]
   const { data: exclusionsRaw } = enrollmentIds.length
-    ? await supabase
+    ? await admin
         .from('schedule_exclusions')
         .select('id, group_enrollment_id, excluded_date, publish_spot')
         .in('group_enrollment_id', enrollmentIds)
@@ -58,7 +63,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
   const inferredLevelId = uniqueEnrolledLevels.length === 1 ? uniqueEnrolledLevels[0] : null
   const effectiveLevelId: string | null = schedule.level_id ?? inferredLevelId
 
-  const studentsQuery = supabase
+  const studentsQuery = admin
     .from('users')
     .select('id, name, email')
     .eq('role', 'student')
@@ -74,8 +79,9 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   const start = new Date(schedule.start_time)
   const end = new Date(schedule.end_time)
+  const spotBookings = (bookings ?? []).filter((b: any) => b.class_date != null)
   const groupCount = groupEnrollments?.length ?? 0
-  const enrolled = (bookings?.length ?? 0) + groupCount
+  const enrolled = spotBookings.length + groupCount
 
   return (
     <div className="max-w-2xl">
@@ -157,6 +163,41 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
         <ScheduleMaterials scheduleId={params.id} />
       </div>
 
+      {/* Reservas puntuales (huecos) */}
+      {spotBookings.length > 0 && (
+        <div className="mb-6 rounded-xl bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-6 py-4">
+            <h2 className="font-semibold text-gray-900">Reservas puntuales</h2>
+            <p className="mt-0.5 text-xs text-gray-400">Alumnos apuntados a un hueco libre en una fecha concreta</p>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {spotBookings.map((b: any) => {
+              const dateLabel = new Date(b.class_date + 'T12:00:00').toLocaleDateString('es-ES', {
+                weekday: 'long', day: 'numeric', month: 'long',
+              })
+              const initials = (b.student?.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+              return (
+                <div key={b.id} className="flex items-center gap-4 px-6 py-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900">{b.student?.name}</p>
+                    <p className="text-sm text-gray-400">{b.student?.email}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-700 capitalize">{dateLabel}</p>
+                    <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${b.source === 'bag' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {b.source === 'bag' ? 'Crédito bolsa' : 'Pago único'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Lista de alumnos + asistencia */}
       <div className="rounded-xl bg-white shadow-sm">
         <div className="border-b border-gray-100 px-6 py-4">
@@ -165,7 +206,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
         </div>
         <AttendanceForm
           scheduleId={params.id}
-          bookings={(bookings ?? []).map((b: any) => ({
+          bookings={spotBookings.map((b: any) => ({
             id: b.id,
             status: b.status,
             source: b.source ?? null,

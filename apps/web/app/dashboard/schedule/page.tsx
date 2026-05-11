@@ -11,7 +11,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
 
   const schedulesQuery = supabase
     .from('schedules')
-    .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name), level:levels(name, color), bookings(count)')
+    .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name), level:levels(name, color)')
     .eq('is_active', true)
     .order('start_time', { ascending: true })
     .limit(200)
@@ -40,7 +40,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
 
   const schedules = (rawSchedules ?? []).map((s: any) => ({
     ...s,
-    bookings_count: (s.bookings?.[0]?.count ?? 0) + (enrollmentCountMap[s.id] ?? 0),
+    bookings_count: enrollmentCountMap[s.id] ?? 0,
     is_fixed_group: (enrollmentCountMap[s.id] ?? 0) > 0,
   }))
 
