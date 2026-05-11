@@ -44,6 +44,7 @@ export default function GroupEnrollment({
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [markPaidError, setMarkPaidError] = useState<string | null>(null)
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
   const [editingPriceValue, setEditingPriceValue] = useState(0)
 
@@ -100,12 +101,15 @@ export default function GroupEnrollment({
 
   async function handleMarkPaid(id: string) {
     setLoadingId(id)
+    setMarkPaidError(null)
     const res = await fetch(`/api/group-enrollments/${id}/mark-paid`, { method: 'POST' })
     const json = await res.json()
     if (res.ok) {
       setEnrollments((prev) =>
         prev.map((e) => e.id === id ? { ...e, paid_until: json.paidUntil } : e)
       )
+    } else {
+      setMarkPaidError(json.error ?? 'Error al registrar el pago')
     }
     setLoadingId(null)
   }
@@ -118,6 +122,10 @@ export default function GroupEnrollment({
           Alumnos con plaza permanente · Cuota de {currentMonth} {currentYear}
         </p>
       </div>
+
+      {markPaidError && (
+        <p className="mx-6 mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{markPaidError}</p>
+      )}
 
       {enrollments.length === 0 ? (
         <p className="px-6 py-6 text-sm text-gray-400">No hay alumnos en el grupo fijo aún.</p>
