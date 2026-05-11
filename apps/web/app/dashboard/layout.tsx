@@ -19,6 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const clubId = dbProfile?.club_id as string | undefined
 
   if (!role || role === 'student') redirect('/student')
+  if (role === 'coach') redirect('/coach')
 
   let clubName: string | undefined
 
