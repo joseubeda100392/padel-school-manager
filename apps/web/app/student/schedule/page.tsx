@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
@@ -42,7 +43,7 @@ export default async function StudentSchedulePage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: enrollments } = await supabase
+  const { data: enrollments } = await supabaseAdmin
     .from('group_enrollments')
     .select(`
       id, monthly_price, paid_until, enrolled_at,
@@ -57,7 +58,7 @@ export default async function StudentSchedulePage() {
 
   const enrollmentIds = (enrollments ?? []).map(e => e.id)
   const { data: exclusionsRaw } = enrollmentIds.length
-    ? await supabase
+    ? await supabaseAdmin
         .from('schedule_exclusions')
         .select('id, group_enrollment_id, excluded_date, publish_spot')
         .in('group_enrollment_id', enrollmentIds)
@@ -66,8 +67,8 @@ export default async function StudentSchedulePage() {
     : { data: [] }
 
   const [{ data: cfgRow }, { data: spotBookings }] = await Promise.all([
-    supabase.from('app_config').select('value').eq('key', 'cancellation_hours').single(),
-    supabase
+    supabaseAdmin.from('app_config').select('value').eq('key', 'cancellation_hours').single(),
+    supabaseAdmin
       .from('bookings')
       .select(`
         id, class_date, status, source,

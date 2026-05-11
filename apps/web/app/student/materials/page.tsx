@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 
 export default async function StudentMaterialsPage() {
@@ -6,7 +7,7 @@ export default async function StudentMaterialsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userData } = await supabase
+  const { data: userData } = await supabaseAdmin
     .from('users')
     .select('current_level_id, levels(name, color)')
     .eq('id', user.id)
@@ -14,7 +15,7 @@ export default async function StudentMaterialsPage() {
 
   const levelId = (userData as any)?.current_level_id ?? null
 
-  const { data: materialsRaw } = await supabase
+  const { data: materialsRaw } = await supabaseAdmin
     .from('materials')
     .select('id, title, description, file_url, created_at, material_levels(level_id)')
     .eq('is_published', true)

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
@@ -27,14 +28,14 @@ export default async function StudentHomePage() {
   if (!user) redirect('/login')
 
   const [{ data: userData }, { data: bag }, { data: enrollments }, { data: spots }] = await Promise.all([
-    supabase.from('users').select('name, current_level_id, levels(name, color)').eq('id', user.id).single(),
-    supabase.from('class_bag').select('balance').eq('user_id', user.id).single(),
-    supabase
+    supabaseAdmin.from('users').select('name, current_level_id, levels(name, color)').eq('id', user.id).single(),
+    supabaseAdmin.from('class_bag').select('balance').eq('user_id', user.id).single(),
+    supabaseAdmin
       .from('group_enrollments')
       .select('id, monthly_price, paid_until, schedule:schedules(id, start_time, end_time, court:courts(name))')
       .eq('student_id', user.id)
       .eq('status', 'active'),
-    supabase
+    supabaseAdmin
       .from('schedule_exclusions')
       .select('id')
       .eq('publish_spot', true)

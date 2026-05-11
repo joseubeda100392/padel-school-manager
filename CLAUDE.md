@@ -100,6 +100,27 @@ Críticas:
 - Upload a Supabase Storage, asignación por nivel
 - App alumno filtra por su nivel, app monitor ve todos
 
+## Supabase — Regla de Oro (NO ROMPER)
+
+**En server components (pages) SIEMPRE usar `supabaseAdmin` para queries de datos.**
+
+```ts
+import { createClient } from '@/lib/supabase/server'   // SOLO para auth
+import { supabaseAdmin } from '@/lib/supabase/admin'    // PARA TODOS los datos
+
+const supabase = createClient()
+const { data: { user } } = await supabase.auth.getUser() // auth con session
+const { data } = await supabaseAdmin.from('tabla')...    // datos con admin
+```
+
+**Por qué:** El cliente de sesión respeta RLS. Un alumno no puede leer datos de otros usuarios (coaches, admins), ni tablas sin política explícita (user_levels, material_levels, bookings de otros, etc.). El admin client (`supabaseAdmin`, service role) bypassa RLS de forma segura porque corre en el servidor.
+
+**Regla práctica:**
+- `createClient()` → solo para `supabase.auth.getUser()` 
+- `supabaseAdmin` → TODO lo demás en server components
+- En API routes → crear admin client inline dentro de la función (patrón ya establecido)
+- En Client Components → usar `createClient()` de `@/lib/supabase/client` (corre en el browser del usuario, RLS es correcto)
+
 ## Depuración — Protocolo Obligatorio
 Ante cualquier bug que no sea obvio en el código:
 1. **Primero capturar el error real**: añadir `const { data, error } = await ...` y mostrar `error` en pantalla o en consola antes de hacer ningún cambio.
