@@ -7,6 +7,7 @@ import { BagAdjustForm } from './bag-adjust-form'
 import { StudentEditForm } from './student-edit-form'
 import { StudentEnrollments } from './student-enrollments'
 import { StudentMakeups } from './student-makeups'
+import { NotificationList } from '@/app/student/notifications/notification-list'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -48,6 +49,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: payments },
     { data: enrollments },
     { data: makeups },
+    { data: studentNotifications },
   ] = await Promise.all([
     supabase
       .from('users')
@@ -87,6 +89,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .select('id, original_date, makeup_date, status, notes, schedule:schedules(id, start_time)')
       .eq('student_id', params.id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('notifications')
+      .select('id, type, title, body, data, is_read, created_at')
+      .eq('user_id', params.id)
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
 
   if (studentError || !student) {
@@ -268,6 +276,16 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               </tbody>
             </table>
           </div>
+        )}
+      </div>
+
+      {/* Notificaciones del alumno */}
+      <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-4 font-semibold text-gray-900">Notificaciones del alumno</h2>
+        {(!studentNotifications || studentNotifications.length === 0) ? (
+          <p className="text-sm text-gray-400">Sin notificaciones.</p>
+        ) : (
+          <NotificationList initial={studentNotifications as any} targetUserId={params.id} />
         )}
       </div>
 

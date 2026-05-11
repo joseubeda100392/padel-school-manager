@@ -55,7 +55,7 @@ export default async function StudentHomePage() {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Hola, {(userData as any)?.name?.split(' ')[0] ?? 'alumno'} 👋</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Hola, {(userData as any)?.name?.split(' ')[0] ?? user.user_metadata?.full_name?.split(' ')[0] ?? user.user_metadata?.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'alumno'} 👋</h1>
         <p className="text-sm text-gray-500">Bienvenido a tu área personal</p>
       </div>
 
