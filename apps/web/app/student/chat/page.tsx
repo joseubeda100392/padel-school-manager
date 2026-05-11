@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { StudentChatClient } from './student-chat-client'
 
@@ -41,15 +42,20 @@ export default async function StudentChatPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: userProfile } = await supabase
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+
+  const { data: userProfile } = await admin
     .from('users')
     .select('club_id')
     .eq('id', user.id)
     .single()
   const clubId = (userProfile?.club_id as string | null) ?? null
 
-  // Get student's coaches from active group enrollments
-  const { data: enrollments } = await supabase
+  // Get student's coaches from active group enrollments (admin client bypasses RLS on users join)
+  const { data: enrollments } = await admin
     .from('group_enrollments')
     .select('schedule:schedules(coach_id, coach:users!schedules_coach_id_fkey(id, name))')
     .eq('student_id', user.id)
