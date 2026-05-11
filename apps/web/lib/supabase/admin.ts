@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Service-role client — bypasses RLS. Use for all data queries in server components.
-// Auth (who is logged in) always uses the session client from @/lib/supabase/server.
-export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+// Factory function — creates client at request time, not module init time.
+// This avoids build errors when env vars are not available during next build.
+export function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+}

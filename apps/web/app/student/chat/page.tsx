@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { StudentChatClient } from './student-chat-client'
 
@@ -42,7 +42,7 @@ export default async function StudentChatPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const admin = supabaseAdmin
+  const admin = getAdminClient()
 
   const { data: userProfile } = await admin
     .from('users')

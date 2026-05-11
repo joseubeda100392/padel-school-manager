@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const { scheduleId, date } = await req.json()
   if (!scheduleId || !date) return NextResponse.json({ error: 'Parámetros requeridos' }, { status: 400 })
 
-  const admin = supabaseAdmin
+  const admin = getAdminClient()
 
   // Verify schedule exists and still has capacity
   const { data: schedule } = await admin

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { formatDate, formatTime, getDayOfWeek } from '@/lib/utils'
 import { ScheduleActions } from './schedule-actions'
@@ -11,7 +11,7 @@ const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', '
 
 export default async function ScheduleDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
-  const admin = supabaseAdmin
+  const admin = getAdminClient()
 
   const { data: schedule } = await supabase
     .from('schedules')
