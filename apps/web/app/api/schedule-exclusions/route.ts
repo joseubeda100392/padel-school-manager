@@ -83,10 +83,12 @@ export async function POST(req: NextRequest) {
     await notifySpotAvailable(admin, enrollment.schedule_id, excluded_date)
   }
 
+  let newBagBalance: number | null = null
   if (enrollment?.student_id) {
     const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', enrollment.student_id).single()
     if (bag) {
-      await admin.from('class_bag').update({ balance: bag.balance + 1, updated_at: new Date().toISOString() }).eq('id', bag.id)
+      newBagBalance = bag.balance + 1
+      await admin.from('class_bag').update({ balance: newBagBalance, updated_at: new Date().toISOString() }).eq('id', bag.id)
       await admin.from('bag_transactions').insert({
         user_id: enrollment.student_id,
         class_bag_id: bag.id,
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ data })
+  return NextResponse.json({ data, newBagBalance })
 }
 
 export async function PATCH(req: NextRequest) {

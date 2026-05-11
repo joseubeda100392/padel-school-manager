@@ -77,6 +77,7 @@ export default function GroupEnrollment({
   const [faltaDate, setFaltaDate] = useState('')
   const [faltaPublish, setFaltaPublish] = useState(true)
   const [faltaLoading, setFaltaLoading] = useState(false)
+  const [faltaSuccessMsg, setFaltaSuccessMsg] = useState<string | null>(null)
 
   const now = new Date()
   const currentMonth = MONTH_NAMES[now.getMonth()]
@@ -173,6 +174,11 @@ export default function GroupEnrollment({
         }],
       }))
       setFaltaFormId(null)
+      if (json.newBagBalance != null) {
+        const studentName = enrollments.find(e => e.id === enrollmentId)?.student.name ?? 'el alumno'
+        setFaltaSuccessMsg(`✓ +1 clase añadida a la bolsa de ${studentName} · Saldo actual: ${json.newBagBalance} clase${json.newBagBalance !== 1 ? 's' : ''}`)
+        setTimeout(() => setFaltaSuccessMsg(null), 5000)
+      }
       router.refresh()
     }
     setFaltaLoading(false)
@@ -215,6 +221,10 @@ export default function GroupEnrollment({
 
       {markPaidError && (
         <p className="mx-6 mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{markPaidError}</p>
+      )}
+
+      {faltaSuccessMsg && (
+        <p className="mx-6 mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">{faltaSuccessMsg}</p>
       )}
 
       {enrollments.length === 0 ? (
