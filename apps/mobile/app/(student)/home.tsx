@@ -184,9 +184,9 @@ export default function StudentHomeScreen() {
           className="mb-5 rounded-2xl bg-green-600 p-6"
           onPress={() => router.push('/(student)/schedule')}
         >
-          <Text className="mb-1 text-sm font-medium text-green-100">Tu bolsa de clases</Text>
+          <Text className="mb-1 text-sm font-medium text-green-100">Recuperaciones disponibles</Text>
           <Text className="text-5xl font-bold text-white">{bag}</Text>
-          <Text className="mt-1 text-green-100">clases disponibles · Toca para ver horarios</Text>
+          <Text className="mt-1 text-green-100">recuperaciones · Toca para ver horarios</Text>
           <TouchableOpacity
             onPress={() => router.push('/(student)/buy-pack')}
             className="mt-4 self-start rounded-full bg-white/20 px-4 py-1.5"

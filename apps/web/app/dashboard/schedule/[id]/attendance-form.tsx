@@ -75,7 +75,7 @@ export default function AttendanceForm({ bookings: initial, scheduleId }: { book
               )}
               {b.source === 'bag' && (
                 <span className="hidden sm:inline rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-700">
-                  Bolsa
+                  Recup.
                 </span>
               )}
               {b.source === 'pay_per_class' && (

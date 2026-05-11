@@ -33,7 +33,7 @@ export default async function AnalyticsPage() {
   const typeLabel: Record<string, string> = {
     subscription: 'Suscripción',
     pay_per_class: 'Clase suelta',
-    bag_pack: 'Bolsa de clases',
+    bag_pack: 'Recuperaciones',
     manual: 'Manual',
   }
 
@@ -58,7 +58,7 @@ export default async function AnalyticsPage() {
           <p className="mt-1 text-3xl font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Clases en bolsas</p>
+          <p className="text-sm text-gray-500">Recuperaciones disponibles</p>
           <p className="mt-1 text-3xl font-bold text-gray-900">{totalBagClasses}</p>
         </div>
       </div>
