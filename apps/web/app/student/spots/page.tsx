@@ -36,7 +36,7 @@ export default async function StudentSpotsPage() {
 
   const admin = supabaseAdmin
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
 
   const { data: userRow } = await admin
     .from('users')

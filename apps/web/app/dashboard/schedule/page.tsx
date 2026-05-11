@@ -22,15 +22,18 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     .eq('is_active', true)
     .order('name')
 
-  const enrollmentsQuery = supabase
-    .from('group_enrollments')
-    .select('schedule_id')
-    .eq('status', 'active')
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
 
-  const [{ data: rawSchedules }, { data: courts }, { data: enrollments }] = await Promise.all([
+  const [{ data: rawSchedules }, { data: courts }, { data: enrollments }, { data: confirmedBookings }] = await Promise.all([
     clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
-    enrollmentsQuery,
+    supabase.from('group_enrollments').select('schedule_id').eq('status', 'active'),
+    supabase
+      .from('bookings')
+      .select('schedule_id')
+      .eq('status', 'confirmed')
+      .not('class_date', 'is', null)
+      .gte('class_date', todaySpain),
   ])
 
   const enrollmentCountMap: Record<string, number> = {}
@@ -38,9 +41,14 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     enrollmentCountMap[e.schedule_id] = (enrollmentCountMap[e.schedule_id] ?? 0) + 1
   })
 
+  const spotBookingCountMap: Record<string, number> = {}
+  ;(confirmedBookings ?? []).forEach((b: any) => {
+    spotBookingCountMap[b.schedule_id] = (spotBookingCountMap[b.schedule_id] ?? 0) + 1
+  })
+
   const schedules = (rawSchedules ?? []).map((s: any) => ({
     ...s,
-    bookings_count: enrollmentCountMap[s.id] ?? 0,
+    bookings_count: (enrollmentCountMap[s.id] ?? 0) + (spotBookingCountMap[s.id] ?? 0),
     is_fixed_group: (enrollmentCountMap[s.id] ?? 0) > 0,
   }))
 

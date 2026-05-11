@@ -81,7 +81,7 @@ export default async function StudentSchedulePage() {
       .eq('student_id', user.id)
       .eq('status', 'confirmed')
       .not('class_date', 'is', null)
-      .gte('class_date', today)
+      .gte('class_date', (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })())
       .order('class_date'),
   ])
 
