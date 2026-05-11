@@ -33,6 +33,23 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     .eq('status', 'active')
     .order('enrolled_at')
 
+  const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
+  const today = new Date().toISOString().split('T')[0]
+  const { data: exclusionsRaw } = enrollmentIds.length
+    ? await supabase
+        .from('schedule_exclusions')
+        .select('id, group_enrollment_id, excluded_date, publish_spot')
+        .in('group_enrollment_id', enrollmentIds)
+        .gte('excluded_date', today)
+        .order('excluded_date')
+    : { data: [] }
+
+  const exclusionsByEnrollment: Record<string, { id: string; excluded_date: string; publish_spot: boolean }[]> = {}
+  for (const x of exclusionsRaw ?? []) {
+    if (!exclusionsByEnrollment[x.group_enrollment_id]) exclusionsByEnrollment[x.group_enrollment_id] = []
+    exclusionsByEnrollment[x.group_enrollment_id].push({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot })
+  }
+
   // Nivel efectivo: el del horario, o inferido de los alumnos ya inscritos si todos comparten nivel
   const enrolledLevelIds = (groupEnrollments ?? [])
     .map((e: any) => e.student?.current_level_id)
@@ -121,6 +138,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
       <div className="mb-6">
         <GroupEnrollment
           scheduleId={params.id}
+          scheduleStartTime={schedule.start_time}
           initialEnrollments={(groupEnrollments ?? []).map((e: any) => ({
             id: e.id,
             monthly_price: e.monthly_price,
@@ -128,6 +146,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
             status: e.status,
             student: { id: e.student?.id, name: e.student?.name, email: e.student?.email },
           }))}
+          initialExclusions={exclusionsByEnrollment}
           availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
           defaultMonthlyPrice={6000}
         />

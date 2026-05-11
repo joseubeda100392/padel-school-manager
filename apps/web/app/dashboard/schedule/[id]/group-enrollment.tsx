@@ -18,7 +18,14 @@ interface Student {
   email: string
 }
 
+interface Exclusion {
+  id: string
+  excluded_date: string
+  publish_spot: boolean
+}
+
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+const DAYS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
 
 function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
@@ -27,19 +34,37 @@ function isPaidThisMonth(paidUntil: string | null) {
   return new Date(paidUntil) >= endOfMonth
 }
 
+function getNextOccurrence(startTime: string): string {
+  const base = new Date(startTime)
+  const now = new Date()
+  const next = new Date(now)
+  next.setHours(base.getHours(), base.getMinutes(), 0, 0)
+  const classDow = base.getDay()
+  const todayDow = now.getDay()
+  let daysAhead = (classDow - todayDow + 7) % 7
+  if (daysAhead === 0 && next <= now) daysAhead = 7
+  next.setDate(next.getDate() + daysAhead)
+  return next.toISOString().split('T')[0]
+}
+
 export default function GroupEnrollment({
   scheduleId,
+  scheduleStartTime,
   initialEnrollments,
+  initialExclusions,
   availableStudents,
   defaultMonthlyPrice,
 }: {
   scheduleId: string
+  scheduleStartTime: string
   initialEnrollments: Enrollment[]
+  initialExclusions: Record<string, Exclusion[]>
   availableStudents: Student[]
   defaultMonthlyPrice: number
 }) {
   const router = useRouter()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
+  const [exclusions, setExclusions] = useState<Record<string, Exclusion[]>>(initialExclusions)
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [monthlyPrice, setMonthlyPrice] = useState(defaultMonthlyPrice)
   const [adding, setAdding] = useState(false)
@@ -48,10 +73,15 @@ export default function GroupEnrollment({
   const [markPaidError, setMarkPaidError] = useState<string | null>(null)
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
   const [editingPriceValue, setEditingPriceValue] = useState(0)
+  const [faltaFormId, setFaltaFormId] = useState<string | null>(null)
+  const [faltaDate, setFaltaDate] = useState('')
+  const [faltaPublish, setFaltaPublish] = useState(true)
+  const [faltaLoading, setFaltaLoading] = useState(false)
 
   const now = new Date()
   const currentMonth = MONTH_NAMES[now.getMonth()]
   const currentYear = now.getFullYear()
+  const nextOccurrence = getNextOccurrence(scheduleStartTime)
 
   const enrolledIds = new Set(enrollments.map((e) => e.student.id))
   const unenrolledStudents = availableStudents.filter((s) => !enrolledIds.has(s.id))
@@ -115,6 +145,64 @@ export default function GroupEnrollment({
     setLoadingId(null)
   }
 
+  function openFaltaForm(enrollmentId: string) {
+    setFaltaFormId(enrollmentId)
+    setFaltaDate(nextOccurrence)
+    setFaltaPublish(true)
+  }
+
+  async function handleRegistrarFalta(enrollmentId: string) {
+    setFaltaLoading(true)
+    const res = await fetch('/api/schedule-exclusions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        group_enrollment_id: enrollmentId,
+        excluded_date: faltaDate,
+        publish_spot: faltaPublish,
+      }),
+    })
+    const json = await res.json()
+    if (res.ok) {
+      setExclusions((prev) => ({
+        ...prev,
+        [enrollmentId]: [...(prev[enrollmentId] ?? []), {
+          id: json.data.id,
+          excluded_date: faltaDate,
+          publish_spot: faltaPublish,
+        }],
+      }))
+      setFaltaFormId(null)
+    }
+    setFaltaLoading(false)
+  }
+
+  async function handleDeleteExclusion(enrollmentId: string, exclusionId: string) {
+    await fetch('/api/schedule-exclusions', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: exclusionId }),
+    })
+    setExclusions((prev) => ({
+      ...prev,
+      [enrollmentId]: (prev[enrollmentId] ?? []).filter((x) => x.id !== exclusionId),
+    }))
+  }
+
+  async function handleTogglePublish(enrollmentId: string, exclusion: Exclusion) {
+    await fetch('/api/schedule-exclusions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: exclusion.id, publish_spot: !exclusion.publish_spot }),
+    })
+    setExclusions((prev) => ({
+      ...prev,
+      [enrollmentId]: (prev[enrollmentId] ?? []).map((x) =>
+        x.id === exclusion.id ? { ...x, publish_spot: !x.publish_spot } : x
+      ),
+    }))
+  }
+
   return (
     <div className="rounded-xl bg-white shadow-sm">
       <div className="border-b border-gray-100 px-6 py-4">
@@ -135,52 +223,138 @@ export default function GroupEnrollment({
           {enrollments.map((e) => {
             const paid = isPaidThisMonth(e.paid_until)
             const isLoading = loadingId === e.id
+            const myExclusions = (exclusions[e.id] ?? []).filter(x => x.excluded_date >= now.toISOString().split('T')[0])
+            const showFaltaForm = faltaFormId === e.id
+
             return (
-              <div key={e.id} className="flex flex-wrap items-center gap-3 px-6 py-4">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{e.student.name}</p>
-                  <p className="text-xs text-gray-400">{e.student.email}</p>
-                </div>
-                {editingPriceId === e.id ? (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number" min={0} step={0.5}
-                      value={editingPriceValue / 100}
-                      onChange={(ev) => setEditingPriceValue(Math.round(Number(ev.target.value) * 100))}
-                      className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-green-500 focus:outline-none"
-                      autoFocus
-                    />
-                    <button onClick={() => handleUpdatePrice(e.id)} className="text-xs font-medium text-green-600">✓</button>
-                    <button onClick={() => setEditingPriceId(null)} className="text-xs text-gray-400">✕</button>
+              <div key={e.id} className="px-6 py-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900">{e.student.name}</p>
+                    <p className="text-xs text-gray-400">{e.student.email}</p>
                   </div>
-                ) : (
+
+                  {editingPriceId === e.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number" min={0} step={0.5}
+                        value={editingPriceValue / 100}
+                        onChange={(ev) => setEditingPriceValue(Math.round(Number(ev.target.value) * 100))}
+                        className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-green-500 focus:outline-none"
+                        autoFocus
+                      />
+                      <button onClick={() => handleUpdatePrice(e.id)} className="text-xs font-medium text-green-600">✓</button>
+                      <button onClick={() => setEditingPriceId(null)} className="text-xs text-gray-400">✕</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setEditingPriceId(e.id); setEditingPriceValue(e.monthly_price) }}
+                      className="text-sm font-medium text-gray-600 hover:text-green-600"
+                      title="Editar cuota"
+                    >
+                      {(e.monthly_price / 100).toFixed(2)}€/mes ✎
+                    </button>
+                  )}
+
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                    {paid ? 'Pagado' : `Pendiente ${currentMonth}`}
+                  </span>
+
+                  {!paid && (
+                    <button
+                      onClick={() => handleMarkPaid(e.id)}
+                      disabled={isLoading}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {isLoading ? '...' : 'Efectivo ✓'}
+                    </button>
+                  )}
+
                   <button
-                    onClick={() => { setEditingPriceId(e.id); setEditingPriceValue(e.monthly_price) }}
-                    className="text-sm font-medium text-gray-600 hover:text-green-600"
-                    title="Editar cuota"
-                  >
-                    {(e.monthly_price / 100).toFixed(2)}€/mes ✎
-                  </button>
-                )}
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                  {paid ? `Pagado` : `Pendiente ${currentMonth}`}
-                </span>
-                {!paid && (
-                  <button
-                    onClick={() => handleMarkPaid(e.id)}
+                    onClick={() => showFaltaForm ? setFaltaFormId(null) : openFaltaForm(e.id)}
                     disabled={isLoading}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    className="rounded-lg border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-50 disabled:opacity-50"
                   >
-                    {isLoading ? '...' : 'Efectivo ✓'}
+                    Registrar falta
                   </button>
+
+                  <button
+                    onClick={() => handleRemove(e.id)}
+                    disabled={isLoading}
+                    className="rounded-lg border border-red-100 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {isLoading ? '...' : 'Quitar'}
+                  </button>
+                </div>
+
+                {/* Formulario de falta */}
+                {showFaltaForm && (
+                  <div className="mt-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
+                    <p className="mb-3 text-xs font-semibold text-orange-700">Registrar falta — {e.student.name}</p>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div>
+                        <label className="mb-1 block text-xs text-gray-500">Fecha de la clase</label>
+                        <input
+                          type="date"
+                          value={faltaDate}
+                          min={now.toISOString().split('T')[0]}
+                          onChange={(ev) => setFaltaDate(ev.target.value)}
+                          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-600">Publicar plaza libre</label>
+                        <button
+                          onClick={() => setFaltaPublish(!faltaPublish)}
+                          className={`relative h-6 w-11 rounded-full transition-colors ${faltaPublish ? 'bg-green-500' : 'bg-gray-300'}`}
+                        >
+                          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${faltaPublish ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                        </button>
+                        <span className="text-xs text-gray-400">{faltaPublish ? 'Sí' : 'No'}</span>
+                      </div>
+                      <button
+                        onClick={() => handleRegistrarFalta(e.id)}
+                        disabled={faltaLoading || !faltaDate}
+                        className="rounded-lg bg-orange-500 px-4 py-2 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+                      >
+                        {faltaLoading ? '...' : 'Confirmar falta'}
+                      </button>
+                      <button onClick={() => setFaltaFormId(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+                    </div>
+                    <p className="mt-2 text-xs text-gray-400">
+                      {faltaPublish
+                        ? '✓ El alumno recibe +1 clase disponible y la plaza se publica en la app'
+                        : '✓ El alumno recibe +1 clase disponible · la plaza no se publica'}
+                    </p>
+                  </div>
                 )}
-                <button
-                  onClick={() => handleRemove(e.id)}
-                  disabled={isLoading}
-                  className="rounded-lg border border-red-100 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 disabled:opacity-50"
-                >
-                  {isLoading ? '...' : 'Quitar'}
-                </button>
+
+                {/* Faltas próximas registradas */}
+                {myExclusions.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {myExclusions.map((x) => (
+                      <div key={x.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
+                        <span className="text-xs text-gray-500">
+                          Falta {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                        </span>
+                        <button
+                          onClick={() => handleTogglePublish(e.id, x)}
+                          className={`text-xs font-medium ${x.publish_spot ? 'text-green-600' : 'text-gray-400'}`}
+                          title={x.publish_spot ? 'Plaza publicada · click para ocultar' : 'Plaza no publicada · click para publicar'}
+                        >
+                          {x.publish_spot ? '● Publicada' : '○ No publicada'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExclusion(e.id, x.id)}
+                          className="text-xs text-red-400 hover:text-red-600"
+                          title="Eliminar falta"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}
