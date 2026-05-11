@@ -91,7 +91,6 @@ export default async function StudentSpotsPage() {
 
   const myScheduleIds = new Set((myEnrollments ?? []).map(e => e.schedule_id))
   const bagBalance = bag?.balance ?? 0
-  const bookedScheduleIds = new Set((mySpotBookings ?? []).map(b => b.schedule_id))
 
   // Absence spots (existing logic)
   const absenceSpots = (spotsRaw ?? [])
@@ -136,7 +135,10 @@ export default async function StudentSpotsPage() {
       const alreadyIn = active.some((e: any) => e.student_id === user.id)
       const levelId = (s.level as any)?.id ?? null
       const levelOk = !myLevelId || !levelId || levelId === myLevelId
-      const alreadyBooked = bookedScheduleIds.has(s.id)
+      const nextDate = getNextDate(s.start_time)
+      const alreadyBooked = (mySpotBookings ?? []).some(
+        b => b.schedule_id === s.id && b.class_date === nextDate
+      )
       return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
     })
     .map(s => {
