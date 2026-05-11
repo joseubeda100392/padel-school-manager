@@ -22,13 +22,21 @@ export async function POST(req: NextRequest) {
 
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
 
-  const { count: enrolledCount } = await admin
-    .from('group_enrollments')
-    .select('id', { count: 'exact', head: true })
-    .eq('schedule_id', scheduleId)
-    .eq('status', 'active')
+  const [{ count: enrolledCount }, { count: spotBookingCount }] = await Promise.all([
+    admin
+      .from('group_enrollments')
+      .select('id', { count: 'exact', head: true })
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'active'),
+    admin
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('schedule_id', scheduleId)
+      .eq('class_date', date)
+      .eq('status', 'confirmed'),
+  ])
 
-  if ((enrolledCount ?? 0) >= schedule.max_students) {
+  if ((enrolledCount ?? 0) + (spotBookingCount ?? 0) >= schedule.max_students) {
     return NextResponse.json({ error: 'La clase ya está completa' }, { status: 409 })
   }
 
