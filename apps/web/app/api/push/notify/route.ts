@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, sent: 0 })
   }
 
-  await sendPushToUsers(userIds, { title, body, url: url || '/student' })
+  const notifType = target === 'payment_pending' ? 'payment_reminder' : 'admin_message'
+  await sendPushToUsers(userIds, { title, body, url: url || '/student' }, notifType)
 
   return NextResponse.json({ ok: true, sent: userIds.length })
 }

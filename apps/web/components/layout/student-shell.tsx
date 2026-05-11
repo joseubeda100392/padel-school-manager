@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X } from 'lucide-react'
+import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
 
@@ -14,13 +14,15 @@ const navItems = [
   { href: '/student/spots', label: 'Huecos', icon: Zap, exact: false },
   { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false },
   { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false },
+  { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false },
 ]
 
-export function StudentShell({ children, userName, clubName, bagBalance }: {
+export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0 }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
   bagBalance?: number
+  unreadCount?: number
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -72,6 +74,7 @@ export function StudentShell({ children, userName, clubName, bagBalance }: {
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {navItems.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href)
+            const isNotif = href === '/student/notifications'
             return (
               <Link key={href} href={href} onClick={() => setSidebarOpen(false)}
                 className={cn(
@@ -79,7 +82,12 @@ export function StudentShell({ children, userName, clubName, bagBalance }: {
                   active ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 )}>
                 <Icon className="h-4 w-4 shrink-0" />
-                {label}
+                <span className="flex-1">{label}</span>
+                {isNotif && unreadCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </Link>
             )
           })}
@@ -107,11 +115,21 @@ export function StudentShell({ children, userName, clubName, bagBalance }: {
             </div>
             <span className="text-sm font-semibold text-gray-900">{clubName ?? 'Padel School'}</span>
           </div>
-          {bagBalance !== undefined && (
-            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-              {bagBalance} clase{bagBalance !== 1 ? 's' : ''}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <Link href="/student/notifications" className="relative rounded-lg p-1.5 text-gray-500 hover:bg-gray-100">
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
+            {bagBalance !== undefined && (
+              <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                {bagBalance} clase{bagBalance !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
         </header>
 
         <main className="flex-1 overflow-auto p-4 pb-24 md:p-8 md:pb-8">{children}</main>

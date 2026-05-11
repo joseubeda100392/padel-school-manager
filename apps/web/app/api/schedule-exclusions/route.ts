@@ -43,7 +43,7 @@ async function notifySpotAvailable(admin: ReturnType<typeof adminSupabase>, sche
       title: '🎾 ¡Hueco libre disponible!',
       body: `${dayNames[startDt.getDay()]} ${dateLabel} a las ${timeStr}${levelName} — ${sc.court?.name ?? ''}`,
       url: '/student/spots',
-    })
+    }, 'spot_available')
   } catch {
     // No interrumpir la respuesta si falla el push
   }
