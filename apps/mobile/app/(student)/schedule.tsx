@@ -97,7 +97,7 @@ export default function StudentScheduleScreen() {
         setBagBalance(json.newBalance)
         setMyBookings((prev) => new Set([...prev, scheduleId]))
         setEnrolledCounts((prev) => ({ ...prev, [scheduleId]: (prev[scheduleId] ?? 0) + 1 }))
-        Alert.alert('¡Apuntado!', 'Te has apuntado a la clase. Se ha descontado 1 recuperación.')
+        Alert.alert('¡Apuntado!', 'Te has apuntado a la clase. Se ha descontado 1 crédito.')
       }
     } catch {
       Alert.alert('Error', 'No se pudo realizar la reserva')
@@ -146,8 +146,8 @@ export default function StudentScheduleScreen() {
     }
 
     const message = isLate
-      ? `La clase empieza en menos de ${cancellationHours}h. Se cancelará pero NO se devolverá la recuperación.`
-      : '¿Seguro que quieres cancelar? Se devolverá la recuperación.'
+      ? `La clase empieza en menos de ${cancellationHours}h. Se cancelará pero NO se devolverá el crédito.`
+      : '¿Seguro que quieres cancelar? Se devolverá el crédito.'
 
     Alert.alert('Cancelar reserva', message, [
       { text: 'No', style: 'cancel' },
@@ -242,7 +242,7 @@ export default function StudentScheduleScreen() {
               <TouchableOpacity
                 onPress={() => {
                   if (bagBalance <= 0) {
-                    Alert.alert('Sin recuperaciones', 'No te quedan recuperaciones disponibles.', [
+                    Alert.alert('Sin clases disponibles', 'No te quedan clases disponibles.', [
                       { text: 'Cancelar', style: 'cancel' },
                       { text: 'Comprar bono', onPress: () => router.push('/(student)/buy-pack') },
                     ])
@@ -254,7 +254,7 @@ export default function StudentScheduleScreen() {
                 className={`flex-1 rounded-xl py-2.5 ${bagBalance > 0 ? 'bg-green-600' : 'bg-gray-200'}`}
               >
                 <Text className={`text-center text-sm font-semibold ${bagBalance > 0 ? 'text-white' : 'text-gray-500'}`}>
-                  {isBusy ? '...' : `Recup. (${bagBalance})`}
+                  {isBusy ? '...' : `Usar clase (${bagBalance})`}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -279,7 +279,7 @@ export default function StudentScheduleScreen() {
         <Text className="text-xl font-bold text-gray-900">Clases disponibles</Text>
         <View className="mt-1 flex-row items-center justify-between">
           <Text className="text-sm text-gray-500">
-            Recuperaciones: <Text className="font-semibold text-green-600">{bagBalance}</Text>
+            Disponibles: <Text className="font-semibold text-green-600">{bagBalance}</Text>
           </Text>
           <TouchableOpacity onPress={() => router.push('/(student)/buy-pack')}>
             <Text className="text-sm font-medium text-green-600">+ Comprar bono</Text>

@@ -192,9 +192,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
 
         <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Recuperaciones</h2>
+          <h2 className="mb-4 font-semibold text-gray-900">Clases disponibles</h2>
           <p className="mb-1 text-5xl font-bold text-green-600">{bag?.balance ?? 0}</p>
-          <p className="mb-5 text-sm text-gray-500">recuperaciones disponibles</p>
+          <p className="mb-5 text-sm text-gray-500">clases disponibles</p>
           <BagAdjustForm studentId={student.id as string} currentBalance={bag?.balance ?? 0} />
 
           {bagHistory && bagHistory.length > 0 && (

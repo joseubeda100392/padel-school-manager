@@ -89,7 +89,7 @@ export default function BuyPackScreen() {
       <View className="border-b border-gray-100 bg-white px-4 py-4">
         <Text className="text-xl font-bold text-gray-900">Comprar bono</Text>
         <Text className="text-sm text-gray-500">
-          Recuperaciones: <Text className="font-semibold text-green-600">{balance}</Text>
+          Clases disponibles: <Text className="font-semibold text-green-600">{balance}</Text>
         </Text>
       </View>
 
@@ -133,7 +133,7 @@ export default function BuyPackScreen() {
         </View>
 
         <Text className="text-center text-xs text-gray-400">
-          Pago seguro procesado por Redsys. Las recuperaciones se añaden automáticamente tras el pago.
+          Pago seguro procesado por Redsys. Las clases se añaden a tu bono automáticamente tras el pago.
         </Text>
       </ScrollView>
     </SafeAreaView>

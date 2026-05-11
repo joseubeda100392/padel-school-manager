@@ -22,7 +22,7 @@ const statusLabel: Record<string, string> = {
 const typeLabel: Record<string, string> = {
   fixed_group_month: 'Cuota mensual',
   single_class:      'Clase suelta',
-  class_pack:        'Recuperaciones (bono)',
+  class_pack:        'Bono de clases',
   pay_per_class:     'Clase suelta',
   subscription:      'Suscripción',
   bag_pack:          'Bono de clases',

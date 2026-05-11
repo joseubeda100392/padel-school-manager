@@ -329,7 +329,7 @@ export default function SettingsPage() {
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-1 font-semibold text-gray-900">Política de cancelación</h2>
         <p className="mb-4 text-xs text-gray-400">
-          Si el alumno cancela con menos de X horas de antelación, la recuperación <strong>no</strong> se devuelve.
+          Si el alumno cancela con menos de X horas de antelación, el crédito <strong>no</strong> se devuelve.
         </p>
         <div className="flex items-center gap-3">
           <input
