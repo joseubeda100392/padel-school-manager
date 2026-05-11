@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { sendPushToUsers } from '@/lib/push'
 
 const adminSupabase = () => createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,6 +80,47 @@ export async function POST(req: NextRequest) {
       type: 'credit',
       reason: `Falta registrada ${dateStr}`,
     })
+  }
+
+  // Notificar a alumnos del mismo club que NO están en este grupo
+  try {
+    const { data: scheduleData } = await admin
+      .from('schedules')
+      .select('start_time, end_time, court:courts(name), level:levels(name)')
+      .eq('id', scheduleId)
+      .single()
+
+    const { data: enrolledIds } = await admin
+      .from('group_enrollments')
+      .select('student_id')
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'active')
+
+    const excludedIds = new Set((enrolledIds ?? []).map((e: any) => e.student_id))
+
+    const { data: adminUser } = await admin.from('users').select('club_id').eq('id', user.id).single()
+    const clubId = (adminUser as any)?.club_id
+
+    const q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
+    const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)
+    const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
+
+    if (targetIds.length > 0 && scheduleData) {
+      const sc = scheduleData as any
+      const startDt = new Date(sc.start_time)
+      const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+      const timeStr = startDt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      const levelName = sc.level?.name ? ` · ${sc.level.name}` : ''
+      const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+
+      await sendPushToUsers(targetIds, {
+        title: '🎾 ¡Hueco libre disponible!',
+        body: `${dayNames[startDt.getDay()]} ${dateLabel} a las ${timeStr}${levelName} — ${sc.court?.name ?? ''}`,
+        url: '/student/spots',
+      })
+    }
+  } catch {
+    // No interrumpir la respuesta si falla el push
   }
 
   return NextResponse.json({ data, publishedSpot: true, excludedDate: dateStr })

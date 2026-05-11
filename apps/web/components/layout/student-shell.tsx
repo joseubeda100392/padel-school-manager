@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PushNotificationProvider } from '@/components/push-notification-provider'
 
 const navItems = [
   { href: '/student', label: 'Inicio', icon: Home, exact: true },
@@ -114,6 +115,7 @@ export function StudentShell({ children, userName, clubName, bagBalance }: {
         </header>
 
         <main className="flex-1 overflow-auto p-4 pb-24 md:p-8 md:pb-8">{children}</main>
+        <PushNotificationProvider />
 
         {/* Bottom nav móvil */}
         <nav className="fixed bottom-0 left-0 right-0 z-10 flex border-t border-gray-200 bg-white md:hidden">

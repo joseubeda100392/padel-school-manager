@@ -2,11 +2,52 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { sendPushToUsers } from '@/lib/push'
 
 const adminSupabase = () => createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
+
+async function notifySpotAvailable(admin: ReturnType<typeof adminSupabase>, scheduleId: string, excludedDate: string) {
+  try {
+    const { data: scheduleData } = await admin
+      .from('schedules')
+      .select('start_time, club_id, court:courts(name), level:levels(name)')
+      .eq('id', scheduleId)
+      .single()
+
+    const { data: enrolledRows } = await admin
+      .from('group_enrollments')
+      .select('student_id')
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'active')
+
+    const excludedIds = new Set((enrolledRows ?? []).map((e: any) => e.student_id))
+    const clubId = (scheduleData as any)?.club_id
+
+    const q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
+    const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)
+    const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
+
+    if (!targetIds.length || !scheduleData) return
+
+    const sc = scheduleData as any
+    const startDt = new Date(sc.start_time)
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+    const timeStr = startDt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    const levelName = sc.level?.name ? ` · ${sc.level.name}` : ''
+    const dateLabel = new Date(excludedDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+
+    await sendPushToUsers(targetIds, {
+      title: '🎾 ¡Hueco libre disponible!',
+      body: `${dayNames[startDt.getDay()]} ${dateLabel} a las ${timeStr}${levelName} — ${sc.court?.name ?? ''}`,
+      url: '/student/spots',
+    })
+  } catch {
+    // No interrumpir la respuesta si falla el push
+  }
+}
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -23,7 +64,7 @@ export async function POST(req: NextRequest) {
 
   const { data: enrollment } = await admin
     .from('group_enrollments')
-    .select('student_id')
+    .select('student_id, schedule_id')
     .eq('id', group_enrollment_id)
     .single()
 
@@ -36,6 +77,10 @@ export async function POST(req: NextRequest) {
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (publish_spot && enrollment?.schedule_id) {
+    await notifySpotAvailable(admin, enrollment.schedule_id, excluded_date)
+  }
 
   if (enrollment?.student_id) {
     const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', enrollment.student_id).single()
@@ -66,8 +111,28 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { id, publish_spot } = await req.json()
+
+  const { data: exclusionBefore } = await admin
+    .from('schedule_exclusions')
+    .select('excluded_date, group_enrollment_id, publish_spot')
+    .eq('id', id)
+    .single()
+
   const { error } = await admin.from('schedule_exclusions').update({ publish_spot }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Si se está publicando (era false y ahora true), notificar
+  if (publish_spot && !exclusionBefore?.publish_spot && exclusionBefore?.group_enrollment_id) {
+    const { data: ge } = await admin
+      .from('group_enrollments')
+      .select('schedule_id')
+      .eq('id', exclusionBefore.group_enrollment_id)
+      .single()
+    if (ge?.schedule_id) {
+      await notifySpotAvailable(admin, ge.schedule_id, exclusionBefore.excluded_date)
+    }
+  }
+
   return NextResponse.json({ ok: true })
 }
 
