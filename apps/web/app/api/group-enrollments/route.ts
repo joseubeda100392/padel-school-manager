@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     monthly_price: monthlyPrice ?? 0,
     status: 'active',
     enrolled_by: user.id,
+    paid_until: null,
   }, { onConflict: 'schedule_id,student_id' }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
