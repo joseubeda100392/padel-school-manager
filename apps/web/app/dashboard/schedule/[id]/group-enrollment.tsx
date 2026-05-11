@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { StudentCombobox } from '@/components/student-combobox'
 
 interface Enrollment {
   id: string
@@ -192,16 +193,12 @@ export default function GroupEnrollment({
           <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{addError}</p>
         )}
         <div className="flex flex-wrap gap-2">
-          <select
+          <StudentCombobox
+            students={unenrolledStudents}
             value={selectedStudentId}
-            onChange={(e) => setSelectedStudentId(e.target.value)}
-            className="flex-1 min-w-[180px] rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
-          >
-            <option value="">Seleccionar alumno...</option>
-            {unenrolledStudents.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+            onChange={setSelectedStudentId}
+            placeholder="Buscar alumno por nombre o email..."
+          />
           <div className="relative">
             <input
               type="number"
