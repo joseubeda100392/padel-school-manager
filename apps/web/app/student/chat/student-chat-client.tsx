@@ -16,9 +16,10 @@ interface Props {
   threadStatus: string
   initialMessages: Message[]
   currentUserId: string
+  recipientLabel?: string
 }
 
-export function StudentChatClient({ threadId, threadStatus, initialMessages, currentUserId }: Props) {
+export function StudentChatClient({ threadId, threadStatus, initialMessages, currentUserId, recipientLabel = 'Soporte' }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -69,7 +70,7 @@ export function StudentChatClient({ threadId, threadStatus, initialMessages, cur
           <span className="text-sm font-bold text-green-700">S</span>
         </div>
         <div>
-          <p className="font-semibold text-gray-900">Soporte</p>
+          <p className="font-semibold text-gray-900">{recipientLabel}</p>
           <p className="text-xs text-gray-400">
             {threadStatus === 'active' ? 'Te responderemos pronto' : 'Conversación resuelta'}
           </p>
