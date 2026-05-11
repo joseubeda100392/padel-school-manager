@@ -41,16 +41,14 @@ export default async function StudentSpotsPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: userLevel } = await admin
-    .from('user_levels')
-    .select('level:levels(id, name)')
-    .eq('user_id', user.id)
-    .order('assigned_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  const myLevelId: string | null = (userLevel?.level as any)?.id ?? null
+  const { data: userRow } = await admin
+    .from('users')
+    .select('current_level_id')
+    .eq('id', user.id)
+    .single()
+  const myLevelId: string | null = userRow?.current_level_id ?? null
 
-  const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }] = await Promise.all([
+  const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }, { data: mySpotBookings }] = await Promise.all([
     admin
       .from('schedule_exclusions')
       .select(`
@@ -83,10 +81,17 @@ export default async function StudentSpotsPage() {
         coach:users!schedules_coach_id_fkey(name),
         enrollments:group_enrollments(student_id, status)
       `),
+    admin
+      .from('bookings')
+      .select('schedule_id, class_date, exclusion_id:group_enrollment_id')
+      .eq('student_id', user.id)
+      .eq('status', 'confirmed')
+      .not('class_date', 'is', null),
   ])
 
   const myScheduleIds = new Set((myEnrollments ?? []).map(e => e.schedule_id))
   const bagBalance = bag?.balance ?? 0
+  const bookedScheduleIds = new Set((mySpotBookings ?? []).map(b => b.schedule_id))
 
   // Absence spots (existing logic)
   const absenceSpots = (spotsRaw ?? [])
@@ -95,7 +100,10 @@ export default async function StudentSpotsPage() {
       const schedule = ge?.schedule as any
       const levelId = schedule?.level?.id ?? null
       const levelOk = !myLevelId || !levelId || levelId === myLevelId
-      return ge?.schedule_id && !myScheduleIds.has(ge.schedule_id) && levelOk
+      const alreadyBooked = (mySpotBookings ?? []).some(
+        b => b.schedule_id === ge?.schedule_id && b.class_date === s.excluded_date
+      )
+      return ge?.schedule_id && !myScheduleIds.has(ge.schedule_id) && levelOk && !alreadyBooked
     })
     .map(s => {
       const ge = s.group_enrollment as any
@@ -128,7 +136,8 @@ export default async function StudentSpotsPage() {
       const alreadyIn = active.some((e: any) => e.student_id === user.id)
       const levelId = (s.level as any)?.id ?? null
       const levelOk = !myLevelId || !levelId || levelId === myLevelId
-      return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk
+      const alreadyBooked = bookedScheduleIds.has(s.id)
+      return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
     })
     .map(s => {
       const enrollments = (s.enrollments ?? []) as any[]

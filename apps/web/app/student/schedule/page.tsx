@@ -65,11 +65,24 @@ export default async function StudentSchedulePage() {
         .order('excluded_date')
     : { data: [] }
 
-  const { data: cfgRow } = await supabase
-    .from('app_config')
-    .select('value')
-    .eq('key', 'cancellation_hours')
-    .single()
+  const [{ data: cfgRow }, { data: spotBookings }] = await Promise.all([
+    supabase.from('app_config').select('value').eq('key', 'cancellation_hours').single(),
+    supabase
+      .from('bookings')
+      .select(`
+        id, class_date, status, source,
+        schedule:schedules(id, start_time, end_time, max_students,
+          court:courts(name),
+          level:levels(name, color),
+          coach:users!schedules_coach_id_fkey(name)
+        )
+      `)
+      .eq('student_id', user.id)
+      .eq('status', 'confirmed')
+      .not('class_date', 'is', null)
+      .gte('class_date', today)
+      .order('class_date'),
+  ])
 
   const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
 
@@ -99,26 +112,69 @@ export default async function StudentSchedulePage() {
   })
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>
-        <p className="text-sm text-gray-500">Tus clases de grupo fijo</p>
+    <div className="max-w-2xl space-y-8">
+      <div>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>
+          <p className="text-sm text-gray-500">Tus clases de grupo fijo</p>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="rounded-xl bg-white p-10 text-center shadow-sm">
+            <p className="text-gray-400">No estás inscrito en ninguna clase de grupo fijo.</p>
+            <p className="mt-1 text-xs text-gray-400">Habla con tu administrador para inscribirte.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {items.map(item => (
+              <StudentScheduleClient
+                key={item.enrollmentId}
+                item={item}
+                cancellationHours={cancellationHours}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {items.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-gray-400">No estás inscrito en ninguna clase de grupo fijo.</p>
-          <p className="mt-1 text-xs text-gray-400">Habla con tu administrador para inscribirte.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {items.map(item => (
-            <StudentScheduleClient
-              key={item.enrollmentId}
-              item={item}
-              cancellationHours={cancellationHours}
-            />
-          ))}
+      {(spotBookings ?? []).length > 0 && (
+        <div>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Reservas puntuales</h2>
+            <p className="text-sm text-gray-500">Huecos libres en los que estás apuntado</p>
+          </div>
+          <div className="space-y-3">
+            {(spotBookings ?? []).map(b => {
+              const s = b.schedule as any
+              const dateLabel = new Date(b.class_date + 'T12:00:00').toLocaleDateString('es-ES', {
+                weekday: 'long', day: 'numeric', month: 'long',
+              })
+              return (
+                <div key={b.id} className="rounded-xl bg-white shadow-sm p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-gray-900 capitalize">{dateLabel}</p>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        {formatTime(new Date(s?.start_time))} – {formatTime(new Date(s?.end_time))} · {s?.court?.name ?? '—'}
+                        {s?.coach?.name && <span className="text-gray-400"> · {s.coach.name}</span>}
+                      </p>
+                      {s?.level && (
+                        <span
+                          className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+                          style={{ backgroundColor: s.level.color }}
+                        >
+                          {s.level.name}
+                        </span>
+                      )}
+                    </div>
+                    <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 shrink-0">
+                      Reservado
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
