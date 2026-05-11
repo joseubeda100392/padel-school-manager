@@ -4,9 +4,9 @@ import { ChatWindow } from './chat-window'
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
 
-  const { data: threads, error: threadsError } = await supabase
+  const { data: threads } = await supabase
     .from('chat_threads')
-    .select('id, user_id, status')
+    .select('*, user:users(name, email), lastMessage:chat_messages(content, created_at)')
     .order('created_at', { ascending: false })
 
   const activeThreadId = searchParams.thread ?? threads?.[0]?.id ?? null
@@ -24,10 +24,6 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   }
 
   const { data: { user: currentUser } } = await supabase.auth.getUser()
-
-  if (threadsError) {
-    return <pre className="p-8 text-red-600 text-xs">{JSON.stringify(threadsError, null, 2)}</pre>
-  }
 
   return (
     <div className="flex h-[calc(100vh-9rem)] gap-0 overflow-hidden rounded-xl bg-white shadow-sm">
