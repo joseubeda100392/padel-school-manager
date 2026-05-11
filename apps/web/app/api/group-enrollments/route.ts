@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     monthly_price: monthlyPrice ?? 0,
     status: 'active',
     enrolled_by: user.id,
+    enrolled_at: new Date().toISOString(),
     paid_until: null,
   }, { onConflict: 'schedule_id,student_id' }).select().single()
 
