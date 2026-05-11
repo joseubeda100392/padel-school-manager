@@ -104,7 +104,7 @@ export default function StudentsTable({ students, levelMap }: Props) {
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px]">
+          <table className="w-full min-w-[780px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nombre</th>

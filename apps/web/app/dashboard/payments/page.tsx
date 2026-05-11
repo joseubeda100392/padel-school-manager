@@ -12,7 +12,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const clubId = await getClubId()
 
   const now = new Date()
-  const selectedDate = searchParams.month ? new Date(searchParams.month + '-01') : now
+  const parsedDate = searchParams.month ? new Date(searchParams.month + '-01') : null
+  const selectedDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : now
   const selectedYear = selectedDate.getFullYear()
   const selectedMonth = selectedDate.getMonth() // 0-indexed
   const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`

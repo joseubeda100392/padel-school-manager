@@ -78,6 +78,36 @@ export async function DELETE(req: NextRequest) {
 
   const { id } = await req.json()
   const admin = adminSupabase()
+
+  const { data: exclusion } = await admin
+    .from('schedule_exclusions')
+    .select('group_enrollment_id')
+    .eq('id', id)
+    .single()
+
   await admin.from('schedule_exclusions').delete().eq('id', id)
+
+  if (exclusion?.group_enrollment_id) {
+    const { data: enrollment } = await admin
+      .from('group_enrollments')
+      .select('student_id')
+      .eq('id', exclusion.group_enrollment_id)
+      .single()
+
+    if (enrollment?.student_id) {
+      const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', enrollment.student_id).single()
+      if (bag && bag.balance > 0) {
+        await admin.from('class_bag').update({ balance: bag.balance - 1, updated_at: new Date().toISOString() }).eq('id', bag.id)
+        await admin.from('bag_transactions').insert({
+          user_id: enrollment.student_id,
+          class_bag_id: bag.id,
+          delta: -1,
+          type: 'debit',
+          reason: 'Falta cancelada',
+        })
+      }
+    }
+  }
+
   return NextResponse.json({ ok: true })
 }

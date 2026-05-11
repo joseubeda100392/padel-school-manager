@@ -173,6 +173,7 @@ export default function GroupEnrollment({
         }],
       }))
       setFaltaFormId(null)
+      router.refresh()
     }
     setFaltaLoading(false)
   }
