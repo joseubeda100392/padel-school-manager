@@ -1,26 +1,33 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const role = user?.user_metadata?.role as string | undefined
-  const clubId = user?.user_metadata?.club_id as string | undefined
+
+  if (!user) redirect('/login')
+
+  // Role must come from DB — user_metadata is user-writable and can be spoofed
+  const { data: dbProfile } = await supabase
+    .from('users')
+    .select('role, club_id, name')
+    .eq('id', user.id)
+    .single()
+
+  const role = dbProfile?.role as string | undefined
+  const clubId = dbProfile?.club_id as string | undefined
+
+  if (!role || role === 'student') redirect('/student')
 
   let clubName: string | undefined
-  let userName: string | undefined
 
-  const [clubResult, userResult] = await Promise.all([
-    clubId && role !== 'super_admin'
-      ? supabase.from('clubs').select('name').eq('id', clubId).single()
-      : Promise.resolve({ data: null }),
-    user
-      ? supabase.from('users').select('name').eq('id', user.id).single()
-      : Promise.resolve({ data: null }),
-  ])
+  if (clubId && role !== 'super_admin') {
+    const { data } = await supabase.from('clubs').select('name').eq('id', clubId).single()
+    clubName = data?.name ?? undefined
+  }
 
-  clubName = (clubResult as any).data?.name ?? undefined
-  userName = (userResult as any).data?.name ?? user?.user_metadata?.name ?? undefined
+  const userName = dbProfile?.name ?? user.user_metadata?.name ?? undefined
 
   return (
     <DashboardShell clubName={clubName} role={role} userName={userName}>

@@ -5,14 +5,28 @@ import { StudentScheduleClient } from './schedule-client'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-function getNextOccurrence(startTime: string): Date {
+function getUpcomingOccurrences(
+  startTime: string,
+  cancellationHours: number,
+  count = 8,
+): { dateStr: string; label: string; canRegister: boolean }[] {
   const base = new Date(startTime)
   const now = new Date()
-  const next = new Date(now)
-  next.setHours(base.getHours(), base.getMinutes(), 0, 0)
+  const first = new Date(now)
+  first.setHours(base.getHours(), base.getMinutes(), 0, 0)
   const diff = (base.getDay() - now.getDay() + 7) % 7
-  next.setDate(now.getDate() + (diff === 0 && next <= now ? 7 : diff))
-  return next
+  first.setDate(now.getDate() + (diff === 0 && first <= now ? 7 : diff))
+
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(first)
+    d.setDate(d.getDate() + i * 7)
+    const dateStr = d.toISOString().split('T')[0]
+    const hoursUntil = (d.getTime() - Date.now()) / 3600000
+    const label = new Date(dateStr + 'T12:00:00').toLocaleDateString('es-ES', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    })
+    return { dateStr, label, canRegister: hoursUntil >= cancellationHours }
+  })
 }
 
 function isPaidThisMonth(paidUntil: string | null) {
@@ -61,9 +75,7 @@ export default async function StudentSchedulePage() {
 
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
-    const nextDate = getNextOccurrence(schedule?.start_time ?? '')
-    const hoursUntil = (nextDate.getTime() - Date.now()) / 3600000
-    const canRegisterFalta = hoursUntil >= cancellationHours
+    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours)
     const myExclusions = (exclusionsRaw ?? [])
       .filter(x => x.group_enrollment_id === e.id)
       .map(x => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))
@@ -73,8 +85,7 @@ export default async function StudentSchedulePage() {
       monthlyPrice: e.monthly_price,
       paidUntil: e.paid_until,
       isPaid: isPaidThisMonth(e.paid_until),
-      canRegisterFalta,
-      nextDate: nextDate.toISOString(),
+      upcomingOccurrences,
       schedule: {
         id: schedule?.id,
         dayLabel: DAYS[getDayOfWeek(schedule?.start_time)],

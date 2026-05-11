@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell } from 'lucide-react'
+import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
 
@@ -15,6 +15,7 @@ const navItems = [
   { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false },
   { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false },
   { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false },
+  { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false },
 ]
 
 export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0 }: {

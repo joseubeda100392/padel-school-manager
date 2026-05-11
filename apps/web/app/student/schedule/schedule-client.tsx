@@ -5,13 +5,18 @@ import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
 
+interface Occurrence {
+  dateStr: string
+  label: string
+  canRegister: boolean
+}
+
 interface ScheduleItem {
   enrollmentId: string
   monthlyPrice: number
   paidUntil: string | null
   isPaid: boolean
-  canRegisterFalta: boolean
-  nextDate: string
+  upcomingOccurrences: Occurrence[]
   schedule: {
     id: string
     dayLabel: string
@@ -26,33 +31,33 @@ interface ScheduleItem {
 export function StudentScheduleClient({ item, cancellationHours }: { item: ScheduleItem; cancellationHours: number }) {
   const router = useRouter()
   const [exclusions, setExclusions] = useState(item.exclusions)
-  const [registering, setRegistering] = useState(false)
-  const [faltaError, setFaltaError] = useState('')
+  const [showPicker, setShowPicker] = useState(false)
+  const [registering, setRegistering] = useState<string | null>(null)
+  const [error, setError] = useState('')
 
-  const nextDate = new Date(item.nextDate)
-  const nextDateStr = nextDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
-
-  const alreadyRegistered = exclusions.some(x => x.excluded_date === nextDate.toISOString().split('T')[0])
-
-  async function handleRegistrarFalta() {
-    if (!item.canRegisterFalta) return
-    if (!confirm(`¿Confirmas que vas a faltar a la clase del ${nextDateStr}? Se te sumará +1 clase disponible.`)) return
-    setRegistering(true)
-    setFaltaError('')
+  async function handleRegistrar(occ: Occurrence) {
+    if (!occ.canRegister) return
+    if (!confirm(`¿Confirmas que vas a faltar a la clase del ${occ.label}? Se te sumará +1 clase disponible.`)) return
+    setRegistering(occ.dateStr)
+    setError('')
     const res = await fetch('/api/schedule-exclusions/student', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduleId: item.schedule.id }),
+      body: JSON.stringify({ scheduleId: item.schedule.id, date: occ.dateStr }),
     })
     const json = await res.json()
     if (res.ok) {
-      setExclusions(prev => [...prev, { id: json.data.id, excluded_date: json.excludedDate, publish_spot: true }])
+      setExclusions(prev => [...prev, { id: json.data.id, excluded_date: occ.dateStr, publish_spot: true }])
+      setShowPicker(false)
       router.refresh()
     } else {
-      setFaltaError(json.error ?? 'Error al registrar la falta')
+      setError(json.error ?? 'Error al registrar la falta')
     }
-    setRegistering(false)
+    setRegistering(null)
   }
+
+  const registeredDates = new Set(exclusions.map(x => x.excluded_date))
+  const hasAnyAvailable = item.upcomingOccurrences.some(o => o.canRegister && !registeredDates.has(o.dateStr))
 
   return (
     <div className="rounded-xl bg-white shadow-sm">
@@ -73,7 +78,9 @@ export function StudentScheduleClient({ item, cancellationHours }: { item: Sched
             )}
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-gray-900">{formatCurrency(item.monthlyPrice)}<span className="text-sm font-normal text-gray-400">/mes</span></p>
+            <p className="text-lg font-bold text-gray-900">
+              {formatCurrency(item.monthlyPrice)}<span className="text-sm font-normal text-gray-400">/mes</span>
+            </p>
             <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${item.isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
               {item.isPaid ? '✓ Pagado' : 'Pendiente de pago'}
             </span>
@@ -90,28 +97,48 @@ export function StudentScheduleClient({ item, cancellationHours }: { item: Sched
             />
           )}
 
-          {alreadyRegistered ? (
-            <span className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-400">
-              ✓ Falta registrada
-            </span>
-          ) : (
-            <button
-              onClick={handleRegistrarFalta}
-              disabled={!item.canRegisterFalta || registering}
-              title={!item.canRegisterFalta ? `Debes avisar con al menos ${cancellationHours}h de antelación` : ''}
-              className="rounded-lg border border-orange-200 px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {registering ? '...' : '📋 Registrar falta'}
-            </button>
-          )}
+          <button
+            onClick={() => { setShowPicker(v => !v); setError('') }}
+            disabled={!hasAnyAvailable}
+            title={!hasAnyAvailable ? `Sin fechas disponibles (mínimo ${cancellationHours}h de antelación)` : ''}
+            className="rounded-lg border border-orange-200 px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            📋 Registrar falta
+          </button>
         </div>
 
-        {!item.canRegisterFalta && !alreadyRegistered && (
-          <p className="mt-2 text-xs text-gray-400">
-            Necesitas avisar con al menos {cancellationHours}h de antelación para registrar la falta.
-          </p>
+        {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+
+        {showPicker && (
+          <div className="mt-4 rounded-lg border border-orange-100 bg-orange-50 p-3">
+            <p className="mb-3 text-xs font-semibold text-orange-700">Selecciona la fecha de la falta:</p>
+            <div className="space-y-2">
+              {item.upcomingOccurrences.map(occ => {
+                const isRegistered = registeredDates.has(occ.dateStr)
+                return (
+                  <div key={occ.dateStr} className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
+                    <span className={`capitalize ${!occ.canRegister && !isRegistered ? 'text-gray-400' : 'text-gray-700'}`}>
+                      {occ.label}
+                    </span>
+                    {isRegistered ? (
+                      <span className="text-xs font-medium text-green-600">✓ Registrada</span>
+                    ) : occ.canRegister ? (
+                      <button
+                        onClick={() => handleRegistrar(occ)}
+                        disabled={registering === occ.dateStr}
+                        className="rounded-md bg-orange-500 px-3 py-1 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+                      >
+                        {registering === occ.dateStr ? '...' : 'Registrar'}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">Muy pronto</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         )}
-        {faltaError && <p className="mt-2 text-xs text-red-600">{faltaError}</p>}
       </div>
 
       {exclusions.length > 0 && (

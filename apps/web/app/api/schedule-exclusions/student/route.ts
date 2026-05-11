@@ -10,17 +10,11 @@ const adminSupabase = () => createAdminClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
 
-function getNextOccurrence(startTime: string): { date: Date; dateStr: string } {
+function getClassDatetime(startTime: string, dateStr: string): Date {
   const base = new Date(startTime)
-  const now = new Date()
-  const next = new Date(now)
-  next.setHours(base.getHours(), base.getMinutes(), 0, 0)
-  const todayDow = now.getDay()
-  const classDow = base.getDay()
-  let daysAhead = (classDow - todayDow + 7) % 7
-  if (daysAhead === 0 && next <= now) daysAhead = 7
-  next.setDate(next.getDate() + daysAhead)
-  return { date: next, dateStr: next.toISOString().split('T')[0] }
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setHours(base.getHours(), base.getMinutes(), 0, 0)
+  return d
 }
 
 export async function POST(req: NextRequest) {
@@ -28,7 +22,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { scheduleId } = await req.json()
+  const { scheduleId, date } = await req.json()
+  if (!date) return NextResponse.json({ error: 'Fecha requerida' }, { status: 400 })
+
   const admin = adminSupabase()
 
   const [{ data: enrollment }, { data: schedule }, { data: cfgRow }] = await Promise.all([
@@ -46,9 +42,19 @@ export async function POST(req: NextRequest) {
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
 
   const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
-  const { date: nextOccurrence, dateStr } = getNextOccurrence(schedule.start_time)
-  const hoursUntilClass = (nextOccurrence.getTime() - Date.now()) / 3600000
+  const dateStr = date as string
+  const classDt = getClassDatetime(schedule.start_time, dateStr)
 
+  // Validate the selected date is a valid occurrence (correct day of week)
+  const base = new Date(schedule.start_time)
+  if (classDt.getDay() !== base.getDay()) {
+    return NextResponse.json({ error: 'La fecha no corresponde al día de la clase' }, { status: 400 })
+  }
+
+  const hoursUntilClass = (classDt.getTime() - Date.now()) / 3600000
+  if (hoursUntilClass < 0) {
+    return NextResponse.json({ error: 'La fecha ya ha pasado' }, { status: 400 })
+  }
   if (hoursUntilClass < cancellationHours) {
     return NextResponse.json({ error: `Debes avisar con al menos ${cancellationHours} horas de antelación` }, { status: 400 })
   }
