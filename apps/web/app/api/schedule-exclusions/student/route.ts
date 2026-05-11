@@ -46,7 +46,10 @@ export async function POST(req: NextRequest) {
   const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
   const { date: nextOccurrence, dateStr } = getNextOccurrence(schedule.start_time)
   const hoursUntilClass = (nextOccurrence.getTime() - Date.now()) / 3600000
-  const canPublish = hoursUntilClass >= cancellationHours
+
+  if (hoursUntilClass < cancellationHours) {
+    return NextResponse.json({ error: `Debes avisar con al menos ${cancellationHours} horas de antelación` }, { status: 400 })
+  }
 
   const { data: existing } = await admin
     .from('schedule_exclusions')
@@ -60,10 +63,23 @@ export async function POST(req: NextRequest) {
   const { data, error } = await admin.from('schedule_exclusions').insert({
     group_enrollment_id: enrollment.id,
     excluded_date: dateStr,
-    publish_spot: canPublish,
+    publish_spot: true,
     created_by: user.id,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data, publishedSpot: canPublish, excludedDate: dateStr })
+
+  const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', user.id).single()
+  if (bag) {
+    await admin.from('class_bag').update({ balance: bag.balance + 1, updated_at: new Date().toISOString() }).eq('id', bag.id)
+    await admin.from('bag_transactions').insert({
+      user_id: user.id,
+      class_bag_id: bag.id,
+      delta: 1,
+      type: 'credit',
+      reason: `Falta registrada ${dateStr}`,
+    })
+  }
+
+  return NextResponse.json({ data, publishedSpot: true, excludedDate: dateStr })
 }

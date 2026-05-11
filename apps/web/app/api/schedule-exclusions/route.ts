@@ -21,6 +21,12 @@ export async function POST(req: NextRequest) {
 
   const { group_enrollment_id, excluded_date, reason, publish_spot } = await req.json()
 
+  const { data: enrollment } = await admin
+    .from('group_enrollments')
+    .select('student_id')
+    .eq('id', group_enrollment_id)
+    .single()
+
   const { data, error } = await admin.from('schedule_exclusions').insert({
     group_enrollment_id,
     excluded_date,
@@ -30,6 +36,21 @@ export async function POST(req: NextRequest) {
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  if (enrollment?.student_id) {
+    const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', enrollment.student_id).single()
+    if (bag) {
+      await admin.from('class_bag').update({ balance: bag.balance + 1, updated_at: new Date().toISOString() }).eq('id', bag.id)
+      await admin.from('bag_transactions').insert({
+        user_id: enrollment.student_id,
+        class_bag_id: bag.id,
+        delta: 1,
+        type: 'credit',
+        reason: `Falta registrada ${excluded_date}`,
+      })
+    }
+  }
+
   return NextResponse.json({ data })
 }
 
