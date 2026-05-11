@@ -55,7 +55,8 @@ export default async function StudentSpotsPage() {
           schedule:schedules!schedule_id(
             id, start_time, end_time, max_students,
             court:courts(name),
-            level:levels(id, name, color)
+            level:levels(id, name, color),
+            coach:users!schedules_coach_id_fkey(name)
           )
         )
       `)
@@ -74,6 +75,7 @@ export default async function StudentSpotsPage() {
         id, start_time, end_time, max_students,
         court:courts(name),
         level:levels(id, name, color),
+        coach:users!schedules_coach_id_fkey(name),
         enrollments:group_enrollments(student_id, status)
       `),
   ])
@@ -104,6 +106,7 @@ export default async function StudentSpotsPage() {
         startTime: formatTime(startDt),
         endTime: formatTime(endDt),
         courtName: schedule?.court?.name ?? '—',
+        coachName: schedule?.coach?.name ?? null,
         maxStudents: schedule?.max_students ?? 4,
         level: schedule?.level ?? null,
         enrolledCount: null,
@@ -136,6 +139,7 @@ export default async function StudentSpotsPage() {
         startTime: formatTime(startDt),
         endTime: formatTime(endDt),
         courtName: (s.court as any)?.name ?? '—',
+        coachName: (s.coach as any)?.name ?? null,
         maxStudents: s.max_students,
         level: s.level as any,
         enrolledCount: activeCount,

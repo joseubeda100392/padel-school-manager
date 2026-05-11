@@ -13,6 +13,7 @@ interface Spot {
   startTime: string
   endTime: string
   courtName: string
+  coachName: string | null
   maxStudents: number
   level: { name: string; color: string } | null
   enrolledCount: number | null
@@ -83,6 +84,7 @@ function SpotCard({ spot, bagBalance }: { spot: Spot; bagBalance: number }) {
           <p className="text-lg font-bold text-gray-900 capitalize">{dateLabel}</p>
           <p className="mt-0.5 text-sm text-gray-500">
             {spot.startTime} – {spot.endTime} · {spot.courtName}
+            {spot.coachName && <span className="text-gray-400"> · {spot.coachName}</span>}
           </p>
           {spot.level && (
             <span
