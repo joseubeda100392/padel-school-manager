@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatTime } from '@/lib/utils'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
               {unpaidList.map((e: any) => {
                 const dow = e.start_time ? new Date(e.start_time).getDay() : null
                 const time = e.start_time
-                  ? new Date(e.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                  ? formatTime(e.start_time)
                   : null
                 const initials = (e.student_name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
                 return (

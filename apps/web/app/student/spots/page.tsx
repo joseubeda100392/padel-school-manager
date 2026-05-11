@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { formatTime, getDayOfWeek } from '@/lib/utils'
 import { SpotsClient } from './spots-client'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -53,9 +54,9 @@ export default async function StudentSpotsPage() {
         exclusionId: s.id,
         excludedDate: s.excluded_date,
         scheduleId: ge?.schedule_id,
-        dayLabel: DAYS[startDt.getDay()],
-        startTime: startDt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-        endTime: endDt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        dayLabel: DAYS[getDayOfWeek(startDt)],
+        startTime: formatTime(startDt),
+        endTime: formatTime(endDt),
         courtName: schedule?.court?.name ?? '—',
         maxStudents: schedule?.max_students ?? 4,
         level: schedule?.level ?? null,

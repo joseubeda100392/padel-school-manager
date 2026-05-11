@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { formatTime } from '@/lib/utils'
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     .map((e: any) => {
       const start = new Date(e.schedule?.start_time)
       const day = days[start.getDay()]
-      const hour = start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      const hour = formatTime(start)
       const price = (e.monthly_price / 100).toFixed(2)
       return {
         to: e.student.push_token,

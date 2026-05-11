@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { formatTime } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   const startTime = new Date(schedule.start_time)
   const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
   const day = dayNames[startTime.getDay()]
-  const hour = startTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  const hour = formatTime(startTime)
   const court = (schedule.court as any)?.name ?? 'Pista'
 
   const messages = candidates.map((s: any) => ({

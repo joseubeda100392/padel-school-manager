@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -104,9 +104,9 @@ export default async function StudentHomePage() {
                 {DAYS[nextClass.nextDate.getDay()]} {nextClass.nextDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
               </p>
               <p className="text-sm text-gray-500">
-                {new Date((nextClass.schedule as any)?.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                {formatTime((nextClass.schedule as any)?.start_time)}
                 {' — '}
-                {new Date((nextClass.schedule as any)?.end_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                {formatTime((nextClass.schedule as any)?.end_time)}
                 {' · '}
                 {(nextClass.schedule as any)?.court?.name}
               </p>

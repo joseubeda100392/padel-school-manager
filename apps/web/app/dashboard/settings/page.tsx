@@ -74,15 +74,17 @@ export default function SettingsPage() {
       }
       if (c) setCourts(c)
 
-      // Cargar configuración Redsys del club
-      const redsysRes = await fetch('/api/club/redsys')
-      if (redsysRes.ok) {
-        const data = await redsysRes.json()
-        setRedsys(prev => ({ ...prev, ...data, secretKey: '' }))
-      }
+      // Cargar configuración Redsys del club (error silencioso — la sección igual se muestra)
+      try {
+        const redsysRes = await fetch('/api/club/redsys')
+        if (redsysRes.ok) {
+          const data = await redsysRes.json()
+          setRedsys(prev => ({ ...prev, ...data, secretKey: '' }))
+        }
+      } catch { /* no bloquea el resto de la carga */ }
 
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {

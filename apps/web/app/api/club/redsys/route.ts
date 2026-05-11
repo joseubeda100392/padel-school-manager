@@ -3,15 +3,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
-const admin = createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
-
-async function getAdminClub() {
+async function getAdminProfile() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
 
   const { data: profile } = await admin
     .from('users')
@@ -20,12 +20,14 @@ async function getAdminClub() {
     .single()
 
   if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
-  return profile
+  return { profile, admin }
 }
 
 export async function GET() {
-  const profile = await getAdminClub()
-  if (!profile) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  const result = await getAdminProfile()
+  if (!result) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  const { profile, admin } = result
+
   if (!profile.club_id) return NextResponse.json({ error: 'Sin club asignado' }, { status: 400 })
 
   const { data: club } = await admin
@@ -38,7 +40,6 @@ export async function GET() {
     merchantCode: club?.redsys_merchant_code ?? '',
     terminal: club?.redsys_merchant_terminal ?? '001',
     env: club?.redsys_env ?? 'test',
-    // Enmascarar la clave: mostrar solo los últimos 4 chars si existe
     secretKeyMasked: club?.redsys_secret_key
       ? '••••••••' + club.redsys_secret_key.slice(-4)
       : '',
@@ -47,8 +48,10 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  const profile = await getAdminClub()
-  if (!profile) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  const result = await getAdminProfile()
+  if (!result) return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  const { profile, admin } = result
+
   if (!profile.club_id) return NextResponse.json({ error: 'Sin club asignado' }, { status: 400 })
 
   const { merchantCode, secretKey, terminal, env }: {
@@ -62,7 +65,6 @@ export async function PUT(req: NextRequest) {
   if (merchantCode !== undefined) update.redsys_merchant_code = merchantCode.trim()
   if (terminal !== undefined) update.redsys_merchant_terminal = terminal.trim() || '001'
   if (env !== undefined) update.redsys_env = env === 'production' ? 'production' : 'test'
-  // Solo actualizar la clave si se envía un valor no vacío (para no borrarla al editar otros campos)
   if (secretKey?.trim()) update.redsys_secret_key = secretKey.trim()
 
   await admin.from('clubs').update(update).eq('id', profile.club_id)

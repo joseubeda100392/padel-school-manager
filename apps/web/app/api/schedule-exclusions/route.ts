@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sendPushToUsers } from '@/lib/push'
+import { formatTime } from '@/lib/utils'
 
 const adminSupabase = () => createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,7 +36,7 @@ async function notifySpotAvailable(admin: ReturnType<typeof adminSupabase>, sche
     const sc = scheduleData as any
     const startDt = new Date(sc.start_time)
     const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-    const timeStr = startDt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    const timeStr = formatTime(startDt)
     const levelName = sc.level?.name ? ` · ${sc.level.name}` : ''
     const dateLabel = new Date(excludedDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
 

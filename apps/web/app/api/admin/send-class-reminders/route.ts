@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { formatTime } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-cron-secret')
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     const token = b.student?.push_token
     if (!token) return
     const sched = scheduleMap[b.schedule_id]
-    const startTime = new Date(sched.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    const startTime = formatTime(sched.start_time)
     messages.push({
       to: token,
       title: '¡Tienes clase mañana! 🎾',

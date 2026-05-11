@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -77,9 +77,9 @@ export default async function StudentSchedulePage() {
       nextDate: nextDate.toISOString(),
       schedule: {
         id: schedule?.id,
-        dayLabel: DAYS[new Date(schedule?.start_time).getDay()],
-        startTime: new Date(schedule?.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-        endTime: new Date(schedule?.end_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        dayLabel: DAYS[getDayOfWeek(schedule?.start_time)],
+        startTime: formatTime(schedule?.start_time),
+        endTime: formatTime(schedule?.end_time),
         courtName: schedule?.court?.name ?? '—',
         level: schedule?.level ?? null,
       },

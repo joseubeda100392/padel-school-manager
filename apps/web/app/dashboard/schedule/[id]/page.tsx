@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatTime, getDayOfWeek } from '@/lib/utils'
 import { ScheduleActions } from './schedule-actions'
 import AttendanceForm from './attendance-form'
 import GroupEnrollment from './group-enrollment'
@@ -93,7 +93,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
         <div className="flex items-start justify-between">
           <div>
             <p className="text-lg font-bold text-gray-900">
-              {days[start.getDay()]} — {start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} a {end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+              {days[getDayOfWeek(start)]} — {formatTime(start)} a {formatTime(end)}
             </p>
             <p className="mt-1 text-sm text-gray-500">{schedule.court?.name} · Monitor: {schedule.coach?.name}</p>
             <p className="mt-0.5 text-xs text-gray-400">
