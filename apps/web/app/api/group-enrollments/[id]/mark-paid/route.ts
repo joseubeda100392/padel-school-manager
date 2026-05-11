@@ -39,7 +39,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     club_id: clubId,
     amount: enrollment.monthly_price,
     type: 'fixed_group_month',
-    status: 'completed',
+    status: 'succeeded',
     metadata: { enrollment_id: params.id, method: 'cash', paid_until: paidUntil },
   })
 
