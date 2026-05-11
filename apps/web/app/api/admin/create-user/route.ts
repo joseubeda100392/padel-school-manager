@@ -22,15 +22,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Solo los administradores pueden crear usuarios' }, { status: 403 })
   }
 
-  const { email, name, role, levelId, tempPassword, clubIdOverride } = await req.json()
+  const { email, name, role, levelId, clubIdOverride } = await req.json()
   const clubId = clubIdOverride ?? caller.club_id
 
-  // Crear usuario en Supabase Auth
-  const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-    email,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { name, role, club_id: clubId },
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${req.headers.get('host')}`
+
+  // Invitar usuario — recibirá email para establecer su contraseña
+  const { data: authData, error: authError } = await adminSupabase.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${appUrl}/auth/callback?next=/dashboard`,
+    data: { name, role, club_id: clubId },
   })
 
   if (authError) {
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
     role,
     club_id: clubId,
     current_level_id: levelId || null,
+    email_confirmed: false,
   })
 
   if (dbError) {
@@ -67,12 +68,6 @@ export async function POST(req: NextRequest) {
       assigned_by: user.id,
     })
   }
-
-  // Enviar email de bienvenida con link para establecer contraseña
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${req.headers.get('host')}`
-  await adminSupabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${appUrl}/auth/reset-password`,
-  })
 
   return NextResponse.json({ data: { id: authData.user.id } })
 }

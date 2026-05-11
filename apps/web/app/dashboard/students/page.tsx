@@ -8,7 +8,7 @@ export default async function StudentsPage() {
 
   let studentsQuery = supabase
     .from('users')
-    .select('id, name, email, role, is_active, created_at, current_level_id, avatar_url, start_date, end_date')
+    .select('id, name, email, role, is_active, email_confirmed, created_at, current_level_id, avatar_url, start_date, end_date')
     .neq('role', 'super_admin')
     .order('name')
 

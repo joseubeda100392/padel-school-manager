@@ -156,9 +156,15 @@ export default function StudentsTable({ students, levelMap }: Props) {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                        {s.is_active ? 'Activo' : 'Inactivo'}
-                      </span>
+                      {s.email_confirmed === false ? (
+                        <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-medium text-yellow-700">
+                          ⏳ Pendiente
+                        </span>
+                      ) : (
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {s.is_active ? 'Activo' : 'Inactivo'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">{formatDate(s.start_date ?? s.created_at)}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{s.end_date ? formatDate(s.end_date) : '—'}</td>

@@ -8,8 +8,16 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // Si es un token de recuperación de contraseña, redirigir a la página de reset
+      if (data.user && searchParams.get('type') === 'recovery') {
+        return NextResponse.redirect(`${origin}/auth/reset-password`)
+      }
+      // Si es invitación de nuevo usuario, redirigir al reset para que establezca contraseña
+      if (data.user && searchParams.get('type') === 'invite') {
+        return NextResponse.redirect(`${origin}/auth/reset-password`)
+      }
       return NextResponse.redirect(`${origin}${next}`)
     }
   }

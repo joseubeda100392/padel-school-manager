@@ -7,7 +7,6 @@ import { BagAdjustForm } from './bag-adjust-form'
 import { StudentEditForm } from './student-edit-form'
 import { StudentEnrollments } from './student-enrollments'
 import { StudentMakeups } from './student-makeups'
-import { ResetPasswordButton } from './reset-password-button'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -122,9 +121,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${(student as any).is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
           {(student as any).is_active ? 'Activo' : 'Inactivo'}
         </span>
-        <div className="ml-auto">
-          <ResetPasswordButton email={student.email as string} />
-        </div>
+        {!(student as any).email_confirmed && (
+          <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-medium text-yellow-700">
+            ⏳ Pendiente de confirmación
+          </span>
+        )}
       </div>
 
       {/* Info básica */}

@@ -29,12 +29,10 @@ export default function NewStudentPage() {
     setLoading(true)
     setError('')
 
-    const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
-
     const res = await fetch('/api/admin/create-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, role, levelId: levelId || null, tempPassword }),
+      body: JSON.stringify({ email, name, role, levelId: levelId || null }),
     })
 
     const json = await res.json()
