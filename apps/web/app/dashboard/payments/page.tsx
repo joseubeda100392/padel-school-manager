@@ -14,7 +14,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const now = new Date()
   const selectedDate = searchParams.month ? new Date(searchParams.month + '-01') : now
   const selectedYear = selectedDate.getFullYear()
-  const selectedMonth = selectedDate.getMonth()
+  const selectedMonth = selectedDate.getMonth() // 0-indexed
   const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`
 
   const startOfMonth = new Date(selectedYear, selectedMonth, 1).toISOString()
@@ -30,7 +30,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
 
   const [{ data: payments }, { data: unpaidList }] = await Promise.all([
     clubId ? baseQuery.eq('club_id', clubId) : baseQuery,
-    supabase.rpc('get_pending_payments', { p_club_id: clubId ?? null }),
+    supabase.rpc('get_pending_payments', {
+      p_club_id: clubId ?? null,
+      p_year: selectedYear,
+      p_month: selectedMonth + 1, // RPC expects 1-indexed month
+    }),
   ])
 
   const total = payments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
@@ -57,18 +61,18 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
           <p className="mt-2 text-2xl font-bold text-gray-900">{payments?.length ?? 0}</p>
         </div>
         <div className="rounded-xl border-l-4 border-l-yellow-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Sin pagar este mes</p>
+          <p className="text-sm text-gray-500">Pendientes de pago</p>
           <p className={`mt-2 text-2xl font-bold ${unpaid.length > 0 ? 'text-yellow-600' : 'text-gray-900'}`}>
             {unpaid.length}
           </p>
         </div>
       </div>
 
-      {/* Mensualidades pendientes (siempre mes actual) */}
+      {/* Mensualidades pendientes */}
       <div className="rounded-xl bg-white shadow-sm">
         <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {MONTHS[now.getMonth()]} {now.getFullYear()}</h2>
-          <p className="text-xs text-gray-400">{unpaid.length} alumnos sin pagar</p>
+          <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {monthLabel}</h2>
+          <p className="text-xs text-gray-400">{unpaid.length} alumnos sin regularizar</p>
         </div>
         <UnpaidList items={unpaid as any[]} monthLabel={monthLabel} />
       </div>
