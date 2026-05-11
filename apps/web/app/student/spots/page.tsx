@@ -35,6 +35,16 @@ export default async function StudentSpotsPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
+  // Get student's current level
+  const { data: userLevel } = await supabase
+    .from('user_levels')
+    .select('level:levels(id, name)')
+    .eq('user_id', user.id)
+    .order('assigned_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const myLevelId: string | null = (userLevel?.level as any)?.id ?? null
+
   const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }] = await Promise.all([
     supabase
       .from('schedule_exclusions')
@@ -45,7 +55,7 @@ export default async function StudentSpotsPage() {
           schedule:schedules!schedule_id(
             id, start_time, end_time, max_students,
             court:courts(name),
-            level:levels(name, color)
+            level:levels(id, name, color)
           )
         )
       `)
@@ -63,7 +73,7 @@ export default async function StudentSpotsPage() {
       .select(`
         id, start_time, end_time, max_students,
         court:courts(name),
-        level:levels(name, color),
+        level:levels(id, name, color),
         enrollments:group_enrollments(student_id, status)
       `),
   ])
@@ -75,7 +85,10 @@ export default async function StudentSpotsPage() {
   const absenceSpots = (spotsRaw ?? [])
     .filter(s => {
       const ge = s.group_enrollment as any
-      return ge?.schedule_id && !myScheduleIds.has(ge.schedule_id)
+      const schedule = ge?.schedule as any
+      const levelId = schedule?.level?.id ?? null
+      const levelOk = !myLevelId || !levelId || levelId === myLevelId
+      return ge?.schedule_id && !myScheduleIds.has(ge.schedule_id) && levelOk
     })
     .map(s => {
       const ge = s.group_enrollment as any
@@ -105,8 +118,9 @@ export default async function StudentSpotsPage() {
       const enrollments = (s.enrollments ?? []) as any[]
       const active = enrollments.filter((e: any) => e.status === 'active')
       const alreadyIn = active.some((e: any) => e.student_id === user.id)
-      // Don't duplicate schedules already shown as absence spots
-      return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id)
+      const levelId = (s.level as any)?.id ?? null
+      const levelOk = !myLevelId || !levelId || levelId === myLevelId
+      return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk
     })
     .map(s => {
       const enrollments = (s.enrollments ?? []) as any[]
