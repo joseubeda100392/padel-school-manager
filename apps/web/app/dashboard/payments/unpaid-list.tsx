@@ -17,9 +17,16 @@ interface UnpaidItem {
 
 export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLabel: string }) {
   const [list, setList] = useState(items)
+  const [q, setQ] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingPrice, setEditingPrice] = useState(0)
   const [saving, setSaving] = useState(false)
+
+  const filtered = list.filter((e) =>
+    !q ||
+    e.student_name?.toLowerCase().includes(q.toLowerCase()) ||
+    e.student_email?.toLowerCase().includes(q.toLowerCase())
+  )
 
   async function handleSavePrice(id: string) {
     setSaving(true)
@@ -42,7 +49,17 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div>
+      <div className="px-6 py-3 border-b border-gray-100">
+        <input
+          type="text"
+          placeholder="Buscar alumno..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+        />
+      </div>
+      <div className="overflow-x-auto">
       <table className="w-full min-w-[480px]">
         <thead>
           <tr className="border-b border-gray-100 bg-gray-50">
@@ -54,7 +71,12 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
-          {list.map((e) => {
+          {filtered.length === 0 && (
+            <tr>
+              <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400">Sin resultados.</td>
+            </tr>
+          )}
+          {filtered.map((e) => {
             const dow = e.start_time ? new Date(e.start_time).getDay() : null
             const time = e.start_time
               ? new Date(e.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
@@ -110,6 +132,7 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
           })}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
