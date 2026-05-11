@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const { data: userProfile } = await adminSupabase.from('users').select('club_id').eq('id', user.id).single()
   const clubId = userProfile?.club_id ?? null
 
-  const { type, scheduleId, packType, enrollmentId }: { type: PaymentType; scheduleId?: string; packType?: '60' | '90'; enrollmentId?: string } = await req.json()
+  const { type, scheduleId, packType, enrollmentId, exclusionId }: { type: PaymentType; scheduleId?: string; packType?: '60' | '90'; enrollmentId?: string; exclusionId?: string } = await req.json()
 
   const { data: configs } = await adminSupabase
     .from('app_config')
@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
       classes_per_pack: classesToAdd,
       pack_type: packType ?? null,
       enrollment_id: enrollmentId ?? null,
+      exclusion_id: exclusionId ?? null,
     },
   })
 

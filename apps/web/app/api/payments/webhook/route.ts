@@ -55,6 +55,12 @@ export async function POST(req: NextRequest) {
   const meta = payment.metadata ?? {}
 
   if (payment.type === 'single_class' && meta.schedule_id) {
+    if (meta.exclusion_id) {
+      await adminSupabase
+        .from('schedule_exclusions')
+        .update({ publish_spot: false })
+        .eq('id', meta.exclusion_id)
+    }
     const { data: existing } = await adminSupabase
       .from('bookings')
       .select('id')

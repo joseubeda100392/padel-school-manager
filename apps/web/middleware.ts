@@ -23,14 +23,24 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  const role = user?.user_metadata?.role as string | undefined
+  const path = request.nextUrl.pathname
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
+  const isDashboard = path.startsWith('/dashboard')
+  const isStudentArea = path.startsWith('/student')
 
-  if (isProtectedRoute && !user) {
+  if ((isDashboard || isStudentArea) && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (user) {
+    if (isDashboard && role === 'student') {
+      return NextResponse.redirect(new URL('/student', request.url))
+    }
+    if (path === '/') {
+      return NextResponse.redirect(new URL(role === 'student' ? '/student' : '/dashboard', request.url))
+    }
   }
 
   return supabaseResponse
