@@ -1,29 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
-import { getClubId } from '@/lib/get-club'
 import { ChatWindow } from './chat-window'
 
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
-  const clubId = await getClubId()
 
-  // Filter threads by users who belong to this club (avoids relying on club_id column in chat_threads)
-  let clubUserIds: string[] | null = null
-  if (clubId) {
-    const { data: clubUsers } = await supabase
-      .from('users')
-      .select('id')
-      .eq('club_id', clubId)
-    clubUserIds = clubUsers?.map((u: any) => u.id) ?? []
-  }
-
-  const threadQuery = supabase
+  const { data: threads } = await supabase
     .from('chat_threads')
     .select('*, user:users(name, email), lastMessage:chat_messages(content, created_at)')
     .order('created_at', { ascending: false })
-
-  const { data: threads } = await (
-    clubUserIds ? threadQuery.in('user_id', clubUserIds) : threadQuery
-  )
 
   const activeThreadId = searchParams.thread ?? threads?.[0]?.id ?? null
 
