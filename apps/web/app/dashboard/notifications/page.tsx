@@ -28,18 +28,24 @@ export default function NotificationsPage() {
         ? { title: '💳 Cuota pendiente de pago', body: 'Tienes una cuota mensual sin pagar. Entra en la app para regularizarla.', target, url: '/student/schedule' }
         : { title: title.trim(), body: body.trim(), target, levelId: levelId || undefined, url: '/student' }
 
-    const res = await fetch('/api/push/notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    const json = await res.json()
-    setResult(res.ok ? { ok: true, sent: json.sent } : { ok: false, error: json.error })
-    if (res.ok && target !== 'payment_pending') {
-      setTitle('')
-      setBody('')
+    try {
+      const res = await fetch('/api/push/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      let json: any = {}
+      try { json = await res.json() } catch { /* respuesta no-JSON */ }
+      setResult(res.ok ? { ok: true, sent: json.sent ?? 0 } : { ok: false, error: json.error ?? `Error ${res.status}` })
+      if (res.ok && target !== 'payment_pending') {
+        setTitle('')
+        setBody('')
+      }
+    } catch (e: any) {
+      setResult({ ok: false, error: 'Error de red: ' + (e?.message ?? 'desconocido') })
+    } finally {
+      setSending(false)
     }
-    setSending(false)
   }
 
   return (
