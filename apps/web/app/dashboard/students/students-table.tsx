@@ -26,14 +26,15 @@ export default function StudentsTable({ students, levelMap }: Props) {
   const [status, setStatus] = useState('')
 
   function exportCSV() {
-    const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta']
+    const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta', 'Baja']
     const rows = filtered.map((s) => [
       s.name ?? '',
       s.email ?? '',
       roleLabel[s.role] ?? s.role,
       s.is_active ? 'Activo' : 'Inactivo',
       s.phone ?? '',
-      formatDate(s.created_at),
+      formatDate(s.start_date ?? s.created_at),
+      s.end_date ? formatDate(s.end_date) : '',
     ])
     const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -112,12 +113,13 @@ export default function StudentsTable({ students, levelMap }: Props) {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alta</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Baja</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {!filtered.length && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                     {q || role || status ? 'Sin resultados para esa búsqueda.' : 'No hay usuarios aún.'}
                   </td>
                 </tr>
@@ -158,7 +160,8 @@ export default function StudentsTable({ students, levelMap }: Props) {
                         {s.is_active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(s.created_at)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(s.start_date ?? s.created_at)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{s.end_date ? formatDate(s.end_date) : '—'}</td>
                   </tr>
                 )
               })}

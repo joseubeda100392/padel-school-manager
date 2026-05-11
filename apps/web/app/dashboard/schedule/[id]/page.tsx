@@ -97,7 +97,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
             </p>
             <p className="mt-1 text-sm text-gray-500">{schedule.court?.name} · Monitor: {schedule.coach?.name}</p>
             <p className="mt-0.5 text-xs text-gray-400">
-              {schedule.recurrence === 'weekly' ? 'Semanal' : schedule.recurrence === 'biweekly' ? 'Quincenal' : 'Clase única'} · Inicio: {formatDate(schedule.start_time)}
+              {schedule.recurrence === 'weekly' ? 'Semanal' : schedule.recurrence === 'biweekly' ? 'Quincenal' : 'Clase única'} · Inicio: {formatDate(schedule.start_time)}{schedule.recurrence_end_date ? ` · Fin: ${formatDate(schedule.recurrence_end_date)}` : ''}
             </p>
             <div className="mt-2 flex items-center gap-2">
               {schedule.level ? (

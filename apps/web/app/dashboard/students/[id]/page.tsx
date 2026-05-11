@@ -141,7 +141,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           </div>
           <div>
             <dt className="text-xs font-medium uppercase text-gray-500">Alta</dt>
-            <dd className="mt-1 text-sm text-gray-900">{formatDate(student.created_at as string)}</dd>
+            <dd className="mt-1 text-sm text-gray-900">{formatDate((student as any).start_date ?? student.created_at as string)}</dd>
           </div>
         </dl>
       </div>
@@ -155,7 +155,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           phone: (student as any).phone ?? '',
           role: student.role as string,
           is_active: (student as any).is_active ?? true,
-          start_date: (student as any).start_date ?? '',
+          start_date: (student as any).start_date ?? (student.created_at as string).split('T')[0],
           end_date: (student as any).end_date ?? '',
         }} />
       </div>
