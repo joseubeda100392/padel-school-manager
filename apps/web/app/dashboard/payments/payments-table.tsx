@@ -4,24 +4,39 @@ import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 
 const statusBadge: Record<string, string> = {
+  completed: 'bg-green-100 text-green-700',
   succeeded: 'bg-green-100 text-green-700',
-  pending: 'bg-yellow-100 text-yellow-700',
-  failed: 'bg-red-100 text-red-700',
-  refunded: 'bg-gray-100 text-gray-500',
+  pending:   'bg-yellow-100 text-yellow-700',
+  failed:    'bg-red-100 text-red-700',
+  refunded:  'bg-gray-100 text-gray-500',
 }
 
 const statusLabel: Record<string, string> = {
+  completed: 'Completado',
   succeeded: 'Completado',
-  pending: 'Pendiente',
-  failed: 'Fallido',
-  refunded: 'Reembolsado',
+  pending:   'Pendiente',
+  failed:    'Fallido',
+  refunded:  'Reembolsado',
 }
 
 const typeLabel: Record<string, string> = {
-  subscription: 'Suscripción',
-  pay_per_class: 'Clase suelta',
-  bag_pack: 'Bolsa de clases',
-  manual: 'Manual',
+  fixed_group_month: 'Cuota mensual',
+  single_class:      'Clase suelta',
+  class_pack:        'Bono de clases',
+  pay_per_class:     'Clase suelta',
+  subscription:      'Suscripción',
+  bag_pack:          'Bono de clases',
+  manual:            'Manual',
+}
+
+function methodLabel(p: any): { label: string; cls: string } {
+  if (p.metadata?.method === 'cash') return { label: 'Efectivo', cls: 'bg-orange-100 text-orange-700' }
+  if (p.redsys_order_id || p.stripe_payment_intent_id) return { label: 'Tarjeta', cls: 'bg-blue-100 text-blue-700' }
+  return { label: '—', cls: 'bg-gray-100 text-gray-400' }
+}
+
+function isPaid(p: any) {
+  return p.status === 'completed' || p.status === 'succeeded'
 }
 
 export default function PaymentsTable({ payments }: { payments: any[] }) {
@@ -32,16 +47,17 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
     const matchQ = !q ||
       p.user?.name?.toLowerCase().includes(q.toLowerCase()) ||
       p.user?.email?.toLowerCase().includes(q.toLowerCase())
-    const matchStatus = !status || p.status === status
+    const matchStatus = !status || p.status === status || (status === 'completed' && p.status === 'succeeded')
     return matchQ && matchStatus
   })
 
   function exportCSV() {
-    const headers = ['Alumno', 'Email', 'Tipo', 'Importe (€)', 'Estado', 'Fecha']
+    const headers = ['Alumno', 'Email', 'Tipo', 'Método', 'Importe (€)', 'Estado', 'Fecha']
     const rows = filtered.map((p) => [
       p.user?.name ?? '',
       p.user?.email ?? '',
       typeLabel[p.type] ?? p.type,
+      methodLabel(p).label,
       (p.amount / 100).toFixed(2),
       statusLabel[p.status] ?? p.status,
       formatDate(p.created_at),
@@ -53,7 +69,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
     URL.revokeObjectURL(url)
   }
 
-  const total = filtered.reduce((acc, p) => p.status === 'succeeded' ? acc + p.amount : acc, 0)
+  const total = filtered.reduce((acc, p) => isPaid(p) ? acc + p.amount : acc, 0)
 
   return (
     <>
@@ -71,7 +87,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
           className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-green-500 focus:outline-none"
         >
           <option value="">Todos los estados</option>
-          <option value="succeeded">Completados</option>
+          <option value="completed">Completados</option>
           <option value="pending">Pendientes</option>
           <option value="failed">Fallidos</option>
           <option value="refunded">Reembolsados</option>
@@ -101,11 +117,12 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[540px]">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alumno</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Tipo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Método</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha</th>
@@ -114,29 +131,37 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
             <tbody className="divide-y divide-gray-50">
               {!filtered.length && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                     {q || status ? 'Sin resultados para esa búsqueda.' : 'No hay pagos aún.'}
                   </td>
                 </tr>
               )}
-              {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-medium text-gray-900">{p.user?.name ?? '—'}</p>
-                    <p className="text-xs text-gray-400">{p.user?.email}</p>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{typeLabel[p.type] ?? p.type}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                    {formatCurrency(p.amount, p.currency ?? 'EUR')}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                      {statusLabel[p.status] ?? p.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{formatDate(p.created_at)}</td>
-                </tr>
-              ))}
+              {filtered.map((p) => {
+                const method = methodLabel(p)
+                return (
+                  <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-gray-900">{p.user?.name ?? '—'}</p>
+                      <p className="text-xs text-gray-400">{p.user?.email}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{typeLabel[p.type] ?? p.type}</td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${method.cls}`}>
+                        {method.label}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                      {formatCurrency(p.amount, p.currency ?? 'EUR')}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                        {statusLabel[p.status] ?? p.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(p.created_at)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
