@@ -68,5 +68,11 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // Enviar email de bienvenida con link para establecer contraseña
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${req.headers.get('host')}`
+  await adminSupabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${appUrl}/auth/reset-password`,
+  })
+
   return NextResponse.json({ data: { id: authData.user.id } })
 }
