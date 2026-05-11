@@ -100,6 +100,13 @@ Críticas:
 - Upload a Supabase Storage, asignación por nivel
 - App alumno filtra por su nivel, app monitor ve todos
 
+## Depuración — Protocolo Obligatorio
+Ante cualquier bug que no sea obvio en el código:
+1. **Primero capturar el error real**: añadir `const { data, error } = await ...` y mostrar `error` en pantalla o en consola antes de hacer ningún cambio.
+2. **Nunca hacer cambios a ciegas** esperando que "quizás sea esto". Sin evidencia no hay fix.
+3. Para bugs de RLS/Supabase: ejecutar la query diagnóstico en el SQL Editor ANTES de tocar políticas.
+4. Para bugs de Next.js server: añadir `console.error` o renderizar el error en pantalla, deployar, leer el error, luego arreglar.
+
 ## Flujos Críticos (No Modificar Sin /security-review)
 1. **Webhook Stripe** → `/supabase/functions/stripe-webhook` → actualiza `payments` y `class_bag`
 2. **Supabase RLS** activo en todas las tablas — revisar políticas antes de cambios de schema
