@@ -9,6 +9,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   const threadQuery = supabase
     .from('chat_threads')
     .select('*, user:users(name, email), lastMessage:chat_messages(content, created_at)')
+    .eq('thread_type', 'admin')
     .order('created_at', { ascending: false })
 
   const { data: threads } = await (clubId ? threadQuery.eq('club_id', clubId) : threadQuery)

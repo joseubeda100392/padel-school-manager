@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { StudentChatClient } from './student-chat-client'
 
-async function findOrCreateThread(supabase: any, userId: string, type: string, recipientId?: string) {
+async function findOrCreateThread(supabase: any, userId: string, type: string, clubId: string | null, recipientId?: string) {
   const query = supabase
     .from('chat_threads')
     .select('id, status')
@@ -20,6 +20,7 @@ async function findOrCreateThread(supabase: any, userId: string, type: string, r
   if (thread) return thread
 
   const insert: any = { user_id: userId, status: 'active', thread_type: type }
+  if (clubId) insert.club_id = clubId
   if (recipientId) insert.recipient_id = recipientId
 
   const { data: newThread } = await supabase
@@ -39,6 +40,13 @@ export default async function StudentChatPage({
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('club_id')
+    .eq('id', user.id)
+    .single()
+  const clubId = (userProfile?.club_id as string | null) ?? null
 
   // Get student's coaches from active group enrollments
   const { data: enrollments } = await supabase
@@ -64,6 +72,7 @@ export default async function StudentChatPage({
     supabase,
     user.id,
     isCoach ? 'coach' : 'admin',
+    clubId,
     activeCoachId,
   )
 
