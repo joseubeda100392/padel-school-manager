@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Message {
@@ -19,10 +20,22 @@ interface Props {
   recipientLabel?: string
 }
 
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (d.toDateString() === today.toDateString()) return 'Hoy'
+  if (d.toDateString() === yesterday.toDateString()) return 'Ayer'
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 export function StudentChatClient({ threadId, threadStatus, initialMessages, currentUserId, recipientLabel = 'Soporte' }: Props) {
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabaseRef = useRef(createClient())
   const supabase = supabaseRef.current
@@ -47,7 +60,6 @@ export function StudentChatClient({ threadId, threadStatus, initialMessages, cur
         },
       )
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [threadId])
 
@@ -63,48 +75,84 @@ export function StudentChatClient({ threadId, threadStatus, initialMessages, cur
     setSending(false)
   }
 
+  async function deleteThread() {
+    if (!confirm('¿Eliminar esta conversación?')) return
+    setDeleting(true)
+    await supabase.from('chat_threads').delete().eq('id', threadId)
+    router.refresh()
+    router.push('/student/chat')
+  }
+
+  const grouped: { date: string; msgs: Message[] }[] = []
+  for (const m of messages) {
+    const label = formatDate(m.created_at)
+    const last = grouped[grouped.length - 1]
+    if (last && last.date === label) last.msgs.push(m)
+    else grouped.push({ date: label, msgs: [m] })
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 border-b border-gray-100 p-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100">
-          <span className="text-sm font-bold text-green-700">S</span>
+      <div className="flex items-center justify-between border-b border-gray-100 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100">
+            <span className="text-sm font-bold text-green-700">{recipientLabel[0]?.toUpperCase()}</span>
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900">{recipientLabel}</p>
+            <p className="text-xs text-gray-400">
+              {threadStatus === 'active' ? 'Te responderemos pronto' : 'Conversación resuelta'}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="font-semibold text-gray-900">{recipientLabel}</p>
-          <p className="text-xs text-gray-400">
-            {threadStatus === 'active' ? 'Te responderemos pronto' : 'Conversación resuelta'}
-          </p>
-        </div>
+        {threadStatus === 'resolved' && (
+          <button
+            onClick={deleteThread}
+            disabled={deleting}
+            className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+          >
+            Eliminar
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-1">
         {messages.length === 0 && (
           <p className="mt-8 text-center text-sm text-gray-400">
             ¡Hola! Escríbenos lo que necesites y te responderemos pronto.
           </p>
         )}
-        {messages.map(m => {
-          const isMe = m.sender_id === currentUserId
-          return (
-            <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xs rounded-2xl px-4 py-2.5 sm:max-w-sm ${isMe ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
-                {!isMe && (
-                  <p className="mb-0.5 text-xs font-medium opacity-70">{m.sender?.name ?? 'Administración'}</p>
-                )}
-                <p className="text-sm">{m.content}</p>
-                <p className="mt-0.5 text-right text-xs opacity-60">
-                  {new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
+        {grouped.map(({ date, msgs }) => (
+          <div key={date}>
+            <div className="flex items-center gap-3 my-4">
+              <div className="h-px flex-1 bg-gray-100" />
+              <span className="text-xs text-gray-400">{date}</span>
+              <div className="h-px flex-1 bg-gray-100" />
             </div>
-          )
-        })}
+            {msgs.map(m => {
+              const isMe = m.sender_id === currentUserId
+              return (
+                <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
+                  <div className={`max-w-xs rounded-2xl px-4 py-2.5 sm:max-w-sm ${isMe ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                    {!isMe && (
+                      <p className="mb-0.5 text-xs font-medium opacity-70">{m.sender?.name ?? recipientLabel}</p>
+                    )}
+                    <p className="text-sm">{m.content}</p>
+                    <p className="mt-0.5 text-right text-xs opacity-60">
+                      {new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ))}
         <div ref={bottomRef} />
       </div>
 
       <div className="border-t border-gray-100 p-4">
         {threadStatus === 'resolved' ? (
-          <p className="text-center text-sm text-gray-400">Esta conversación ha sido resuelta por el administrador.</p>
+          <p className="text-center text-sm text-gray-400">Esta conversación ha sido resuelta.</p>
         ) : (
           <div className="flex gap-2">
             <input

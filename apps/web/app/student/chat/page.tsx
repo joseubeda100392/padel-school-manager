@@ -90,43 +90,37 @@ export default async function StudentChatPage({
 
   return (
     <div className="mx-auto flex h-[calc(100vh-10rem)] max-w-3xl overflow-hidden rounded-xl bg-white shadow-sm md:h-[calc(100vh-8rem)]">
-      {/* Conversation selector — only shown if student has coaches */}
-      {coaches.length > 0 && (
-        <aside className="flex w-44 shrink-0 flex-col border-r border-gray-100 sm:w-52">
-          <div className="border-b border-gray-100 px-3 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Conversaciones</p>
-          </div>
-          <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+      {/* Sidebar siempre visible */}
+      <aside className="flex w-44 shrink-0 flex-col border-r border-gray-100 sm:w-52">
+        <div className="border-b border-gray-100 px-3 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Conversaciones</p>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+          <a
+            href="/student/chat?with=admin"
+            className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              withParam === 'admin' ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">A</span>
+            <span className="truncate">Administración</span>
+          </a>
+          {coaches.map(c => (
             <a
-              href="/student/chat?with=admin"
+              key={c.id}
+              href={`/student/chat?with=${c.id}`}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                withParam === 'admin'
-                  ? 'bg-green-50 text-green-700'
-                  : 'text-gray-600 hover:bg-gray-50'
+                withParam === c.id ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">A</span>
-              <span className="truncate">Administración</span>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+                {c.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
+              </span>
+              <span className="truncate">{c.name}</span>
             </a>
-            {coaches.map(c => (
-              <a
-                key={c.id}
-                href={`/student/chat?with=${c.id}`}
-                className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  withParam === c.id
-                    ? 'bg-green-50 text-green-700'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
-                  {c.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
-                </span>
-                <span className="truncate">{c.name}</span>
-              </a>
-            ))}
-          </nav>
-        </aside>
-      )}
+          ))}
+        </nav>
+      </aside>
 
       {/* Chat window */}
       <div className="flex flex-1 flex-col overflow-hidden">
