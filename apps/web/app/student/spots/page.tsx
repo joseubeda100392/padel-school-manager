@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import { SpotsClient } from './spots-client'
@@ -33,10 +34,14 @@ export default async function StudentSpotsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+
   const today = new Date().toISOString().split('T')[0]
 
-  // Get student's current level
-  const { data: userLevel } = await supabase
+  const { data: userLevel } = await admin
     .from('user_levels')
     .select('level:levels(id, name)')
     .eq('user_id', user.id)
@@ -46,7 +51,7 @@ export default async function StudentSpotsPage() {
   const myLevelId: string | null = (userLevel?.level as any)?.id ?? null
 
   const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }] = await Promise.all([
-    supabase
+    admin
       .from('schedule_exclusions')
       .select(`
         id, excluded_date,
@@ -63,13 +68,13 @@ export default async function StudentSpotsPage() {
       .eq('publish_spot', true)
       .gte('excluded_date', today)
       .order('excluded_date'),
-    supabase
+    admin
       .from('group_enrollments')
       .select('schedule_id')
       .eq('student_id', user.id)
       .eq('status', 'active'),
-    supabase.from('class_bag').select('balance').eq('user_id', user.id).single(),
-    supabase
+    admin.from('class_bag').select('balance').eq('user_id', user.id).single(),
+    admin
       .from('schedules')
       .select(`
         id, start_time, end_time, max_students,
