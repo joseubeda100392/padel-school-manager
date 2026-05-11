@@ -15,7 +15,11 @@ interface UnpaidItem {
   paid_until: string | null
 }
 
+const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+
 export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLabel: string }) {
+  const now = new Date()
+  const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
   const [list, setList] = useState(items)
   const [q, setQ] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -107,13 +111,16 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
                       <button onClick={() => setEditingId(null)} className="text-xs text-gray-400">✕</button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => { setEditingId(e.id); setEditingPrice(e.monthly_price) }}
-                      className="text-sm font-semibold text-yellow-600 hover:text-yellow-700"
-                      title="Editar cuota"
-                    >
-                      {formatCurrency(e.monthly_price)} ✎
-                    </button>
+                    <div>
+                      <button
+                        onClick={() => { setEditingId(e.id); setEditingPrice(e.monthly_price) }}
+                        className="text-sm font-semibold text-yellow-600 hover:text-yellow-700"
+                        title="Editar cuota"
+                      >
+                        {formatCurrency(e.monthly_price)} ✎
+                      </button>
+                      <p className="mt-0.5 text-xs text-gray-400">Cuota de {currentMonthLabel}</p>
+                    </div>
                   )}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-400">
