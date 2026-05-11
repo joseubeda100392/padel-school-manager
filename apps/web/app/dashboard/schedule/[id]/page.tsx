@@ -5,8 +5,6 @@ import { ScheduleActions } from './schedule-actions'
 import AttendanceForm from './attendance-form'
 import GroupEnrollment from './group-enrollment'
 import ScheduleMaterials from './schedule-materials'
-import ScheduleMakeups from './schedule-makeups'
-import ScheduleExclusions from './schedule-exclusions'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -139,27 +137,6 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
       <div className="mb-6">
         <ScheduleMaterials scheduleId={params.id} />
       </div>
-
-      {/* Recuperaciones */}
-      <div className="mb-6">
-        <ScheduleMakeups
-          scheduleId={params.id}
-          students={(groupEnrollments ?? []).map((e: any) => ({ id: e.student?.id, name: e.student?.name }))}
-        />
-      </div>
-
-      {/* Cancelaciones puntuales */}
-      {(groupEnrollments?.length ?? 0) > 0 && (
-        <div className="mb-6">
-          <ScheduleExclusions
-            scheduleId={params.id}
-            enrollments={(groupEnrollments ?? []).map((e: any) => ({
-              id: e.id,
-              student: { id: e.student?.id, name: e.student?.name ?? '—' },
-            }))}
-          />
-        </div>
-      )}
 
       {/* Lista de alumnos + asistencia */}
       <div className="rounded-xl bg-white shadow-sm">
