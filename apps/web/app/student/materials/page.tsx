@@ -9,11 +9,14 @@ export default async function StudentMaterialsPage() {
 
   const { data: userData } = await getAdminClient()
     .from('users')
-    .select('current_level_id, levels(name, color)')
+    .select('current_level_id')
     .eq('id', user.id)
     .single()
 
   const levelId = (userData as any)?.current_level_id ?? null
+  const { data: levelData } = levelId
+    ? await getAdminClient().from('levels').select('name, color').eq('id', levelId).single()
+    : { data: null }
 
   const { data: materialsRaw } = await getAdminClient()
     .from('materials')
@@ -29,7 +32,7 @@ export default async function StudentMaterialsPage() {
     return levels.some((ml: any) => ml.level_id === levelId)
   })
 
-  const myLevel = (userData as any)?.levels
+  const myLevel = levelData
 
   return (
     <div className="max-w-2xl">

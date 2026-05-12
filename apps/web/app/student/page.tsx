@@ -29,7 +29,7 @@ export default async function StudentHomePage() {
   if (!user) redirect('/login')
 
   const [{ data: userData }, { data: bag }, { data: enrollments }, { data: spots }] = await Promise.all([
-    getAdminClient().from('users').select('name, current_level_id, levels(name, color)').eq('id', user.id).single(),
+    getAdminClient().from('users').select('name, current_level_id').eq('id', user.id).single(),
     getAdminClient().from('class_bag').select('balance').eq('user_id', user.id).single(),
     getAdminClient()
       .from('group_enrollments')
@@ -43,6 +43,11 @@ export default async function StudentHomePage() {
       .gte('excluded_date', new Date().toISOString().split('T')[0]),
   ])
 
+  const myLevelId = (userData as any)?.current_level_id ?? null
+  const { data: levelData } = myLevelId
+    ? await getAdminClient().from('levels').select('name, color').eq('id', myLevelId).single()
+    : { data: null }
+
   const bagBalance = bag?.balance ?? 0
   const activeEnrollments = enrollments ?? []
   const pendingEnrollments = activeEnrollments.filter(e => !isPaidThisMonth(e.paid_until))
@@ -51,7 +56,7 @@ export default async function StudentHomePage() {
     .map(e => ({ ...e, nextDate: getNextOccurrence((e.schedule as any)?.start_time ?? '') }))
     .sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime())[0]
 
-  const level = (userData as any)?.levels
+  const level = levelData
   const spotsCount = spots?.length ?? 0
 
   return (
