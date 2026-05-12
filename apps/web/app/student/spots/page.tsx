@@ -84,7 +84,7 @@ export default async function StudentSpotsPage() {
       `),
     admin
       .from('bookings')
-      .select('schedule_id, class_date, exclusion_id:group_enrollment_id')
+      .select('schedule_id, class_date')
       .eq('student_id', user.id)
       .eq('status', 'confirmed')
       .not('class_date', 'is', null),
