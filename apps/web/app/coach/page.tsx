@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
@@ -11,9 +12,10 @@ export default async function CoachHomePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const admin = getAdminClient()
   const todayDow = new Date().getDay()
 
-  const { data: allSchedules } = await supabase
+  const { data: allSchedules } = await admin
     .from('schedules')
     .select('id, start_time, end_time, max_students, court:courts(name), level:levels(name, color)')
     .eq('coach_id', user.id)
@@ -26,7 +28,7 @@ export default async function CoachHomePage() {
   // Count enrolled per today's classes
   const todayIds = todaySchedules.map((s: any) => s.id)
   const { data: enrollmentCounts } = todayIds.length
-    ? await supabase
+    ? await admin
         .from('group_enrollments')
         .select('schedule_id')
         .in('schedule_id', todayIds)

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek, formatDate } from '@/lib/utils'
 import AttendanceForm from '@/app/dashboard/schedule/[id]/attendance-form'
@@ -12,7 +13,9 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: schedule } = await supabase
+  const admin = getAdminClient()
+
+  const { data: schedule } = await admin
     .from('schedules')
     .select('*, court:courts(name), level:levels(name, color)')
     .eq('id', params.id)
@@ -24,13 +27,13 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
   const today = new Date().toISOString().split('T')[0]
 
   const [{ data: groupEnrollments }, { data: bookings }] = await Promise.all([
-    supabase
+    admin
       .from('group_enrollments')
       .select('id, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id, currentLevel:levels(name, color))')
       .eq('schedule_id', params.id)
       .eq('status', 'active')
       .order('enrolled_at'),
-    supabase
+    admin
       .from('bookings')
       .select('*, student:users!bookings_student_id_fkey(name, email, avatar_url, currentLevel:levels(name, color))')
       .eq('schedule_id', params.id)
@@ -40,7 +43,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
 
   const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
   const { data: exclusions } = enrollmentIds.length
-    ? await supabase
+    ? await admin
         .from('schedule_exclusions')
         .select('group_enrollment_id, excluded_date')
         .in('group_enrollment_id', enrollmentIds)
