@@ -26,22 +26,27 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
 
   const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: groupEnrollments, error: geError }, { data: bookings, error: bError }] = await Promise.all([
+  const [{ data: groupEnrollments }, { data: bookings }] = await Promise.all([
     admin
       .from('group_enrollments')
-      .select('id, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id, currentLevel:levels(name, color))')
+      .select('id, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
       .eq('schedule_id', params.id)
       .eq('status', 'active')
       .order('enrolled_at'),
     admin
       .from('bookings')
-      .select('*, student:users!bookings_student_id_fkey(name, email, avatar_url, currentLevel:levels(name, color))')
+      .select('id, status, source, created_at, student:users!bookings_student_id_fkey(name, email, avatar_url)')
       .eq('schedule_id', params.id)
       .neq('status', 'cancelled')
       .order('created_at'),
   ])
-  if (geError) console.error('[coach-class-detail] group_enrollments error:', geError)
-  if (bError) console.error('[coach-class-detail] bookings error:', bError)
+
+  const levelIds = [...new Set((groupEnrollments ?? []).map((e: any) => e.student?.current_level_id).filter(Boolean))]
+  const { data: levelsData } = levelIds.length
+    ? await admin.from('levels').select('id, name, color').in('id', levelIds)
+    : { data: [] }
+  const levelsMap: Record<string, { name: string; color: string }> = {}
+  for (const l of levelsData ?? []) levelsMap[l.id] = { name: l.name, color: l.color }
 
   const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
   const { data: exclusions } = enrollmentIds.length
@@ -134,12 +139,12 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{s?.name}</p>
-                    {s?.currentLevel && (
+                    {s?.current_level_id && levelsMap[s.current_level_id] && (
                       <span
                         className="inline-block rounded-full px-2 py-0 text-xs font-medium text-white"
-                        style={{ backgroundColor: s.currentLevel.color }}
+                        style={{ backgroundColor: levelsMap[s.current_level_id].color }}
                       >
-                        {s.currentLevel.name}
+                        {levelsMap[s.current_level_id].name}
                       </span>
                     )}
                   </div>
@@ -172,7 +177,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
               name: b.student?.name,
               email: b.student?.email,
               avatar_url: b.student?.avatar_url,
-              currentLevel: b.student?.currentLevel ?? null,
+              currentLevel: null,
             },
           }))}
         />
