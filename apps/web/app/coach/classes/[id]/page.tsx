@@ -26,7 +26,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
 
   const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: groupEnrollments }, { data: bookings }] = await Promise.all([
+  const [{ data: groupEnrollments, error: geError }, { data: bookings, error: bError }] = await Promise.all([
     admin
       .from('group_enrollments')
       .select('id, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id, currentLevel:levels(name, color))')
@@ -40,6 +40,8 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
       .neq('status', 'cancelled')
       .order('created_at'),
   ])
+  if (geError) console.error('[coach-class-detail] group_enrollments error:', geError)
+  if (bError) console.error('[coach-class-detail] bookings error:', bError)
 
   const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
   const { data: exclusions } = enrollmentIds.length
