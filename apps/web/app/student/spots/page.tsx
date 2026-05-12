@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import { SpotsClient } from './spots-client'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -168,6 +169,13 @@ export default async function StudentSpotsPage() {
 
   return (
     <div className="max-w-2xl">
+      <RealtimeRefresh
+        channelName={`student-spots-${user.id}`}
+        subs={[
+          { table: 'schedule_exclusions' },
+          { table: 'bookings', filter: `student_id=eq.${user.id}` },
+        ]}
+      />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Huecos Libres</h1>
         <p className="text-sm text-gray-500">Plazas disponibles por ausencia de otro alumno o por capacidad libre</p>

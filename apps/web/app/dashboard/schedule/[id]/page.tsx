@@ -6,6 +6,7 @@ import { ScheduleActions } from './schedule-actions'
 import AttendanceForm from './attendance-form'
 import GroupEnrollment from './group-enrollment'
 import ScheduleMaterials from './schedule-materials'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -117,6 +118,14 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   return (
     <div className="max-w-2xl">
+      <RealtimeRefresh
+        channelName={`admin-schedule-${params.id}`}
+        subs={[
+          { table: 'bookings', filter: `schedule_id=eq.${params.id}` },
+          { table: 'group_enrollments', filter: `schedule_id=eq.${params.id}` },
+          { table: 'schedule_exclusions' },
+        ]}
+      />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <a href="/dashboard/schedule" className="text-sm text-gray-500 hover:text-gray-700">← Horarios</a>

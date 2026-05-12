@@ -5,6 +5,7 @@ import { getDayOfWeek } from '@/lib/utils'
 import ScheduleTable from './schedule-table'
 import WeeklyCalendar from './weekly-calendar'
 import ScheduleViewToggle from './schedule-view-toggle'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const TZ = 'Europe/Madrid'
 
@@ -97,6 +98,14 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
 
   return (
     <div>
+      <RealtimeRefresh
+        channelName="admin-schedule-list"
+        subs={[
+          { table: 'bookings' },
+          { table: 'group_enrollments' },
+          { table: 'schedule_exclusions' },
+        ]}
+      />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Horarios</h1>

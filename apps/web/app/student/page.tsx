@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -55,6 +56,14 @@ export default async function StudentHomePage() {
 
   return (
     <div className="max-w-2xl">
+      <RealtimeRefresh
+        channelName={`student-home-${user.id}`}
+        subs={[
+          { table: 'class_bag', filter: `user_id=eq.${user.id}` },
+          { table: 'schedule_exclusions', event: 'INSERT' },
+          { table: 'bookings', filter: `student_id=eq.${user.id}` },
+        ]}
+      />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Hola, {(userData as any)?.name?.split(' ')[0] ?? user.user_metadata?.full_name?.split(' ')[0] ?? user.user_metadata?.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'alumno'} 👋</h1>
         <p className="text-sm text-gray-500">Bienvenido a tu área personal</p>
