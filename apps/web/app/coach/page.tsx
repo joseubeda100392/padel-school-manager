@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -41,6 +42,13 @@ export default async function CoachHomePage() {
 
   return (
     <div className="max-w-2xl">
+      <RealtimeRefresh
+        channelName={`coach-home-${user.id}`}
+        subs={[
+          { table: 'group_enrollments' },
+          { table: 'schedule_exclusions' },
+        ]}
+      />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Hola, {firstName} 👋</h1>
         <p className="text-sm text-gray-500">Panel de monitor</p>

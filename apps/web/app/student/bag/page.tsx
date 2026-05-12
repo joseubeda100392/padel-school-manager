@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 export default async function StudentBagPage() {
   const supabase = createClient()
@@ -32,6 +33,13 @@ export default async function StudentBagPage() {
 
   return (
     <div className="max-w-2xl">
+      <RealtimeRefresh
+        channelName={`student-bag-${user.id}`}
+        subs={[
+          { table: 'class_bag', filter: `user_id=eq.${user.id}` },
+          { table: 'bag_transactions', filter: `user_id=eq.${user.id}` },
+        ]}
+      />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Mi Bolsa</h1>
         <p className="text-sm text-gray-500">Clases disponibles para huecos libres</p>

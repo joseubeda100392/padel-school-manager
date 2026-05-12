@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -40,6 +41,13 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <RealtimeRefresh
+        channelName="admin-dashboard"
+        subs={[
+          { table: 'group_enrollments' },
+          { table: 'users' },
+        ]}
+      />
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Panel de Control</h1>
         <p className="text-sm text-gray-500">Resumen de la actividad de tu escuela de pádel</p>

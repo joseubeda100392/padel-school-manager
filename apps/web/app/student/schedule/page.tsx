@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -114,6 +115,14 @@ export default async function StudentSchedulePage() {
 
   return (
     <div className="max-w-2xl space-y-8">
+      <RealtimeRefresh
+        channelName={`student-schedule-${user.id}`}
+        subs={[
+          { table: 'schedule_exclusions' },
+          { table: 'bookings', filter: `student_id=eq.${user.id}` },
+          { table: 'group_enrollments', filter: `student_id=eq.${user.id}` },
+        ]}
+      />
       <div>
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>

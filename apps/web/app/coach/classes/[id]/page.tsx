@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek, formatDate } from '@/lib/utils'
 import AttendanceForm from '@/app/dashboard/schedule/[id]/attendance-form'
 import Link from 'next/link'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -61,6 +62,14 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
 
   return (
     <div className="max-w-2xl">
+      <RealtimeRefresh
+        channelName={`coach-class-${params.id}`}
+        subs={[
+          { table: 'bookings', filter: `schedule_id=eq.${params.id}` },
+          { table: 'group_enrollments', filter: `schedule_id=eq.${params.id}` },
+          { table: 'schedule_exclusions' },
+        ]}
+      />
       <div className="mb-6 flex items-center gap-3">
         <Link href="/coach/classes" className="text-sm text-gray-500 hover:text-gray-700">← Mis Clases</Link>
         <span className="text-gray-300">/</span>
