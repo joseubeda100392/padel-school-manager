@@ -8,6 +8,24 @@ import GroupEnrollment from './group-enrollment'
 import ScheduleMaterials from './schedule-materials'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+const TZ = 'Europe/Madrid'
+
+function getNextDate(startTime: string): string {
+  const classDow = getDayOfWeek(new Date(startTime))
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const [sy, sm, sd] = todaySpain.split('-').map(Number)
+  const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
+  const nowHourSpain = parseInt(
+    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date())
+  )
+  const classHourSpain = parseInt(
+    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date(startTime))
+  )
+  let daysUntil = (classDow - todayDow + 7) % 7
+  if (daysUntil === 0 && nowHourSpain >= classHourSpain) daysUntil = 7
+  const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
+}
 
 export default async function ScheduleDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -21,12 +39,17 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   if (!schedule) notFound()
 
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+
+  // Simplified join: avoid nested currentLevel:levels that can fail silently
   const { data: bookings } = await admin
     .from('bookings')
-    .select('*, student:users!bookings_student_id_fkey(name, email, avatar_url, current_level_id, currentLevel:levels(name, color))')
+    .select('id, status, source, class_date, student:users!bookings_student_id_fkey(name, email, avatar_url)')
     .eq('schedule_id', params.id)
     .neq('status', 'cancelled')
-    .order('created_at')
+    .not('class_date', 'is', null)
+    .gte('class_date', todaySpain)
+    .order('class_date')
 
   const { data: groupEnrollments } = await admin
     .from('group_enrollments')
@@ -36,13 +59,12 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     .order('enrolled_at')
 
   const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
-  const today = new Date().toISOString().split('T')[0]
   const { data: exclusionsRaw } = enrollmentIds.length
     ? await admin
         .from('schedule_exclusions')
         .select('id, group_enrollment_id, excluded_date, publish_spot')
         .in('group_enrollment_id', enrollmentIds)
-        .gte('excluded_date', today)
+        .gte('excluded_date', todaySpain)
         .order('excluded_date')
     : { data: [] }
 
@@ -76,9 +98,22 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   const start = new Date(schedule.start_time)
   const end = new Date(schedule.end_time)
-  const spotBookings = (bookings ?? []).filter((b: any) => b.class_date != null)
-  const groupCount = groupEnrollments?.length ?? 0
-  const enrolled = spotBookings.length + groupCount
+  const nextDate = getNextDate(schedule.start_time)
+
+  // All upcoming spot bookings (for display in Reservas puntuales)
+  const spotBookings = bookings ?? []
+
+  // For the counter: only the next occurrence, excluding group members with falta that day
+  const nextDateSpots = spotBookings.filter((b: any) => b.class_date === nextDate)
+  const groupAttendingNextDate = (groupEnrollments ?? []).filter((e: any) => {
+    const excls = exclusionsByEnrollment[e.id] ?? []
+    return !excls.some((x: any) => x.excluded_date === nextDate)
+  }).length
+  const enrolled = nextDateSpots.length + groupAttendingNextDate
+
+  const nextDateLabel = new Date(nextDate + 'T12:00:00Z').toLocaleDateString('es-ES', {
+    weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ,
+  })
 
   return (
     <div className="max-w-2xl">
@@ -124,6 +159,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           <div className="text-right">
             <p className="text-3xl font-bold text-gray-900">{enrolled}<span className="text-lg text-gray-400">/{schedule.max_students}</span></p>
             <p className="text-xs text-gray-400">alumnos</p>
+            <p className="mt-1 text-xs text-gray-400 capitalize">{nextDateLabel}</p>
           </div>
         </div>
         <div className="mt-4">
@@ -203,7 +239,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
         </div>
         <AttendanceForm
           scheduleId={params.id}
-          bookings={spotBookings.map((b: any) => ({
+          bookings={nextDateSpots.map((b: any) => ({
             id: b.id,
             status: b.status,
             source: b.source ?? null,
@@ -212,7 +248,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
               name: b.student?.name,
               email: b.student?.email,
               avatar_url: b.student?.avatar_url,
-              currentLevel: b.student?.currentLevel ?? null,
+              currentLevel: null,
             }
           }))}
         />
