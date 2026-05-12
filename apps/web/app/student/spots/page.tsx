@@ -8,25 +8,29 @@ const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', '
 const TZ = 'Europe/Madrid'
 
 function getNextDate(startTime: string): string {
-  const dt = new Date(startTime)
-  const classDow = getDayOfWeek(dt)
-  const nowUtc = new Date()
-  const nowSpain = new Date(nowUtc.toLocaleString('en-US', { timeZone: TZ }))
-  const todayDow = nowSpain.getDay()
+  const classDow = getDayOfWeek(new Date(startTime))
+
+  // Today's date in Spain timezone — used as the arithmetic base
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const [sy, sm, sd] = todaySpain.split('-').map(Number)
+  // Use 10:00 UTC (= noon Spain) so getDayOfWeek gives the correct Spain weekday
+  const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
+
+  const nowHourSpain = parseInt(
+    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date())
+  )
+  const classHourSpain = parseInt(
+    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date(startTime))
+  )
 
   let daysUntil = (classDow - todayDow + 7) % 7
-  if (daysUntil === 0) {
-    // Class is today — check if it's already past
-    const classHour = parseInt(formatTime(dt).split(':')[0])
-    const classMin = parseInt(formatTime(dt).split(':')[1])
-    if (nowSpain.getHours() > classHour || (nowSpain.getHours() === classHour && nowSpain.getMinutes() >= classMin)) {
-      daysUntil = 7
-    }
+  if (daysUntil === 0 && nowHourSpain >= classHourSpain) {
+    daysUntil = 7
   }
 
-  const next = new Date(nowUtc)
-  next.setDate(nowUtc.getDate() + daysUntil)
-  return next.toISOString().split('T')[0]
+  // Add days to Spain's today (UTC noon base keeps the Spain date stable)
+  const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
 }
 
 export default async function StudentSpotsPage() {
