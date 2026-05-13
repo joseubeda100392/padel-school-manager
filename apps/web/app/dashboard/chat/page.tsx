@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { ChatWindow } from './chat-window'
 
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
+  const admin = getAdminClient()
 
-  const { data: threads } = await supabase
+  const { data: threads } = await admin
     .from('chat_threads')
     .select('*, user:users(name, email), lastMessage:chat_messages(content, created_at)')
     .order('created_at', { ascending: false })
@@ -15,7 +17,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   let activeThread: any = null
   if (activeThreadId) {
     activeThread = threads?.find((t: any) => t.id === activeThreadId)
-    const { data } = await supabase
+    const { data } = await admin
       .from('chat_messages')
       .select('*, sender:users(name, role)')
       .eq('thread_id', activeThreadId)

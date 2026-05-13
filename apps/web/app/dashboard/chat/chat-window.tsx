@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 interface Message {
   id: string
@@ -41,46 +40,46 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
   const [sending, setSending] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const supabaseRef = useRef(createClient())
-  const supabase = supabaseRef.current
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  useEffect(() => {
-    const channel = supabase
-      .channel(`thread-${thread.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `thread_id=eq.${thread.id}` },
-        async (payload) => {
-          const { data } = await supabase
-            .from('chat_messages')
-            .select('*, sender:users(name, role)')
-            .eq('id', payload.new.id)
-            .single()
-          if (data) setMessages((prev) => [...prev, data as Message])
-        },
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+  const poll = useCallback(async () => {
+    const res = await fetch(`/api/chat/messages?thread_id=${thread.id}`)
+    if (!res.ok) return
+    const { data } = await res.json()
+    if (data) setMessages(data)
   }, [thread.id])
+
+  // Poll for new messages every 8 seconds
+  useEffect(() => {
+    const interval = setInterval(poll, 8000)
+    return () => clearInterval(interval)
+  }, [poll])
 
   async function send() {
     if (!text.trim()) return
     setSending(true)
-    await supabase.from('chat_messages').insert({
-      thread_id: thread.id,
-      sender_id: currentUserId,
-      content: text.trim(),
+    const res = await fetch('/api/chat/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ thread_id: thread.id, content: text.trim() }),
     })
-    setText('')
+    if (res.ok) {
+      const { data } = await res.json()
+      if (data) setMessages((prev) => [...prev, data as Message])
+      setText('')
+    }
     setSending(false)
   }
 
   async function resolve() {
-    await supabase.from('chat_threads').update({ status: 'resolved' }).eq('id', thread.id)
+    await fetch(`/api/chat/threads/${thread.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'resolved' }),
+    })
     router.refresh()
     router.push('/dashboard/chat')
   }
@@ -88,12 +87,11 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
   async function deleteThread() {
     if (!confirm('¿Eliminar esta conversación? Se borrarán todos los mensajes.')) return
     setDeleting(true)
-    await supabase.from('chat_threads').delete().eq('id', thread.id)
+    await fetch(`/api/chat/threads/${thread.id}`, { method: 'DELETE' })
     router.refresh()
     router.push('/dashboard/chat')
   }
 
-  // Group messages by date
   const grouped: { date: string; msgs: Message[] }[] = []
   for (const m of messages) {
     const label = formatDate(m.created_at)
