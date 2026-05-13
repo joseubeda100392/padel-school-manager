@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 
 export async function POST(req: NextRequest) {
@@ -10,12 +10,9 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    const admin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
+    const admin = getAdminClient()
 
-    // Verificar rol contra DB (más fiable que user_metadata)
+    // DB role check is more reliable than user_metadata
     const { data: adminProfile } = await admin
       .from('users')
       .select('role, club_id')
@@ -56,7 +53,6 @@ export async function POST(req: NextRequest) {
       const now = new Date()
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
 
-      // Alumnos con inscripción activa y cuota sin pagar o vencida
       const { data: withNull } = await admin
         .from('group_enrollments')
         .select('student_id')
@@ -86,7 +82,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, sent: userIds.length })
 
   } catch (err: any) {
-    console.error('[push/notify] Error:', err?.message ?? err)
     return NextResponse.json({ error: err?.message ?? 'Error interno' }, { status: 500 })
   }
 }

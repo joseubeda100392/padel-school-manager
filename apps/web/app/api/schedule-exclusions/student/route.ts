@@ -1,14 +1,9 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { formatTime } from '@/lib/utils'
-
-const adminSupabase = () => createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
 
 function getClassDatetime(startTime: string, dateStr: string): Date {
   const base = new Date(startTime)
@@ -23,9 +18,9 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { scheduleId, date } = await req.json()
-  if (!date) return NextResponse.json({ error: 'Fecha requerida' }, { status: 400 })
+  if (!scheduleId || !date) return NextResponse.json({ error: 'Parámetros requeridos' }, { status: 400 })
 
-  const admin = adminSupabase()
+  const admin = getAdminClient()
 
   const [{ data: enrollment }, { data: schedule }, { data: cfgRow }] = await Promise.all([
     admin.from('group_enrollments')
@@ -45,7 +40,6 @@ export async function POST(req: NextRequest) {
   const dateStr = date as string
   const classDt = getClassDatetime(schedule.start_time, dateStr)
 
-  // Validate the selected date is a valid occurrence (correct day of week)
   const base = new Date(schedule.start_time)
   if (classDt.getDay() !== base.getDay()) {
     return NextResponse.json({ error: 'La fecha no corresponde al día de la clase' }, { status: 400 })
@@ -89,7 +83,6 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Notificar a alumnos del mismo club que NO están en este grupo
   try {
     const { data: scheduleData } = await admin
       .from('schedules')

@@ -1,19 +1,16 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const adminSupabase = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  const admin = getAdminClient()
 
-  const { data: caller } = await adminSupabase
+  const { data: caller } = await admin
     .from('users')
     .select('role')
     .eq('id', user.id)
@@ -30,10 +27,10 @@ export async function POST(req: NextRequest) {
 
   const newEmail = email.trim().toLowerCase()
 
-  const { error: authError } = await adminSupabase.auth.admin.updateUserById(userId, { email: newEmail })
+  const { error: authError } = await admin.auth.admin.updateUserById(userId, { email: newEmail })
   if (authError) return NextResponse.json({ error: authError.message }, { status: 400 })
 
-  await adminSupabase.from('users').update({ email: newEmail }).eq('id', userId)
+  await admin.from('users').update({ email: newEmail }).eq('id', userId)
 
   return NextResponse.json({ ok: true })
 }

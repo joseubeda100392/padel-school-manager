@@ -1,18 +1,16 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
-  const adminSupabase = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: caller } = await adminSupabase
+  const admin = getAdminClient()
+
+  const { data: caller } = await admin
     .from('users')
     .select('role, club_id')
     .eq('id', user.id)
@@ -25,8 +23,7 @@ export async function POST(req: NextRequest) {
   const { email, name, role, levelId, tempPassword, clubIdOverride } = await req.json()
   const clubId = clubIdOverride ?? caller.club_id
 
-  // Crear usuario en Supabase Auth
-  const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
+  const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email,
     password: tempPassword,
     email_confirm: true,
@@ -37,8 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: authError.message }, { status: 400 })
   }
 
-  // Crear registro en tabla users
-  const { error: dbError } = await adminSupabase.from('users').insert({
+  const { error: dbError } = await admin.from('users').insert({
     id: authData.user.id,
     email,
     name,
@@ -48,12 +44,12 @@ export async function POST(req: NextRequest) {
   })
 
   if (dbError) {
-    await adminSupabase.auth.admin.deleteUser(authData.user.id)
+    await admin.auth.admin.deleteUser(authData.user.id)
     return NextResponse.json({ error: dbError.message }, { status: 400 })
   }
 
   if (role === 'student') {
-    await adminSupabase.from('class_bag').upsert({
+    await admin.from('class_bag').upsert({
       user_id: authData.user.id,
       club_id: clubId,
       balance: 0,
@@ -61,7 +57,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (levelId) {
-    await adminSupabase.from('user_levels').insert({
+    await admin.from('user_levels').insert({
       user_id: authData.user.id,
       level_id: levelId,
       assigned_by: user.id,

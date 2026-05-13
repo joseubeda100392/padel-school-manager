@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
 import {
   generateOrderId,
   buildMerchantParameters,
@@ -14,29 +14,27 @@ type PaymentType = 'single_class' | 'class_pack' | 'fixed_group_month'
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
 export async function POST(req: NextRequest) {
-  const adminSupabase = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: userProfile } = await adminSupabase
+  const admin = getAdminClient()
+
+  const { data: userProfile } = await admin
     .from('users')
     .select('club_id')
     .eq('id', user.id)
     .single()
   const clubId = userProfile?.club_id ?? null
 
-  // Credenciales Redsys del club (con fallback a env vars para compatibilidad)
+  // fallback to env vars for clubs without Redsys configured in DB
   let merchantCode = process.env.REDSYS_MERCHANT_CODE ?? ''
   let secretKey = process.env.REDSYS_SECRET_KEY ?? ''
   let terminal = process.env.REDSYS_TERMINAL ?? '001'
   let redsysEnv: string | null = null
 
   if (clubId) {
-    const { data: club } = await adminSupabase
+    const { data: club } = await admin
       .from('clubs')
       .select('redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env')
       .eq('id', clubId)
@@ -60,7 +58,7 @@ export async function POST(req: NextRequest) {
     exclusionId?: string
   } = await req.json()
 
-  const { data: configs } = await adminSupabase
+  const { data: configs } = await admin
     .from('app_config')
     .select('key, value')
     .in('key', ['pay_per_class_price_60', 'pay_per_class_price_90', 'pack_price_60', 'classes_per_pack_60', 'pack_price_90', 'classes_per_pack_90'])
@@ -74,7 +72,7 @@ export async function POST(req: NextRequest) {
   if (type === 'single_class') {
     let durationMin = 60
     if (scheduleId) {
-      const { data: schedule } = await adminSupabase
+      const { data: schedule } = await admin
         .from('schedules')
         .select('start_time, end_time')
         .eq('id', scheduleId)
@@ -91,7 +89,7 @@ export async function POST(req: NextRequest) {
 
   } else if (type === 'fixed_group_month') {
     if (!enrollmentId) return NextResponse.json({ error: 'enrollmentId requerido' }, { status: 400 })
-    const { data: enrollment } = await adminSupabase
+    const { data: enrollment } = await admin
       .from('group_enrollments')
       .select('monthly_price, student_id')
       .eq('id', enrollmentId)
@@ -127,7 +125,7 @@ export async function POST(req: NextRequest) {
 
   const signature = generateSignature(secretKey, orderId, merchantParams)
 
-  await adminSupabase.from('payments').insert({
+  await admin.from('payments').insert({
     user_id: user.id,
     club_id: clubId,
     redsys_order_id: orderId,

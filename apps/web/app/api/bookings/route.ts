@@ -1,12 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
-
-const adminSupabase = () => createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+import { getAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -16,7 +11,7 @@ export async function POST(req: NextRequest) {
   const { scheduleId } = await req.json()
   if (!scheduleId) return NextResponse.json({ error: 'Falta scheduleId' }, { status: 400 })
 
-  const admin = adminSupabase()
+  const admin = getAdminClient()
   const { data, error } = await admin.rpc('book_with_bag', {
     p_schedule_id: scheduleId,
     p_student_id: user.id,
@@ -33,7 +28,7 @@ export async function DELETE(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { scheduleId, refundBag } = await req.json()
-  const admin = adminSupabase()
+  const admin = getAdminClient()
 
   const { data: booking } = await admin
     .from('bookings')

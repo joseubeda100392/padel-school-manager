@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { formatTime } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
@@ -9,17 +9,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  const adminSupabase = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  const admin = getAdminClient()
 
-  // Day of week for tomorrow (0=Sun, 1=Mon, ...)
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   const tomorrowDow = tomorrow.getDay()
 
-  const { data: schedules } = await adminSupabase
+  const { data: schedules } = await admin
     .from('schedules')
     .select('id, start_time, end_time, court:courts(name)')
     .eq('is_active', true)
@@ -36,7 +32,7 @@ export async function POST(req: NextRequest) {
   const scheduleIds = tomorrowSchedules.map((s: any) => s.id)
   const scheduleMap = Object.fromEntries(tomorrowSchedules.map((s: any) => [s.id, s]))
 
-  const { data: bookings } = await adminSupabase
+  const { data: bookings } = await admin
     .from('bookings')
     .select('schedule_id, student:users!bookings_student_id_fkey(push_token, name)')
     .in('schedule_id', scheduleIds)
