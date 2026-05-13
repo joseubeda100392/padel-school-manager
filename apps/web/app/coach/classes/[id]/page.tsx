@@ -65,6 +65,20 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
     exclusionsByEnrollment[x.group_enrollment_id].push(x.excluded_date)
   }
 
+  const materialsQuery = admin
+    .from('materials')
+    .select('id, title, description, file_url, material_levels(level_id)')
+    .eq('is_published', true)
+    .order('created_at', { ascending: false })
+  const { data: allMaterials } = await (
+    schedule.club_id ? materialsQuery.eq('club_id', schedule.club_id) : materialsQuery
+  )
+  const materials = (allMaterials ?? []).filter((m: any) => {
+    if (!m.material_levels || m.material_levels.length === 0) return true
+    if (!schedule.level_id) return true
+    return m.material_levels.some((ml: any) => ml.level_id === schedule.level_id)
+  })
+
   const start = schedule.start_time
   const end = schedule.end_time
   const groupCount = groupEnrollments?.length ?? 0
@@ -158,6 +172,43 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Materiales */}
+      {materials.length > 0 && (
+        <div className="mb-6 rounded-xl bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-5 py-4">
+            <h2 className="font-semibold text-gray-900">
+              Material didáctico
+              <span className="ml-1 text-sm font-normal text-gray-400">({materials.length})</span>
+            </h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {materials.map((m: any) => (
+              <div key={m.id} className="flex items-center gap-3 px-5 py-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100">
+                  <span className="text-xs font-bold text-red-600">PDF</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{m.title}</p>
+                  {m.description && (
+                    <p className="text-xs text-gray-400 truncate">{m.description}</p>
+                  )}
+                </div>
+                {m.file_url && (
+                  <a
+                    href={m.file_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                  >
+                    Abrir
+                  </a>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
