@@ -31,18 +31,35 @@ Ecosistema digital para escuelas de pádel compuesto por:
 
 **Regla:** Si es solo lectura → Haiku. Si hay que generar código → Sonnet. Si afecta arquitectura global → Opus.
 
-## Skills Activos
+## Estilo de Comunicación
+Respuestas cortas y directas siempre. Sin introducciones, sin resúmenes al final, sin frases de cortesía.
+Una frase por actualización. Código sin comentarios obvios.
 
-| Skill | Uso |
+## Skills — Cuándo Usarlas (Auto-invocación)
+
+### Uso automático (sin que el usuario lo pida)
+| Skill | Se invoca cuando... |
 |---|---|
-| `/simplify` | Revisar calidad del código tras implementar |
-| `/security-review` | Auditar Stripe webhooks y políticas RLS de Supabase |
-| `/review` | Revisar antes de mergear a main |
-| `update-config` | Gestionar hooks y permisos en settings.json |
-| `fewer-permission-prompts` | Eliminar interrupciones repetitivas de permisos (usar al inicio) |
-| `loop` | Monitorizar procesos durante desarrollo (Railway, Expo server, tests) |
-| `claude-api` | Integrar Anthropic API si se añaden features de IA en la app |
-| `schedule` | Agentes recurrentes: reportes semanales, alertas de Railway |
+| `/security-review` | Se toca auth, RLS, Stripe, API routes, o permisos |
+| `/simplify` | Se implementa una feature compleja (>50 líneas nuevas) |
+| `/review` | Antes de hacer push de cambios críticos |
+| `/deploy-check` | Antes de cada `git push` a Railway |
+| `claude-mem:mem-search` | Al inicio de una tarea para buscar soluciones previas |
+
+### Uso manual (el usuario las invoca)
+| Skill | Para qué |
+|---|---|
+| `/caveman` | Modo respuesta ultra-terse |
+| `/caveman-review` | Review de código en formato estructurado |
+| `/caveman-commit` | Generar mensaje de commit |
+| `/loop` | Monitorizar proceso en bucle (Railway deploy, tests) |
+| `/schedule` | Crear agente recurrente (reporte semanal, alerta) |
+| `/claude-api` | Integrar Anthropic API en la app |
+| `/update-config` | Cambiar permisos o hooks en settings.json |
+| `/fewer-permission-prompts` | Reducir interrupciones de permisos |
+| `claude-mem:learn-codebase` | Cargar todo el codebase en memoria al inicio |
+| `claude-mem:make-plan` | Planificar feature compleja antes de ejecutar |
+| `claude-mem:do` | Ejecutar un plan creado con make-plan |
 
 ## Convenciones de Código
 - TypeScript estricto (`strict: true`) en todo el proyecto
