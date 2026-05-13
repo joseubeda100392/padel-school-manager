@@ -4,6 +4,7 @@ import { formatCurrency } from '@/lib/utils'
 import PaymentsTable from './payments-table'
 import { UnpaidList } from './unpaid-list'
 import { MonthNavigator } from './month-navigator'
+import { DevError } from '@/components/dev-error'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -29,7 +30,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const [{ data: payments }, { data: unpaidList }] = await Promise.all([
+  const [{ data: payments, error: errPayments }, { data: unpaidList, error: errUnpaid }] = await Promise.all([
     clubId ? baseQuery.eq('club_id', clubId) : baseQuery,
     admin.rpc('get_pending_payments', {
       p_club_id: clubId ?? null,
@@ -43,6 +44,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
 
   return (
     <div className="space-y-6">
+      <DevError errors={[errPayments?.message, errUnpaid?.message]} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Pagos</h1>

@@ -3,6 +3,7 @@ import { getClubId } from '@/lib/get-club'
 import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { DevError } from '@/components/dev-error'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -17,12 +18,12 @@ export default async function DashboardPage() {
   const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
 
   const [
-    { count: totalStudents },
+    { count: totalStudents, error: errStudents },
     { count: totalMaterials },
-    { data: classesToday },
-    { data: pendingCount },
-    { data: recentStudents },
-    { data: unpaidList },
+    { data: classesToday, error: errRpc1 },
+    { data: pendingCount, error: errRpc2 },
+    { data: recentStudents, error: errRecent },
+    { data: unpaidList, error: errRpc3 },
   ] = await Promise.all([
     filter(supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
     filter(supabase.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
@@ -41,6 +42,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <DevError errors={[errStudents?.message, errRpc1?.message, errRpc2?.message, errRecent?.message, errRpc3?.message]} />
       <RealtimeRefresh
         channelName="admin-dashboard"
         subs={[

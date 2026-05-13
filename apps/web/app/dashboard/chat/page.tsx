@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { ChatWindow } from './chat-window'
+import { DevError } from '@/components/dev-error'
 
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
@@ -15,7 +16,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
 
   if (clubId) threadsQuery = threadsQuery.eq('club_id', clubId)
 
-  const { data: threads } = await threadsQuery
+  const { data: threads, error: errThreads } = await threadsQuery
 
   const activeThreadId = searchParams.thread ?? threads?.[0]?.id ?? null
 
@@ -34,6 +35,8 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
   return (
+    <div className="flex flex-col gap-2">
+      <DevError errors={[errThreads?.message]} />
     <div className="flex h-[calc(100vh-9rem)] gap-0 overflow-hidden rounded-xl bg-white shadow-sm">
       {/* Thread list */}
       <aside className="flex w-72 flex-shrink-0 flex-col border-r border-gray-100">
@@ -81,6 +84,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

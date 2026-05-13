@@ -6,6 +6,7 @@ import ScheduleTable from './schedule-table'
 import WeeklyCalendar from './weekly-calendar'
 import ScheduleViewToggle from './schedule-view-toggle'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { DevError } from '@/components/dev-error'
 
 const TZ = 'Europe/Madrid'
 
@@ -45,7 +46,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     .eq('is_active', true)
     .order('name')
 
-  const [{ data: rawSchedules }, { data: courts }, { data: enrollmentsRaw }] = await Promise.all([
+  const [{ data: rawSchedules, error: errSchedules }, { data: courts, error: errCourts }, { data: enrollmentsRaw, error: errEnrollments }] = await Promise.all([
     clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
     admin
@@ -106,6 +107,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
           { table: 'schedule_exclusions' },
         ]}
       />
+      <DevError errors={[errSchedules?.message, errCourts?.message, errEnrollments?.message]} />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Horarios</h1>

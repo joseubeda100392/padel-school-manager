@@ -5,6 +5,7 @@ import { formatTime, getDayOfWeek, formatDate } from '@/lib/utils'
 import AttendanceForm from '@/app/dashboard/schedule/[id]/attendance-form'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { DevError } from '@/components/dev-error'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -26,7 +27,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
 
   const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: groupEnrollments }, { data: bookings }] = await Promise.all([
+  const [{ data: groupEnrollments, error: errEnrollments }, { data: bookings, error: errBookings }] = await Promise.all([
     admin
       .from('group_enrollments')
       .select('id, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
@@ -72,6 +73,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
 
   return (
     <div className="max-w-2xl">
+      <DevError errors={[errEnrollments?.message, errBookings?.message]} />
       <RealtimeRefresh
         channelName={`coach-class-${params.id}`}
         subs={[

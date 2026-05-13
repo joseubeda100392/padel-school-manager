@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { DevError } from '@/components/dev-error'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -15,7 +16,7 @@ export default async function CoachHomePage() {
   const admin = getAdminClient()
   const todayDow = new Date().getDay()
 
-  const { data: allSchedules } = await admin
+  const { data: allSchedules, error: errSchedules } = await admin
     .from('schedules')
     .select('id, start_time, end_time, max_students, court:courts(name), level:levels(name, color)')
     .eq('coach_id', user.id)
@@ -44,6 +45,7 @@ export default async function CoachHomePage() {
 
   return (
     <div className="max-w-2xl">
+      <DevError errors={[errSchedules?.message]} />
       <RealtimeRefresh
         channelName={`coach-home-${user.id}`}
         subs={[
