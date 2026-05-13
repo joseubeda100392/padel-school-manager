@@ -10,7 +10,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
 
   let threadsQuery = admin
     .from('chat_threads')
-    .select('*, user:users(name, email), lastMessage:chat_messages(content, created_at)')
+    .select('id, status, created_at, user_id, club_id, user:users!chat_threads_user_id_fkey(name, email), lastMessage:chat_messages(content, created_at)')
     .order('created_at', { ascending: false })
 
   if (clubId) threadsQuery = threadsQuery.eq('club_id', clubId)
