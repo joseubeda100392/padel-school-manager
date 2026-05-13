@@ -1,15 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { getClubId } from '@/lib/get-club'
 import { ChatWindow } from './chat-window'
 
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
   const admin = getAdminClient()
+  const clubId = await getClubId()
 
-  const { data: threads } = await admin
+  let threadsQuery = admin
     .from('chat_threads')
     .select('*, user:users(name, email), lastMessage:chat_messages(content, created_at)')
     .order('created_at', { ascending: false })
+
+  if (clubId) threadsQuery = threadsQuery.eq('club_id', clubId)
+
+  const { data: threads, error: threadsError } = await threadsQuery
 
   const activeThreadId = searchParams.thread ?? threads?.[0]?.id ?? null
 
@@ -34,6 +40,12 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
         <div className="border-b border-gray-100 p-4">
           <h1 className="font-semibold text-gray-900">Chat soporte</h1>
           <p className="text-xs text-gray-400">{threads?.length ?? 0} conversaciones</p>
+          {threadsError && (
+            <p className="mt-1 break-all rounded bg-red-50 p-1 text-xs text-red-600">
+              ERROR: {threadsError.message}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-gray-300">club:{clubId ?? 'null'} threads:{threads?.length ?? '?'}</p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {threads?.length === 0 && (
