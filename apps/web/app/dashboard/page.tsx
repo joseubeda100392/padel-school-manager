@@ -30,7 +30,7 @@ export default async function DashboardPage() {
     supabase.rpc('count_classes_today', { p_club_id: clubId ?? null }),
     supabase.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
     filter(supabase.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
-    supabase.rpc('get_pending_payments', { p_club_id: clubId ?? null }),
+    supabase.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
   ])
 
   const stats = [

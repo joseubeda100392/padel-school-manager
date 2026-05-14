@@ -31,9 +31,9 @@ export default async function AnalyticsPage() {
   const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance ?? 0), 0) ?? 0
 
   const typeLabel: Record<string, string> = {
-    subscription: 'Suscripción',
-    pay_per_class: 'Clase suelta',
-    bag_pack: 'Bono de clases',
+    fixed_group_month: 'Mensualidad grupo fijo',
+    single_class: 'Clase suelta',
+    class_pack: 'Bono de clases',
     manual: 'Manual',
   }
 
