@@ -9,8 +9,12 @@ export function getRedsysUrl(env?: string | null): string {
 
 function encrypt3DES(key: Buffer, data: string): Buffer {
   const iv = Buffer.alloc(8, 0)
+  const messageBuf = Buffer.from(data, 'utf8')
+  const padded = Buffer.alloc(Math.ceil(messageBuf.length / 8) * 8, 0)
+  messageBuf.copy(padded)
   const cipher = createCipheriv('des-ede3-cbc', key, iv)
-  return Buffer.concat([cipher.update(data, 'utf8'), cipher.final()])
+  cipher.setAutoPadding(false)
+  return Buffer.concat([cipher.update(padded), cipher.final()])
 }
 
 export function generateSignature(secretKey: string, order: string, params: string): string {
