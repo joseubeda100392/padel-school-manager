@@ -31,12 +31,27 @@ export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionI
       setLoading(false)
       return
     }
-    const params = new URLSearchParams({
-      url: json.redsysUrl,
+
+    // Submit directly to Redsys — avoids base64 corruption through URL query params
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = json.redsysUrl
+
+    const fields = {
+      Ds_SignatureVersion: 'HMAC_SHA256_V1',
       Ds_MerchantParameters: json.merchantParameters,
       Ds_Signature: json.signature,
-    })
-    window.location.href = `/pay?${params.toString()}`
+    }
+    for (const [name, value] of Object.entries(fields)) {
+      const input = document.createElement('input')
+      input.type = 'hidden'
+      input.name = name
+      input.value = value
+      form.appendChild(input)
+    }
+
+    document.body.appendChild(form)
+    form.submit()
   }
 
   return (
