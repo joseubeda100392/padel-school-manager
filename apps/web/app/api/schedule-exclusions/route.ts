@@ -79,17 +79,24 @@ export async function POST(req: NextRequest) {
   }
 
   let newBagBalance: number | null = null
-  if (enrollment?.student_id) {
-    const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', enrollment.student_id).single()
+  if (enrollment?.student_id && enrollment?.schedule_id) {
+    const { data: sched } = await admin.from('schedules').select('start_time, end_time').eq('id', enrollment.schedule_id).single()
+    const durationMin = sched ? Math.round((new Date(sched.end_time).getTime() - new Date(sched.start_time).getTime()) / 60000) : 60
+    const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
+
+    const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', enrollment.student_id).single()
     if (bag) {
-      newBagBalance = bag.balance + 1
-      await admin.from('class_bag').update({ balance: newBagBalance, updated_at: new Date().toISOString() }).eq('id', bag.id)
+      const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
+      const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
+      newBagBalance = newBal60 + newBal90
+      await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
       await admin.from('bag_transactions').insert({
         user_id: enrollment.student_id,
         class_bag_id: bag.id,
         delta: 1,
         type: 'credit',
         reason: `Falta registrada ${excluded_date}`,
+        class_duration: durationType,
       })
     }
   }
@@ -163,15 +170,30 @@ export async function DELETE(req: NextRequest) {
       .single()
 
     if (enrollment?.student_id) {
-      const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', enrollment.student_id).single()
-      if (bag && bag.balance > 0) {
-        await admin.from('class_bag').update({ balance: bag.balance - 1, updated_at: new Date().toISOString() }).eq('id', bag.id)
+      const { data: originalTx } = await admin
+        .from('bag_transactions')
+        .select('class_duration')
+        .eq('user_id', enrollment.student_id)
+        .eq('type', 'credit')
+        .like('reason', `Falta registrada ${exclusion?.group_enrollment_id ? '%' : '%'}`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const durationType: '60' | '90' = originalTx?.class_duration === '90' ? '90' : '60'
+
+      const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', enrollment.student_id).single()
+      if (bag && (bag.balance_60 > 0 || bag.balance_90 > 0)) {
+        const newBal60 = durationType === '60' ? Math.max(0, bag.balance_60 - 1) : bag.balance_60
+        const newBal90 = durationType === '90' ? Math.max(0, bag.balance_90 - 1) : bag.balance_90
+        await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
         await admin.from('bag_transactions').insert({
           user_id: enrollment.student_id,
           class_bag_id: bag.id,
           delta: -1,
           type: 'debit',
           reason: 'Falta cancelada',
+          class_duration: durationType,
         })
       }
     }
