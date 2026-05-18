@@ -107,8 +107,14 @@ export async function POST(req: NextRequest) {
     productDesc = is90 ? 'Bono clases de pádel 1h 30min' : 'Bono clases de pádel 1h'
   }
 
+  if (!amount || amount <= 0) {
+    return NextResponse.json({ error: `Importe inválido: ${amount}. Revisa la configuración de precios.` }, { status: 400 })
+  }
+
   const orderId = generateOrderId()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://padel-school-manager-production.up.railway.app'
+
+  console.log('[create-order]', { type, amount, orderId, merchantCode, terminal })
 
   const merchantParams = buildMerchantParameters({
     DS_MERCHANT_MERCHANTCODE: merchantCode,
