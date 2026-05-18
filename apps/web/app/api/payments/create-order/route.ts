@@ -114,8 +114,6 @@ export async function POST(req: NextRequest) {
   const orderId = generateOrderId()
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://padel-school-manager-production.up.railway.app'
 
-  console.log('[create-order]', { type, amount, orderId, merchantCode, terminal })
-
   const merchantParams = buildMerchantParameters({
     DS_MERCHANT_MERCHANTCODE: merchantCode,
     DS_MERCHANT_TERMINAL: terminal,

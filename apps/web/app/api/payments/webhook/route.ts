@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   await adminSupabase
     .from('payments')
-    .update({ status: success ? 'completed' : 'failed' })
+    .update({ status: success ? 'succeeded' : 'failed' })
     .eq('id', payment.id)
 
   if (!success) return NextResponse.json({ ok: false })
