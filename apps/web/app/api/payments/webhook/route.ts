@@ -59,27 +59,39 @@ export async function POST(req: NextRequest) {
   const meta = payment.metadata ?? {}
 
   if (payment.type === 'single_class' && meta.schedule_id) {
+    console.log('[webhook] single_class — schedule_id:', meta.schedule_id, 'class_date:', meta.class_date, 'exclusion_id:', meta.exclusion_id, 'user_id:', payment.user_id)
+
     if (meta.exclusion_id) {
-      await adminSupabase
+      const { error: excErr } = await adminSupabase
         .from('schedule_exclusions')
         .update({ publish_spot: false })
         .eq('id', meta.exclusion_id)
+      if (excErr) console.error('[webhook] exclusion update error:', excErr.message)
     }
-    const { data: existing } = await adminSupabase
+
+    let existingQuery = adminSupabase
       .from('bookings')
       .select('id')
       .eq('schedule_id', meta.schedule_id)
       .eq('student_id', payment.user_id)
       .neq('status', 'cancelled')
-      .maybeSingle()
+    if (meta.class_date) {
+      existingQuery = existingQuery.eq('class_date', meta.class_date)
+    }
+    const { data: existing } = await existingQuery.maybeSingle()
+    console.log('[webhook] existing booking:', existing?.id ?? 'none')
+
     if (!existing) {
-      await adminSupabase.from('bookings').insert({
+      const { data: newBooking, error: bookErr } = await adminSupabase.from('bookings').insert({
         schedule_id: meta.schedule_id,
         student_id: payment.user_id,
         status: 'confirmed',
         source: 'pay_per_class',
         club_id: payment.club_id ?? null,
-      })
+        class_date: meta.class_date ?? null,
+      }).select('id').single()
+      if (bookErr) console.error('[webhook] booking insert error:', bookErr.message)
+      else console.log('[webhook] booking created:', newBooking?.id)
     }
 
   } else if (payment.type === 'class_pack') {

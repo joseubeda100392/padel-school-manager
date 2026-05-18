@@ -19,7 +19,7 @@ export default async function AnalyticsPage() {
     filter(supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true)),
     filter(supabase.from('payments').select('amount, type, status, currency').eq('status', 'succeeded')),
     filter(supabase.from('levels').select('id, name, color, users(count)')).order('order'),
-    filter(supabase.from('class_bag').select('balance')),
+    filter(supabase.from('class_bag').select('balance_60, balance_90')),
   ])
 
   const totalRevenue = payments?.reduce((acc: number, p: any) => acc + p.amount, 0) ?? 0
@@ -28,7 +28,7 @@ export default async function AnalyticsPage() {
     return acc
   }, {} as Record<string, number>)
 
-  const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance ?? 0), 0) ?? 0
+  const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance_60 ?? 0) + (b.balance_90 ?? 0), 0) ?? 0
 
   const typeLabel: Record<string, string> = {
     fixed_group_month: 'Mensualidad grupo fijo',

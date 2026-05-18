@@ -9,7 +9,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   const [{ data: userData }, { data: bag }, { count: unreadCount }] = await Promise.all([
     supabase.from('users').select('name, club_id, clubs(name)').eq('id', user.id).single(),
-    supabase.from('class_bag').select('balance').eq('user_id', user.id).single(),
+    supabase.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
   ])
 
@@ -19,7 +19,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
     <StudentShell
       userName={(userData as any)?.name ?? undefined}
       clubName={clubName}
-      bagBalance={bag?.balance ?? 0}
+      bagBalance={(bag?.balance_60 ?? 0) + (bag?.balance_90 ?? 0)}
       unreadCount={unreadCount ?? 0}
     >
       {children}

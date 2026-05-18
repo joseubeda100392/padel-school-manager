@@ -112,6 +112,7 @@ function SpotCard({ spot, balance60, balance90 }: { spot: Spot; balance60: numbe
               type="single_class"
               scheduleId={spot.scheduleId}
               exclusionId={spot.exclusionId ?? undefined}
+              classDate={spot.excludedDate}
               label="💳 Pagar clase"
               className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
             />

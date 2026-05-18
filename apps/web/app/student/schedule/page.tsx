@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
+import { SpotBookingCard } from './spot-booking-card'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -154,36 +155,18 @@ export default async function StudentSchedulePage() {
             <p className="text-sm text-gray-500">Huecos libres en los que estás apuntado</p>
           </div>
           <div className="space-y-3">
-            {(spotBookings ?? []).map(b => {
-              const s = b.schedule as any
-              const dateLabel = new Date(b.class_date + 'T12:00:00').toLocaleDateString('es-ES', {
-                weekday: 'long', day: 'numeric', month: 'long',
-              })
-              return (
-                <div key={b.id} className="rounded-xl bg-white shadow-sm p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-gray-900 capitalize">{dateLabel}</p>
-                      <p className="text-sm text-gray-500 mt-0.5">
-                        {formatTime(new Date(s?.start_time))} – {formatTime(new Date(s?.end_time))} · {s?.court?.name ?? '—'}
-                        {s?.coach?.name && <span className="text-gray-400"> · {s.coach.name}</span>}
-                      </p>
-                      {s?.level && (
-                        <span
-                          className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-                          style={{ backgroundColor: s.level.color }}
-                        >
-                          {s.level.name}
-                        </span>
-                      )}
-                    </div>
-                    <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 shrink-0">
-                      Reservado
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
+            {(spotBookings ?? []).map(b => (
+              <SpotBookingCard
+                key={b.id}
+                booking={{
+                  id: b.id,
+                  class_date: b.class_date as string,
+                  source: b.source as string,
+                  schedule: b.schedule as any,
+                }}
+                cancellationHours={cancellationHours}
+              />
+            ))}
           </div>
         </div>
       )}

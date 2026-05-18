@@ -8,12 +8,13 @@ interface PayButtonProps {
   packType?: '60' | '90'
   scheduleId?: string
   exclusionId?: string
+  classDate?: string
   label: string
   className?: string
   disabled?: boolean
 }
 
-export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionId, label, className, disabled }: PayButtonProps) {
+export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionId, classDate, label, className, disabled }: PayButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -23,7 +24,7 @@ export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionI
     const res = await fetch('/api/payments/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, enrollmentId, packType, scheduleId, exclusionId }),
+      body: JSON.stringify({ type, enrollmentId, packType, scheduleId, exclusionId, classDate }),
     })
     const json = await res.json()
     if (!res.ok) {

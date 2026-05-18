@@ -50,12 +50,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'TPV no configurado para este club. Contacta con el administrador.' }, { status: 503 })
   }
 
-  const { type, scheduleId, packType, enrollmentId, exclusionId }: {
+  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate }: {
     type: PaymentType
     scheduleId?: string
     packType?: '60' | '90'
     enrollmentId?: string
     exclusionId?: string
+    classDate?: string
   } = await req.json()
 
   const { data: configs } = await admin
@@ -142,6 +143,7 @@ export async function POST(req: NextRequest) {
       pack_type: packType ?? null,
       enrollment_id: enrollmentId ?? null,
       exclusion_id: exclusionId ?? null,
+      class_date: classDate ?? null,
     },
   })
 
