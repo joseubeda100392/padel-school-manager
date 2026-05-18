@@ -59,7 +59,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     clubId
       ? admin.from('levels').select('id, name, color').eq('club_id', clubId).order('order')
       : admin.from('levels').select('id, name, color').order('order'),
-    admin.from('class_bag').select('balance').eq('user_id', params.id).single(),
+    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', params.id).single(),
     admin
       .from('user_levels')
       .select('id, created_at, level:levels(name, color), assigned_by')
@@ -197,9 +197,17 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Clases disponibles</h2>
-          <p className="mb-1 text-5xl font-bold text-green-600">{bag?.balance ?? 0}</p>
-          <p className="mb-5 text-sm text-gray-500">clases disponibles</p>
-          <BagAdjustForm studentId={student.id as string} currentBalance={bag?.balance ?? 0} />
+          <div className="mb-4 flex gap-6">
+            <div>
+              <p className="text-4xl font-bold text-green-600">{bag?.balance_60 ?? 0}</p>
+              <p className="text-xs text-gray-400">60 min</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-blue-600">{bag?.balance_90 ?? 0}</p>
+              <p className="text-xs text-gray-400">90 min</p>
+            </div>
+          </div>
+          <BagAdjustForm studentId={student.id as string} balance60={bag?.balance_60 ?? 0} balance90={bag?.balance_90 ?? 0} />
 
           {bagHistory && bagHistory.length > 0 && (
             <div className="mt-4 border-t border-gray-100 pt-4">

@@ -15,27 +15,39 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
-  // Verify exclusion still published
-  const { data: exclusion } = await admin
-    .from('schedule_exclusions')
-    .select('id, publish_spot, excluded_date')
-    .eq('id', exclusionId)
-    .single()
+  const [{ data: exclusion }, { data: schedule }] = await Promise.all([
+    admin.from('schedule_exclusions').select('id, publish_spot, excluded_date').eq('id', exclusionId).single(),
+    admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single(),
+  ])
 
   if (!exclusion || !exclusion.publish_spot) {
     return NextResponse.json({ error: 'Este hueco ya no está disponible' }, { status: 409 })
   }
 
-  // Check bag balance
+  if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
+
+  const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
+  const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
+
   const { data: bag } = await admin
     .from('class_bag')
-    .select('id, balance')
+    .select('id, balance_60, balance_90')
     .eq('user_id', user.id)
     .single()
 
-  if (!bag || bag.balance <= 0) {
-    return NextResponse.json({ error: 'No tienes clases disponibles en tu bolsa' }, { status: 400 })
+  // 90min: solo balance_90 / 60min: balance_60 primero, balance_90 como respaldo
+  const hasBalance = durationType === '90'
+    ? (bag?.balance_90 ?? 0) > 0
+    : ((bag?.balance_60 ?? 0) > 0 || (bag?.balance_90 ?? 0) > 0)
+
+  if (!bag || !hasBalance) {
+    const msg = durationType === '90'
+      ? 'No tienes bonos de 90min disponibles en tu bolsa'
+      : 'No tienes clases disponibles en tu bolsa'
+    return NextResponse.json({ error: msg }, { status: 400 })
   }
+
+  const useBalance90 = durationType === '90' || bag.balance_60 <= 0
 
   // Mark spot as taken (prevents concurrent double-booking)
   const { error: spotErr } = await admin
@@ -48,7 +60,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Este hueco ya no está disponible' }, { status: 409 })
   }
 
-  // Upsert booking — update to confirmed if already exists (e.g. previously cancelled)
+  // Upsert booking
   const { data: existingBooking } = await admin
     .from('bookings')
     .select('id, status')
@@ -72,17 +84,19 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (bookErr || !newBooking) {
-      // Rollback spot availability
       await admin.from('schedule_exclusions').update({ publish_spot: true }).eq('id', exclusionId)
       return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
     }
     bookingId = newBooking.id
   }
 
-  // Decrement bag
+  // Decrement correct balance
+  const newBal60 = useBalance90 ? bag.balance_60 : bag.balance_60 - 1
+  const newBal90 = useBalance90 ? bag.balance_90 - 1 : bag.balance_90
+
   await admin
     .from('class_bag')
-    .update({ balance: bag.balance - 1, updated_at: new Date().toISOString() })
+    .update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() })
     .eq('id', bag.id)
 
   const dateLabel = new Date(exclusion.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', {
@@ -96,7 +110,8 @@ export async function POST(req: NextRequest) {
     type: 'debit',
     reason: `Hueco libre del ${dateLabel}`,
     booking_id: bookingId,
+    class_duration: durationType,
   })
 
-  return NextResponse.json({ ok: true, newBalance: bag.balance - 1 })
+  return NextResponse.json({ ok: true, newBalance: newBal60 + newBal90 })
 }

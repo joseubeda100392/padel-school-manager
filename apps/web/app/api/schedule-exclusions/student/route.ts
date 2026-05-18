@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       .eq('student_id', user.id)
       .eq('status', 'active')
       .single(),
-    admin.from('schedules').select('start_time').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single(),
     admin.from('app_config').select('value').eq('key', 'cancellation_hours').single(),
   ])
 
@@ -71,15 +71,21 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', user.id).single()
+  const durationMin = schedule ? Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000) : 60
+  const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
+
+  const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', user.id).single()
   if (bag) {
-    await admin.from('class_bag').update({ balance: bag.balance + 1, updated_at: new Date().toISOString() }).eq('id', bag.id)
+    const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
+    const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
+    await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
     await admin.from('bag_transactions').insert({
       user_id: user.id,
       class_bag_id: bag.id,
       delta: 1,
       type: 'credit',
       reason: `Falta registrada ${dateStr}`,
+      class_duration: durationType,
     })
   }
 

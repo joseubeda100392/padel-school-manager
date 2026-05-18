@@ -84,21 +84,24 @@ export async function POST(req: NextRequest) {
 
   } else if (payment.type === 'class_pack') {
     const classesToAdd = meta.classes_per_pack ?? 10
+    const packType: '60' | '90' = meta.pack_type === '90' ? '90' : '60'
+    const balanceField = packType === '90' ? 'balance_90' : 'balance_60'
 
     await adminSupabase
       .from('class_bag')
-      .upsert({ user_id: payment.user_id, balance: 0 }, { onConflict: 'user_id', ignoreDuplicates: true })
+      .upsert({ user_id: payment.user_id, balance_60: 0, balance_90: 0 }, { onConflict: 'user_id', ignoreDuplicates: true })
 
     const { data: bag } = await adminSupabase
       .from('class_bag')
-      .select('id, balance')
+      .select('id, balance_60, balance_90')
       .eq('user_id', payment.user_id)
       .single()
 
     if (bag) {
+      const currentVal = bag[balanceField] as number
       await adminSupabase
         .from('class_bag')
-        .update({ balance: bag.balance + classesToAdd, updated_at: new Date().toISOString() })
+        .update({ [balanceField]: currentVal + classesToAdd, updated_at: new Date().toISOString() })
         .eq('id', bag.id)
 
       await adminSupabase.from('bag_transactions').insert({
@@ -107,6 +110,7 @@ export async function POST(req: NextRequest) {
         delta: classesToAdd,
         type: 'credit',
         reason: `Compra de bono — ${classesToAdd} clases`,
+        class_duration: packType,
       })
     }
 

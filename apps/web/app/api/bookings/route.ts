@@ -43,9 +43,21 @@ export async function DELETE(req: NextRequest) {
   await admin.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id)
 
   if (refundBag && booking.source === 'bag') {
-    const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', user.id).single()
+    // Look up original transaction to know which balance to refund
+    const { data: originalTx } = await admin
+      .from('bag_transactions')
+      .select('class_duration')
+      .eq('booking_id', booking.id)
+      .eq('type', 'debit')
+      .maybeSingle()
+
+    const durationType: '60' | '90' = originalTx?.class_duration === '90' ? '90' : '60'
+
+    const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', user.id).single()
     if (bag) {
-      await admin.from('class_bag').update({ balance: bag.balance + 1, updated_at: new Date().toISOString() }).eq('id', bag.id)
+      const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
+      const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
+      await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
       await admin.from('bag_transactions').insert({
         user_id: user.id,
         class_bag_id: bag.id,
@@ -53,8 +65,9 @@ export async function DELETE(req: NextRequest) {
         type: 'credit',
         reason: 'Cancelación de clase',
         booking_id: booking.id,
+        class_duration: durationType,
       })
-      return NextResponse.json({ ok: true, newBalance: bag.balance + 1 })
+      return NextResponse.json({ ok: true, newBalance: newBal60 + newBal90 })
     }
   }
 

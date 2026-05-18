@@ -30,7 +30,7 @@ export default async function StudentHomePage() {
 
   const [{ data: userData }, { data: bag }, { data: enrollments }, { data: spots }] = await Promise.all([
     getAdminClient().from('users').select('name, current_level_id').eq('id', user.id).single(),
-    getAdminClient().from('class_bag').select('balance').eq('user_id', user.id).single(),
+    getAdminClient().from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     getAdminClient()
       .from('group_enrollments')
       .select('id, monthly_price, paid_until, schedule:schedules(id, start_time, end_time, court:courts(name))')
@@ -48,7 +48,7 @@ export default async function StudentHomePage() {
     ? await getAdminClient().from('levels').select('name, color').eq('id', myLevelId).single()
     : { data: null }
 
-  const bagBalance = bag?.balance ?? 0
+  const bagBalance = (bag?.balance_60 ?? 0) + (bag?.balance_90 ?? 0)
   const activeEnrollments = enrollments ?? []
   const pendingEnrollments = activeEnrollments.filter(e => !isPaidThisMonth(e.paid_until))
 
