@@ -73,7 +73,7 @@ export default async function StudentSpotsPage() {
       .select('schedule_id')
       .eq('student_id', user.id)
       .eq('status', 'active'),
-    admin.from('class_bag').select('balance').eq('user_id', user.id).single(),
+    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
       .from('schedules')
       .select(`
@@ -92,7 +92,8 @@ export default async function StudentSpotsPage() {
   ])
 
   const myScheduleIds = new Set((myEnrollments ?? []).map(e => e.schedule_id))
-  const bagBalance = bag?.balance ?? 0
+  const balance60 = bag?.balance_60 ?? 0
+  const balance90 = bag?.balance_90 ?? 0
 
   // Absence spots (existing logic)
   const absenceSpots = (spotsRaw ?? [])
@@ -119,6 +120,7 @@ export default async function StudentSpotsPage() {
         dayLabel: DAYS[getDayOfWeek(startDt)],
         startTime: formatTime(startDt),
         endTime: formatTime(endDt),
+        durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
         courtName: schedule?.court?.name ?? '—',
         coachName: schedule?.coach?.name ?? null,
         maxStudents: schedule?.max_students ?? 4,
@@ -156,6 +158,7 @@ export default async function StudentSpotsPage() {
         dayLabel: DAYS[getDayOfWeek(startDt)],
         startTime: formatTime(startDt),
         endTime: formatTime(endDt),
+        durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
         courtName: (s.court as any)?.name ?? '—',
         coachName: (s.coach as any)?.name ?? null,
         maxStudents: s.max_students,
@@ -188,7 +191,7 @@ export default async function StudentSpotsPage() {
           <p className="mt-1 text-xs text-gray-400">Vuelve a consultar más adelante.</p>
         </div>
       ) : (
-        <SpotsClient spots={allSpots} bagBalance={bagBalance} />
+        <SpotsClient spots={allSpots} balance60={balance60} balance90={balance90} />
       )}
     </div>
   )

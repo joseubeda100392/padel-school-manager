@@ -12,6 +12,7 @@ interface Spot {
   dayLabel: string
   startTime: string
   endTime: string
+  durationMin: number
   courtName: string
   coachName: string | null
   maxStudents: number
@@ -19,7 +20,7 @@ interface Spot {
   enrolledCount: number | null
 }
 
-function SpotCard({ spot, bagBalance }: { spot: Spot; bagBalance: number }) {
+function SpotCard({ spot, balance60, balance90 }: { spot: Spot; balance60: number; balance90: number }) {
   const router = useRouter()
   const [booking, setBooking] = useState(false)
   const [booked, setBooked] = useState(false)
@@ -29,9 +30,11 @@ function SpotCard({ spot, bagBalance }: { spot: Spot; bagBalance: number }) {
     weekday: 'long', day: 'numeric', month: 'long',
   })
 
-  const freePlaces = spot.enrolledCount !== null
-    ? spot.maxStudents - spot.enrolledCount
-    : 1
+  const freePlaces = spot.enrolledCount !== null ? spot.maxStudents - spot.enrolledCount : 1
+  const durationType: '60' | '90' = spot.durationMin >= 80 ? '90' : '60'
+  const hasBalance = durationType === '90'
+    ? balance90 > 0
+    : balance60 > 0 || balance90 > 0
 
   async function handleUseBag() {
     if (!confirm(`¿Confirmas que quieres usar 1 clase de tu bolsa para el ${dateLabel}?`)) return
@@ -96,7 +99,7 @@ function SpotCard({ spot, bagBalance }: { spot: Spot; bagBalance: number }) {
           )}
         </div>
         <div className="flex flex-col items-end gap-2">
-          {bagBalance > 0 ? (
+          {hasBalance ? (
             <button
               onClick={handleUseBag}
               disabled={booking}
@@ -113,7 +116,10 @@ function SpotCard({ spot, bagBalance }: { spot: Spot; bagBalance: number }) {
               className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
             />
           )}
-          {bagBalance === 0 && (
+          {!hasBalance && durationType === '90' && (balance60 > 0) && (
+            <p className="text-xs text-orange-600">Tu bono es de 60min — no válido para 1h 30min</p>
+          )}
+          {!hasBalance && balance60 === 0 && balance90 === 0 && (
             <p className="text-xs text-gray-400">Sin saldo en bolsa</p>
           )}
         </div>
@@ -123,13 +129,18 @@ function SpotCard({ spot, bagBalance }: { spot: Spot; bagBalance: number }) {
   )
 }
 
-export function SpotsClient({ spots, bagBalance }: { spots: Spot[]; bagBalance: number }) {
+export function SpotsClient({ spots, balance60, balance90 }: { spots: Spot[]; balance60: number; balance90: number }) {
+  const totalBalance = balance60 + balance90
   return (
     <div className="space-y-4">
-      {bagBalance > 0 && (
+      {totalBalance > 0 && (
         <div className="rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
           <p className="text-sm text-orange-700">
-            Tienes <span className="font-bold">{bagBalance}</span> clase{bagBalance !== 1 ? 's' : ''} en tu bolsa — úsalas para apuntarte a un hueco libre.
+            Tu bolsa:{' '}
+            {balance60 > 0 && <span><span className="font-bold">{balance60}</span> de 1h</span>}
+            {balance60 > 0 && balance90 > 0 && ' · '}
+            {balance90 > 0 && <span><span className="font-bold">{balance90}</span> de 1h 30min</span>}
+            {' — úsalas para apuntarte a un hueco libre.'}
           </p>
         </div>
       )}
@@ -137,7 +148,8 @@ export function SpotsClient({ spots, bagBalance }: { spots: Spot[]; bagBalance: 
         <SpotCard
           key={`${spot.spotType}-${spot.exclusionId ?? spot.scheduleId}-${spot.excludedDate}`}
           spot={spot}
-          bagBalance={bagBalance}
+          balance60={balance60}
+          balance90={balance90}
         />
       ))}
     </div>
