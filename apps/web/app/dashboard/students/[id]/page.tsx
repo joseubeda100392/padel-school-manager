@@ -30,10 +30,13 @@ const statusLabel: Record<string, string> = {
 }
 
 const typeLabel: Record<string, string> = {
-  subscription: 'Suscripción',
-  pay_per_class: 'Clase suelta',
-  bag_pack: 'Bono de clases',
-  manual: 'Manual',
+  fixed_group_month: 'Cuota mensual',
+  single_class:      'Clase suelta',
+  class_pack:        'Bono de clases',
+  manual:            'Manual',
+  subscription:      'Suscripción',
+  pay_per_class:     'Clase suelta',
+  bag_pack:          'Bono de clases',
 }
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
