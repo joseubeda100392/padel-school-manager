@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Student Portal - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-fixed": "#ffd9de",
+                      "background": "#f8f9ff",
+                      "tertiary-fixed-dim": "#ffb2bf",
+                      "on-primary-fixed-variant": "#005320",
+                      "on-tertiary-fixed-variant": "#8a143c",
+                      "secondary-fixed": "#89f5e7",
+                      "surface-bright": "#f8f9ff",
+                      "primary": "#006b2c",
+                      "outline": "#6e7b6c",
+                      "on-surface-variant": "#3e4a3d",
+                      "surface-container-low": "#eff4ff",
+                      "on-secondary": "#ffffff",
+                      "secondary-fixed-dim": "#6bd8cb",
+                      "inverse-primary": "#62df7d",
+                      "on-secondary-fixed": "#00201d",
+                      "on-error": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-container": "#006f66",
+                      "on-primary-container": "#f7fff2",
+                      "primary-fixed": "#7ffc97",
+                      "inverse-on-surface": "#eaf1ff",
+                      "tertiary-container": "#c74668",
+                      "surface-variant": "#d3e4fe",
+                      "on-primary-fixed": "#002109",
+                      "surface-container-high": "#dce9ff",
+                      "outline-variant": "#bdcaba",
+                      "on-tertiary-container": "#fffbff",
+                      "tertiary": "#a72d51",
+                      "surface-container-highest": "#d3e4fe",
+                      "surface-dim": "#cbdbf5",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed": "#3f0016",
+                      "on-background": "#0b1c30",
+                      "error": "#ba1a1a",
+                      "primary-fixed-dim": "#62df7d",
+                      "secondary": "#006a61",
+                      "on-error-container": "#93000a",
+                      "inverse-surface": "#213145",
+                      "secondary-container": "#86f2e4",
+                      "primary-container": "#00873a",
+                      "on-secondary-fixed-variant": "#005049",
+                      "surface-container": "#e5eeff",
+                      "error-container": "#ffdad6",
+                      "surface-tint": "#006e2d",
+                      "surface": "#f8f9ff",
+                      "on-surface": "#0b1c30"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "xl": "40px",
+                      "lg": "24px",
+                      "md": "16px",
+                      "base": "4px",
+                      "xs": "4px",
+                      "margin-desktop": "32px",
+                      "sm": "8px",
+                      "margin-mobile": "16px",
+                      "gutter": "16px"
+              },
+              "fontFamily": {
+                      "headline-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "subtitle-lg": ["Inter"],
+                      "subtitle-md": ["Inter"],
+                      "headline-lg-mobile": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["14px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "subtitle-lg": ["18px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                      "subtitle-md": ["16px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+        /* Ambient Background Pattern */
+        body {
+            background-color: theme('colors.background');
+            background-image: linear-gradient(45deg, theme('colors.surface-container-low') 25%, transparent 25%, transparent 75%, theme('colors.surface-container-low') 75%, theme('colors.surface-container-low')), linear-gradient(45deg, theme('colors.surface-container-low') 25%, transparent 25%, transparent 75%, theme('colors.surface-container-low') 75%, theme('colors.surface-container-low'));
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid theme('colors.outline-variant');
+        }
+
+        .court-line {
+            background-image: repeating-linear-gradient(
+                90deg,
+                theme('colors.outline-variant'),
+                theme('colors.outline-variant') 1px,
+                transparent 1px,
+                transparent 40px
+            );
+        }
+    </style>
+</head>
+<body class="text-on-background font-body-md antialiased min-h-screen pt-16">
+<!-- TopAppBar Shared Component -->
+<nav class="bg-surface-container-lowest fixed top-0 w-full z-50 border-b border-outline-variant shadow-sm flex justify-between items-center h-16 px-margin-desktop max-w-full">
+<div class="flex items-center gap-xl">
+<div class="text-headline-md font-headline-md font-bold text-primary">
+                Padel Pro
+            </div>
+<!-- Navigation Links (Desktop) -->
+<div class="hidden md:flex gap-lg">
+<a class="text-primary border-b-2 border-primary pb-base font-subtitle-md text-subtitle-md" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low px-md py-sm rounded-lg transition-all font-subtitle-md text-subtitle-md" href="#">My Schedule</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low px-md py-sm rounded-lg transition-all font-subtitle-md text-subtitle-md" href="#">Trainings</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low px-md py-sm rounded-lg transition-all font-subtitle-md text-subtitle-md" href="#">Results</a>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-on-surface-variant hover:bg-surface-container-low p-sm rounded-full transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low p-sm rounded-full transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">help</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden border border-outline-variant ml-sm">
+<img alt="Student Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJHCEXc_0EthqU5Pvy9PGQvMXKXlIx1y0SdvAiRl9SFGEot6GJ1equ35WrQWDKHH_TGhTMqSIJUqfgibwRDnIin7Bifqq04foCancPixYMloM2z_3YOZRRdd1Kq8fCQXgUWWrdTkMa1sHGywOScsRGDR-_GDrR2r-kzpII7HoFERKNtCwgFLFKzNqfRgsrAdQ037nbzzHA9ovWHIdMYvA0FBAmvKR-F6swAdH3ao1U7GXEE3yJwToCcW62-xsmfhhCjJ2sL1vLQtk"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="max-w-[1440px] mx-auto px-margin-mobile md:px-margin-desktop py-xl">
+<!-- Greeting & Alert Area -->
+<div class="mb-xl flex flex-col gap-md">
+<h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background">
+                Hola, Carlos 👋
+            </h1>
+<!-- Pending Payment Alert -->
+<div class="bg-error-container border border-error rounded-xl p-md flex items-start gap-md shadow-sm">
+<span class="material-symbols-outlined text-error mt-1" style="font-variation-settings: 'FILL' 1;">error</span>
+<div class="flex-1">
+<h3 class="font-subtitle-md text-subtitle-md text-on-error-container">Pending Payment</h3>
+<p class="font-body-md text-body-md text-on-error-container opacity-90 mt-xs">You have an outstanding balance for the upcoming Advanced Tactics clinic.</p>
+</div>
+<button class="bg-error text-on-error px-md py-sm rounded-lg font-label-sm text-label-sm hover:opacity-90 transition-opacity">
+                    Pay Now
+                </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-4 md:grid-cols-12 gap-gutter">
+<!-- Next Class (Hero Card) -->
+<div class="col-span-4 md:col-span-8 glass-card rounded-xl p-lg flex flex-col justify-between relative overflow-hidden group min-h-[320px]">
+<!-- Decorative background image with gradient overlay -->
+<div class="absolute inset-0 z-0">
+<img alt="Padel Court" class="w-full h-full object-cover opacity-20" data-alt="A dynamic action shot of a professional padel player mid-swing on a bright, modern court. The lighting is crisp and natural, highlighting the intense focus and athletic energy. The scene uses a high-contrast palette of deep greens and bright whites, aligning with a premium sports aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7rXPx-_Y3swYfZdI8gfxIRr2NQUh6Yqu9AjgzAruJbFebxNjHKlobcAWSZSAdezwRQqkMgeUvSxcsrlwAzaBdf15LffT7svMGgiatYfNU16Qu1J6fkwUf8grF9mu95B46Y2pWZlR3I2J-i-BteXMenEfh9wN0fm2Aj80Ex-Z99z7KOC2Q7aV2l6-SQpGi1mIUdwUQfERarJjUKjbDL-dpnAt4hcdg9-VyD0SKa-J7kWgRbPfVhL4fpcQ3OsAlXRDxNXS_LtHltmk"/>
+<div class="absolute inset-0 bg-gradient-to-r from-surface-container-lowest to-transparent"></div>
+</div>
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-lg">
+<span class="bg-primary-container text-on-primary-container px-sm py-xs rounded-full font-label-sm text-label-sm inline-flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">event</span> Next Class
+                        </span>
+<span class="bg-surface-variant text-on-surface-variant px-sm py-xs rounded-full font-label-sm text-label-sm">
+                            Court 2
+                        </span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-background mb-xs">Advanced Volley Techniques</h2>
+<p class="font-subtitle-md text-subtitle-md text-on-surface-variant mb-xl">with Coach Martinez</p>
+</div>
+<div class="relative z-10 flex items-end justify-between mt-auto">
+<div>
+<p class="font-label-sm text-label-sm text-outline uppercase tracking-wider mb-xs">Starts In</p>
+<div class="flex items-baseline gap-xs">
+<span class="font-headline-lg text-headline-lg text-primary">02</span>
+<span class="font-body-md text-body-md text-on-surface-variant">h</span>
+<span class="font-headline-lg text-headline-lg text-primary">45</span>
+<span class="font-body-md text-body-md text-on-surface-variant">m</span>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-lg py-sm rounded-lg font-subtitle-md text-subtitle-md hover:bg-surface-tint transition-colors shadow-sm">
+                        Check In
+                    </button>
+</div>
+</div>
+<!-- My Level -->
+<div class="col-span-4 md:col-span-4 glass-card rounded-xl p-lg flex flex-col items-center justify-center text-center">
+<h3 class="font-subtitle-lg text-subtitle-lg text-on-surface-variant mb-md w-full text-left border-b border-outline-variant pb-xs">My Level</h3>
+<div class="relative w-32 h-32 flex items-center justify-center mb-md mt-md">
+<svg class="absolute inset-0 w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<circle class="text-surface-container-high" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-dasharray="282.7" stroke-dashoffset="70" stroke-width="8"></circle>
+</svg>
+<div class="flex flex-col items-center">
+<span class="font-headline-lg text-headline-lg text-on-background">4.5</span>
+<span class="font-label-sm text-label-sm text-outline uppercase">Rating</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Top 15% in your club.</p>
+<button class="mt-md text-primary font-subtitle-md text-subtitle-md hover:underline flex items-center gap-xs">
+                    View Progress <span class="material-symbols-outlined text-[18px]">trending_up</span>
+</button>
+</div>
+<!-- Voucher Balance -->
+<div class="col-span-4 md:col-span-6 glass-card rounded-xl p-lg">
+<div class="flex justify-between items-center mb-md border-b border-outline-variant pb-xs">
+<h3 class="font-subtitle-lg text-subtitle-lg text-on-surface-variant">My Voucher Balance</h3>
+<span class="material-symbols-outlined text-outline">account_balance_wallet</span>
+</div>
+<div class="flex items-baseline gap-sm mb-lg">
+<span class="font-headline-lg text-headline-lg text-on-background">12</span>
+<span class="font-body-md text-body-md text-on-surface-variant">classes remaining</span>
+</div>
+<div class="w-full bg-surface-container-high rounded-full h-2 mb-sm overflow-hidden">
+<div class="bg-primary h-2 rounded-full" style="width: 60%"></div>
+</div>
+<div class="flex justify-between font-label-sm text-label-sm text-outline">
+<span>Used: 8</span>
+<span>Total: 20</span>
+</div>
+<button class="w-full mt-lg bg-surface-container border border-outline-variant text-on-surface px-md py-sm rounded-lg font-subtitle-md text-subtitle-md hover:bg-surface-container-high transition-colors">
+                    Purchase More
+                </button>
+</div>
+<!-- Available Spots -->
+<div class="col-span-4 md:col-span-6 glass-card rounded-xl p-lg">
+<div class="flex justify-between items-center mb-md border-b border-outline-variant pb-xs">
+<h3 class="font-subtitle-lg text-subtitle-lg text-on-surface-variant">Last Minute Spots</h3>
+<span class="material-symbols-outlined text-outline">bolt</span>
+</div>
+<div class="flex flex-col gap-sm">
+<!-- Spot Item -->
+<div class="flex items-center justify-between p-sm hover:bg-surface-container-lowest rounded-lg transition-colors border border-transparent hover:border-outline-variant cursor-pointer group">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-sm text-label-sm">
+                                18:00
+                            </div>
+<div>
+<p class="font-subtitle-md text-subtitle-md text-on-background">Intermediate Mix</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">Today • Court 4</p>
+</div>
+</div>
+<span class="text-primary font-subtitle-md text-subtitle-md group-hover:scale-110 transition-transform">Book</span>
+</div>
+<!-- Spot Item -->
+<div class="flex items-center justify-between p-sm hover:bg-surface-container-lowest rounded-lg transition-colors border border-transparent hover:border-outline-variant cursor-pointer group">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded bg-secondary-container text-on-secondary-container flex items-center justify-center font-label-sm text-label-sm">
+                                20:30
+                            </div>
+<div>
+<p class="font-subtitle-md text-subtitle-md text-on-background">Serve Clinic</p>
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">Tomorrow • Court 1</p>
+</div>
+</div>
+<span class="text-primary font-subtitle-md text-subtitle-md group-hover:scale-110 transition-transform">Book</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

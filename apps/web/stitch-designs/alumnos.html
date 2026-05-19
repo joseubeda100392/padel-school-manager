@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<title>Gestión de Alumnos | Padel Pro</title>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#0b1c30",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#213145",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#89f5e7",
+                        "on-primary-fixed-variant": "#005320",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "tertiary-container": "#c74668",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#006f66",
+                        "surface-tint": "#006e2d",
+                        "primary-fixed-dim": "#62df7d",
+                        "outline-variant": "#bdcaba",
+                        "background": "#f8f9ff",
+                        "on-secondary-fixed": "#00201d",
+                        "on-primary-fixed": "#002109",
+                        "on-tertiary-container": "#fffbff",
+                        "secondary": "#006a61",
+                        "surface": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "primary": "#006b2c",
+                        "primary-fixed": "#7ffc97",
+                        "primary-container": "#00873a",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#f7fff2",
+                        "tertiary-fixed-dim": "#ffb2bf",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "on-tertiary-fixed-variant": "#8a143c",
+                        "secondary-container": "#86f2e4",
+                        "surface-container-low": "#eff4ff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#3f0016",
+                        "surface-bright": "#f8f9ff",
+                        "surface-container-high": "#dce9ff",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#005049",
+                        "outline": "#6e7b6c",
+                        "on-surface-variant": "#3e4a3d",
+                        "inverse-primary": "#62df7d",
+                        "tertiary-fixed": "#ffd9de",
+                        "tertiary": "#a72d51",
+                        "on-primary": "#ffffff",
+                        "on-background": "#0b1c30"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xl": "40px",
+                        "md": "16px",
+                        "gutter": "16px",
+                        "base": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "subtitle-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "subtitle-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "subtitle-lg": ["18px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                        "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "subtitle-md": ["16px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .court-pattern {
+            background-color: #f8f9ff;
+            background-image: radial-gradient(#bdcaba 0.5px, transparent 0.5px), radial-gradient(#bdcaba 0.5px, #f8f9ff 0.5px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            opacity: 0.4;
+        }
+        /* Custom subtle focus and transitions */
+        .search-container:focus-within {
+            box-shadow: 0 0 0 2px rgba(0, 110, 45, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- Admin SideNav -->
+<aside class="fixed left-0 top-0 h-screen w-[264px] bg-surface-container-lowest border-r border-outline-variant flex flex-col py-xl px-md z-40">
+<div class="mb-xl px-md">
+<h1 class="text-headline-md font-headline-md font-bold text-on-surface">Padel Pro</h1>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Admin Console</p>
+</div>
+<nav class="flex-1 flex flex-col gap-base">
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container transition-colors duration-200 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container transition-colors duration-200 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">business_center</span>
+<span class="font-body-md text-body-md">Clubs</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container transition-colors duration-200 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">sports_tennis</span>
+<span class="font-body-md text-body-md">Courts</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container transition-colors duration-200 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">badge</span>
+<span class="font-body-md text-body-md">Coaches</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container text-on-secondary-container rounded-lg active:scale-95 transition-transform" href="/dashboard/students">
+<span class="material-symbols-outlined">group</span>
+<span class="font-body-md text-body-md">Students</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container transition-colors duration-200 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined">event</span>
+<span class="font-body-md text-body-md">Bookings</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-base pt-md border-t border-outline-variant">
+<button class="mb-md w-full py-sm bg-primary text-on-primary rounded-lg font-subtitle-md text-subtitle-md hover:brightness-110 transition-all active:scale-95 shadow-sm">
+                New Booking
+            </button>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md text-body-md">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[264px] min-h-screen p-margin-desktop relative">
+<div class="absolute inset-0 court-pattern -z-10 pointer-events-none"></div>
+<!-- Section Header -->
+<header class="flex flex-col lg:flex-row lg:items-center justify-between gap-md mb-xl">
+<div>
+<nav class="flex items-center gap-xs text-on-surface-variant mb-base">
+<span class="text-label-sm font-label-sm">Dashboard</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-label-sm font-label-sm text-primary">Alumnos</span>
+</nav>
+<div class="flex items-center gap-sm">
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Gestión de Alumnos</h2>
+<span class="bg-surface-container-high text-on-surface-variant px-sm py-xs rounded-full text-[11px] font-bold uppercase tracking-wider">1,284 Total</span>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="flex items-center gap-sm px-md py-[10px] bg-white border border-outline-variant text-on-surface-variant rounded-lg hover:border-outline hover:bg-surface-container-low transition-all font-subtitle-md text-subtitle-md shadow-sm">
+<span class="material-symbols-outlined text-lg">download</span>
+                    Importar Excel
+                </button>
+<button class="flex items-center gap-sm px-lg py-[10px] bg-primary text-on-primary rounded-lg hover:brightness-110 transition-all shadow-md active:scale-[0.98] font-subtitle-md text-subtitle-md">
+<span class="material-symbols-outlined text-lg">person_add</span>
+                    Nuevo usuario
+                </button>
+</div>
+</header>
+<!-- Bento Filters & Controls -->
+<section class="flex flex-col md:flex-row gap-md mb-lg">
+<div class="flex-1 search-container bg-white p-base border border-outline-variant rounded-xl flex items-center transition-all duration-200">
+<span class="material-symbols-outlined text-on-surface-variant ml-sm text-xl">search</span>
+<input class="w-full border-none focus:ring-0 bg-transparent text-body-md font-body-md px-sm placeholder:text-on-surface-variant/50" placeholder="Buscar por nombre, email o DNI..." type="text"/>
+</div>
+<div class="flex items-center gap-base">
+<select class="bg-white border border-outline-variant rounded-lg px-md py-sm text-body-md font-body-md text-on-surface-variant focus:border-primary focus:ring-0 transition-all cursor-pointer hover:border-outline appearance-none pr-8 relative bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%236e7b6c%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[right_8px_center] bg-no-repeat">
+<option>Todos los roles</option>
+<option>Admin</option>
+<option>Coach</option>
+<option>Student</option>
+</select>
+<select class="bg-white border border-outline-variant rounded-lg px-md py-sm text-body-md font-body-md text-on-surface-variant focus:border-primary focus:ring-0 transition-all cursor-pointer hover:border-outline appearance-none pr-8 relative bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%236e7b6c%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[right_8px_center] bg-no-repeat">
+<option>Niveles</option>
+<option>Principiante</option>
+<option>Intermedio</option>
+<option>Avanzado</option>
+<option>Pro</option>
+</select>
+<button class="flex items-center gap-xs px-md py-sm bg-white border border-outline-variant text-on-surface-variant rounded-lg hover:border-outline transition-all font-label-sm text-label-sm uppercase tracking-wider">
+<span class="material-symbols-outlined text-lg">tune</span>
+                    Filtros
+                </button>
+</div>
+</section>
+<!-- Students Table -->
+<div class="bg-white border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/30 border-b border-outline-variant">
+<th class="px-lg py-md text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.1em]">Usuario</th>
+<th class="px-lg py-md text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.1em]">Email</th>
+<th class="px-lg py-md text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.1em]">Rol</th>
+<th class="px-lg py-md text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.1em]">Nivel</th>
+<th class="px-lg py-md text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.1em]">Estado</th>
+<th class="px-lg py-md text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.1em] text-center">Verificado</th>
+<th class="px-lg py-md text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.1em]">Registro</th>
+<th class="px-lg py-md text-right"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/40">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/20 transition-all duration-150 group cursor-pointer">
+<td class="px-lg py-md">
+<div class="flex items-center gap-md">
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover border border-outline-variant/30" data-alt="Carlos Ruiz" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBc7FtBdZbguljTVZ4au8PJZLeC8yEwQsrPlQ3MYQfUT9GGgNh-_p4xzsskyKjEm9qVGqqtRpwwzmn6AVorZ68A7q8yR9qiDyhp2nByZ_ZZ-p5vMzX2NkXyfDOUGGS7QNwMj0-i6lD6TFTcejU0E9DxRbjbyhVf7xk-qBuZ_5rfYGhEiTjgMe873D9mtCWD8HeqWY9qGwlpRJHnMs4ZtfKvRu9_u5ewPUCJqFgkxkvCN08NfW3-yzOdSiRT5UKfXcxpMCUdBL_ol0M"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-primary border-2 border-white rounded-full"></div>
+</div>
+<div>
+<p class="font-subtitle-md text-subtitle-md text-on-surface">Carlos Ruiz</p>
+<p class="text-[11px] text-on-surface-variant/70 font-medium">#ST-8921</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-md text-body-md text-on-surface-variant">carlos.ruiz@email.com</td>
+<td class="px-lg py-md">
+<span class="bg-blue-50 text-blue-600 px-sm py-1 rounded-full text-[11px] font-semibold border border-blue-100">ALUMNO</span>
+</td>
+<td class="px-lg py-md">
+<span class="bg-orange-50 text-orange-600 px-sm py-1 rounded-full text-[11px] font-semibold border border-orange-100">INTERMEDIO</span>
+</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<span class="w-[6px] h-[6px] rounded-full bg-primary shadow-[0_0_4px_rgba(0,110,45,0.4)]"></span>
+<span class="text-body-md text-on-surface">Activo</span>
+</div>
+</td>
+<td class="px-lg py-md text-center">
+<span class="material-symbols-outlined text-primary/80 text-xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+</td>
+<td class="px-lg py-md text-body-md text-on-surface-variant">12 Oct 2023</td>
+<td class="px-lg py-md text-right">
+<button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-all">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/20 transition-all duration-150 group cursor-pointer">
+<td class="px-lg py-md">
+<div class="flex items-center gap-md">
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover border border-outline-variant/30" data-alt="Lucía Méndez" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3VqB6JmHaKOvY_AkhIC6MeE8IIg_3z-5rNm0ZwOCkJGf_-ROObXMkfiEzUna183k6wZJlT8CQclVNxGKwQgc9FTekoglRehzMCJHjGSoOPbia6gQy-tn7-GDjRDaZUt2p7YEVInbyOG0C5rmdLzm2_dlFjFA--y6S6G05fMQaf1xv9xto8w9EJ6v8Q7s361YOt-AezigVwWiR3MY8nwL2hGEk6I4jVVqNS0GfcqMNp5G7xrrmtEUBh7RqqhauUPqP5R_JG3IUSio"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-primary border-2 border-white rounded-full"></div>
+</div>
+<div>
+<p class="font-subtitle-md text-subtitle-md text-on-surface">Lucía Méndez</p>
+<p class="text-[11px] text-on-surface-variant/70 font-medium">#ST-8922</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-md text-body-md text-on-surface-variant">l.mendez@sports.es</td>
+<td class="px-lg py-md">
+<span class="bg-blue-50 text-blue-600 px-sm py-1 rounded-full text-[11px] font-semibold border border-blue-100">ALUMNO</span>
+</td>
+<td class="px-lg py-md">
+<span class="bg-emerald-50 text-emerald-600 px-sm py-1 rounded-full text-[11px] font-semibold border border-emerald-100">AVANZADO</span>
+</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<span class="w-[6px] h-[6px] rounded-full bg-primary shadow-[0_0_4px_rgba(0,110,45,0.4)]"></span>
+<span class="text-body-md text-on-surface">Activo</span>
+</div>
+</td>
+<td class="px-lg py-md text-center">
+<span class="material-symbols-outlined text-primary/80 text-xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+</td>
+<td class="px-lg py-md text-body-md text-on-surface-variant">15 Oct 2023</td>
+<td class="px-lg py-md text-right">
+<button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-all">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/20 transition-all duration-150 group cursor-pointer">
+<td class="px-lg py-md">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center border border-outline-variant/30 text-primary font-bold text-sm">
+                                        JD
+                                    </div>
+<div>
+<p class="font-subtitle-md text-subtitle-md text-on-surface">Javier Domínguez</p>
+<p class="text-[11px] text-on-surface-variant/70 font-medium">#ST-8923</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-md text-body-md text-on-surface-variant">javi.dom@gmail.com</td>
+<td class="px-lg py-md">
+<span class="bg-blue-50 text-blue-600 px-sm py-1 rounded-full text-[11px] font-semibold border border-blue-100">ALUMNO</span>
+</td>
+<td class="px-lg py-md">
+<span class="bg-slate-100 text-slate-600 px-sm py-1 rounded-full text-[11px] font-semibold border border-slate-200">PRINCIPIANTE</span>
+</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<span class="w-[6px] h-[6px] rounded-full bg-outline-variant"></span>
+<span class="text-body-md text-on-surface-variant">Inactivo</span>
+</div>
+</td>
+<td class="px-lg py-md text-center">
+<span class="material-symbols-outlined text-on-surface-variant/40 text-xl">cancel</span>
+</td>
+<td class="px-lg py-md text-body-md text-on-surface-variant">18 Oct 2023</td>
+<td class="px-lg py-md text-right">
+<button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-all">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/20 transition-all duration-150 group cursor-pointer">
+<td class="px-lg py-md">
+<div class="flex items-center gap-md">
+<div class="relative">
+<img class="w-10 h-10 rounded-full object-cover border border-outline-variant/30" data-alt="Ricardo Soto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWHTfpAke-9IzZKFhuDPKaOO3SVzXRUqNhwWyg9ypQngU_HG-h9IqfDR02j6qHmSZtVBYxi4Fm_KFALfqfpoOWTGFPBUlDH41xp-8v5-8nol7pPIoy0O-mTvHxaU5wvazGEqRmekMqIkK6WwIKyjuPcNZk5JeSlb7_igiPkb2RANHC4ZLbevwuU9MJk95dXDB6RFpvdII_zV-OGvNbXGx2_y9E4xsdDZNHjzGTgZsYL4Ul1pKe9C-9G4fHR5eAWr50swlmVFNI-l0"/>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-primary border-2 border-white rounded-full"></div>
+</div>
+<div>
+<p class="font-subtitle-md text-subtitle-md text-on-surface">Ricardo Soto</p>
+<p class="text-[11px] text-on-surface-variant/70 font-medium">#ST-8924</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-md text-body-md text-on-surface-variant">r.soto@padelpro.com</td>
+<td class="px-lg py-md">
+<span class="bg-purple-50 text-purple-600 px-sm py-1 rounded-full text-[11px] font-semibold border border-purple-100">COACH</span>
+</td>
+<td class="px-lg py-md">
+<span class="bg-rose-50 text-rose-600 px-sm py-1 rounded-full text-[11px] font-semibold border border-rose-100">PRO</span>
+</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-sm">
+<span class="w-[6px] h-[6px] rounded-full bg-primary shadow-[0_0_4px_rgba(0,110,45,0.4)]"></span>
+<span class="text-body-md text-on-surface">Activo</span>
+</div>
+</td>
+<td class="px-lg py-md text-center">
+<span class="material-symbols-outlined text-primary/80 text-xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+</td>
+<td class="px-lg py-md text-body-md text-on-surface-variant">20 Oct 2023</td>
+<td class="px-lg py-md text-right">
+<button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-all">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<footer class="px-lg py-lg flex flex-col sm:flex-row items-center justify-between border-t border-outline-variant/30 bg-white gap-md">
+<p class="text-body-md text-on-surface-variant/60">
+                    Mostrando <span class="font-semibold text-on-surface">1-10</span> de <span class="font-semibold text-on-surface">1,284</span> alumnos
+                </p>
+<div class="flex items-center gap-base">
+<button class="w-9 h-9 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<div class="flex items-center gap-1">
+<button class="w-9 h-9 flex items-center justify-center rounded-lg bg-primary text-on-primary font-semibold text-body-md shadow-sm">1</button>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all font-medium text-body-md">2</button>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all font-medium text-body-md">3</button>
+<span class="w-9 h-9 flex items-center justify-center text-on-surface-variant/40">...</span>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-all font-medium text-body-md">129</button>
+</div>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</footer>
+</div>
+</main>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Search bar visual feedback
+            const searchInput = document.querySelector('input[type="text"]');
+            searchInput.addEventListener('focus', () => {
+                searchInput.closest('.search-container').classList.add('border-primary', 'shadow-sm');
+            });
+            searchInput.addEventListener('blur', () => {
+                searchInput.closest('.search-container').classList.remove('border-primary', 'shadow-sm');
+            });
+
+            // Table row subtle interaction
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    row.querySelector('.material-symbols-outlined:last-child').classList.add('scale-110');
+                });
+                row.addEventListener('mouseleave', () => {
+                    row.querySelector('.material-symbols-outlined:last-child').classList.remove('scale-110');
+                });
+            });
+        });
+    </script>
+</body></html>

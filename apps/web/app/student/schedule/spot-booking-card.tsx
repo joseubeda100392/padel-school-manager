@@ -51,43 +51,44 @@ export function SpotBookingCard({ booking, cancellationHours }: { booking: SpotB
   }
 
   return (
-    <div className="rounded-xl bg-white shadow-sm p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="rounded-xl p-3.5 border-l-4" style={{background:'rgba(255,255,255,0.7)',border:'1px solid #bdcaba',borderLeft:'4px solid #006a61'}}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="font-semibold text-gray-900 capitalize">{dateLabel}</p>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-[13px] font-bold capitalize" style={{color:'#0b1c30'}}>{dateLabel}</p>
+          <p className="text-[11px] mt-0.5" style={{color:'#3e4a3d'}}>
             {s ? `${formatTime(new Date(s.start_time))} – ${formatTime(new Date(s.end_time))}` : ''} · {s?.court?.name ?? '—'}
-            {s?.coach?.name && <span className="text-gray-400"> · {s.coach.name}</span>}
+            {s?.coach?.name && <span style={{color:'#bdcaba'}}> · {s.coach.name}</span>}
           </p>
           {s?.level && (
             <span
-              className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+              className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
               style={{ backgroundColor: s.level.color }}
             >
               {s.level.name}
             </span>
           )}
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 shrink-0">
+        <div className="flex flex-col items-end gap-1.5">
+          <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{background:'rgba(0,106,97,0.1)',color:'#006a61'}}>
             Reservado
           </span>
           {canCancel ? (
             <button
               onClick={handleCancel}
               disabled={cancelling}
-              className="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+              className="rounded-lg px-2.5 py-1 text-[11px] font-semibold disabled:opacity-50 transition-colors hover:opacity-80"
+              style={{border:'1px solid rgba(220,38,38,0.3)',color:'#dc2626',background:'rgba(220,38,38,0.05)'}}
             >
               {cancelling ? '...' : 'Cancelar'}
             </button>
           ) : (
-            <span className="text-xs text-gray-400">
+            <span className="text-[10px]" style={{color:'#bdcaba'}}>
               Plazo cerrado ({cancellationHours}h)
             </span>
           )}
         </div>
       </div>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-[11px]" style={{color:'#dc2626'}}>{error}</p>}
     </div>
   )
 }

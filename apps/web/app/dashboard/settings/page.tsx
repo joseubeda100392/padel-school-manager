@@ -6,10 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 interface AppConfig {
   pay_per_class_price_60: number
   pay_per_class_price_90: number
-  pack_price_60: number
-  classes_per_pack_60: number
-  pack_price_90: number
-  classes_per_pack_90: number
   school_name: string
   cancellation_hours: number
 }
@@ -17,10 +13,6 @@ interface AppConfig {
 const defaults: AppConfig = {
   pay_per_class_price_60: 1200,
   pay_per_class_price_90: 1500,
-  pack_price_60: 9000,
-  classes_per_pack_60: 10,
-  pack_price_90: 12000,
-  classes_per_pack_90: 10,
   school_name: 'Mi Escuela de Pádel',
   cancellation_hours: 24,
 }
@@ -48,11 +40,21 @@ export default function SettingsPage() {
   const [redsysError, setRedsysError] = useState('')
   const [showSecretKey, setShowSecretKey] = useState(false)
 
+  type ClubPack = { id: string; name: string; duration_type: '60' | '90'; classes: number; price: number; is_enabled: boolean; sort_order: number }
+  const [packs, setPacks] = useState<ClubPack[]>([])
+  const [newPack, setNewPack] = useState<Omit<ClubPack, 'id' | 'sort_order'>>({ name: '', duration_type: '60', classes: 10, price: 9000, is_enabled: true })
+  const [addingPack, setAddingPack] = useState(false)
+  const [packAddError, setPackAddError] = useState('')
+  const [editingPackId, setEditingPackId] = useState<string | null>(null)
+  const [editingPack, setEditingPack] = useState<Partial<ClubPack>>({})
+  const [currentClubId, setCurrentClubId] = useState<string | null>(null)
+
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       const clubId = user?.user_metadata?.club_id ?? null
-      const [{ data: cfg }, { data: c }, { data: userData }] = await Promise.all([
+      setCurrentClubId(clubId)
+      const [{ data: cfg }, { data: c }, { data: userData }, { data: packsData }] = await Promise.all([
         supabase.from('app_config').select('key, value'),
         clubId
           ? supabase.from('courts').select('*').eq('club_id', clubId).order('name')
@@ -60,8 +62,12 @@ export default function SettingsPage() {
         user
           ? supabase.from('users').select('name, email, avatar_url').eq('id', user.id).single()
           : Promise.resolve({ data: null, error: null }),
+        clubId
+          ? supabase.from('club_packs').select('*').eq('club_id', clubId).order('sort_order').order('created_at')
+          : Promise.resolve({ data: [], error: null }),
       ])
       if (userData && user) setProfile({ id: user.id, ...userData })
+      if (packsData) setPacks(packsData as any)
       if (cfg) {
         const merged = { ...defaults }
         cfg.forEach((row: any) => {
@@ -215,6 +221,44 @@ export default function SettingsPage() {
     setTimeout(() => setRedsysSaved(false), 2000)
   }
 
+  async function addPack() {
+    if (!newPack.name.trim() || !currentClubId) return
+    setAddingPack(true)
+    setPackAddError('')
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('club_packs')
+      .insert({ ...newPack, name: newPack.name.trim(), club_id: currentClubId, sort_order: packs.length })
+      .select()
+      .single()
+    setAddingPack(false)
+    if (error) { setPackAddError(error.message); return }
+    setPacks(prev => [...prev, data as any])
+    setNewPack({ name: '', duration_type: '60', classes: 10, price: 9000, is_enabled: true })
+  }
+
+  async function togglePack(id: string, enabled: boolean) {
+    const supabase = createClient()
+    await supabase.from('club_packs').update({ is_enabled: !enabled }).eq('id', id)
+    setPacks(prev => prev.map(p => p.id === id ? { ...p, is_enabled: !enabled } : p))
+  }
+
+  async function saveEditPack(id: string) {
+    const supabase = createClient()
+    const { error } = await supabase.from('club_packs').update(editingPack).eq('id', id)
+    if (!error) {
+      setPacks(prev => prev.map(p => p.id === id ? { ...p, ...editingPack } : p))
+      setEditingPackId(null)
+    }
+  }
+
+  async function deletePack(id: string) {
+    if (!confirm('¿Eliminar este bono?')) return
+    const supabase = createClient()
+    await supabase.from('club_packs').delete().eq('id', id)
+    setPacks(prev => prev.filter(p => p.id !== id))
+  }
+
   if (loading) return <div className="text-gray-400">Cargando...</div>
 
   const initials = (profile?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -314,63 +358,149 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <h2 className="mb-4 font-semibold text-gray-900">Bonos de clases</h2>
+      </div>
 
-        <p className="mb-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Bono 1 hora</p>
-        <div className="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
-            <input
-              type="number" min={1}
-              value={config.classes_per_pack_60}
-              onChange={(e) => setConfig({ ...config, classes_per_pack_60: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
-            <div className="relative">
-              <input
-                type="number" min={0} step={0.5}
-                value={config.pack_price_60 / 100}
-                onChange={(e) => setConfig({ ...config, pack_price_60: Math.round(Number(e.target.value) * 100) })}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-              />
-              <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-            </div>
-          </div>
-        </div>
-        <p className="mb-5 text-xs text-gray-400">
-          Precio por clase: {config.classes_per_pack_60 > 0 ? ((config.pack_price_60 / config.classes_per_pack_60) / 100).toFixed(2) : '0.00'} €
-        </p>
+      {/* ── Bonos de clases (tabla club_packs) ── */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-1 font-semibold text-gray-900">Bonos de clases</h2>
+        <p className="mb-5 text-xs text-gray-400">Los bonos activos aparecen en la tienda del alumno. Puedes tener tantos como quieras.</p>
 
-        <p className="mb-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Bono 1h 30min</p>
-        <div className="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
-            <input
-              type="number" min={1}
-              value={config.classes_per_pack_90}
-              onChange={(e) => setConfig({ ...config, classes_per_pack_90: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
-            <div className="relative">
-              <input
-                type="number" min={0} step={0.5}
-                value={config.pack_price_90 / 100}
-                onChange={(e) => setConfig({ ...config, pack_price_90: Math.round(Number(e.target.value) * 100) })}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-              />
-              <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+        <div className="mb-4 space-y-2">
+          {packs.length === 0 && <p className="text-sm text-gray-400">No hay bonos. Añade el primero.</p>}
+          {packs.map(pack => (
+            <div key={pack.id} className="rounded-lg border border-gray-100 px-4 py-3">
+              {editingPackId === pack.id ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <input
+                      type="text" placeholder="Nombre del bono"
+                      value={editingPack.name ?? ''}
+                      onChange={e => setEditingPack(p => ({ ...p, name: e.target.value }))}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none col-span-2"
+                    />
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-500">Tipo</label>
+                      <select
+                        value={editingPack.duration_type ?? '60'}
+                        onChange={e => setEditingPack(p => ({ ...p, duration_type: e.target.value as '60' | '90' }))}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                      >
+                        <option value="60">1 hora (60 min)</option>
+                        <option value="90">1h 30min (90 min)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-500">Clases</label>
+                      <input type="number" min={1}
+                        value={editingPack.classes ?? 10}
+                        onChange={e => setEditingPack(p => ({ ...p, classes: Number(e.target.value) }))}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="relative">
+                      <label className="mb-1 block text-xs text-gray-500">Precio (€)</label>
+                      <input type="number" min={0} step={0.5}
+                        value={(editingPack.price ?? 0) / 100}
+                        onChange={e => setEditingPack(p => ({ ...p, price: Math.round(Number(e.target.value) * 100) }))}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none pr-7"
+                      />
+                      <span className="absolute right-2.5 bottom-1.5 text-xs text-gray-400">€</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => saveEditPack(pack.id)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">Guardar</button>
+                    <button onClick={() => setEditingPackId(null)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{pack.name}</p>
+                    <p className="text-xs text-gray-400">
+                      {pack.duration_type === '90' ? '1h 30min' : '1 hora'} · {pack.classes} clases · {(pack.price / 100).toFixed(2)} €
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => togglePack(pack.id, pack.is_enabled)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        pack.is_enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {pack.is_enabled ? 'Activo' : 'Inactivo'}
+                    </button>
+                    <button
+                      onClick={() => { setEditingPackId(pack.id); setEditingPack({ name: pack.name, duration_type: pack.duration_type, classes: pack.classes, price: pack.price }) }}
+                      className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => deletePack(pack.id)}
+                      className="rounded-lg border border-red-100 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          ))}
         </div>
-        <p className="mt-2 text-xs text-gray-400">
-          Precio por clase: {config.classes_per_pack_90 > 0 ? ((config.pack_price_90 / config.classes_per_pack_90) / 100).toFixed(2) : '0.00'} €
-        </p>
+
+        {/* Añadir nuevo bono */}
+        <div className="rounded-xl border border-dashed border-gray-200 p-4">
+          <p className="mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nuevo bono</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <input
+              type="text" placeholder="Nombre del bono (ej: Bono 10 clases 1h)"
+              value={newPack.name}
+              onChange={e => setNewPack(p => ({ ...p, name: e.target.value }))}
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none sm:col-span-2"
+            />
+            <div>
+              <label className="mb-1 block text-xs text-gray-500">Tipo de clase</label>
+              <select
+                value={newPack.duration_type}
+                onChange={e => setNewPack(p => ({ ...p, duration_type: e.target.value as '60' | '90' }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+              >
+                <option value="60">1 hora (60 min)</option>
+                <option value="90">1h 30min (90 min)</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-500">Nº de clases</label>
+              <input type="number" min={1}
+                value={newPack.classes}
+                onChange={e => setNewPack(p => ({ ...p, classes: Number(e.target.value) }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+              />
+            </div>
+            <div className="relative">
+              <label className="mb-1 block text-xs text-gray-500">Precio (€)</label>
+              <input type="number" min={0} step={0.5}
+                value={newPack.price / 100}
+                onChange={e => setNewPack(p => ({ ...p, price: Math.round(Number(e.target.value) * 100) }))}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none pr-7"
+              />
+              <span className="absolute right-2.5 bottom-2 text-xs text-gray-400">€</span>
+            </div>
+            {newPack.classes > 0 && newPack.price > 0 && (
+              <p className="col-span-2 -mt-1 text-xs text-gray-400">
+                → {(newPack.price / newPack.classes / 100).toFixed(2)} € / clase
+              </p>
+            )}
+          </div>
+          {packAddError && <p className="mt-2 text-sm text-red-600">{packAddError}</p>}
+          <button
+            onClick={addPack}
+            disabled={addingPack || !newPack.name.trim()}
+            className="mt-3 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+          >
+            {addingPack ? 'Añadiendo...' : 'Añadir bono'}
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl bg-white p-6 shadow-sm">

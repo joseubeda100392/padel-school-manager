@@ -27,29 +27,32 @@ export default async function StudentsPage() {
   const levelMap = Object.fromEntries((levels ?? []).map((l: any) => [l.id, l]))
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-sm text-gray-500">{students?.length ?? 0} usuarios registrados</p>
-          {error && <p className="mt-1 text-xs text-red-500">Error: {error.message}</p>}
+          <nav className="mb-1 flex items-center gap-1 text-[12px] text-gray-400">
+            <span>Dashboard</span><span className="mx-1">/</span>
+            <span className="font-semibold text-[#006b2c]">Alumnos</span>
+          </nav>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[22px] font-extrabold text-gray-900 tracking-tight">Gestión de Alumnos</h1>
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-gray-500">
+              {students?.length ?? 0} total
+            </span>
+          </div>
+          {error && <p className="mt-1 text-[12px] text-red-500">Error: {error.message}</p>}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <a
-            href="/dashboard/students/import"
-            className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
-          >
+        <div className="flex flex-wrap items-center gap-2">
+          <a href="/dashboard/students/import"
+            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-gray-600 shadow-sm hover:bg-gray-50 transition-all">
             ↑ Importar Excel
           </a>
-          <a
-            href="/dashboard/students/new"
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-          >
+          <a href="/dashboard/students/new"
+            className="flex items-center gap-2 rounded-xl bg-[#006b2c] px-4 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-[#006b2c]/20 hover:bg-[#005320] transition-all active:scale-95">
             + Nuevo usuario
           </a>
         </div>
       </div>
-
       <StudentsTable students={students ?? []} levelMap={levelMap} />
     </div>
   )

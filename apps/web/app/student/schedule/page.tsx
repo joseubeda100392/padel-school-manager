@@ -1,12 +1,28 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
 import { SpotBookingCard } from './spot-booking-card'
+import { ScheduleSpotsPanel } from './schedule-spots-panel'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+const TZ = 'Europe/Madrid'
+
+function getNextDate(startTime: string): string {
+  const classDow = getDayOfWeek(new Date(startTime))
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const [sy, sm, sd] = todaySpain.split('-').map(Number)
+  const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
+  const nowHourSpain = parseInt(new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date()))
+  const classHourSpain = parseInt(new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date(startTime)))
+  let daysUntil = (classDow - todayDow + 7) % 7
+  if (daysUntil === 0 && nowHourSpain >= classHourSpain) daysUntil = 7
+  const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
+}
 
 function getUpcomingOccurrences(
   startTime: string,
@@ -43,7 +59,8 @@ export default async function StudentSchedulePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const todayISO = new Date().toISOString().split('T')[0]
 
   const { data: enrollments } = await getAdminClient()
     .from('group_enrollments')
@@ -64,11 +81,11 @@ export default async function StudentSchedulePage() {
         .from('schedule_exclusions')
         .select('id, group_enrollment_id, excluded_date, publish_spot')
         .in('group_enrollment_id', enrollmentIds)
-        .gte('excluded_date', today)
+        .gte('excluded_date', todayISO)
         .order('excluded_date')
     : { data: [] }
 
-  const [{ data: cfgRow }, { data: spotBookings }] = await Promise.all([
+  const [{ data: cfgRow }, { data: spotBookings }, { data: userRow }, { data: spotsRaw }, { data: schedulesRaw }, { data: bag }, { data: mySpotBookings }] = await Promise.all([
     getAdminClient().from('app_config').select('value').eq('key', 'cancellation_hours').single(),
     getAdminClient()
       .from('bookings')
@@ -85,9 +102,121 @@ export default async function StudentSchedulePage() {
       .not('class_date', 'is', null)
       .gte('class_date', (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })())
       .order('class_date'),
+    getAdminClient().from('users').select('current_level_id').eq('id', user.id).single(),
+    getAdminClient()
+      .from('schedule_exclusions')
+      .select(`
+        id, excluded_date,
+        group_enrollment:group_enrollments!group_enrollment_id(
+          schedule_id,
+          schedule:schedules!schedule_id(
+            id, start_time, end_time, max_students,
+            court:courts(name),
+            level:levels(id, name, color),
+            coach:users!schedules_coach_id_fkey(name)
+          )
+        )
+      `)
+      .eq('publish_spot', true)
+      .gte('excluded_date', today)
+      .order('excluded_date'),
+    getAdminClient()
+      .from('schedules')
+      .select(`
+        id, start_time, end_time, max_students,
+        court:courts(name),
+        level:levels(id, name, color),
+        coach:users!schedules_coach_id_fkey(name),
+        enrollments:group_enrollments(student_id, status)
+      `),
+    getAdminClient().from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
+    getAdminClient()
+      .from('bookings')
+      .select('schedule_id, class_date')
+      .eq('student_id', user.id)
+      .eq('status', 'confirmed')
+      .not('class_date', 'is', null),
   ])
 
   const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
+  const myLevelId: string | null = userRow?.current_level_id ?? null
+  const balance60 = bag?.balance_60 ?? 0
+  const balance90 = bag?.balance_90 ?? 0
+  const myScheduleIds = new Set((enrollments ?? []).map(e => (e.schedule as any)?.id).filter(Boolean))
+
+  // Absence spots
+  const absenceSpots = (spotsRaw ?? [])
+    .filter(s => {
+      const ge = s.group_enrollment as any
+      const schedule = ge?.schedule as any
+      const levelId = schedule?.level?.id ?? null
+      const levelOk = !myLevelId || !levelId || levelId === myLevelId
+      const alreadyBooked = (mySpotBookings ?? []).some(
+        b => b.schedule_id === ge?.schedule_id && b.class_date === s.excluded_date
+      )
+      return ge?.schedule_id && !myScheduleIds.has(ge.schedule_id) && levelOk && !alreadyBooked
+    })
+    .map(s => {
+      const ge = s.group_enrollment as any
+      const schedule = ge?.schedule
+      const startDt = new Date(schedule?.start_time)
+      const endDt = new Date(schedule?.end_time)
+      return {
+        spotType: 'absence' as const,
+        exclusionId: s.id,
+        excludedDate: s.excluded_date,
+        scheduleId: ge?.schedule_id,
+        dayLabel: DAYS[getDayOfWeek(startDt)],
+        startTime: formatTime(startDt),
+        endTime: formatTime(endDt),
+        durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
+        courtName: schedule?.court?.name ?? '—',
+        coachName: schedule?.coach?.name ?? null,
+        maxStudents: schedule?.max_students ?? 4,
+        level: schedule?.level ?? null,
+        enrolledCount: null,
+      }
+    })
+
+  // Capacity spots
+  const absenceScheduleIds = new Set(absenceSpots.map(s => s.scheduleId))
+  const capacitySpots = (schedulesRaw ?? [])
+    .filter(s => {
+      const enrollments2 = (s.enrollments ?? []) as any[]
+      const active = enrollments2.filter((e: any) => e.status === 'active')
+      const alreadyIn = active.some((e: any) => e.student_id === user.id)
+      const levelId = (s.level as any)?.id ?? null
+      const levelOk = !myLevelId || !levelId || levelId === myLevelId
+      const nextDate = getNextDate(s.start_time)
+      const alreadyBooked = (mySpotBookings ?? []).some(
+        b => b.schedule_id === s.id && b.class_date === nextDate
+      )
+      return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
+    })
+    .map(s => {
+      const enrollments2 = (s.enrollments ?? []) as any[]
+      const activeCount = enrollments2.filter((e: any) => e.status === 'active').length
+      const startDt = new Date(s.start_time)
+      const endDt = new Date(s.end_time)
+      return {
+        spotType: 'capacity' as const,
+        exclusionId: null,
+        excludedDate: getNextDate(s.start_time),
+        scheduleId: s.id,
+        dayLabel: DAYS[getDayOfWeek(startDt)],
+        startTime: formatTime(startDt),
+        endTime: formatTime(endDt),
+        durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
+        courtName: (s.court as any)?.name ?? '—',
+        coachName: (s.coach as any)?.name ?? null,
+        maxStudents: s.max_students,
+        level: s.level as any,
+        enrolledCount: activeCount,
+      }
+    })
+    .sort((a, b) => a.excludedDate.localeCompare(b.excludedDate))
+
+  const availableSpots = [...absenceSpots, ...capacitySpots]
 
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
@@ -114,8 +243,24 @@ export default async function StudentSchedulePage() {
     }
   })
 
+  // Week selector data
+  const today2 = new Date()
+  const dayOfWeek = today2.getDay() // 0=Sun
+  const monday = new Date(today2)
+  monday.setDate(today2.getDate() - ((dayOfWeek + 6) % 7))
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return {
+      label: ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'][i],
+      num: d.getDate(),
+      isToday: d.toDateString() === today2.toDateString(),
+    }
+  })
+  const weekLabel = `${monday.getDate()} ${monday.toLocaleDateString('es-ES',{month:'short'})} – ${new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+6).getDate()} ${new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+6).toLocaleDateString('es-ES',{month:'short'})} ${monday.getFullYear()}`
+
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="space-y-6">
       <RealtimeRefresh
         channelName={`student-schedule-${user.id}`}
         subs={[
@@ -124,52 +269,114 @@ export default async function StudentSchedulePage() {
           { table: 'group_enrollments', filter: `student_id=eq.${user.id}` },
         ]}
       />
-      <div>
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>
-          <p className="text-sm text-gray-500">Tus clases de grupo fijo</p>
-        </div>
 
-        {items.length === 0 ? (
-          <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-            <p className="text-gray-400">No estás inscrito en ninguna clase de grupo fijo.</p>
-            <p className="mt-1 text-xs text-gray-400">Habla con tu administrador para inscribirte.</p>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0b1c30'}}>Mi Agenda</h1>
+          <p className="text-[13px] mt-0.5" style={{color:'#3e4a3d'}}>Gestiona tus entrenamientos y descubre nuevas oportunidades de juego.</p>
+        </div>
+        <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold" style={{background:'rgba(0,107,44,0.08)',color:'#006b2c'}}>
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          {items.length} clase{items.length !== 1 ? 's' : ''} activa{items.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
+
+        {/* ── Columna principal ── */}
+        <div className="md:col-span-9 space-y-4">
+
+          {/* Tabs móvil */}
+          <div className="md:hidden flex p-1 rounded-xl gap-1" style={{background:'#eff4ff'}}>
+            <button className="flex-1 py-2 rounded-lg text-[12px] font-semibold shadow-sm" style={{background:'white',color:'#006b2c'}}>Mis Clases</button>
+            <Link href="/student/spots" className="flex-1 py-2 rounded-lg text-[12px] font-semibold text-center" style={{color:'#3e4a3d'}}>Sesiones</Link>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {items.map(item => (
+
+          {/* Week selector */}
+          <div className="rounded-2xl border p-4" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',borderColor:'#bdcaba'}}>
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <button className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-[#e5eeff]" style={{color:'#3e4a3d'}}>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              <span className="text-[12px] font-semibold text-center min-w-0 truncate" style={{color:'#0b1c30'}}>{weekLabel}</span>
+              <button className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-[#e5eeff]" style={{color:'#3e4a3d'}}>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+            <div className="grid grid-cols-7">
+              {weekDays.map((d) => (
+                <div key={d.label} className="flex flex-col items-center gap-1 py-1">
+                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide" style={{color:'#3e4a3d'}}>{d.label}</span>
+                  <span
+                    className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full text-[12px] sm:text-[13px] font-bold"
+                    style={d.isToday
+                      ? {background:'#006b2c',color:'white'}
+                      : {color:'#0b1c30'}}
+                  >{d.num}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Lista de clases */}
+          {items.length === 0 ? (
+            <div className="rounded-2xl border p-10 text-center" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',borderColor:'#bdcaba'}}>
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl" style={{background:'#eff4ff'}}>
+                <svg className="h-6 w-6" style={{color:'#bdcaba'}} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+              <p className="text-[13px] font-semibold" style={{color:'#3e4a3d'}}>No estás inscrito en ninguna clase de grupo fijo.</p>
+              <p className="mt-1 text-[12px]" style={{color:'#bdcaba'}}>Habla con tu administrador para inscribirte.</p>
+            </div>
+          ) : (
+            items.map(item => (
               <StudentScheduleClient
                 key={item.enrollmentId}
                 item={item}
                 cancellationHours={cancellationHours}
               />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {(spotBookings ?? []).length > 0 && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Reservas puntuales</h2>
-            <p className="text-sm text-gray-500">Huecos libres en los que estás apuntado</p>
-          </div>
-          <div className="space-y-3">
-            {(spotBookings ?? []).map(b => (
-              <SpotBookingCard
-                key={b.id}
-                booking={{
-                  id: b.id,
-                  class_date: b.class_date as string,
-                  source: b.source as string,
-                  schedule: b.schedule as any,
-                }}
-                cancellationHours={cancellationHours}
-              />
-            ))}
-          </div>
+            ))
+          )}
         </div>
-      )}
+
+        {/* ── Panel derecho ── */}
+        <div className="md:col-span-3 flex flex-col gap-4">
+
+          {/* Sesiones disponibles para reservar */}
+          <ScheduleSpotsPanel
+            spots={availableSpots}
+            balance60={balance60}
+            balance90={balance90}
+          />
+
+          {/* Reservas puntuales ya confirmadas */}
+          {(spotBookings ?? []).length > 0 && (
+            <div className="rounded-2xl border p-4" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',borderColor:'#bdcaba'}}>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[13px] font-extrabold" style={{color:'#0b1c30'}}>Mis reservas</h2>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{background:'rgba(0,107,44,0.1)',color:'#006b2c'}}>
+                  {(spotBookings ?? []).length}
+                </span>
+              </div>
+              <div className="space-y-2.5">
+                {(spotBookings ?? []).map(b => (
+                  <SpotBookingCard
+                    key={b.id}
+                    booking={{
+                      id: b.id,
+                      class_date: b.class_date as string,
+                      source: b.source as string,
+                      schedule: b.schedule as any,
+                    }}
+                    cancellationHours={cancellationHours}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
     </div>
   )
 }

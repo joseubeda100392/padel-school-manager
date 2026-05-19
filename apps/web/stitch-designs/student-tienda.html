@@ -1,0 +1,363 @@
+<!DOCTYPE html><html class="light" lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#006f66",
+                        "outline-variant": "#bdcaba",
+                        "tertiary-fixed": "#ffd9de",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "tertiary-fixed-dim": "#ffb2bf",
+                        "on-primary-container": "#f7fff2",
+                        "on-tertiary-fixed-variant": "#8a143c",
+                        "on-secondary-fixed": "#00201d",
+                        "surface-container": "#e5eeff",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#00873a",
+                        "primary-fixed-dim": "#62df7d",
+                        "on-tertiary-fixed": "#3f0016",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "secondary-fixed": "#89f5e7",
+                        "on-primary-fixed": "#002109",
+                        "tertiary": "#a72d51",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#0b1c30",
+                        "inverse-primary": "#62df7d",
+                        "tertiary-container": "#c74668",
+                        "surface-variant": "#d3e4fe",
+                        "surface-dim": "#cbdbf5",
+                        "on-secondary-fixed-variant": "#005049",
+                        "secondary": "#006a61",
+                        "primary-fixed": "#7ffc97",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#006e2d",
+                        "inverse-surface": "#213145",
+                        "outline": "#6e7b6c",
+                        "on-tertiary": "#ffffff",
+                        "background": "#f8f9ff",
+                        "primary": "#006b2c",
+                        "on-tertiary-container": "#fffbff",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#3e4a3d",
+                        "secondary-container": "#86f2e4",
+                        "on-background": "#0b1c30",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface": "#f8f9ff",
+                        "surface-container-low": "#eff4ff",
+                        "on-primary-fixed-variant": "#005320",
+                        "surface-container-highest": "#d3e4fe"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "sm": "8px",
+                        "gutter": "16px",
+                        "base": "4px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "xl": "40px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "subtitle-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "subtitle-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "subtitle-md": ["16px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                        "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "subtitle-lg": ["18px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .court-pattern {
+            background-color: #f8f9ff;
+            background-image: radial-gradient(#bdcaba 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-40 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm flex justify-between items-center h-16 px-margin-desktop ml-auto">
+<div class="flex items-center gap-lg">
+<span class="font-headline-md text-headline-md font-bold text-primary">PadelPro SaaS</span>
+<div class="hidden md:flex items-center gap-md ml-xl">
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-high/50 transition-colors px-md py-sm rounded-lg" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-high/50 transition-colors px-md py-sm rounded-lg" href="#">Pistas</a>
+<a class="text-primary font-bold border-b-2 border-primary px-md py-sm" href="#">Bonos</a>
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-high/50 transition-colors px-md py-sm rounded-lg" href="#">Mis Reservas</a>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="material-symbols-outlined text-on-surface-variant p-sm hover:bg-surface-container-high/50 rounded-full transition-colors" data-icon="notifications">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant p-sm hover:bg-surface-container-high/50 rounded-full transition-colors" data-icon="help_outline">help_outline</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional headshot of a young athletic woman with a friendly smile, set against a clean, minimalist studio background with soft lighting. The image has a modern, high-key aesthetic that aligns with a premium sports SaaS interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGQ263AEZ8EOHSttc9six2-KyGCYVo5sB9CpekiBGtMEaveewVg4euomNxYSYIlabtUuT34Vw_HrajE40wlLQy-NPRpaEJKfUHcp2dy4N4R9N_oBtYNer2bAkFQnOaAX5aQz8xEjD7DHdaPLHfehQgleFMUVDzUXXAIieLTMeU6vspEMZ73VuXIzYMSl5_STgcQyBwrSXkNnnZkgDgqZUzHn9TsZ-wdpQzTdNl0msD5daVK9mnCt94TKtJyOEG1P25LduSO08JHcg">
+</div>
+</div>
+</nav>
+<main class="pt-24 pb-xl px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto">
+<!-- Welcome & Balance Section -->
+<header class="mb-xl flex flex-col md:flex-row md:items-end justify-between gap-lg">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-xs">Tienda de Sesiones</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Gestiona tus créditos y reserva tu próxima clase en la Pro Academy. Elige el pack que mejor se adapte a tu ritmo de entrenamiento.</p>
+</div>
+<div class="bg-surface-container-highest rounded-xl p-lg flex items-center gap-lg border border-outline-variant shadow-sm">
+<div class="bg-primary-container p-md rounded-lg">
+<span class="material-symbols-outlined text-on-primary-container text-3xl" data-icon="confirmation_number">confirmation_number</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Saldo Actual</p>
+<p class="font-headline-md text-headline-md font-extrabold text-primary">08 Clases</p>
+</div>
+</div>
+</header>
+<!-- Pricing Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-xl">
+<!-- Individual Session -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col transition-all hover:shadow-md hover:-translate-y-1" style="transform: translateY(0px);">
+<div class="flex justify-between items-start mb-md">
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-md py-xs rounded-full">Básico</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-xs">Sesión Individual</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-lg flex-grow">Ideal para entrenamientos ocasionales o para probar nuestra metodología.</p>
+<div class="mb-lg">
+<span class="font-headline-lg text-headline-lg text-on-surface">25€</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ clase</span>
+</div>
+<ul class="space-y-sm mb-xl">
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span> 1 Sesión de 60 min</li>
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>Sesión adaptada a tus necesidades</li>
+<li class="flex items-center gap-sm text-body-md font-body-md text-on-surface-variant/50"><span class="material-symbols-outlined text-lg" data-icon="cancel">cancel</span> Sin reserva prioritaria</li>
+</ul>
+<button class="w-full bg-white border border-outline text-on-surface font-semibold py-md rounded-lg hover:bg-surface-container-high transition-colors active:scale-95">Comprar ahora</button>
+</div>
+<!-- 10 Class Pack (Popular) -->
+<div class="bg-surface-container-lowest border-2 border-primary rounded-xl p-lg flex flex-col transition-all shadow-lg relative overflow-hidden transform scale-105 z-10">
+<div class="absolute top-4 -right-8 bg-primary text-white font-label-sm text-label-sm px-10 py-1 rotate-45">POPULAR</div>
+<div class="flex justify-between items-start mb-md">
+<span class="bg-primary-container text-on-primary-container font-label-sm text-label-sm px-md py-xs rounded-full">Recomendado</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-xs">Bono 10 Clases</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-lg flex-grow">El equilibrio perfecto para jugadores regulares que buscan progresar.</p>
+<div class="mb-lg">
+<span class="font-headline-lg text-headline-lg text-on-surface">210€</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ pack</span>
+<div class="text-primary font-label-sm text-label-sm mt-xs">Ahorra 40€ vs individual</div>
+</div>
+<ul class="space-y-sm mb-xl">
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span> 10 Sesiones de 60 min</li>
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span> Reserva prioritaria (48h)</li>
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span> Válido por 3 meses</li>
+</ul>
+<button class="w-full bg-primary text-white font-semibold py-md rounded-lg hover:bg-on-primary-fixed-variant transition-colors active:scale-95">Comprar Pack</button>
+</div>
+<!-- 20 Class Pack -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col transition-all hover:shadow-md hover:-translate-y-1" style="transform: translateY(0px);">
+<div class="flex justify-between items-start mb-md">
+<span class="bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm px-md py-xs rounded-full">Pro Academy</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-xs">Bono 20 Clases</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-lg flex-grow">Para los entusiastas del pádel que entrenan más de dos veces por semana.</p>
+<div class="mb-lg">
+<span class="font-headline-lg text-headline-lg text-on-surface">380€</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ pack</span>
+<div class="text-primary font-label-sm text-label-sm mt-xs">Ahorra 120€ vs individual</div>
+</div>
+<ul class="space-y-sm mb-xl">
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span> 20 Sesiones de 60 min</li>
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span> Reserva prioritaria (7 días)</li>
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span> Válido por 6 meses</li>
+<li class="flex items-center gap-sm text-body-md font-body-md"><span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span> Camiseta técnica de regalo</li>
+</ul>
+<button class="w-full bg-white border border-outline text-on-surface font-semibold py-md rounded-lg hover:bg-surface-container-high transition-colors active:scale-95">Comprar Pack</button>
+</div>
+</section>
+<!-- Booking Section -->
+<section class="mt-xl">
+<div class="flex items-center justify-between mb-lg">
+<h2 class="font-headline-md text-headline-md">Próximas Sesiones Disponibles</h2>
+<div class="flex gap-sm">
+<button class="p-sm bg-surface-container-high rounded-lg hover:bg-outline-variant/30 transition-colors">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="p-sm bg-surface-container-high rounded-lg hover:bg-outline-variant/30 transition-colors">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Booking Cards Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-md">
+<!-- Date Selector (Small Vertical) -->
+<div class="lg:col-span-1 bg-surface-container-low rounded-xl border border-outline-variant p-md">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-md uppercase tracking-wide">Seleccionar Fecha</p>
+<div class="space-y-sm">
+<button class="w-full flex justify-between items-center p-md rounded-lg bg-primary text-white shadow-sm">
+<span class="font-subtitle-md text-subtitle-md">Hoy, 24 Oct</span>
+<span class="font-label-sm text-label-sm">8 slots</span>
+</button>
+<button class="w-full flex justify-between items-center p-md rounded-lg bg-white border border-outline-variant hover:bg-surface-container-high transition-colors">
+<span class="font-subtitle-md text-subtitle-md text-on-surface">Vie, 25 Oct</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">12 slots</span>
+</button>
+<button class="w-full flex justify-between items-center p-md rounded-lg bg-white border border-outline-variant hover:bg-surface-container-high transition-colors">
+<span class="font-subtitle-md text-subtitle-md text-on-surface">Sab, 26 Oct</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">5 slots</span>
+</button>
+</div>
+<button class="mt-lg w-full text-primary font-semibold text-body-md py-sm flex items-center justify-center gap-xs">
+                        Ver calendario completo <span class="material-symbols-outlined text-sm" data-icon="calendar_today">calendar_today</span>
+</button>
+</div>
+<!-- Session Slots (Large Grid) -->
+<div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Session Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col group">
+<div class="h-32 bg-surface-variant relative">
+<img alt="Padel Court" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" data-alt="A professional indoor padel court with bright blue turf and clean white lines. The lighting is crisp and even, highlighting the textured surface of the court. The background features a modern sports facility with glass walls and minimalist architectural details." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCH_uO0Ocfa6jl1IbiZQ9EGZjQ34Mku-IoOZJxBzfjw1CIKZ5vrUwGCTOETvUmsOKVDEGxEkGJSTlXHGm8EL87idnkZug1aErSGNoUzYByhIMy1AYElr6m2MV9pwKeK5K3Ah4VsajzksamoqeAt1RiorzE9gQPuMcf_aqroVOY_NVeNXB9d5jKmBUxrBGXUDhQGfI4d0P6JQJRojPZLsrNl4rTAiXjOA0jRHYOTLW4w5UIRLyqqAaU-XRwsaz-YD2z4Qad7nXrN-HU">
+<div class="absolute top-2 right-2 bg-on-surface/90 text-white font-label-sm text-label-sm px-md py-1 rounded-full backdrop-blur-sm">Nivel Intermedio</div>
+</div>
+<div class="p-lg">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h4 class="font-subtitle-lg text-subtitle-lg">Técnica de Volea</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Pista 4 • Coach: Alberto G.</p>
+</div>
+<div class="text-right">
+<p class="font-subtitle-md text-subtitle-md font-bold">17:00 - 18:00</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">2 plazas libres</p>
+</div>
+</div>
+<button class="w-full bg-secondary text-white font-semibold py-md rounded-lg hover:bg-on-secondary-fixed-variant transition-colors flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined" data-icon="add_task">add_task</span> Reservar Clase
+                            </button>
+</div>
+</div>
+<!-- Session Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col group">
+<div class="h-32 bg-surface-variant relative">
+<img alt="Padel Coach" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" data-alt="A focused padel coach in professional athletic gear giving instructions on a sun-drenched outdoor court. The lighting is warm and golden, casting soft shadows. The overall mood is motivational and high-performance, emphasizing the professional coaching aspect of the SaaS platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmL0y8ISdeDgQ30M3CulhxQBanosNS4NG3gPSQF6zR6SQclmPQg7AIeoL5nn04z7g0_2gnXrisrzeMEK-ZqpAS8Y7snarmHAZE7OF2E6eBTsCjjx5IgTf_GSLoYydS401LdNrgfD91AJi7vBrdqaUZHFnn5xnCdSYs5Od3ui6FKxMKKxPLkbRTO2rtY7I2MYJSYbNKfkmLh0fS_lUxr3jSoDGuFb_2MHNxhf9NjgW2v0ijSgxrgK_sMINDSUW9c17lmOdi-VnQzA4">
+<div class="absolute top-2 right-2 bg-on-surface/90 text-white font-label-sm text-label-sm px-md py-1 rounded-full backdrop-blur-sm">Nivel Iniciación</div>
+</div>
+<div class="p-lg">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h4 class="font-subtitle-lg text-subtitle-lg">Fundamentos del Saque</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Pista 1 • Coach: Maria R.</p>
+</div>
+<div class="text-right">
+<p class="font-subtitle-md text-subtitle-md font-bold">18:30 - 19:30</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Última plaza!</p>
+</div>
+</div>
+<button class="w-full bg-secondary text-white font-semibold py-md rounded-lg hover:bg-on-secondary-fixed-variant transition-colors flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined" data-icon="add_task">add_task</span> Reservar Clase
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Help Section -->
+<footer class="mt-xl grid grid-cols-1 md:grid-cols-2 gap-lg p-lg bg-surface-container rounded-xl border border-outline-variant/50">
+<div class="flex items-start gap-md">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="help">help</span>
+<div>
+<h5 class="font-subtitle-lg text-subtitle-lg mb-xs">¿Tienes dudas sobre los bonos?</h5>
+<p class="font-body-md text-body-md text-on-surface-variant">Consulta nuestra política de cancelación de 24 horas y cómo compartir tus bonos con amigos en el Centro de Ayuda.</p>
+</div>
+</div>
+<div class="flex items-center md:justify-end gap-md">
+<button class="px-lg py-md border border-outline rounded-lg font-semibold hover:bg-white/50 transition-colors">Preguntas Frecuentes</button>
+<button class="px-lg py-md bg-white border border-outline rounded-lg font-semibold hover:bg-surface-container-high transition-colors">Contactar Soporte</button>
+</div>
+</footer>
+</main>
+<!-- Mobile Navigation Bar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-low border-t border-outline-variant/30 flex justify-around items-center h-16 z-50">
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-[10px] font-bold">Dashboard</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined" data-icon="shopping_cart" data-weight="fill">shopping_cart</span>
+<span class="text-[10px] font-bold">Tienda</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="text-[10px] font-bold">Reservas</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="text-[10px] font-bold">Perfil</span>
+</button>
+</nav>
+<script>
+        // Simple micro-interaction for button feedback
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('mousedown', () => {
+                button.classList.add('scale-95');
+            });
+            button.addEventListener('mouseup', () => {
+                button.classList.remove('scale-95');
+            });
+            button.addEventListener('mouseleave', () => {
+                button.classList.remove('scale-95');
+            });
+        });
+
+        // Hover effect for Pricing Cards
+        const cards = document.querySelectorAll('.grid > div');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                if(!card.classList.contains('scale-105')) {
+                    card.style.transform = 'translateY(-8px)';
+                }
+            });
+            card.addEventListener('mouseleave', () => {
+                if(!card.classList.contains('scale-105')) {
+                    card.style.transform = 'translateY(0)';
+                }
+            });
+        });
+    </script>
+
+
+</body></html>

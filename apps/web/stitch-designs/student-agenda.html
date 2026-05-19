@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Mi Agenda - Padel Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed-variant": "#8a143c",
+                    "on-surface-variant": "#3e4a3d",
+                    "on-surface": "#0b1c30",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-fixed-dim": "#6bd8cb",
+                    "tertiary-container": "#c74668",
+                    "secondary-fixed": "#89f5e7",
+                    "tertiary-fixed-dim": "#ffb2bf",
+                    "error": "#ba1a1a",
+                    "on-secondary": "#ffffff",
+                    "surface-bright": "#f8f9ff",
+                    "outline": "#6e7b6c",
+                    "tertiary": "#a72d51",
+                    "surface-container-high": "#dce9ff",
+                    "background": "#f8f9ff",
+                    "outline-variant": "#bdcaba",
+                    "on-primary-fixed": "#002109",
+                    "surface-container": "#e5eeff",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed-variant": "#005049",
+                    "surface": "#f8f9ff",
+                    "on-primary-fixed-variant": "#005320",
+                    "primary-fixed": "#7ffc97",
+                    "error-container": "#ffdad6",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error": "#ffffff",
+                    "on-primary-container": "#f7fff2",
+                    "on-secondary-container": "#006f66",
+                    "surface-tint": "#006e2d",
+                    "inverse-surface": "#213145",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#fffbff",
+                    "secondary-container": "#86f2e4",
+                    "primary-container": "#00873a",
+                    "inverse-primary": "#62df7d",
+                    "surface-dim": "#cbdbf5",
+                    "secondary": "#006a61",
+                    "on-secondary-fixed": "#00201d",
+                    "inverse-on-surface": "#eaf1ff",
+                    "primary": "#006b2c",
+                    "on-tertiary-fixed": "#3f0016",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container-highest": "#d3e4fe",
+                    "primary-fixed-dim": "#62df7d",
+                    "on-primary": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "tertiary-fixed": "#ffd9de"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "margin-desktop": "32px",
+                    "xl": "40px",
+                    "base": "4px",
+                    "lg": "24px",
+                    "xs": "4px",
+                    "gutter": "16px"
+            },
+            "fontFamily": {
+                    "subtitle-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "subtitle-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "subtitle-md": ["16px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                    "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "subtitle-lg": ["18px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f8f9ff;
+            background-image: radial-gradient(#bdcaba 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 60px repeat(7, 1fr);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest sticky top-0 z-50 shadow-sm border-b border-outline-variant">
+<div class="flex justify-between items-center w-full px-margin-desktop max-w-7xl mx-auto h-16">
+<div class="flex items-center gap-xl">
+<span class="font-headline-md text-headline-md font-bold text-primary">Padel Pro</span>
+<nav class="hidden md:flex items-center gap-lg">
+<a class="font-subtitle-md text-subtitle-md text-on-surface-variant hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="font-subtitle-md text-subtitle-md text-primary border-b-2 border-primary pb-1" href="#">My Schedule</a>
+<a class="font-subtitle-md text-subtitle-md text-on-surface-variant hover:text-primary transition-colors" href="#">Trainings</a>
+<a class="font-subtitle-md text-subtitle-md text-on-surface-variant hover:text-primary transition-colors" href="#">Results</a>
+</nav>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-base rounded-full hover:bg-surface-container transition-colors relative">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<img alt="Student Profile Avatar" class="w-10 h-10 rounded-full border border-outline-variant" data-alt="A professional headshot of a student athlete in a modern indoor sports setting. The lighting is bright and clean, emphasizing a high-performance athlete aesthetic. The background is slightly blurred with soft grey and blue tones to maintain focus on the subject, consistent with a premium sports SaaS interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3q11YsvOClzmf4hWrldJ2tDzYBMgjMNlK1GFWQd_aqA0AEQ9XCRBktdq0gJv2SlKUGtXS9G1M1JeXnRfTvLXTo5a1h2tN3YOYQFV0tClUQSOBjYqx6EKyxSQiK-9OykKYnPj9X1tCD7tegVygKtiC-chqapLQ0bqQCnuyJpTSySmtbzEY9dm_fOAUjsCl7NAdFRz7Nae-ONhLwZTn8PUkBp0M7mwWTAGmo5MxkTmiJKTA52vYlCoq16AsavqIR6oRybcd8TbZeUQ"/>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-margin-desktop py-xl">
+<!-- Header & Filters -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-lg mb-xl">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Mi Agenda y Sesiones</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Gestiona tus entrenamientos y descubre nuevas oportunidades de juego.</p>
+</div>
+<div class="flex bg-surface-container-low p-xs rounded-lg">
+<button class="px-lg py-sm rounded-lg font-subtitle-md text-subtitle-md bg-white text-primary shadow-sm">Mis Clases</button>
+<button class="px-lg py-sm rounded-lg font-subtitle-md text-subtitle-md text-on-surface-variant hover:text-on-surface transition-colors">Sesiones Disponibles</button>
+<button class="px-lg py-sm rounded-lg font-subtitle-md text-subtitle-md text-on-surface-variant hover:text-on-surface transition-colors">Historial</button>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-xl">
+<!-- Calendar Section -->
+<div class="lg:col-span-8 flex flex-col gap-lg">
+<!-- Week Selector -->
+<div class="glass-card border border-outline-variant rounded-xl p-md flex items-center justify-between shadow-sm">
+<button class="p-xs hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<div class="flex gap-md overflow-x-auto pb-xs md:pb-0 scrollbar-hide">
+<div class="flex flex-col items-center min-w-[60px] p-xs rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+<span class="font-label-sm text-label-sm text-on-surface-variant">LUN</span>
+<span class="font-subtitle-lg text-subtitle-lg">11</span>
+</div>
+<div class="flex flex-col items-center min-w-[60px] p-xs rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+<span class="font-label-sm text-label-sm text-on-surface-variant">MAR</span>
+<span class="font-subtitle-lg text-subtitle-lg">12</span>
+</div>
+<div class="flex flex-col items-center min-w-[60px] p-xs rounded-lg bg-primary-container text-on-primary-container shadow-sm">
+<span class="font-label-sm text-label-sm">MIÉ</span>
+<span class="font-subtitle-lg text-subtitle-lg">13</span>
+</div>
+<div class="flex flex-col items-center min-w-[60px] p-xs rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+<span class="font-label-sm text-label-sm text-on-surface-variant">JUE</span>
+<span class="font-subtitle-lg text-subtitle-lg">14</span>
+</div>
+<div class="flex flex-col items-center min-w-[60px] p-xs rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+<span class="font-label-sm text-label-sm text-on-surface-variant">VIE</span>
+<span class="font-subtitle-lg text-subtitle-lg">15</span>
+</div>
+<div class="flex flex-col items-center min-w-[60px] p-xs rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+<span class="font-label-sm text-label-sm text-on-surface-variant">SÁB</span>
+<span class="font-subtitle-lg text-subtitle-lg">16</span>
+</div>
+<div class="flex flex-col items-center min-w-[60px] p-xs rounded-lg hover:bg-surface-container cursor-pointer transition-colors">
+<span class="font-label-sm text-label-sm text-on-surface-variant">DOM</span>
+<span class="font-subtitle-lg text-subtitle-lg">17</span>
+</div>
+</div>
+<button class="p-xs hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+<!-- Time Grid -->
+<div class="glass-card border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col h-[600px]">
+<div class="calendar-grid border-b border-outline-variant bg-surface-container-low py-sm text-center font-label-sm text-label-sm text-on-surface-variant">
+<div></div>
+<div>Lun</div>
+<div>Mar</div>
+<div class="text-primary font-bold">Mié</div>
+<div>Jue</div>
+<div>Vie</div>
+<div>Sáb</div>
+<div>Dom</div>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar relative">
+<div class="calendar-grid min-h-full divide-x divide-outline-variant/30">
+<!-- Time Labels -->
+<div class="flex flex-col divide-y divide-outline-variant/30">
+<div class="h-20 flex items-start justify-center pt-2 font-label-sm text-label-sm text-on-surface-variant/70">08:00</div>
+<div class="h-20 flex items-start justify-center pt-2 font-label-sm text-label-sm text-on-surface-variant/70">09:00</div>
+<div class="h-20 flex items-start justify-center pt-2 font-label-sm text-label-sm text-on-surface-variant/70">10:00</div>
+<div class="h-20 flex items-start justify-center pt-2 font-label-sm text-label-sm text-on-surface-variant/70">11:00</div>
+<div class="h-20 flex items-start justify-center pt-2 font-label-sm text-label-sm text-on-surface-variant/70">12:00</div>
+<div class="h-20 flex items-start justify-center pt-2 font-label-sm text-label-sm text-on-surface-variant/70">13:00</div>
+<div class="h-20 flex items-start justify-center pt-2 font-label-sm text-label-sm text-on-surface-variant/70">14:00</div>
+</div>
+<!-- Day Columns (Empty cells for grid effect) -->
+<div class="flex flex-col divide-y divide-outline-variant/10">
+<div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant/10">
+<div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant/10 relative">
+<!-- Wednesday Slots -->
+<div class="h-20"></div>
+<div class="absolute top-[84px] left-1 right-1 h-36 bg-primary/10 border-l-4 border-primary rounded-lg p-sm shadow-sm flex flex-col justify-between z-10 hover:scale-[1.02] transition-transform cursor-pointer">
+<div>
+<p class="font-label-sm text-label-sm text-primary uppercase">Clase Particular</p>
+<h4 class="font-subtitle-md text-subtitle-md text-on-surface leading-tight">Pista 2</h4>
+</div>
+<div class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+                                        09:30 - 11:00
+                                    </div>
+</div>
+<div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant/10">
+<div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant/10 relative">
+<div class="h-20"></div><div class="h-20"></div><div class="h-20"></div>
+<div class="absolute top-[244px] left-1 right-1 h-20 bg-secondary/10 border-l-4 border-secondary rounded-lg p-sm shadow-sm flex flex-col justify-between z-10 hover:scale-[1.02] transition-transform cursor-pointer">
+<div>
+<p class="font-label-sm text-label-sm text-secondary uppercase">Entrenamiento Grupal</p>
+<h4 class="font-subtitle-md text-subtitle-md text-on-surface leading-tight">Pista 4</h4>
+</div>
+<div class="flex items-center gap-xs font-label-sm text-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+                                        11:00 - 12:00
+                                    </div>
+</div>
+<div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant/10">
+<div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div>
+</div>
+<div class="flex flex-col divide-y divide-outline-variant/10">
+<div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div><div class="h-20"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Panel: Available Sessions -->
+<div class="lg:col-span-4 flex flex-col gap-lg">
+<div class="glass-card border border-outline-variant rounded-xl p-lg shadow-sm flex flex-col h-full max-h-[720px]">
+<div class="flex justify-between items-center mb-lg">
+<h2 class="font-headline-md text-headline-md text-on-surface">Próximas Sesiones</h2>
+<span class="material-symbols-outlined text-primary cursor-pointer" data-icon="filter_list">filter_list</span>
+</div>
+<div class="flex flex-col gap-md overflow-y-auto pr-sm custom-scrollbar">
+<!-- Session Card -->
+<div class="p-md rounded-lg border border-outline-variant hover:border-primary/40 hover:bg-surface-container-lowest transition-all group">
+<div class="flex justify-between items-start mb-sm">
+<div class="bg-tertiary-fixed text-on-tertiary-fixed-variant px-sm py-xs rounded font-label-sm text-label-sm inline-block">Last minute spots</div>
+<span class="font-subtitle-md text-subtitle-md text-primary">€15</span>
+</div>
+<h3 class="font-subtitle-lg text-subtitle-lg text-on-surface">Iniciación Intensiva</h3>
+<div class="grid grid-cols-2 gap-sm my-md">
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="event">event</span>
+<span class="font-body-md text-body-md">Mañana</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span>
+<span class="font-body-md text-body-md">18:00</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="person">person</span>
+<span class="font-body-md text-body-md">Coach Carlos R.</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+<span class="font-body-md text-body-md">Iniciación</span>
+</div>
+</div>
+<button class="w-full bg-primary text-white py-sm rounded font-subtitle-md text-subtitle-md hover:opacity-90 transition-opacity">Book</button>
+</div>
+<!-- Session Card -->
+<div class="p-md rounded-lg border border-outline-variant hover:border-primary/40 hover:bg-surface-container-lowest transition-all">
+<div class="flex justify-between items-start mb-sm">
+<div class="bg-surface-container text-on-surface-variant px-sm py-xs rounded font-label-sm text-label-sm inline-block">2 Plazas libres</div>
+<span class="font-subtitle-md text-subtitle-md text-primary">€12</span>
+</div>
+<h3 class="font-subtitle-lg text-subtitle-lg text-on-surface">Intermedio Mixto</h3>
+<div class="grid grid-cols-2 gap-sm my-md">
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="event">event</span>
+<span class="font-body-md text-body-md">15 Mayo</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span>
+<span class="font-body-md text-body-md">10:00</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="person">person</span>
+<span class="font-body-md text-body-md">Coach Ana M.</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+<span class="font-body-md text-body-md">Intermedio</span>
+</div>
+</div>
+<button class="w-full bg-secondary text-white py-sm rounded font-subtitle-md text-subtitle-md hover:opacity-90 transition-opacity">Book</button>
+</div>
+<!-- Session Card -->
+<div class="p-md rounded-lg border border-outline-variant hover:border-primary/40 hover:bg-surface-container-lowest transition-all">
+<div class="flex justify-between items-start mb-sm">
+<div class="bg-surface-container text-on-surface-variant px-sm py-xs rounded font-label-sm text-label-sm inline-block">1 Plaza libre</div>
+<span class="font-subtitle-md text-subtitle-md text-primary">€20</span>
+</div>
+<h3 class="font-subtitle-lg text-subtitle-lg text-on-surface">Avanzado Pro-Am</h3>
+<div class="grid grid-cols-2 gap-sm my-md">
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="event">event</span>
+<span class="font-body-md text-body-md">16 Mayo</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="schedule">schedule</span>
+<span class="font-body-md text-body-md">19:30</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="person">person</span>
+<span class="font-body-md text-body-md">Coach Victor S.</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+<span class="font-body-md text-body-md">Avanzado</span>
+</div>
+</div>
+<button class="w-full bg-secondary text-white py-sm rounded font-subtitle-md text-subtitle-md hover:opacity-90 transition-opacity">Book</button>
+</div>
+</div>
+<button class="mt-lg w-full py-md border-t border-outline-variant font-subtitle-md text-subtitle-md text-primary flex items-center justify-center gap-xs hover:bg-surface-container-low transition-colors">
+                        Ver todas las sesiones
+                        <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low border-t border-outline-variant mt-xl">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-margin-desktop py-lg max-w-7xl mx-auto">
+<div class="mb-md md:mb-0">
+<span class="font-subtitle-lg text-subtitle-lg font-bold text-on-surface">Padel Pro</span>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">© 2024 Padel Pro Management. All rights reserved.</p>
+</div>
+<div class="flex gap-lg">
+<a class="font-body-md text-body-md text-on-surface-variant hover:underline" href="#">Support</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:underline" href="#">Privacy Policy</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:underline" href="#">Terms of Service</a>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interactions for calendar navigation
+        const dayButtons = document.querySelectorAll('.calendar-grid > div');
+        dayButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Potential logic for switching focused day on mobile
+            });
+        });
+
+        // Add some basic hover animation to session cards
+        const sessionCards = document.querySelectorAll('.p-md.rounded-lg.border');
+        sessionCards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.classList.add('shadow-md');
+            });
+            card.addEventListener('mouseleave', () => {
+                card.classList.remove('shadow-md');
+            });
+        });
+    </script>
+</body></html>

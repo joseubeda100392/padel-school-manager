@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#0b1c30",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#213145",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#89f5e7",
+                        "on-primary-fixed-variant": "#005320",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "tertiary-container": "#c74668",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#006f66",
+                        "surface-tint": "#006e2d",
+                        "primary-fixed-dim": "#62df7d",
+                        "outline-variant": "#bdcaba",
+                        "background": "#f8f9ff",
+                        "on-secondary-fixed": "#00201d",
+                        "on-primary-fixed": "#002109",
+                        "on-tertiary-container": "#fffbff",
+                        "secondary": "#006a61",
+                        "surface": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "primary": "#006b2c",
+                        "primary-fixed": "#7ffc97",
+                        "primary-container": "#00873a",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#f7fff2",
+                        "tertiary-fixed-dim": "#ffb2bf",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "on-tertiary-fixed-variant": "#8a143c",
+                        "secondary-container": "#86f2e4",
+                        "surface-container-low": "#eff4ff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#3f0016",
+                        "surface-bright": "#f8f9ff",
+                        "surface-container-high": "#dce9ff",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#005049",
+                        "outline": "#6e7b6c",
+                        "on-surface-variant": "#3e4a3d",
+                        "inverse-primary": "#62df7d",
+                        "tertiary-fixed": "#ffd9de",
+                        "tertiary": "#a72d51",
+                        "on-primary": "#ffffff",
+                        "on-background": "#0b1c30"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "xl": "40px",
+                        "md": "16px",
+                        "gutter": "16px",
+                        "base": "4px",
+                        "margin-mobile": "16px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "subtitle-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "subtitle-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "subtitle-lg": ["18px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                        "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "1.7", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "letterSpacing": "-0.04em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.03em", "fontWeight": "600"}],
+                        "subtitle-md": ["16px", {"lineHeight": "1.6", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.1", "letterSpacing": "-0.05em", "fontWeight": "800"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .padel-pattern {
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .court-overlay {
+            background: 
+                linear-gradient(to right, transparent 49.8%, rgba(255,255,255,0.08) 49.8%, rgba(255,255,255,0.08) 50.2%, transparent 50.2%),
+                linear-gradient(to bottom, transparent 49.8%, rgba(255,255,255,0.08) 49.8%, rgba(255,255,255,0.08) 50.2%, transparent 50.2%);
+            background-size: 100% 100%;
+        }
+        .floating-label-input:focus-within label,
+        .floating-label-input input:not(:placeholder-shown) + label {
+            transform: translateY(-1.65rem) scale(0.8);
+            color: #00873a;
+            font-weight: 600;
+        }
+        .loading-spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #fff;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .multi-shadow {
+            box-shadow: 
+                0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+                0 2px 4px -1px rgba(0, 0, 0, 0.06),
+                0 20px 40px -10px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+        }
+        .input-glow:focus {
+            box-shadow: 0 0 0 4px rgba(0, 135, 58, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-[#002109] min-h-screen font-body-md text-on-surface overflow-x-hidden selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Landing Background Section -->
+<div class="fixed inset-0 bg-gradient-to-tr from-[#003816] via-[#006b2c] to-[#00a849] z-0">
+<div class="absolute inset-0 padel-pattern"></div>
+<div class="absolute inset-0 court-overlay"></div>
+<!-- Abstract Court Boundary Shapes -->
+<div class="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none overflow-hidden">
+<div class="absolute top-[-5%] left-[-5%] w-[60%] h-[70%] border-[1px] border-white/40 rounded-[2rem] rotate-12"></div>
+<div class="absolute bottom-[-10%] right-[-5%] w-[50%] h-[60%] border-[1px] border-white/40 rounded-[2rem] -rotate-6"></div>
+<div class="absolute top-[20%] right-[10%] w-[300px] h-[300px] border border-white/20 rounded-full"></div>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="relative z-10 min-h-screen flex items-center justify-center lg:justify-between px-margin-mobile md:px-margin-desktop lg:px-[8%] py-xl">
+<!-- Left Side Content (Visible on Desktop) -->
+<div class="hidden lg:flex flex-col max-w-xl text-white">
+<div class="flex items-center gap-md mb-lg">
+<div class="p-sm bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 shadow-xl">
+<span class="material-symbols-outlined text-primary-fixed text-[44px]" style="font-variation-settings: 'FILL' 1;">sports_tennis</span>
+</div>
+<h1 class="font-headline-lg text-[40px] tracking-tight">Padel Pro</h1>
+</div>
+<h2 class="font-headline-lg text-headline-lg mb-md leading-tight max-w-lg">
+                La plataforma inteligente para tu escuela de pádel
+            </h2>
+<p class="font-subtitle-lg text-subtitle-lg opacity-80 mb-xl max-w-md leading-relaxed">
+                Gestiona pistas, alumnos y entrenadores en un solo lugar con la tecnología líder en deportes de raqueta.
+            </p>
+<div class="grid grid-cols-2 gap-lg max-w-md">
+<div class="bg-black/20 backdrop-blur-md p-md rounded-2xl border border-white/10">
+<span class="material-symbols-outlined mb-sm text-primary-fixed">dashboard_customize</span>
+<p class="font-label-sm text-[10px] tracking-[0.1em] uppercase opacity-60 mb-1">Control Total</p>
+<p class="font-subtitle-md text-subtitle-md">Panel en tiempo real</p>
+</div>
+<div class="bg-black/20 backdrop-blur-md p-md rounded-2xl border border-white/10">
+<span class="material-symbols-outlined mb-sm text-primary-fixed">bolt</span>
+<p class="font-label-sm text-[10px] tracking-[0.1em] uppercase opacity-60 mb-1">Reservas</p>
+<p class="font-subtitle-md text-subtitle-md">Automatización 24/7</p>
+</div>
+</div>
+</div>
+<!-- Login Card -->
+<div class="w-full max-w-[460px] bg-white p-10 md:p-12 rounded-3xl multi-shadow animate-fade-in transition-all duration-500" id="login-card">
+<!-- Mobile Logo -->
+<div class="lg:hidden flex flex-col items-center mb-xl text-center">
+<div class="p-md bg-primary-container/10 rounded-2xl mb-md">
+<span class="material-symbols-outlined text-primary text-[56px]" style="font-variation-settings: 'FILL' 1;">sports_tennis</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">Padel School Manager</h2>
+<p class="text-on-surface-variant font-body-md">La plataforma inteligente para tu escuela</p>
+</div>
+<!-- Header (Desktop) -->
+<div class="hidden lg:block mb-xl">
+<h3 class="font-headline-md text-3xl text-on-surface mb-2">Bienvenido</h3>
+<p class="text-on-surface-variant font-body-md leading-relaxed">Ingresa tus credenciales para continuar al panel de control.</p>
+</div>
+<!-- Login Form -->
+<form class="space-y-6" id="login-form" onsubmit="handleLogin(event)">
+<!-- Email Field -->
+<div class="relative floating-label-input">
+<input class="input-glow peer w-full h-14 px-md pt-6 pb-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl focus:outline-none focus:border-primary focus:ring-0 transition-all text-on-surface placeholder-transparent" id="email" name="email" placeholder="Correo electrónico" required="" type="email"/>
+<label class="absolute left-md top-4 text-on-surface-variant/70 transition-all pointer-events-none origin-left text-base" for="email">
+                        Correo electrónico
+                    </label>
+</div>
+<!-- Password Field -->
+<div class="relative floating-label-input">
+<input class="input-glow peer w-full h-14 px-md pt-6 pb-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl focus:outline-none focus:border-primary focus:ring-0 transition-all text-on-surface placeholder-transparent" id="password" name="password" placeholder="Contraseña" required="" type="password"/>
+<label class="absolute left-md top-4 text-on-surface-variant/70 transition-all pointer-events-none origin-left text-base" for="password">
+                        Contraseña
+                    </label>
+</div>
+<div class="flex items-center justify-between">
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative flex items-center">
+<input class="peer appearance-none w-5 h-5 rounded-md border-2 border-outline-variant checked:bg-primary checked:border-primary transition-all cursor-pointer" type="checkbox"/>
+<span class="material-symbols-outlined absolute opacity-0 peer-checked:opacity-100 text-white text-[16px] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">check</span>
+</div>
+<span class="text-on-surface-variant font-body-md group-hover:text-on-surface transition-colors">Recordarme</span>
+</label>
+</div>
+<!-- Submit Button -->
+<button class="w-full h-[54px] bg-primary hover:bg-[#005320] text-white font-subtitle-md rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 mt-4" id="submit-btn" type="submit">
+<span id="btn-text">Iniciar Sesión</span>
+<div class="loading-spinner hidden" id="btn-spinner"></div>
+</button>
+<!-- Forgot Password Link -->
+<div class="text-center pt-2">
+<button class="text-primary font-subtitle-md hover:text-[#005320] underline decoration-primary/30 underline-offset-8 transition-all" onclick="toggleResetState(true)" type="button">
+                        ¿Olvidaste tu contraseña?
+                    </button>
+</div>
+</form>
+<!-- Reset Password State (Hidden initially) -->
+<div class="hidden animate-in slide-in-from-right-4 duration-300" id="reset-state">
+<div class="mb-lg">
+<button class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors mb-6 group" onclick="toggleResetState(false)">
+<span class="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+<span class="font-label-sm">Volver al login</span>
+</button>
+<h3 class="font-headline-md text-3xl text-on-surface mb-2">Recuperar acceso</h3>
+<p class="text-on-surface-variant font-body-md leading-relaxed">Te enviaremos un enlace para restablecer tu contraseña de forma segura.</p>
+</div>
+<div class="hidden mb-lg p-md bg-secondary-container/30 text-on-secondary-container rounded-xl flex items-start gap-md border border-secondary/10" id="reset-success">
+<span class="material-symbols-outlined text-secondary mt-1">check_circle</span>
+<div>
+<p class="font-subtitle-md">¡Correo enviado!</p>
+<p class="font-body-md opacity-80">Revisa tu bandeja de entrada en unos instantes.</p>
+</div>
+</div>
+<form class="space-y-6" id="reset-form" onsubmit="handleReset(event)">
+<div class="relative floating-label-input">
+<input class="input-glow peer w-full h-14 px-md pt-6 pb-2 bg-surface-container-lowest border border-outline-variant/60 rounded-xl focus:outline-none focus:border-primary focus:ring-0 transition-all text-on-surface placeholder-transparent" id="reset-email" placeholder="Email de recuperación" required="" type="email"/>
+<label class="absolute left-md top-4 text-on-surface-variant/70 transition-all pointer-events-none origin-left text-base" for="reset-email">
+                            Email de recuperación
+                        </label>
+</div>
+<button class="w-full h-[54px] bg-primary hover:bg-[#005320] text-white font-subtitle-md rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-3" id="reset-btn" type="submit">
+<span id="reset-btn-text">Enviar enlace</span>
+<div class="loading-spinner hidden" id="reset-btn-spinner"></div>
+</button>
+</form>
+</div>
+</div>
+</main>
+<!-- Footer Meta -->
+<footer class="fixed bottom-margin-desktop left-margin-desktop z-20 hidden md:block">
+<p class="text-white/40 font-label-sm tracking-widest uppercase">© 2024 Padel Pro — Premium Sports Management</p>
+</footer>
+<script>
+        function handleLogin(event) {
+            event.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const text = document.getElementById('btn-text');
+            const spinner = document.getElementById('btn-spinner');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-80');
+            text.classList.add('hidden');
+            spinner.classList.remove('hidden');
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-80');
+                text.classList.remove('hidden');
+                spinner.classList.add('hidden');
+                alert('Iniciando sesión...');
+            }, 1500);
+        }
+
+        function handleReset(event) {
+            event.preventDefault();
+            const btn = document.getElementById('reset-btn');
+            const text = document.getElementById('reset-btn-text');
+            const spinner = document.getElementById('reset-btn-spinner');
+            const successMsg = document.getElementById('reset-success');
+            const form = document.getElementById('reset-form');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-80');
+            text.classList.add('hidden');
+            spinner.classList.remove('hidden');
+
+            setTimeout(() => {
+                spinner.classList.add('hidden');
+                form.classList.add('hidden');
+                successMsg.classList.remove('hidden');
+            }, 1200);
+        }
+
+        function toggleResetState(showReset) {
+            const loginForm = document.getElementById('login-form');
+            const header = document.querySelector('#login-card > div.hidden.lg\\:block');
+            const resetState = document.getElementById('reset-state');
+            
+            if (showReset) {
+                loginForm.classList.add('hidden');
+                if (header) header.classList.add('hidden');
+                resetState.classList.remove('hidden');
+            } else {
+                loginForm.classList.remove('hidden');
+                if (header) header.classList.remove('hidden');
+                resetState.classList.add('hidden');
+                document.getElementById('reset-success').classList.add('hidden');
+                document.getElementById('reset-form').classList.remove('hidden');
+            }
+        }
+    </script>
+<!-- Decorative background elements -->
+<div class="fixed top-0 right-0 w-[800px] h-[800px] bg-primary/15 blur-[160px] rounded-full -translate-y-1/2 translate-x-1/3 z-0"></div>
+<div class="fixed bottom-0 left-0 w-[600px] h-[600px] bg-secondary/10 blur-[140px] rounded-full translate-y-1/2 -translate-x-1/4 z-0"></div>
+</body></html>

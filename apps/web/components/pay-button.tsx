@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface PayButtonProps {
   type: 'fixed_group_month' | 'class_pack' | 'single_class'
   enrollmentId?: string
-  packType?: '60' | '90'
+  packId?: string
+  packType?: '60' | '90'  // legacy — prefer packId
   scheduleId?: string
   exclusionId?: string
   classDate?: string
@@ -14,9 +15,18 @@ interface PayButtonProps {
   disabled?: boolean
 }
 
-export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionId, classDate, label, className, disabled }: PayButtonProps) {
+export function PayButton({ type, enrollmentId, packId, packType, scheduleId, exclusionId, classDate, label, className, disabled }: PayButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Reset loading when user navigates back (bfcache restore)
+  useEffect(() => {
+    function handlePageShow(e: PageTransitionEvent) {
+      if (e.persisted) setLoading(false)
+    }
+    window.addEventListener('pageshow', handlePageShow)
+    return () => window.removeEventListener('pageshow', handlePageShow)
+  }, [])
 
   async function handlePay() {
     setLoading(true)
@@ -24,7 +34,7 @@ export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionI
     const res = await fetch('/api/payments/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, enrollmentId, packType, scheduleId, exclusionId, classDate }),
+      body: JSON.stringify({ type, enrollmentId, packId, packType, scheduleId, exclusionId, classDate }),
     })
     const json = await res.json()
     if (!res.ok) {

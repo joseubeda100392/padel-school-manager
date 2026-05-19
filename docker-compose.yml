@@ -1,0 +1,24 @@
+services:
+  web:
+    image: padel-school-manager:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+        VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+        DATABASE_URL: ${DATABASE_URL}
+        REDSYS_ENV: ${REDSYS_ENV:-test}
+        REDSYS_MERCHANT_CODE: ${REDSYS_MERCHANT_CODE:-}
+        REDSYS_SECRET_KEY: ${REDSYS_SECRET_KEY:-}
+        REDSYS_TERMINAL: ${REDSYS_TERMINAL:-001}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        CRON_SECRET: ${CRON_SECRET:-}
+    env_file:
+      - .env.docker
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

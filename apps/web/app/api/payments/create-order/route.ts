@@ -50,25 +50,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'TPV no configurado para este club. Contacta con el administrador.' }, { status: 503 })
   }
 
-  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate }: {
+  const { type, scheduleId, packId, packType, enrollmentId, exclusionId, classDate }: {
     type: PaymentType
     scheduleId?: string
-    packType?: '60' | '90'
+    packId?: string
+    packType?: '60' | '90'  // legacy fallback
     enrollmentId?: string
     exclusionId?: string
     classDate?: string
   } = await req.json()
 
+  // Fetch pay-per-class prices from app_config (single_class type)
   const { data: configs } = await admin
     .from('app_config')
     .select('key, value')
-    .in('key', ['pay_per_class_price_60', 'pay_per_class_price_90', 'pack_price_60', 'classes_per_pack_60', 'pack_price_90', 'classes_per_pack_90'])
+    .in('key', ['pay_per_class_price_60', 'pay_per_class_price_90'])
 
   const cfg = Object.fromEntries((configs ?? []).map((c: any) => [c.key, c.value]))
 
   let amount: number
   let productDesc: string
   let classesToAdd = 0
+  let resolvedPackType: '60' | '90' = '60'
 
   if (type === 'single_class') {
     let durationMin = 60
@@ -102,10 +105,33 @@ export async function POST(req: NextRequest) {
     productDesc = `Cuota grupo fijo ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
 
   } else {
-    const is90 = packType === '90'
-    amount = parseInt(cfg[is90 ? 'pack_price_90' : 'pack_price_60'] ?? (is90 ? '12000' : '9000'))
-    classesToAdd = parseInt(cfg[is90 ? 'classes_per_pack_90' : 'classes_per_pack_60'] ?? '10')
-    productDesc = is90 ? 'Bono clases de pádel 1h 30min' : 'Bono clases de pádel 1h'
+    // class_pack — look up by packId (new) or fallback to packType (legacy)
+    if (packId) {
+      const { data: pack, error: packErr } = await admin
+        .from('club_packs')
+        .select('id, name, duration_type, classes, price, is_enabled, club_id')
+        .eq('id', packId)
+        .single()
+
+      if (packErr || !pack)
+        return NextResponse.json({ error: 'Bono no encontrado.' }, { status: 404 })
+      if (!pack.is_enabled)
+        return NextResponse.json({ error: 'Este bono no está disponible actualmente.' }, { status: 400 })
+      if (pack.club_id !== clubId)
+        return NextResponse.json({ error: 'El bono no pertenece a tu club.' }, { status: 403 })
+
+      amount          = pack.price
+      classesToAdd    = pack.classes
+      resolvedPackType = pack.duration_type as '60' | '90'
+      productDesc     = pack.name
+    } else {
+      // legacy fallback (packType only)
+      const is90 = packType === '90'
+      resolvedPackType = is90 ? '90' : '60'
+      amount       = is90 ? 12000 : 9000
+      classesToAdd = 10
+      productDesc  = is90 ? 'Bono clases de pádel 1h 30min' : 'Bono clases de pádel 1h'
+    }
   }
 
   if (!amount || amount <= 0) {
@@ -140,7 +166,8 @@ export async function POST(req: NextRequest) {
     metadata: {
       schedule_id: scheduleId ?? null,
       classes_per_pack: classesToAdd,
-      pack_type: packType ?? null,
+      pack_type: type === 'class_pack' ? resolvedPackType : null,
+      pack_id: packId ?? null,
       enrollment_id: enrollmentId ?? null,
       exclusion_id: exclusionId ?? null,
       class_date: classDate ?? null,

@@ -15,7 +15,7 @@ export function DashboardShell({ children, clubName, role, userName }: Dashboard
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-[#f8f9ff]">
       {/* Overlay móvil */}
       {sidebarOpen && (
         <div
@@ -31,8 +31,8 @@ export function DashboardShell({ children, clubName, role, userName }: Dashboard
 
       {/* Contenido */}
       <div className="flex flex-1 flex-col min-w-0">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
+        <Header onMenuClick={() => setSidebarOpen(true)} userName={userName} role={role} />
+        <main className="flex-1 overflow-auto p-4 md:p-8 max-w-[1400px] mx-auto w-full">{children}</main>
       </div>
     </div>
   )

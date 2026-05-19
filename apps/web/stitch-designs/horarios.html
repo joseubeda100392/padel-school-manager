@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Horarios - Padel Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffd9de",
+                        "background": "#f8f9ff",
+                        "tertiary-fixed-dim": "#ffb2bf",
+                        "on-primary-fixed-variant": "#005320",
+                        "on-tertiary-fixed-variant": "#8a143c",
+                        "secondary-fixed": "#89f5e7",
+                        "surface-bright": "#f8f9ff",
+                        "primary": "#006b2c",
+                        "outline": "#6e7b6c",
+                        "on-surface-variant": "#3e4a3d",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "inverse-primary": "#62df7d",
+                        "on-secondary-fixed": "#00201d",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#006f66",
+                        "on-primary-container": "#f7fff2",
+                        "primary-fixed": "#7ffc97",
+                        "inverse-on-surface": "#eaf1ff",
+                        "tertiary-container": "#c74668",
+                        "surface-variant": "#d3e4fe",
+                        "on-primary-fixed": "#002109",
+                        "surface-container-high": "#dce9ff",
+                        "outline-variant": "#bdcaba",
+                        "on-tertiary-container": "#fffbff",
+                        "tertiary": "#a72d51",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-dim": "#cbdbf5",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#3f0016",
+                        "on-background": "#0b1c30",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#62df7d",
+                        "secondary": "#006a61",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#213145",
+                        "secondary-container": "#86f2e4",
+                        "primary-container": "#00873a",
+                        "on-secondary-fixed-variant": "#005049",
+                        "surface-container": "#e5eeff",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#006e2d",
+                        "surface": "#f8f9ff",
+                        "on-surface": "#0b1c30"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xl": "40px",
+                        "lg": "24px",
+                        "md": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "margin-desktop": "32px",
+                        "sm": "8px",
+                        "margin-mobile": "16px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "subtitle-lg": ["Inter"],
+                        "subtitle-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "subtitle-lg": ["18px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "subtitle-md": ["16px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        .court-pattern {
+            background-image: linear-gradient(45deg, theme('colors.surface-container-low') 25%, transparent 25%, transparent 75%, theme('colors.surface-container-low') 75%, theme('colors.surface-container-low')), linear-gradient(45deg, theme('colors.surface-container-low') 25%, transparent 25%, transparent 75%, theme('colors.surface-container-low') 75%, theme('colors.surface-container-low'));
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex antialiased">
+<!-- SideNavBar (from JSON) -->
+<nav class="fixed left-0 top-0 h-screen w-[264px] bg-surface-container-lowest dark:bg-inverse-surface border-r border-outline-variant dark:border-outline z-40 hidden md:flex flex-col py-xl px-md">
+<div class="mb-lg px-md">
+<h1 class="text-subtitle-lg font-subtitle-lg font-bold text-on-surface dark:text-inverse-on-surface">Padel Pro</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-sm">Admin Console</p>
+</div>
+<button class="mb-lg w-full bg-primary text-on-primary font-subtitle-md text-subtitle-md py-sm rounded-lg hover:bg-surface-tint transition-colors duration-200 flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined">add</span>
+            New Booking
+        </button>
+<div class="flex-grow flex flex-col gap-base">
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors duration-200 active:scale-95 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-subtitle-md text-subtitle-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container dark:bg-primary-container text-on-secondary-container dark:text-on-primary-container rounded-lg transition-colors duration-200 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="business_center">business_center</span>
+<span class="font-subtitle-md text-subtitle-md">Clubs</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors duration-200 active:scale-95 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="sports_tennis">sports_tennis</span>
+<span class="font-subtitle-md text-subtitle-md">Courts</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors duration-200 active:scale-95 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="font-subtitle-md text-subtitle-md">Coaches</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors duration-200 active:scale-95 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-subtitle-md text-subtitle-md">Students</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors duration-200 active:scale-95 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="event">event</span>
+<span class="font-subtitle-md text-subtitle-md">Bookings</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col gap-base border-t border-outline-variant pt-md">
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors duration-200 active:scale-95 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-subtitle-md text-subtitle-md">Settings</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant dark:text-surface-variant hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors duration-200 active:scale-95 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-subtitle-md text-subtitle-md">Support</span>
+</a>
+<div class="mt-md flex items-center gap-md px-md py-sm">
+<img alt="Padel School Manager Admin Profile" class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A small circular profile picture of a professional man with short hair wearing a dark jacket. The image is bright and clear, set against a light background, fitting a premium SaaS aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7cuNjpZ8Q_qbwne2R4NvAK0wkcfJSSJxcdHt-eG8tw0Kkf6Cp_Hwcr8TH1wk8O_peJ8MztUoV7t1cDBmBO9Q63MnXfNAzYPLPKML2FEG8luVpx1vlVPD9qjGlKnq42tJrmdGoWCOSasX_U6Gr2aeHcmhaq7Kby99e7K1AVv2gcpNz0vIru6X-5W-NrbilyERpa3CQbfydjRuxSmk-Tcq_2I_8CLoduAyCmUOgaR_cqErZMZNN_RS_k6FuNh-_4hDqcwTtD4ZP-Ns"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-[264px] min-h-screen bg-background pb-xl">
+<!-- Header area (Not the TopAppBar, just page context) -->
+<div class="px-margin-desktop py-lg sticky top-0 z-30 bg-background/90 backdrop-blur-sm border-b border-outline-variant/50">
+<div class="flex items-center gap-sm text-on-surface-variant font-body-md text-body-md mb-xs">
+<span>Dashboard</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-background font-subtitle-md text-subtitle-md">Horarios</span>
+</div>
+<div class="flex justify-between items-end mt-sm">
+<h2 class="font-headline-lg text-headline-lg text-on-background">Horarios Semanales</h2>
+<div class="flex items-center gap-md">
+<!-- View Toggle -->
+<div class="flex bg-surface-container rounded-lg p-[2px] border border-outline-variant">
+<button class="px-md py-xs rounded-lg font-subtitle-md text-subtitle-md flex items-center gap-xs bg-surface-container-lowest text-on-background shadow-sm">
+<span class="material-symbols-outlined text-[18px]">calendar_view_week</span>
+                            Calendar
+                        </button>
+<button class="px-md py-xs rounded-lg font-subtitle-md text-subtitle-md flex items-center gap-xs text-on-surface-variant hover:text-on-background">
+<span class="material-symbols-outlined text-[18px]">format_list_bulleted</span>
+                            List
+                        </button>
+</div>
+<button class="bg-primary text-on-primary font-subtitle-md text-subtitle-md px-md py-sm rounded-lg hover:bg-surface-tint transition-colors duration-200 flex items-center gap-xs">
+<span class="material-symbols-outlined">add</span>
+                        New Class
+                    </button>
+</div>
+</div>
+</div>
+<!-- Calendar Canvas -->
+<div class="p-margin-desktop">
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0px_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+<!-- Week Header -->
+<div class="grid grid-cols-8 border-b border-outline-variant bg-surface-bright text-center">
+<div class="py-md border-r border-outline-variant/50 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">schedule</span>
+</div>
+<div class="py-md border-r border-outline-variant/50 flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Mon</span>
+<span class="font-subtitle-lg text-subtitle-lg text-on-background mt-xs">12</span>
+</div>
+<div class="py-md border-r border-outline-variant/50 flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Tue</span>
+<span class="font-subtitle-lg text-subtitle-lg text-on-background mt-xs">13</span>
+</div>
+<div class="py-md border-r border-outline-variant/50 flex flex-col bg-surface-container">
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">Wed</span>
+<span class="font-subtitle-lg text-subtitle-lg text-primary mt-xs font-bold">14</span>
+</div>
+<div class="py-md border-r border-outline-variant/50 flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Thu</span>
+<span class="font-subtitle-lg text-subtitle-lg text-on-background mt-xs">15</span>
+</div>
+<div class="py-md border-r border-outline-variant/50 flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Fri</span>
+<span class="font-subtitle-lg text-subtitle-lg text-on-background mt-xs">16</span>
+</div>
+<div class="py-md border-r border-outline-variant/50 flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Sat</span>
+<span class="font-subtitle-lg text-subtitle-lg text-on-background mt-xs">17</span>
+</div>
+<div class="py-md flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Sun</span>
+<span class="font-subtitle-lg text-subtitle-lg text-on-background mt-xs">18</span>
+</div>
+</div>
+<!-- Grid Body -->
+<div class="court-pattern relative">
+<!-- Time Labels Col -->
+<div class="absolute left-0 top-0 bottom-0 w-[12.5%] border-r border-outline-variant/50 bg-surface-container-lowest flex flex-col text-right pr-sm text-on-surface-variant font-label-sm text-label-sm py-sm z-10">
+<div class="h-24 relative"><span class="absolute -top-2 right-2">08:00</span></div>
+<div class="h-24 relative"><span class="absolute -top-2 right-2">09:00</span></div>
+<div class="h-24 relative"><span class="absolute -top-2 right-2">10:00</span></div>
+<div class="h-24 relative"><span class="absolute -top-2 right-2">11:00</span></div>
+<div class="h-24 relative"><span class="absolute -top-2 right-2">12:00</span></div>
+<div class="h-24 relative"><span class="absolute -top-2 right-2">13:00</span></div>
+</div>
+<!-- Grid Lines -->
+<div class="grid grid-cols-8 relative ml-[12.5%] h-[600px] border-b border-outline-variant/50">
+<!-- Col Lines -->
+<div class="border-r border-outline-variant/30 h-full"></div>
+<div class="border-r border-outline-variant/30 h-full"></div>
+<div class="border-r border-outline-variant/30 h-full bg-surface-container/30"></div> <!-- Today Highlight -->
+<div class="border-r border-outline-variant/30 h-full"></div>
+<div class="border-r border-outline-variant/30 h-full"></div>
+<div class="border-r border-outline-variant/30 h-full"></div>
+<div class="h-full"></div>
+<!-- Class Cards (Absolute positioning based on time 1hr = 96px) -->
+<!-- Mon 09:00 - 10:30 (Beginner - Blue) -->
+<div class="absolute top-[96px] left-[0%] w-[14.28%] p-1 h-[144px]">
+<div class="h-full rounded-lg bg-surface-variant border border-[#93c5fd] p-sm flex flex-col hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#3b82f6]"></div>
+<div class="pl-sm">
+<span class="inline-block px-2 py-0.5 rounded-full bg-[#dbeafe] text-[#1e40af] font-label-sm text-[10px] mb-xs">Beginner</span>
+<h4 class="font-subtitle-md text-sm text-on-background leading-tight">Intro to Padel</h4>
+<p class="font-body-md text-xs text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">person</span>
+                                        Carlos M.
+                                    </p>
+<p class="font-body-md text-xs text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">sports_tennis</span>
+                                        Court 1
+                                    </p>
+</div>
+</div>
+</div>
+<!-- Wed 10:00 - 11:30 (Intermediate - Orange) -->
+<div class="absolute top-[192px] left-[28.56%] w-[14.28%] p-1 h-[144px]">
+<div class="h-full rounded-lg bg-[#fff7ed] border border-[#fdba74] p-sm flex flex-col hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#ea580c]"></div>
+<div class="pl-sm">
+<span class="inline-block px-2 py-0.5 rounded-full bg-[#ffedd5] text-[#9a3412] font-label-sm text-[10px] mb-xs">Intermediate</span>
+<h4 class="font-subtitle-md text-sm text-on-background leading-tight">Tactics &amp; Positioning</h4>
+<p class="font-body-md text-xs text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">person</span>
+                                        Laura S.
+                                    </p>
+<p class="font-body-md text-xs text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">sports_tennis</span>
+                                        Court 3
+                                    </p>
+</div>
+</div>
+</div>
+<!-- Thu 08:00 - 09:30 (Advanced - Purple) -->
+<div class="absolute top-[0px] left-[42.84%] w-[14.28%] p-1 h-[144px]">
+<div class="h-full rounded-lg bg-[#faf5ff] border border-[#d8b4fe] p-sm flex flex-col hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#9333ea]"></div>
+<div class="pl-sm">
+<span class="inline-block px-2 py-0.5 rounded-full bg-[#f3e8ff] text-[#6b21a8] font-label-sm text-[10px] mb-xs">Advanced</span>
+<h4 class="font-subtitle-md text-sm text-on-background leading-tight">Match Play Prep</h4>
+<p class="font-body-md text-xs text-on-surface-variant mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">person</span>
+                                        David R.
+                                    </p>
+<p class="font-body-md text-xs text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">sports_tennis</span>
+                                        Center Court
+                                    </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

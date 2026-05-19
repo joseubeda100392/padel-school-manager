@@ -108,24 +108,30 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
         ]}
       />
       <DevError errors={[errSchedules?.message, errCourts?.message, errEnrollments?.message]} />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Horarios</h1>
-          <p className="text-sm text-gray-500">{schedules.length} clases programadas</p>
+          <nav className="mb-1 flex items-center gap-1 text-[12px] text-gray-400">
+            <span>Dashboard</span><span className="mx-1">/</span>
+            <span className="font-semibold text-[#006b2c]">Horarios</span>
+          </nav>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[22px] font-extrabold text-gray-900 tracking-tight">Horarios Semanales</h1>
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-gray-500">
+              {schedules.length} clases
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <ScheduleViewToggle current={view} />
-          <a
-            href="/dashboard/schedule/new"
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-          >
+          <a href="/dashboard/schedule/new"
+            className="flex items-center gap-2 rounded-xl bg-[#006b2c] px-4 py-2.5 text-[13px] font-bold text-white shadow-lg shadow-[#006b2c]/20 hover:bg-[#005320] transition-all active:scale-95">
             + Nueva clase
           </a>
         </div>
       </div>
 
       {courts && courts.length === 0 && (
-        <div className="mb-4 rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-medium text-amber-700">
           No hay pistas activas. Primero crea una pista en Configuración.
         </div>
       )}

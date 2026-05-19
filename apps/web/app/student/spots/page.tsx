@@ -171,7 +171,7 @@ export default async function StudentSpotsPage() {
   const allSpots = [...absenceSpots, ...capacitySpots]
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl space-y-4">
       <RealtimeRefresh
         channelName={`student-spots-${user.id}`}
         subs={[
@@ -179,16 +179,35 @@ export default async function StudentSpotsPage() {
           { table: 'bookings', filter: `student_id=eq.${user.id}` },
         ]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Huecos Libres</h1>
-        <p className="text-sm text-gray-500">Plazas disponibles por ausencia de otro alumno o por capacidad libre</p>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-[22px] font-extrabold text-gray-900 tracking-tight">Huecos Libres</h1>
+          <p className="text-[13px] text-gray-400 mt-0.5">Plazas por ausencia o por capacidad disponible</p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-[12px] font-bold ${allSpots.length > 0 ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
+          {allSpots.length} hueco{allSpots.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Saldo disponible */}
+      <div className="mb-5 flex gap-3">
+        <div className="flex-1 rounded-2xl border border-gray-200/60 bg-white p-4 shadow-sm">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Saldo 60 min</p>
+          <p className={`text-2xl font-extrabold ${balance60 > 0 ? 'text-[#006b2c]' : 'text-gray-300'}`}>{balance60}</p>
+        </div>
+        <div className="flex-1 rounded-2xl border border-gray-200/60 bg-white p-4 shadow-sm">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Saldo 90 min</p>
+          <p className={`text-2xl font-extrabold ${balance90 > 0 ? 'text-blue-500' : 'text-gray-300'}`}>{balance90}</p>
+        </div>
       </div>
 
       {allSpots.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-2xl mb-2">🎾</p>
-          <p className="text-gray-400">No hay huecos libres disponibles ahora mismo.</p>
-          <p className="mt-1 text-xs text-gray-400">Vuelve a consultar más adelante.</p>
+        <div className="rounded-2xl border border-gray-200/60 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50">
+            <svg className="h-6 w-6 text-orange-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          </div>
+          <p className="text-[13px] font-medium text-gray-400">No hay huecos libres disponibles ahora mismo.</p>
+          <p className="mt-1 text-[11px] text-gray-300">Vuelve a consultar más adelante.</p>
         </div>
       ) : (
         <SpotsClient spots={allSpots} balance60={balance60} balance90={balance90} />

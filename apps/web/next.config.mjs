@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-transpilePackages: ['@padel/db', '@padel/types', '@padel/stripe'],
+  transpilePackages: ['@padel/db', '@padel/types', '@padel/stripe'],
+  // Disable static prerendering for all pages — app uses Supabase at runtime
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
   images: {
     remotePatterns: [
       {

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface": "#0b1c30",
+                    "surface-dim": "#cbdbf5",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-error-container": "#93000a",
+                    "inverse-surface": "#213145",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#89f5e7",
+                    "on-primary-fixed-variant": "#005320",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container": "#e5eeff",
+                    "tertiary-container": "#c74668",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#006f66",
+                    "surface-tint": "#006e2d",
+                    "primary-fixed-dim": "#62df7d",
+                    "outline-variant": "#f1f5f9",
+                    "background": "#f8f9ff",
+                    "on-secondary-fixed": "#00201d",
+                    "on-primary-fixed": "#002109",
+                    "on-tertiary-container": "#fffbff",
+                    "secondary": "#006a61",
+                    "surface": "#f8f9ff",
+                    "error": "#ba1a1a",
+                    "primary": "#006b2c",
+                    "primary-fixed": "#7ffc97",
+                    "primary-container": "#00873a",
+                    "on-error": "#ffffff",
+                    "on-primary-container": "#f7fff2",
+                    "tertiary-fixed-dim": "#ffb2bf",
+                    "secondary-fixed-dim": "#6bd8cb",
+                    "on-tertiary-fixed-variant": "#8a143c",
+                    "secondary-container": "#86f2e4",
+                    "surface-container-low": "#eff4ff",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed": "#3f0016",
+                    "surface-bright": "#f8f9ff",
+                    "surface-container-high": "#dce9ff",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed-variant": "#005049",
+                    "outline": "#6e7b6c",
+                    "on-surface-variant": "#3e4a3d",
+                    "inverse-primary": "#62df7d",
+                    "tertiary-fixed": "#ffd9de",
+                    "tertiary": "#a72d51",
+                    "on-primary": "#ffffff",
+                    "on-background": "#0b1c30"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "xl": "40px",
+                    "md": "16px",
+                    "gutter": "24px",
+                    "base": "4px",
+                    "margin-mobile": "16px",
+                    "lg": "24px",
+                    "xs": "4px",
+                    "margin-desktop": "48px"
+            },
+            "fontFamily": {
+                    "subtitle-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "subtitle-md": ["Inter"],
+                    "headline-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "subtitle-lg": ["18px", {"lineHeight": "1.5", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "subtitle-md": ["16px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                    "headline-lg": ["36px", {"lineHeight": "1.1", "letterSpacing": "-0.03em", "fontWeight": "800"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9ff; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .court-pattern {
+            background-image: radial-gradient(#bdcaba 1px, transparent 1px);
+            background-size: 32px 32px;
+            opacity: 0.03;
+        }
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .kpi-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .kpi-card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen w-[280px] glass-sidebar border-r border-outline-variant flex flex-col py-xl px-lg z-50">
+<div class="mb-xl px-md">
+<div class="flex items-center gap-sm mb-xs">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary text-xl" data-icon="sports_tennis">sports_tennis</span>
+</div>
+<h1 class="text-subtitle-lg font-subtitle-lg font-extrabold text-on-surface tracking-tight">Padel Pro</h1>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant opacity-60">ADMINISTRATION CONSOLE</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-md px-md py-sm bg-primary/10 text-primary rounded-xl font-semibold transition-all group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="dashboard">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all rounded-xl group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="business_center">business_center</span>
+<span class="font-label-sm text-label-sm">Clubs</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all rounded-xl group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="sports_tennis">sports_tennis</span>
+<span class="font-label-sm text-label-sm">Courts</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all rounded-xl group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="badge">badge</span>
+<span class="font-label-sm text-label-sm">Coaches</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all rounded-xl group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="group">group</span>
+<span class="font-label-sm text-label-sm">Students</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all rounded-xl group" href="#">
+<span class="material-symbols-outlined transition-transform group-hover:scale-110" data-icon="event">event</span>
+<span class="font-label-sm text-label-sm">Bookings</span>
+</a>
+</nav>
+<div class="mt-auto space-y-1">
+<button class="w-full bg-primary text-on-primary py-3 rounded-xl font-bold mb-lg shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="add_circle">add_circle</span>
+            New Booking
+        </button>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-low transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-sm text-label-sm">Support</span>
+</a>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-[280px] h-20 bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant flex justify-between items-center px-margin-desktop z-40">
+<div class="flex items-center gap-xl w-full max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant/50" data-icon="search">search</span>
+<input class="w-full pl-xl pr-md py-2.5 border border-outline-variant rounded-xl bg-surface-container-low/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-body-md" placeholder="Search students, courts, matches..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<div class="flex gap-sm">
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-all relative group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" data-icon="notifications">notifications</span>
+<span class="absolute top-2.5 right-2.5 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-all group">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform" data-icon="chat_bubble">chat_bubble</span>
+</button>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant mx-md"></div>
+<div class="flex items-center gap-md cursor-pointer hover:bg-surface-container-low p-1.5 rounded-xl transition-all group">
+<div class="text-right">
+<p class="text-label-sm font-bold text-on-surface">Admin School</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Super Admin</p>
+</div>
+<img alt="Admin Profile" class="w-10 h-10 rounded-xl border-2 border-white shadow-sm object-cover" data-alt="A professional headshot of a mature male padel coach with short dark hair and a confident smile. He is wearing a clean white polo shirt with a subtle sports logo. The lighting is bright and professional, typical of a modern sports facility management profile image." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4-cAhRCJr_1IE8Slrt1GwLgmqdj0UXrvNWpQK4hM7GN8hXZUD9nRbuI9z-RL-4o3izP-c33JEUrAlPiv-_yQmixrKFDPs3G06eT5Pn9-VKvaoXrflxj-gC74vNmDhjMd7o6Y-joYt57MiBlU8Nb1cabFAInyrj82jG67xwrDCIQMsORfHGNk3yevf9BuraoztJVPs8Mlyim9d8XsSIgylH8LKEf6jYDS1u2ewyD6_orGYvnO8itY_rCOzheIoGJQ3_O2r2ZDkcqw"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-[280px] pt-20 min-h-screen relative overflow-hidden">
+<div class="court-pattern absolute inset-0 pointer-events-none"></div>
+<div class="p-margin-desktop relative z-10 max-w-[1400px] mx-auto">
+<!-- Greeting -->
+<div class="mb-xl">
+<h2 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">¡Hola, Admin!</h2>
+<p class="text-subtitle-md font-subtitle-md text-on-surface-variant mt-1" id="current-date">Lunes, 23 de Octubre de 2023</p>
+</div>
+<!-- KPI Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-xl">
+<!-- KPI 1 -->
+<div class="bg-surface-container-lowest p-lg rounded-2xl border border-outline-variant shadow-sm kpi-card-hover relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600"></div>
+<div class="flex justify-between items-start mb-md">
+<div>
+<p class="text-[11px] font-bold tracking-widest text-on-surface-variant/60 mb-1">ALUMNOS ACTIVOS</p>
+<h3 class="text-headline-lg font-headline-lg text-on-surface">1,284</h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-2xl" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+</div>
+</div>
+<div class="flex items-center gap-xs text-xs font-semibold text-primary bg-primary/5 px-2 py-1 rounded-lg w-fit">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
+<span>+12% este mes</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface-container-lowest p-lg rounded-2xl border border-outline-variant shadow-sm kpi-card-hover relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-500"></div>
+<div class="flex justify-between items-start mb-md">
+<div>
+<p class="text-[11px] font-bold tracking-widest text-on-surface-variant/60 mb-1">CLASES HOY</p>
+<h3 class="text-headline-lg font-headline-lg text-on-surface">42</h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-2xl" data-icon="calendar_month" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+</div>
+</div>
+<div class="flex items-center gap-xs text-xs font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span>Siguiente: 16:30hs (Cancha 2)</span>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-surface-container-lowest p-lg rounded-2xl border border-outline-variant shadow-sm kpi-card-hover relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+<div class="flex justify-between items-start mb-md">
+<div>
+<p class="text-[11px] font-bold tracking-widest text-on-surface-variant/60 mb-1">COBROS PENDIENTES</p>
+<h3 class="text-headline-lg font-headline-lg text-on-surface">18</h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-2xl" data-icon="payments" style="font-variation-settings: 'FILL' 1;">payments</span>
+</div>
+</div>
+<div class="flex items-center gap-xs text-xs font-bold text-error">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span>Acción requerida</span>
+</div>
+</div>
+<!-- KPI 4 -->
+<div class="bg-surface-container-lowest p-lg rounded-2xl border border-outline-variant shadow-sm kpi-card-hover relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-indigo-600"></div>
+<div class="flex justify-between items-start mb-md">
+<div>
+<p class="text-[11px] font-bold tracking-widest text-on-surface-variant/60 mb-1">MATERIAL PUBLICADO</p>
+<h3 class="text-headline-lg font-headline-lg text-on-surface">156</h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-2xl" data-icon="book" style="font-variation-settings: 'FILL' 1;">book</span>
+</div>
+</div>
+<div class="flex items-center gap-xs text-xs font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-sm" data-icon="new_releases">new_releases</span>
+<span>4 nuevos videos esta semana</span>
+</div>
+</div>
+</div>
+<!-- Widgets Row -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+<!-- Unpaid Users Widget -->
+<section class="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm flex flex-col">
+<div class="p-lg border-b border-outline-variant flex justify-between items-center">
+<h4 class="font-subtitle-lg text-subtitle-lg text-on-surface flex items-center gap-sm">
+                        Sin pagar este mes
+                        <span class="bg-error-container text-on-error-container text-[11px] px-2 py-0.5 rounded-full font-extrabold">18</span>
+</h4>
+<button class="text-primary font-bold text-sm hover:underline flex items-center gap-1 group">
+                        Ver todos
+                        <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+<!-- Content (List) -->
+<div class="flex-1" id="unpaid-list">
+<div class="divide-y divide-outline-variant">
+<!-- Item 1 -->
+<div class="p-lg flex items-center justify-between hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-subtitle-md shadow-sm group-hover:scale-105 transition-transform">JD</div>
+<div>
+<p class="text-subtitle-md font-bold text-on-surface">Juan Delgado</p>
+<p class="text-body-md text-on-surface-variant opacity-70">Clase Grupal • Hoy 18:00hs</p>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<span class="bg-error-container text-on-error-container px-3 py-1 rounded-xl font-extrabold text-subtitle-md">$4.500</span>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="mail">mail</span>
+</button>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="p-lg flex items-center justify-between hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-subtitle-md shadow-sm group-hover:scale-105 transition-transform">MR</div>
+<div>
+<p class="text-subtitle-md font-bold text-on-surface">Marta Rodriguez</p>
+<p class="text-body-md text-on-surface-variant opacity-70">Clase Particular • Hoy 10:30hs</p>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<span class="bg-error-container text-on-error-container px-3 py-1 rounded-xl font-extrabold text-subtitle-md">$6.000</span>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="mail">mail</span>
+</button>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="p-lg flex items-center justify-between hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-subtitle-md shadow-sm group-hover:scale-105 transition-transform">LC</div>
+<div>
+<p class="text-subtitle-md font-bold text-on-surface">Lucas Conti</p>
+<p class="text-body-md text-on-surface-variant opacity-70">Clase Niños • Mañana 15:00hs</p>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<span class="bg-error-container text-on-error-container px-3 py-1 rounded-xl font-extrabold text-subtitle-md">$3.800</span>
+<button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="mail">mail</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Hidden Empty State -->
+<div class="hidden flex-1 flex-col items-center justify-center p-xl text-center" id="unpaid-empty">
+<div class="w-16 h-16 bg-green-100 text-primary rounded-full flex items-center justify-center mb-md shadow-inner">
+<span class="material-symbols-outlined text-4xl" data-icon="check_circle">check_circle</span>
+</div>
+<h5 class="font-subtitle-md text-subtitle-md text-on-surface font-bold">¡Todo al día!</h5>
+<p class="text-body-md text-on-surface-variant max-w-[200px] mt-1">No hay cobros pendientes para este período.</p>
+</div>
+</section>
+<!-- Latest Registrations Widget -->
+<section class="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm flex flex-col">
+<div class="p-lg border-b border-outline-variant">
+<h4 class="font-subtitle-lg text-subtitle-lg text-on-surface">Últimos alumnos registrados</h4>
+</div>
+<div class="divide-y divide-outline-variant">
+<!-- Student 1 -->
+<div class="p-lg flex items-center justify-between hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="flex items-center gap-md">
+<img alt="Student 1" class="w-12 h-12 rounded-xl border-2 border-white shadow-sm object-cover group-hover:scale-105 transition-transform" data-alt="Close-up portrait of a young man with glasses and a friendly expression, outdoor natural lighting with a soft green bokeh background. Clean, high-resolution aesthetic for a sports club student database profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAB1BuM3GWuRYNL0M0UzQWfRWyMRHLL30zYTq-bRZQ87m4QxEk4QBzs2Ma0k5SGOkqy5h37wCp4c5Hv1hmIweBQKAO-Q8KTO4RUUWYaAQIjExnrbEBXtlvqaMz-Ms1vLC4nH7rKoE6jsYVvtiOKxscWwF-ebCxTfkFOWxNXj22Y-tIAOaSYMfjMzbF4dRKLHJBoigCMrpyPexgxh4-1z_SgjF9DpVttXDCfw8J_7L4wmOH7UkObxIjLkHWqOWH1bm2qGX-g-Zw0BE8"/>
+<div>
+<p class="text-subtitle-md font-bold text-on-surface">Carlos Gomez</p>
+<p class="text-body-md text-on-surface-variant opacity-70">carlos.g@email.com</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">Registrado: Hoy</p>
+<span class="bg-blue-50 text-blue-700 text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-tight">INTERMEDIO</span>
+</div>
+</div>
+<!-- Student 2 -->
+<div class="p-lg flex items-center justify-between hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="flex items-center gap-md">
+<img alt="Student 2" class="w-12 h-12 rounded-xl border-2 border-white shadow-sm object-cover group-hover:scale-105 transition-transform" data-alt="Bright and professional portrait of a young woman smiling, with her hair in a ponytail, wearing athletic apparel. The background is a brightly lit indoor sports facility. High-end modern SaaS profile style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJa5EPa-fM_udzIk5uNkYSZUG-lj1XDPsDn9xfqXqf15zBufTREc1D3MDQ4zPRrza_R1Lt_6gFPb8D9pjlHi4svcC0vwrA3Czfy5-CenrJqkpS-NBDoNrjb44oCNvfG19pSfs9FdPq7cPdRp3ydtwrq5RR9TLnDjnVpyB2mI8bTtHXsSyzLzHAxJDoh7wIMfJ7ELy9jPMJbcXXWQp97AmV6Hi8dVs4Ta6yMSFum0RV3HvFMexgRRFFgGdbhr0TUILSFOwgaP7MEYY"/>
+<div>
+<p class="text-subtitle-md font-bold text-on-surface">Ana Silveyra</p>
+<p class="text-body-md text-on-surface-variant opacity-70">ana.sil@email.com</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">Registrado: Ayer</p>
+<span class="bg-green-50 text-primary text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-tight">PRINCIPIANTE</span>
+</div>
+</div>
+<!-- Student 3 -->
+<div class="p-lg flex items-center justify-between hover:bg-surface-container-low transition-all cursor-pointer group">
+<div class="flex items-center gap-md">
+<img alt="Student 3" class="w-12 h-12 rounded-xl border-2 border-white shadow-sm object-cover group-hover:scale-105 transition-transform" data-alt="A clean, minimalist portrait of a man with a short beard looking directly at the camera. He has a professional and athletic appearance. The lighting is soft and even, against a light grey neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVPG3TtNdpjah25fm68Ouqepmmr6cmND5Lf-JYUjzPfckmXk5KvIGJFhofIigpxxuZPYqdiNWBbPQlrdCKejA9fSnpEkhryEwKys2chVV0u44rVdd_e5PE0i2ESL5rJ3_JMyLf-j6iPjNX34CrJszeyjTrLxILiMVqqTQf6yYlPKPoK8TCsOXYf3NZz5YM835IbxaZHKImMkJXh9Zk8RmTWy7B8t6BRXDSf3WcUm_x-gbzxhV7L8n0gvQlPnHiW5DrwonK52Dn6KE"/>
+<div>
+<p class="text-subtitle-md font-bold text-on-surface">Roberto Peña</p>
+<p class="text-body-md text-on-surface-variant opacity-70">rober.p@email.com</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">Registrado: 21 Oct</p>
+<span class="bg-purple-50 text-purple-700 text-[10px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-tight">AVANZADO</span>
+</div>
+</div>
+</div>
+<button class="w-full p-lg text-primary text-subtitle-md hover:bg-surface-container-low transition-all border-t border-outline-variant mt-auto font-bold flex items-center justify-center gap-sm">
+                    Ver listado completo
+                    <span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</section>
+</div>
+</div>
+</main>
+<script>
+    // Update date dynamically
+    function updateDate() {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const today = new Date();
+        const formattedDate = today.toLocaleDateString('es-ES', options);
+        const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+        document.getElementById('current-date').innerText = capitalize(formattedDate);
+    }
+    updateDate();
+
+    // Simple interaction for demo: toggle empty state
+    window.toggleEmptyState = () => {
+        const list = document.getElementById('unpaid-list');
+        const empty = document.getElementById('unpaid-empty');
+        list.classList.toggle('hidden');
+        empty.classList.toggle('hidden');
+    };
+
+    // Scroll reveal animations
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, index) => {
+            if (entry.isIntersecting) {
+                setTimeout(() => {
+                    entry.target.classList.add('opacity-100', 'translate-y-0');
+                    entry.target.classList.remove('opacity-0', 'translate-y-6');
+                }, index * 80);
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.bg-surface-container-lowest').forEach(card => {
+        card.classList.add('opacity-0', 'translate-y-6', 'transition-all', 'duration-700', 'ease-out');
+        observer.observe(card);
+    });
+</script>
+</body></html>
