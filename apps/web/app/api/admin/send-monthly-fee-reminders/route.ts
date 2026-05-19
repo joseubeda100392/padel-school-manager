@@ -7,7 +7,7 @@ const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','a
 
 export async function POST(req: NextRequest) {
   const cronSecret = req.headers.get('x-cron-secret')
-  if (cronSecret && cronSecret !== process.env.CRON_SECRET) {
+  if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
