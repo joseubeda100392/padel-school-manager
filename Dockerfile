@@ -11,7 +11,6 @@ RUN npm install -g pnpm@9
 # Copy manifests + prisma schema — this layer is cached when only source code changes
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json ./apps/web/
-COPY apps/mobile/package.json ./apps/mobile/
 COPY packages/db/package.json packages/db/schema.prisma ./packages/db/
 COPY packages/types/package.json ./packages/types/
 COPY packages/stripe/package.json ./packages/stripe/
