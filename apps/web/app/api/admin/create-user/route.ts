@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Solo los administradores pueden crear usuarios' }, { status: 403 })
   }
 
-  const { email, name, role, levelId, tempPassword, clubIdOverride } = await req.json()
+  const { email, name, role, levelId, clubIdOverride } = await req.json()
   const clubId = clubIdOverride ?? caller.club_id
 
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
     role,
     club_id: clubId,
     current_level_id: levelId || null,
+    email_confirmed: false,
   })
 
   if (dbError) {
