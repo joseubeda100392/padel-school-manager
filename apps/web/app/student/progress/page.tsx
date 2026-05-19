@@ -30,11 +30,6 @@ export default async function StudentProgressPage() {
         <p className="text-sm font-medium text-green-100">Mi progreso</p>
         {list.length === 0 ? (
           <p className="mt-1 text-2xl font-bold">Sin objetivos aún</p>
-        ) : totalItems === 0 ? (
-          <>
-            <p className="mt-1 text-4xl font-bold">—</p>
-            <p className="mt-0.5 text-sm text-green-100">{list.length} checklist{list.length !== 1 ? 's' : ''} · tu monitor está preparando los objetivos</p>
-          </>
         ) : (
           <>
             <p className="mt-1 text-4xl font-bold">{globalPct}<span className="text-2xl font-normal text-green-200">%</span></p>
@@ -107,28 +102,24 @@ export default async function StudentProgressPage() {
 
               {/* Items */}
               <div className="px-5 py-3">
-                {checklist.items.length === 0 ? (
-                  <p className="py-2 text-sm text-gray-400">Tu monitor añadirá objetivos pronto.</p>
-                ) : (
-                  <ul className="space-y-2.5">
-                    {checklist.items.map((item: any) => (
-                      <li key={item.id} className="flex items-start gap-3">
-                        {item.completed_at ? (
-                          <svg className="mt-0.5 h-5 w-5 shrink-0 text-green-500" viewBox="0 0 24 24" fill="currentColor">
-                            <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
-                          </svg>
-                        ) : (
-                          <svg className="mt-0.5 h-5 w-5 shrink-0 text-gray-300" viewBox="0 0 24 24" fill="currentColor">
-                            <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm0 1.5a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        <span className={`text-sm leading-relaxed ${item.completed_at ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                          {item.text}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <ul className="space-y-2.5">
+                  {checklist.items.map((item: any) => (
+                    <li key={item.id} className="flex items-start gap-3">
+                      {item.completed_at ? (
+                        <svg className="mt-0.5 h-5 w-5 shrink-0 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                          <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="mt-0.5 h-5 w-5 shrink-0 text-gray-300" viewBox="0 0 24 24" fill="currentColor">
+                          <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm0 1.5a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      <span className={`text-sm leading-relaxed ${item.completed_at ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                        {item.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           )
