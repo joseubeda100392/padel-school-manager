@@ -28,8 +28,13 @@ export default async function StudentProgressPage() {
       {/* Cabecera con progreso global */}
       <div className="mb-6 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white shadow-sm">
         <p className="text-sm font-medium text-green-100">Mi progreso</p>
-        {totalItems === 0 ? (
+        {list.length === 0 ? (
           <p className="mt-1 text-2xl font-bold">Sin objetivos aún</p>
+        ) : totalItems === 0 ? (
+          <>
+            <p className="mt-1 text-4xl font-bold">—</p>
+            <p className="mt-0.5 text-sm text-green-100">{list.length} checklist{list.length !== 1 ? 's' : ''} · tu monitor está preparando los objetivos</p>
+          </>
         ) : (
           <>
             <p className="mt-1 text-4xl font-bold">{globalPct}<span className="text-2xl font-normal text-green-200">%</span></p>
