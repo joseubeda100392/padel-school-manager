@@ -14,21 +14,33 @@ export default async function CoachStudentPage({ params }: { params: { id: strin
   const { data: coach } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!coach || coach.role !== 'coach') redirect('/coach')
 
-  const [{ data: student }, { data: checklists }] = await Promise.all([
+  const { data: coachSchedules } = await admin
+    .from('schedules')
+    .select('id')
+    .eq('coach_id', user.id)
+
+  const scheduleIds = (coachSchedules ?? []).map((s: any) => s.id)
+
+  const [{ data: student }, { data: checklists }, { data: enrollment }] = await Promise.all([
     admin.from('users').select('id, name, email, current_level_id').eq('id', params.id).single(),
     admin
       .from('student_checklists')
       .select('id, title, created_at, items:checklist_items(id, text, sort_order, completed_at, completed_by_id)')
       .eq('student_id', params.id)
       .order('created_at', { ascending: false }),
+    scheduleIds.length > 0
+      ? admin
+          .from('group_enrollments')
+          .select('id')
+          .eq('student_id', params.id)
+          .eq('status', 'active')
+          .in('schedule_id', scheduleIds)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
-  if (!student) notFound()
-
-  if (coach.club_id) {
-    const { data: studentUser } = await admin.from('users').select('club_id').eq('id', params.id).single()
-    if (studentUser?.club_id !== coach.club_id) notFound()
-  }
+  if (!student || !enrollment) notFound()
 
   return (
     <div className="max-w-lg">
