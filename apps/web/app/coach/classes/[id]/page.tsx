@@ -169,6 +169,13 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
                       <p className="text-xs text-orange-500">Falta {new Date(upcomingFaltas[0] + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
                     </div>
                   )}
+                  <Link
+                    href={`/coach/students/${s?.id}`}
+                    className="shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    title="Ver objetivos"
+                  >
+                    Objetivos
+                  </Link>
                 </div>
               )
             })}
