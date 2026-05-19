@@ -9,9 +9,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdminClient()
-  const { data: adminUser } = await admin.from('users').select('role').eq('id', user.id).single()
+  const { data: adminUser } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
+  if (adminUser.role !== 'super_admin') {
+    const { data: enrollment } = await admin.from('group_enrollments').select('club_id').eq('id', params.id).single()
+    if (!enrollment || enrollment.club_id !== adminUser.club_id) {
+      return NextResponse.json({ error: 'Inscripción no pertenece a tu club' }, { status: 403 })
+    }
   }
 
   const body = await req.json()
@@ -30,9 +37,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdminClient()
-  const { data: adminUser } = await admin.from('users').select('role').eq('id', user.id).single()
+  const { data: adminUser } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
+  if (adminUser.role !== 'super_admin') {
+    const { data: enrollment } = await admin.from('group_enrollments').select('club_id').eq('id', params.id).single()
+    if (!enrollment || enrollment.club_id !== adminUser.club_id) {
+      return NextResponse.json({ error: 'Inscripción no pertenece a tu club' }, { status: 403 })
+    }
   }
 
   await admin.from('group_enrollments').update({ status: 'cancelled' }).eq('id', params.id)

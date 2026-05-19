@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const { data: caller } = await admin
     .from('users')
-    .select('role')
+    .select('role, club_id')
     .eq('id', user.id)
     .single()
 
@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
   const { userId, email } = await req.json()
   if (!userId || !email?.trim()) {
     return NextResponse.json({ error: 'userId y email son obligatorios' }, { status: 400 })
+  }
+
+  const { data: target } = await admin.from('users').select('club_id').eq('id', userId).single()
+  if (!target || (caller.role !== 'super_admin' && target.club_id !== caller.club_id)) {
+    return NextResponse.json({ error: 'Usuario no pertenece a tu club' }, { status: 403 })
   }
 
   const newEmail = email.trim().toLowerCase()
