@@ -7,6 +7,7 @@ import AttendanceForm from './attendance-form'
 import GroupEnrollment from './group-enrollment'
 import ScheduleMaterials from './schedule-materials'
 import { AdminAddSpotBooking } from './add-spot-booking'
+import { SpotBookingsList } from './spot-bookings-list'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -212,35 +213,14 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           <h2 className="font-semibold text-gray-900">Reservas puntuales</h2>
           <p className="mt-0.5 text-xs text-gray-400">Alumnos apuntados a un hueco libre en una fecha concreta</p>
         </div>
-        {spotBookings.length > 0 && (
-          <div className="divide-y divide-gray-50">
-            {spotBookings.map((b: any) => {
-              const dateLabel = new Date(b.class_date + 'T12:00:00').toLocaleDateString('es-ES', {
-                weekday: 'long', day: 'numeric', month: 'long',
-              })
-              const initials = (b.student?.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
-              const sourceLabel: Record<string, string> = { bag: 'Crédito bolsa', pay_per_class: 'Pago único', admin: 'Admin' }
-              const sourceBadge: Record<string, string> = { bag: 'bg-orange-100 text-orange-700', pay_per_class: 'bg-blue-100 text-blue-700', admin: 'bg-gray-100 text-gray-600' }
-              return (
-                <div key={b.id} className="flex items-center gap-4 px-6 py-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
-                    {initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900">{b.student?.name}</p>
-                    <p className="text-sm text-gray-400">{b.student?.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-700 capitalize">{dateLabel}</p>
-                    <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sourceBadge[b.source] ?? 'bg-gray-100 text-gray-600'}`}>
-                      {sourceLabel[b.source] ?? b.source}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <SpotBookingsList
+          bookings={spotBookings.map((b: any) => ({
+            id: b.id,
+            source: b.source,
+            class_date: b.class_date,
+            student: b.student ? { name: b.student.name, email: b.student.email } : null,
+          }))}
+        />
         <AdminAddSpotBooking
           scheduleId={params.id}
           nextDate={nextDate}
