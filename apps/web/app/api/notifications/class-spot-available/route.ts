@@ -9,10 +9,14 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const admin = getAdminClient()
+  const { data: caller } = await admin.from('users').select('role').eq('id', user.id).single()
+  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
   const { scheduleId } = await req.json()
   if (!scheduleId) return NextResponse.json({ error: 'scheduleId requerido' }, { status: 400 })
-
-  const admin = getAdminClient()
 
   const { data: schedule } = await admin
     .from('schedules')

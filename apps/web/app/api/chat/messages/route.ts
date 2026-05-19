@@ -15,6 +15,16 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
+  const { data: callerRole } = await admin.from('users').select('role').eq('id', user.id).single()
+  const isAdmin = callerRole?.role === 'admin' || callerRole?.role === 'super_admin'
+
+  if (!isAdmin) {
+    const { data: thread } = await admin.from('chat_threads').select('user_id').eq('id', thread_id).single()
+    if (!thread || thread.user_id !== user.id) {
+      return NextResponse.json({ error: 'Sin acceso a este hilo' }, { status: 403 })
+    }
+  }
+
   const { data, error } = await admin
     .from('chat_messages')
     .insert({ thread_id, sender_id: user.id, content: content.trim() })
@@ -35,6 +45,16 @@ export async function GET(req: NextRequest) {
   if (!thread_id) return NextResponse.json({ error: 'thread_id requerido' }, { status: 400 })
 
   const admin = getAdminClient()
+
+  const { data: callerRole } = await admin.from('users').select('role').eq('id', user.id).single()
+  const isAdmin = callerRole?.role === 'admin' || callerRole?.role === 'super_admin'
+
+  if (!isAdmin) {
+    const { data: thread } = await admin.from('chat_threads').select('user_id').eq('id', thread_id).single()
+    if (!thread || thread.user_id !== user.id) {
+      return NextResponse.json({ error: 'Sin acceso a este hilo' }, { status: 403 })
+    }
+  }
 
   const { data, error } = await admin
     .from('chat_messages')

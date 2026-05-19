@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 
 function generatePassword() {
@@ -14,18 +15,18 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await serverSupabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const role = user.user_metadata?.role
-  if (role !== 'admin' && role !== 'super_admin') {
-    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
-  }
-
-  const clubId = await getClubId() ?? user.user_metadata?.club_id
-  if (!clubId) return NextResponse.json({ error: 'Club no identificado' }, { status: 400 })
-
   const adminSupabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
+
+  const { data: caller } = await getAdminClient().from('users').select('role, club_id').eq('id', user.id).single()
+  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const clubId = await getClubId() ?? caller.club_id
+  if (!clubId) return NextResponse.json({ error: 'Club no identificado' }, { status: 400 })
 
   const { data: club } = await adminSupabase.from('clubs').select('id').eq('id', clubId).single()
   if (!club) return NextResponse.json({ error: 'Club no válido' }, { status: 400 })
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
       })
 
       await adminSupabase.from('class_bag').upsert(
-        { user_id: userId, club_id: clubId, balance: 0 },
+        { user_id: userId, club_id: clubId, balance_60: 0, balance_90: 0 },
         { onConflict: 'user_id' }
       )
 
