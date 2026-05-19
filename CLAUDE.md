@@ -1,9 +1,12 @@
 # CLAUDE.md — Padel School Manager
 
+## ⚠️ REGLA CRÍTICA: NO TOCAR apps/mobile
+`apps/mobile` está DESCARTADA. No se usa. No modificar, no mencionar, no sugerir nada relacionado con React Native/Expo.
+Todo el trabajo va en `apps/web` únicamente.
+
 ## Descripción del Proyecto
 Ecosistema digital para escuelas de pádel compuesto por:
-- `apps/mobile`: App React Native/Expo para alumnos y monitores (iOS y Android)
-- `apps/web`: Panel de administración Next.js 14 (App Router) — deploy en Railway
+- `apps/web`: Aplicación web Next.js 14 (App Router) para alumnos, monitores y admins — deploy en Railway
 - `packages/db`: Prisma schema y cliente compartido (PostgreSQL/Supabase)
 - `packages/types`: Tipos TypeScript compartidos entre apps
 - `packages/stripe`: Lógica de pagos Stripe compartida

@@ -4,13 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle } from 'lucide-react'
+import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
 
 const navItems = [
   { href: '/student', label: 'Inicio', icon: Home, exact: true },
   { href: '/student/schedule', label: 'Mis Clases', icon: Calendar, exact: false },
+  { href: '/student/progress', label: 'Mi Progreso', icon: Target, exact: false },
   { href: '/student/spots', label: 'Huecos', icon: Zap, exact: false },
   { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false },
   { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false },
