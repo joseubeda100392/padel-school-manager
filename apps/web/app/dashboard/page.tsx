@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
@@ -10,6 +11,7 @@ const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto
 
 export default async function DashboardPage() {
   const supabase = createClient()
+  const admin = getAdminClient()
   const clubId = await getClubId()
 
   const filter = (q: any) => clubId ? q.eq('club_id', clubId) : q
@@ -25,12 +27,12 @@ export default async function DashboardPage() {
     { data: recentStudents, error: errRecent },
     { data: unpaidList, error: errRpc3 },
   ] = await Promise.all([
-    filter(supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
-    filter(supabase.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
-    supabase.rpc('count_classes_today', { p_club_id: clubId ?? null }),
-    supabase.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
-    filter(supabase.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
-    supabase.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
+    filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
+    filter(admin.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
+    admin.rpc('count_classes_today', { p_club_id: clubId ?? null }),
+    admin.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
+    filter(admin.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
+    admin.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
   ])
 
   const stats = [

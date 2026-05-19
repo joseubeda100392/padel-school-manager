@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 
@@ -8,8 +9,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/login')
 
+  const admin = getAdminClient()
+
   // Role must come from DB — user_metadata is user-writable and can be spoofed
-  const { data: dbProfile } = await supabase
+  const { data: dbProfile } = await admin
     .from('users')
     .select('role, club_id, name')
     .eq('id', user.id)
@@ -24,7 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let clubName: string | undefined
 
   if (clubId && role !== 'super_admin') {
-    const { data } = await supabase.from('clubs').select('name').eq('id', clubId).single()
+    const { data } = await admin.from('clubs').select('name').eq('id', clubId).single()
     clubName = data?.name ?? undefined
   }
 

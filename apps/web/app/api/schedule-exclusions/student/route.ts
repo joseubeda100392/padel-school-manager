@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       .eq('student_id', user.id)
       .eq('status', 'active')
       .single(),
-    admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time, court:courts(name), level:levels(name)').eq('id', scheduleId).single(),
     admin.from('app_config').select('value').eq('key', 'cancellation_hours').single(),
   ])
 
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
   const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
   const dateStr = date as string
   const classDt = getClassDatetime(schedule.start_time, dateStr)
+
 
   const base = new Date(schedule.start_time)
   if (classDt.getDay() !== base.getDay()) {
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const durationMin = schedule ? Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000) : 60
+  const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
   const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
 
   const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', user.id).single()
@@ -90,12 +91,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { data: scheduleData } = await admin
-      .from('schedules')
-      .select('start_time, end_time, court:courts(name), level:levels(name)')
-      .eq('id', scheduleId)
-      .single()
-
     const { data: enrolledIds } = await admin
       .from('group_enrollments')
       .select('student_id')
@@ -111,8 +106,8 @@ export async function POST(req: NextRequest) {
     const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)
     const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
 
-    if (targetIds.length > 0 && scheduleData) {
-      const sc = scheduleData as any
+    if (targetIds.length > 0) {
+      const sc = schedule as any
       const startDt = new Date(sc.start_time)
       const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
       const timeStr = formatTime(startDt)
@@ -126,7 +121,7 @@ export async function POST(req: NextRequest) {
       }, 'spot_available')
     }
   } catch {
-    // No interrumpir la respuesta si falla el push
+    // no interrumpir la respuesta si falla el push
   }
 
   return NextResponse.json({ data, publishedSpot: true, excludedDate: dateStr })

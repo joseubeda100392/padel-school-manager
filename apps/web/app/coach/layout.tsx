@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { CoachShell } from '@/components/layout/coach-shell'
 
@@ -7,7 +8,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profile } = await getAdminClient()
     .from('users')
     .select('role, name, club_id, clubs(name)')
     .eq('id', user.id)
