@@ -157,14 +157,19 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                   className={`cursor-pointer hover:bg-gray-50 ${selected.has(s.id) ? 'bg-red-50' : ''}`}
                   onClick={() => router.push(`/dashboard/schedule/${s.id}`)}
                 >
-                  <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(s.id)}
-                      onChange={() => toggleOne(s.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                    />
+                  <td
+                    className="px-4 py-4"
+                    onClick={(e) => { e.stopPropagation(); toggleOne(s.id) }}
+                  >
+                    <div className="flex h-full w-full cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(s.id)}
+                        onChange={() => toggleOne(s.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 text-xs font-semibold text-green-700">
