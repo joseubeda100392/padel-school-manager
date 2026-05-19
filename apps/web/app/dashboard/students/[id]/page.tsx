@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { notFound } from 'next/navigation'
 import { formatDate, formatCurrency } from '@/lib/utils'
@@ -7,6 +7,7 @@ import { BagAdjustForm } from './bag-adjust-form'
 import { StudentEditForm } from './student-edit-form'
 import { StudentEnrollments } from './student-enrollments'
 import { StudentMakeups } from './student-makeups'
+import { NotificationList } from '@/app/student/notifications/notification-list'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -29,14 +30,17 @@ const statusLabel: Record<string, string> = {
 }
 
 const typeLabel: Record<string, string> = {
-  subscription: 'Suscripción',
-  pay_per_class: 'Clase suelta',
-  bag_pack: 'Bono de clases',
-  manual: 'Manual',
+  fixed_group_month: 'Cuota mensual',
+  single_class:      'Clase suelta',
+  class_pack:        'Bono de clases',
+  manual:            'Manual',
+  subscription:      'Suscripción',
+  pay_per_class:     'Clase suelta',
+  bag_pack:          'Bono de clases',
 }
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+  const admin = getAdminClient()
   const clubId = await getClubId()
 
   const [
@@ -48,45 +52,52 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: payments },
     { data: enrollments },
     { data: makeups },
+    { data: studentNotifications },
   ] = await Promise.all([
-    supabase
+    admin
       .from('users')
       .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url, start_date, end_date')
       .eq('id', params.id)
       .single(),
     clubId
-      ? supabase.from('levels').select('id, name, color').eq('club_id', clubId).order('order')
-      : supabase.from('levels').select('id, name, color').order('order'),
-    supabase.from('class_bag').select('balance').eq('user_id', params.id).single(),
-    supabase
+      ? admin.from('levels').select('id, name, color').eq('club_id', clubId).order('order')
+      : admin.from('levels').select('id, name, color').order('order'),
+    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', params.id).single(),
+    admin
       .from('user_levels')
       .select('id, created_at, level:levels(name, color), assigned_by')
       .eq('user_id', params.id)
       .order('created_at', { ascending: false })
       .limit(10),
-    supabase
+    admin
       .from('bag_transactions')
       .select('id, delta, reason, created_at')
       .eq('user_id', params.id)
       .order('created_at', { ascending: false })
       .limit(10),
-    supabase
+    admin
       .from('payments')
       .select('id, amount, type, status, currency, created_at')
       .eq('user_id', params.id)
       .order('created_at', { ascending: false })
       .limit(20),
-    supabase
+    admin
       .from('group_enrollments')
       .select('id, monthly_price, paid_until, status, start_date, end_date, schedule:schedules(id, start_time, court:courts(name))')
       .eq('student_id', params.id)
       .eq('status', 'active')
       .order('enrolled_at', { ascending: false }),
-    supabase
+    admin
       .from('makeups')
       .select('id, original_date, makeup_date, status, notes, schedule:schedules(id, start_time)')
       .eq('student_id', params.id)
       .order('created_at', { ascending: false }),
+    admin
+      .from('notifications')
+      .select('id, type, title, body, data, is_read, created_at')
+      .eq('user_id', params.id)
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
 
   if (studentError || !student) {
@@ -128,7 +139,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         )}
       </div>
 
-      {/* Info básica */}
       <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-4 font-semibold text-gray-900">Información</h2>
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -151,7 +161,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </dl>
       </div>
 
-      {/* Editar info */}
       <div className="mb-6">
         <StudentEditForm student={{
           id: student.id as string,
@@ -165,7 +174,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         }} />
       </div>
 
-      {/* Clases y cuotas */}
       <div className="mb-6">
         <StudentEnrollments initialEnrollments={(enrollments ?? []).map((e: any) => ({
           id: e.id,
@@ -177,7 +185,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         }))} />
       </div>
 
-      {/* Nivel + Bolsa */}
       <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Nivel de juego</h2>
@@ -198,9 +205,17 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Clases disponibles</h2>
-          <p className="mb-1 text-5xl font-bold text-green-600">{bag?.balance ?? 0}</p>
-          <p className="mb-5 text-sm text-gray-500">clases disponibles</p>
-          <BagAdjustForm studentId={student.id as string} currentBalance={bag?.balance ?? 0} />
+          <div className="mb-4 flex gap-6">
+            <div>
+              <p className="text-4xl font-bold text-green-600">{bag?.balance_60 ?? 0}</p>
+              <p className="text-xs text-gray-400">60 min</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-blue-600">{bag?.balance_90 ?? 0}</p>
+              <p className="text-xs text-gray-400">90 min</p>
+            </div>
+          </div>
+          <BagAdjustForm studentId={student.id as string} balance60={bag?.balance_60 ?? 0} balance90={bag?.balance_90 ?? 0} />
 
           {bagHistory && bagHistory.length > 0 && (
             <div className="mt-4 border-t border-gray-100 pt-4">
@@ -220,7 +235,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       </div>
 
-      {/* Recuperaciones */}
       {makeups && makeups.length > 0 && (
         <div className="mb-6">
           <StudentMakeups initialMakeups={(makeups ?? []).map((m: any) => ({
@@ -234,7 +248,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {/* Historial de pagos */}
       <div className="mb-6 rounded-xl bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <h2 className="font-semibold text-gray-900">Historial de pagos</h2>
@@ -276,7 +289,15 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         )}
       </div>
 
-      {/* Historial de niveles */}
+      <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-4 font-semibold text-gray-900">Notificaciones del alumno</h2>
+        {(!studentNotifications || studentNotifications.length === 0) ? (
+          <p className="text-sm text-gray-400">Sin notificaciones.</p>
+        ) : (
+          <NotificationList initial={studentNotifications as any} targetUserId={params.id} />
+        )}
+      </div>
+
       {levelHistory && levelHistory.length > 0 && (
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Historial de niveles</h2>

@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { formatCurrency } from '@/lib/utils'
 
 export default async function AnalyticsPage() {
-  const supabase = createClient()
+  const admin = getAdminClient()
   const clubId = await getClubId()
 
   const filter = (q: any) => clubId ? q.eq('club_id', clubId) : q
@@ -15,11 +15,11 @@ export default async function AnalyticsPage() {
     { data: levels },
     { data: bagStats },
   ] = await Promise.all([
-    filter(supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
-    filter(supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true)),
-    filter(supabase.from('payments').select('amount, type, status, currency').eq('status', 'succeeded')),
-    filter(supabase.from('levels').select('id, name, color, users(count)')).order('order'),
-    filter(supabase.from('class_bag').select('balance')),
+    filter(admin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
+    filter(admin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true)),
+    filter(admin.from('payments').select('amount, type, status, currency').eq('status', 'succeeded')),
+    filter(admin.from('levels').select('id, name, color, users(count)')).order('order'),
+    filter(admin.from('class_bag').select('balance_60, balance_90')),
   ])
 
   const totalRevenue = payments?.reduce((acc: number, p: any) => acc + p.amount, 0) ?? 0
@@ -28,12 +28,12 @@ export default async function AnalyticsPage() {
     return acc
   }, {} as Record<string, number>)
 
-  const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance ?? 0), 0) ?? 0
+  const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance_60 ?? 0) + (b.balance_90 ?? 0), 0) ?? 0
 
   const typeLabel: Record<string, string> = {
-    subscription: 'Suscripción',
-    pay_per_class: 'Clase suelta',
-    bag_pack: 'Bono de clases',
+    fixed_group_month: 'Mensualidad grupo fijo',
+    single_class: 'Clase suelta',
+    class_pack: 'Bono de clases',
     manual: 'Manual',
   }
 

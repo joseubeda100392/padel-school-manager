@@ -1,18 +1,16 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
-  const adminSupabase = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: caller } = await adminSupabase
+  const admin = getAdminClient()
+
+  const { data: caller } = await admin
     .from('users')
     .select('role, club_id')
     .eq('id', user.id)
@@ -29,8 +27,7 @@ export async function POST(req: NextRequest) {
 
   const clubId = caller.club_id
 
-  // Obtener tokens de los destinatarios
-  let query = adminSupabase
+  let query = admin
     .from('users')
     .select('id, push_token')
     .eq('role', 'student')
@@ -42,7 +39,6 @@ export async function POST(req: NextRequest) {
   const { data: recipients } = await query
   const tokens = (recipients ?? []).map((r: any) => r.push_token).filter(Boolean)
 
-  // Enviar a la API de Expo en lotes de 100
   const messages = tokens.map((token: string) => ({
     to: token,
     title,
@@ -61,8 +57,7 @@ export async function POST(req: NextRequest) {
     sent += batch.length
   }
 
-  // Guardar campaña en historial
-  await adminSupabase.from('push_campaigns').insert({
+  await admin.from('push_campaigns').insert({
     club_id: clubId,
     title,
     body,

@@ -6,24 +6,29 @@ import { createClient } from '@/lib/supabase/client'
 
 interface Props {
   studentId: string
-  currentBalance: number
+  balance60: number
+  balance90: number
 }
 
-export function BagAdjustForm({ studentId, currentBalance }: Props) {
+export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
   const router = useRouter()
   const [amount, setAmount] = useState(1)
+  const [durationType, setDurationType] = useState<'60' | '90'>('60')
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const currentBalance = durationType === '60' ? balance60 : balance90
 
   async function adjust(sign: 1 | -1) {
     setSaving(true)
     const supabase = createClient()
     const delta = amount * sign
+    const field = durationType === '60' ? 'balance_60' : 'balance_90'
     const newBalance = Math.max(0, currentBalance + delta)
 
     const { data: bag } = await supabase
       .from('class_bag')
-      .update({ balance: newBalance })
+      .update({ [field]: newBalance })
       .eq('user_id', studentId)
       .select('id')
       .single()
@@ -35,6 +40,7 @@ export function BagAdjustForm({ studentId, currentBalance }: Props) {
         delta,
         type: sign === 1 ? 'credit' : 'debit',
         reason: reason.trim() || (sign === 1 ? 'Recarga manual' : 'Descuento manual'),
+        class_duration: durationType,
       })
     }
 
@@ -45,6 +51,14 @@ export function BagAdjustForm({ studentId, currentBalance }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
+        <select
+          value={durationType}
+          onChange={(e) => setDurationType(e.target.value as '60' | '90')}
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+        >
+          <option value="60">60 min</option>
+          <option value="90">90 min</option>
+        </select>
         <input
           type="number"
           min={1}

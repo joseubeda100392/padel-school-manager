@@ -1,13 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatTime } from '@/lib/utils'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { DevError } from '@/components/dev-error'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
 export default async function DashboardPage() {
   const supabase = createClient()
+  const admin = getAdminClient()
   const clubId = await getClubId()
 
   const filter = (q: any) => clubId ? q.eq('club_id', clubId) : q
@@ -16,19 +20,19 @@ export default async function DashboardPage() {
   const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
 
   const [
-    { count: totalStudents },
+    { count: totalStudents, error: errStudents },
     { count: totalMaterials },
-    { data: classesToday },
-    { data: pendingCount },
-    { data: recentStudents },
-    { data: unpaidList },
+    { data: classesToday, error: errRpc1 },
+    { data: pendingCount, error: errRpc2 },
+    { data: recentStudents, error: errRecent },
+    { data: unpaidList, error: errRpc3 },
   ] = await Promise.all([
-    filter(supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
-    filter(supabase.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
-    supabase.rpc('count_classes_today', { p_club_id: clubId ?? null }),
-    supabase.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
-    filter(supabase.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
-    supabase.rpc('get_pending_payments', { p_club_id: clubId ?? null }),
+    filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
+    filter(admin.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
+    admin.rpc('count_classes_today', { p_club_id: clubId ?? null }),
+    admin.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
+    filter(admin.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
+    admin.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
   ])
 
   const stats = [
@@ -40,6 +44,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <DevError errors={[errStudents?.message, errRpc1?.message, errRpc2?.message, errRecent?.message, errRpc3?.message]} />
+      <RealtimeRefresh
+        channelName="admin-dashboard"
+        subs={[
+          { table: 'group_enrollments' },
+          { table: 'users' },
+        ]}
+      />
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Panel de Control</h1>
         <p className="text-sm text-gray-500">Resumen de la actividad de tu escuela de pádel</p>
@@ -82,7 +94,7 @@ export default async function DashboardPage() {
               {unpaidList.map((e: any) => {
                 const dow = e.start_time ? new Date(e.start_time).getDay() : null
                 const time = e.start_time
-                  ? new Date(e.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                  ? formatTime(e.start_time)
                   : null
                 const initials = (e.student_name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
                 return (

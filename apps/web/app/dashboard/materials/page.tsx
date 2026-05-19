@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { formatDate } from '@/lib/utils'
+import { DevError } from '@/components/dev-error'
 
 export default async function MaterialsPage() {
   const supabase = createClient()
@@ -11,10 +12,11 @@ export default async function MaterialsPage() {
     .select('*, material_levels(level:levels(name, color))')
     .order('created_at', { ascending: false })
 
-  const { data: materials } = await (clubId ? query.eq('club_id', clubId) : query)
+  const { data: materials, error: errMaterials } = await (clubId ? query.eq('club_id', clubId) : query)
 
   return (
     <div>
+      <DevError errors={[errMaterials?.message]} />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Materiales didácticos</h1>

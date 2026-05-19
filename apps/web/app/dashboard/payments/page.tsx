@@ -1,27 +1,28 @@
-import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { formatCurrency } from '@/lib/utils'
 import PaymentsTable from './payments-table'
 import { UnpaidList } from './unpaid-list'
 import { MonthNavigator } from './month-navigator'
+import { DevError } from '@/components/dev-error'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
 export default async function PaymentsPage({ searchParams }: { searchParams: { month?: string } }) {
-  const supabase = createClient()
+  const admin = getAdminClient()
   const clubId = await getClubId()
 
   const now = new Date()
   const parsedDate = searchParams.month ? new Date(searchParams.month + '-01') : null
   const selectedDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : now
   const selectedYear = selectedDate.getFullYear()
-  const selectedMonth = selectedDate.getMonth() // 0-indexed
+  const selectedMonth = selectedDate.getMonth()
   const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`
 
   const startOfMonth = new Date(selectedYear, selectedMonth, 1).toISOString()
   const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999).toISOString()
 
-  const baseQuery = supabase
+  const baseQuery = admin
     .from('payments')
     .select('*, user:users(name, email)')
     .gte('created_at', startOfMonth)
@@ -29,9 +30,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const [{ data: payments }, { data: unpaidList }] = await Promise.all([
+  const [{ data: payments, error: errPayments }, { data: unpaidList, error: errUnpaid }] = await Promise.all([
     clubId ? baseQuery.eq('club_id', clubId) : baseQuery,
-    supabase.rpc('get_pending_payments', {
+    admin.rpc('get_pending_payments', {
       p_club_id: clubId ?? null,
       p_year: selectedYear,
       p_month: selectedMonth + 1, // RPC expects 1-indexed month
@@ -43,6 +44,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
 
   return (
     <div className="space-y-6">
+      <DevError errors={[errPayments?.message, errUnpaid?.message]} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Pagos</h1>
@@ -51,7 +53,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
         <MonthNavigator year={selectedYear} month={selectedMonth} />
       </div>
 
-      {/* Resumen del mes */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border-l-4 border-l-green-500 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Total cobrado en {monthLabel}</p>
@@ -69,7 +70,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
         </div>
       </div>
 
-      {/* Mensualidades pendientes */}
       <div className="rounded-xl bg-white shadow-sm">
         <div className="border-b border-gray-100 px-6 py-4">
           <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {monthLabel}</h2>
@@ -78,7 +78,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
         <UnpaidList items={unpaid as any[]} monthLabel={monthLabel} />
       </div>
 
-      {/* Historial de transacciones del mes seleccionado */}
       <div>
         <h2 className="mb-4 font-semibold text-gray-900">Transacciones — {monthLabel}</h2>
         <PaymentsTable payments={payments ?? []} />

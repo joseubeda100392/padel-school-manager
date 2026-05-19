@@ -31,7 +31,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError('Email o contraseña incorrectos')
@@ -39,7 +39,8 @@ export default function LoginPage() {
       return
     }
 
-    window.location.href = '/dashboard'
+    const role = data.user?.user_metadata?.role
+    window.location.href = role === 'student' ? '/student' : '/dashboard'
   }
 
   return (

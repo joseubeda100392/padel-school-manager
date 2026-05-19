@@ -1,18 +1,18 @@
-import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId, isSuperAdmin } from '@/lib/get-club'
 import StudentsTable from './students-table'
 
 export default async function StudentsPage() {
-  const supabase = createClient()
+  const admin = getAdminClient()
   const [clubId, superAdmin] = await Promise.all([getClubId(), isSuperAdmin()])
 
-  let studentsQuery = supabase
+  let studentsQuery = admin
     .from('users')
     .select('id, name, email, role, is_active, email_confirmed, created_at, current_level_id, avatar_url, start_date, end_date')
     .neq('role', 'super_admin')
     .order('name')
 
-  let levelsQuery = supabase.from('levels').select('id, name, color')
+  let levelsQuery = admin.from('levels').select('id, name, color')
 
   if (clubId) {
     studentsQuery = studentsQuery.eq('club_id', clubId)

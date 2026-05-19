@@ -67,7 +67,8 @@ export async function POST(req: NextRequest) {
     await adminSupabase.from('class_bag').upsert({
       user_id: userId,
       club_id: clubId,
-      balance: 0,
+      balance_60: 0,
+      balance_90: 0,
     }, { onConflict: 'user_id' })
 
     return NextResponse.json({ data: { id: userId } })

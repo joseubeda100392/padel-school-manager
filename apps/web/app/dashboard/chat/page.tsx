@@ -1,17 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { ChatWindow } from './chat-window'
+import { DevError } from '@/components/dev-error'
 
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
+  const admin = getAdminClient()
   const clubId = await getClubId()
 
-  const threadQuery = supabase
+  let threadsQuery = admin
     .from('chat_threads')
-    .select('*, user:users(name, email), lastMessage:chat_messages(content, created_at)')
+    .select('id, status, created_at, user_id, club_id, user:users!chat_threads_user_id_fkey(name, email), lastMessage:chat_messages(content, created_at)')
     .order('created_at', { ascending: false })
 
-  const { data: threads } = await (clubId ? threadQuery.eq('club_id', clubId) : threadQuery)
+  if (clubId) threadsQuery = threadsQuery.eq('club_id', clubId)
+
+  const { data: threads, error: errThreads } = await threadsQuery
 
   const activeThreadId = searchParams.thread ?? threads?.[0]?.id ?? null
 
@@ -19,7 +24,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   let activeThread: any = null
   if (activeThreadId) {
     activeThread = threads?.find((t: any) => t.id === activeThreadId)
-    const { data } = await supabase
+    const { data } = await admin
       .from('chat_messages')
       .select('*, sender:users(name, role)')
       .eq('thread_id', activeThreadId)
@@ -30,6 +35,8 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
   return (
+    <div className="flex flex-col gap-2">
+      <DevError errors={[errThreads?.message]} />
     <div className="flex h-[calc(100vh-9rem)] gap-0 overflow-hidden rounded-xl bg-white shadow-sm">
       {/* Thread list */}
       <aside className="flex w-72 flex-shrink-0 flex-col border-r border-gray-100">
@@ -77,6 +84,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

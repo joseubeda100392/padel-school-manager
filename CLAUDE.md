@@ -31,18 +31,35 @@ Ecosistema digital para escuelas de pádel compuesto por:
 
 **Regla:** Si es solo lectura → Haiku. Si hay que generar código → Sonnet. Si afecta arquitectura global → Opus.
 
-## Skills Activos
+## Estilo de Comunicación
+Respuestas cortas y directas siempre. Sin introducciones, sin resúmenes al final, sin frases de cortesía.
+Una frase por actualización. Código sin comentarios obvios.
 
-| Skill | Uso |
+## Skills — Cuándo Usarlas (Auto-invocación)
+
+### Uso automático (sin que el usuario lo pida)
+| Skill | Se invoca cuando... |
 |---|---|
-| `/simplify` | Revisar calidad del código tras implementar |
-| `/security-review` | Auditar Stripe webhooks y políticas RLS de Supabase |
-| `/review` | Revisar antes de mergear a main |
-| `update-config` | Gestionar hooks y permisos en settings.json |
-| `fewer-permission-prompts` | Eliminar interrupciones repetitivas de permisos (usar al inicio) |
-| `loop` | Monitorizar procesos durante desarrollo (Railway, Expo server, tests) |
-| `claude-api` | Integrar Anthropic API si se añaden features de IA en la app |
-| `schedule` | Agentes recurrentes: reportes semanales, alertas de Railway |
+| `/security-review` | Se toca auth, RLS, Stripe, API routes, o permisos |
+| `/simplify` | Se implementa una feature compleja (>50 líneas nuevas) |
+| `/review` | Antes de hacer push de cambios críticos |
+| `/deploy-check` | Antes de cada `git push` a Railway |
+| `claude-mem:mem-search` | Al inicio de una tarea para buscar soluciones previas |
+
+### Uso manual (el usuario las invoca)
+| Skill | Para qué |
+|---|---|
+| `/caveman` | Modo respuesta ultra-terse |
+| `/caveman-review` | Review de código en formato estructurado |
+| `/caveman-commit` | Generar mensaje de commit |
+| `/loop` | Monitorizar proceso en bucle (Railway deploy, tests) |
+| `/schedule` | Crear agente recurrente (reporte semanal, alerta) |
+| `/claude-api` | Integrar Anthropic API en la app |
+| `/update-config` | Cambiar permisos o hooks en settings.json |
+| `/fewer-permission-prompts` | Reducir interrupciones de permisos |
+| `claude-mem:learn-codebase` | Cargar todo el codebase en memoria al inicio |
+| `claude-mem:make-plan` | Planificar feature compleja antes de ejecutar |
+| `claude-mem:do` | Ejecutar un plan creado con make-plan |
 
 ## Convenciones de Código
 - TypeScript estricto (`strict: true`) en todo el proyecto
@@ -99,6 +116,34 @@ Críticas:
 ### F4: PDFs Didácticos
 - Upload a Supabase Storage, asignación por nivel
 - App alumno filtra por su nivel, app monitor ve todos
+
+## Supabase — Regla de Oro (NO ROMPER)
+
+**En server components (pages) SIEMPRE usar `supabaseAdmin` para queries de datos.**
+
+```ts
+import { createClient } from '@/lib/supabase/server'   // SOLO para auth
+import { supabaseAdmin } from '@/lib/supabase/admin'    // PARA TODOS los datos
+
+const supabase = createClient()
+const { data: { user } } = await supabase.auth.getUser() // auth con session
+const { data } = await supabaseAdmin.from('tabla')...    // datos con admin
+```
+
+**Por qué:** El cliente de sesión respeta RLS. Un alumno no puede leer datos de otros usuarios (coaches, admins), ni tablas sin política explícita (user_levels, material_levels, bookings de otros, etc.). El admin client (`supabaseAdmin`, service role) bypassa RLS de forma segura porque corre en el servidor.
+
+**Regla práctica:**
+- `createClient()` → solo para `supabase.auth.getUser()` 
+- `supabaseAdmin` → TODO lo demás en server components
+- En API routes → crear admin client inline dentro de la función (patrón ya establecido)
+- En Client Components → usar `createClient()` de `@/lib/supabase/client` (corre en el browser del usuario, RLS es correcto)
+
+## Depuración — Protocolo Obligatorio
+Ante cualquier bug que no sea obvio en el código:
+1. **Primero capturar el error real**: añadir `const { data, error } = await ...` y mostrar `error` en pantalla o en consola antes de hacer ningún cambio.
+2. **Nunca hacer cambios a ciegas** esperando que "quizás sea esto". Sin evidencia no hay fix.
+3. Para bugs de RLS/Supabase: ejecutar la query diagnóstico en el SQL Editor ANTES de tocar políticas.
+4. Para bugs de Next.js server: añadir `console.error` o renderizar el error en pantalla, deployar, leer el error, luego arreglar.
 
 ## Flujos Críticos (No Modificar Sin /security-review)
 1. **Webhook Stripe** → `/supabase/functions/stripe-webhook` → actualiza `payments` y `class_bag`

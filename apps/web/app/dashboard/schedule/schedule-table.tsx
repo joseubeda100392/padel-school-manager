@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -17,6 +18,8 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
   const router = useRouter()
   const [q, setQ] = useState('')
   const [day, setDay] = useState('')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   const filtered = useMemo(() => {
     const qLower = q.toLowerCase()
@@ -29,6 +32,47 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
       return matchQ && matchDay
     })
   }, [schedules, q, day])
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(s => selected.has(s.id))
+
+  function toggleOne(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    if (allFilteredSelected) {
+      setSelected(prev => {
+        const next = new Set(prev)
+        filtered.forEach(s => next.delete(s.id))
+        return next
+      })
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev)
+        filtered.forEach(s => next.add(s.id))
+        return next
+      })
+    }
+  }
+
+  async function handleDeleteSelected() {
+    const ids = [...selected]
+    if (!confirm(`¿Eliminar ${ids.length} clase${ids.length > 1 ? 's' : ''}? Se eliminarán también sus reservas e inscripciones.`)) return
+    setDeleting(true)
+    const supabase = createClient()
+    for (const id of ids) {
+      await supabase.from('bookings').delete().eq('schedule_id', id)
+      await supabase.from('group_enrollments').delete().eq('schedule_id', id)
+      await supabase.from('schedules').delete().eq('id', id)
+    }
+    setSelected(new Set())
+    setDeleting(false)
+    router.refresh()
+  }
 
   return (
     <>
@@ -62,6 +106,15 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
             Limpiar
           </button>
         )}
+        {selected.size > 0 && (
+          <button
+            onClick={handleDeleteSelected}
+            disabled={deleting}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+          >
+            {deleting ? 'Eliminando...' : `Eliminar ${selected.size} seleccionada${selected.size > 1 ? 's' : ''}`}
+          </button>
+        )}
       </div>
 
       {(q || day) && (
@@ -73,6 +126,14 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
           <table className="w-full min-w-[560px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleAll}
+                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Día</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Horario</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Pista</th>
@@ -85,7 +146,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
             <tbody className="divide-y divide-gray-50">
               {!filtered.length && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                     {q || day ? 'Sin resultados para esa búsqueda.' : 'No hay clases programadas. Crea la primera.'}
                   </td>
                 </tr>
@@ -93,9 +154,23 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
               {filtered.map((s: any) => (
                 <tr
                   key={s.id}
-                  className="cursor-pointer hover:bg-gray-50"
+                  className={`cursor-pointer hover:bg-gray-50 ${selected.has(s.id) ? 'bg-red-50' : ''}`}
                   onClick={() => router.push(`/dashboard/schedule/${s.id}`)}
                 >
+                  <td
+                    className="px-4 py-4"
+                    onClick={(e) => { e.stopPropagation(); toggleOne(s.id) }}
+                  >
+                    <div className="flex h-full w-full cursor-pointer items-center">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(s.id)}
+                        onChange={() => toggleOne(s.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 text-xs font-semibold text-green-700">
                       {dayName(s.start_time)}

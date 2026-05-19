@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { LevelCard } from '@/components/levels/level-card'
+import { DevError } from '@/components/dev-error'
 
 export default async function LevelsPage() {
   const supabase = createClient()
@@ -8,7 +9,7 @@ export default async function LevelsPage() {
 
   const buildQuery = (query: any) => clubId ? query.eq('club_id', clubId) : query
 
-  const { data: levels } = await buildQuery(
+  const { data: levels, error: errLevels } = await buildQuery(
     supabase.from('levels').select('*')
   ).order('order', { ascending: true })
 
@@ -27,6 +28,7 @@ export default async function LevelsPage() {
 
   return (
     <div>
+      <DevError errors={[errLevels?.message]} />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Niveles de Juego</h1>

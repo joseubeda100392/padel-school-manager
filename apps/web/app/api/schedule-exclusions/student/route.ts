@@ -1,24 +1,15 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
+import { sendPushToUsers } from '@/lib/push'
+import { formatTime } from '@/lib/utils'
 
-const adminSupabase = () => createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
-
-function getNextOccurrence(startTime: string): { date: Date; dateStr: string } {
+function getClassDatetime(startTime: string, dateStr: string): Date {
   const base = new Date(startTime)
-  const now = new Date()
-  const next = new Date(now)
-  next.setHours(base.getHours(), base.getMinutes(), 0, 0)
-  const todayDow = now.getDay()
-  const classDow = base.getDay()
-  let daysAhead = (classDow - todayDow + 7) % 7
-  if (daysAhead === 0 && next <= now) daysAhead = 7
-  next.setDate(next.getDate() + daysAhead)
-  return { date: next, dateStr: next.toISOString().split('T')[0] }
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setHours(base.getHours(), base.getMinutes(), 0, 0)
+  return d
 }
 
 export async function POST(req: NextRequest) {
@@ -26,8 +17,10 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { scheduleId } = await req.json()
-  const admin = adminSupabase()
+  const { scheduleId, date } = await req.json()
+  if (!scheduleId || !date) return NextResponse.json({ error: 'Parámetros requeridos' }, { status: 400 })
+
+  const admin = getAdminClient()
 
   const [{ data: enrollment }, { data: schedule }, { data: cfgRow }] = await Promise.all([
     admin.from('group_enrollments')
@@ -36,7 +29,7 @@ export async function POST(req: NextRequest) {
       .eq('student_id', user.id)
       .eq('status', 'active')
       .single(),
-    admin.from('schedules').select('start_time').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time, court:courts(name), level:levels(name)').eq('id', scheduleId).single(),
     admin.from('app_config').select('value').eq('key', 'cancellation_hours').single(),
   ])
 
@@ -44,9 +37,19 @@ export async function POST(req: NextRequest) {
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
 
   const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
-  const { date: nextOccurrence, dateStr } = getNextOccurrence(schedule.start_time)
-  const hoursUntilClass = (nextOccurrence.getTime() - Date.now()) / 3600000
+  const dateStr = date as string
+  const classDt = getClassDatetime(schedule.start_time, dateStr)
 
+
+  const base = new Date(schedule.start_time)
+  if (classDt.getDay() !== base.getDay()) {
+    return NextResponse.json({ error: 'La fecha no corresponde al día de la clase' }, { status: 400 })
+  }
+
+  const hoursUntilClass = (classDt.getTime() - Date.now()) / 3600000
+  if (hoursUntilClass < 0) {
+    return NextResponse.json({ error: 'La fecha ya ha pasado' }, { status: 400 })
+  }
   if (hoursUntilClass < cancellationHours) {
     return NextResponse.json({ error: `Debes avisar con al menos ${cancellationHours} horas de antelación` }, { status: 400 })
   }
@@ -69,16 +72,56 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const { data: bag } = await admin.from('class_bag').select('id, balance').eq('user_id', user.id).single()
+  const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
+  const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
+
+  const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', user.id).single()
   if (bag) {
-    await admin.from('class_bag').update({ balance: bag.balance + 1, updated_at: new Date().toISOString() }).eq('id', bag.id)
+    const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
+    const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
+    await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
     await admin.from('bag_transactions').insert({
       user_id: user.id,
       class_bag_id: bag.id,
       delta: 1,
       type: 'credit',
       reason: `Falta registrada ${dateStr}`,
+      class_duration: durationType,
     })
+  }
+
+  try {
+    const { data: enrolledIds } = await admin
+      .from('group_enrollments')
+      .select('student_id')
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'active')
+
+    const excludedIds = new Set((enrolledIds ?? []).map((e: any) => e.student_id))
+
+    const { data: adminUser } = await admin.from('users').select('club_id').eq('id', user.id).single()
+    const clubId = (adminUser as any)?.club_id
+
+    const q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
+    const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)
+    const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
+
+    if (targetIds.length > 0) {
+      const sc = schedule as any
+      const startDt = new Date(sc.start_time)
+      const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+      const timeStr = formatTime(startDt)
+      const levelName = sc.level?.name ? ` · ${sc.level.name}` : ''
+      const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+
+      await sendPushToUsers(targetIds, {
+        title: '🎾 ¡Hueco libre disponible!',
+        body: `${dayNames[startDt.getDay()]} ${dateLabel} a las ${timeStr}${levelName} — ${sc.court?.name ?? ''}`,
+        url: '/student/spots',
+      }, 'spot_available')
+    }
+  } catch {
+    // no interrumpir la respuesta si falla el push
   }
 
   return NextResponse.json({ data, publishedSpot: true, excludedDate: dateStr })

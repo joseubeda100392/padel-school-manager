@@ -1,12 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
-
-const adminSupabase = () => createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+import { getAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -16,7 +11,7 @@ export async function POST(req: NextRequest) {
   const { scheduleId, studentId, monthlyPrice } = await req.json()
   if (!scheduleId || !studentId) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
 
-  const admin = adminSupabase()
+  const admin = getAdminClient()
 
   const { data: adminUser } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
@@ -32,7 +27,7 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active'),
   ])
 
-  // Nivel requerido: el del horario, o inferido de los alumnos ya inscritos
+  // level_id on schedule takes priority; if absent, infer from already-enrolled students
   const enrolledLevels = [...new Set(
     (existingEnrollments ?? []).map((e: any) => e.student?.current_level_id).filter(Boolean)
   )]

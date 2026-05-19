@@ -1,23 +1,24 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getAdminClient } from '@/lib/supabase/admin'
+import { formatTime } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const admin = getAdminClient()
+  const { data: caller } = await admin.from('users').select('role').eq('id', user.id).single()
+  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
   const { scheduleId } = await req.json()
   if (!scheduleId) return NextResponse.json({ error: 'scheduleId requerido' }, { status: 400 })
 
-  const adminSupabase = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
-
-  // Obtener datos de la clase
-  const { data: schedule } = await adminSupabase
+  const { data: schedule } = await admin
     .from('schedules')
     .select('id, max_students, level_id, club_id, start_time, court:courts(name)')
     .eq('id', scheduleId)
@@ -25,8 +26,7 @@ export async function POST(req: NextRequest) {
 
   if (!schedule) return NextResponse.json({ ok: true, sent: 0 })
 
-  // Contar plazas ocupadas
-  const { count: occupied } = await adminSupabase
+  const { count: occupied } = await admin
     .from('bookings')
     .select('*', { count: 'exact', head: true })
     .eq('schedule_id', scheduleId)
@@ -35,8 +35,7 @@ export async function POST(req: NextRequest) {
   const freePlaces = schedule.max_students - (occupied ?? 0)
   if (freePlaces <= 0) return NextResponse.json({ ok: true, sent: 0 })
 
-  // IDs de alumnos ya apuntados (para excluirlos)
-  const { data: enrolled } = await adminSupabase
+  const { data: enrolled } = await admin
     .from('bookings')
     .select('student_id')
     .eq('schedule_id', scheduleId)
@@ -44,9 +43,8 @@ export async function POST(req: NextRequest) {
 
   const enrolledIds = (enrolled ?? []).map((b: any) => b.student_id)
 
-  // Alumnos elegibles: mismo nivel (o todos si la clase no tiene nivel), con push_token
-  // Tipado como any para evitar que TS pierda el hilo con el query builder encadenado
-  let query: any = adminSupabase
+  // same level if class has a level_id, otherwise all students; TS loses type on chained builder
+  let query: any = admin
     .from('users')
     .select('id, push_token, name')
     .eq('role', 'student')
@@ -64,7 +62,7 @@ export async function POST(req: NextRequest) {
   const startTime = new Date(schedule.start_time)
   const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
   const day = dayNames[startTime.getDay()]
-  const hour = startTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  const hour = formatTime(startTime)
   const court = (schedule.court as any)?.name ?? 'Pista'
 
   const messages = candidates.map((s: any) => ({

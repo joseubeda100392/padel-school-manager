@@ -23,14 +23,33 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  const role = user?.user_metadata?.role as string | undefined
+  const path = request.nextUrl.pathname
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
+  const isDashboard = path.startsWith('/dashboard')
+  const isStudentArea = path.startsWith('/student')
+  const isCoachArea = path.startsWith('/coach')
 
-  if (isProtectedRoute && !user) {
+  if ((isDashboard || isStudentArea || isCoachArea) && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (user) {
+    if (isDashboard && role === 'student') {
+      return NextResponse.redirect(new URL('/student', request.url))
+    }
+    if (isDashboard && role === 'coach') {
+      return NextResponse.redirect(new URL('/coach', request.url))
+    }
+    if (isStudentArea && role === 'coach') {
+      return NextResponse.redirect(new URL('/coach', request.url))
+    }
+    if (path === '/') {
+      if (role === 'student') return NextResponse.redirect(new URL('/student', request.url))
+      if (role === 'coach') return NextResponse.redirect(new URL('/coach', request.url))
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
 
   return supabaseResponse

@@ -3,14 +3,18 @@ import { createHmac, createCipheriv } from 'crypto'
 const REDSYS_URL_TEST = 'https://sis-t.redsys.es:25443/sis/realizarPago'
 const REDSYS_URL_PROD = 'https://sis.redsys.es/sis/realizarPago'
 
-export function getRedsysUrl(): string {
-  return process.env.REDSYS_ENV === 'production' ? REDSYS_URL_PROD : REDSYS_URL_TEST
+export function getRedsysUrl(env?: string | null): string {
+  return (env ?? process.env.REDSYS_ENV) === 'production' ? REDSYS_URL_PROD : REDSYS_URL_TEST
 }
 
 function encrypt3DES(key: Buffer, data: string): Buffer {
   const iv = Buffer.alloc(8, 0)
+  const messageBuf = Buffer.from(data, 'utf8')
+  const padded = Buffer.alloc(Math.ceil(messageBuf.length / 8) * 8, 0)
+  messageBuf.copy(padded)
   const cipher = createCipheriv('des-ede3-cbc', key, iv)
-  return Buffer.concat([cipher.update(data, 'utf8'), cipher.final()])
+  cipher.setAutoPadding(false)
+  return Buffer.concat([cipher.update(padded), cipher.final()])
 }
 
 export function generateSignature(secretKey: string, order: string, params: string): string {
