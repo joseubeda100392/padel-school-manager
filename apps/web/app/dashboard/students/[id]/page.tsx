@@ -8,6 +8,7 @@ import { StudentEditForm } from './student-edit-form'
 import { StudentEnrollments } from './student-enrollments'
 import { StudentMakeups } from './student-makeups'
 import { NotificationList } from '@/app/student/notifications/notification-list'
+import { StudentObjectives } from './student-objectives'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -53,6 +54,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: enrollments },
     { data: makeups },
     { data: studentNotifications },
+    { data: checklists },
   ] = await Promise.all([
     admin
       .from('users')
@@ -98,6 +100,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .eq('user_id', params.id)
       .order('created_at', { ascending: false })
       .limit(20),
+    admin
+      .from('student_checklists')
+      .select('id, title, created_at, items:checklist_items(id, text, sort_order, completed_at, completed_by_id)')
+      .eq('student_id', params.id)
+      .order('created_at', { ascending: false }),
   ])
 
   if (studentError || !student) {
@@ -294,7 +301,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       </div>
 
       {levelHistory && levelHistory.length > 0 && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Historial de niveles</h2>
           <ul className="space-y-3">
             {levelHistory.map((entry: any) => (
@@ -312,6 +319,22 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           </ul>
         </div>
       )}
+
+      <StudentObjectives
+        studentId={params.id}
+        initialChecklists={(checklists ?? []).map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          created_at: c.created_at,
+          items: (c.items ?? []).map((it: any) => ({
+            id: it.id,
+            text: it.text,
+            sort_order: it.sort_order,
+            completed_at: it.completed_at,
+            completed_by_id: it.completed_by_id,
+          })),
+        }))}
+      />
     </div>
   )
 }
