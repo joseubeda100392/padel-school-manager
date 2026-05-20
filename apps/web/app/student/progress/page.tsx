@@ -35,9 +35,9 @@ export default async function StudentProgressPage() {
             <p className="mt-1 text-4xl font-bold">
               {totalItems > 0 ? <>{globalPct}<span className="text-2xl font-normal text-green-200">%</span></> : '—'}
             </p>
-            <p className="mt-0.5 text-sm text-green-100">
-              {totalItems > 0 ? `${totalDone} de ${totalItems} objetivos conseguidos` : `${list.length} checklist${list.length !== 1 ? 's' : ''} asignado${list.length !== 1 ? 's' : ''}`}
-            </p>
+            {totalItems > 0 && (
+              <p className="mt-0.5 text-sm text-green-100">{totalDone} de {totalItems} objetivos conseguidos</p>
+            )}
             {totalItems > 0 && (
               <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-green-400/40">
                 <div className="h-2 rounded-full bg-white transition-all" style={{ width: `${globalPct}%` }} />
