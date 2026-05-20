@@ -14,11 +14,14 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 }
 
 export function PushNotificationProvider() {
-  const [permission, setPermission] = useState<NotificationPermission>('default')
+  const [permission, setPermission] = useState<NotificationPermission | null>(null)
   const [subscribed, setSubscribed] = useState(false)
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setPermission('denied')
+      return
+    }
     setPermission(Notification.permission)
     if (Notification.permission === 'granted') {
       registerAndSubscribe()
@@ -62,10 +65,10 @@ export function PushNotificationProvider() {
     }
   }
 
-  if (permission === 'granted' || permission === 'denied') return null
+  if (permission === null || permission === 'granted' || permission === 'denied') return null
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl bg-white shadow-lg border border-gray-100 p-4 sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-xs">
+    <div className="fixed bottom-24 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl bg-white shadow-lg border border-gray-100 p-4 md:bottom-6 md:left-auto md:right-6 md:max-w-xs">
       <p className="text-sm font-semibold text-gray-900">Activa las notificaciones</p>
       <p className="mt-1 text-xs text-gray-500">
         Recibe avisos cuando se libere un hueco en tu grupo o el admin te mande un mensaje.
