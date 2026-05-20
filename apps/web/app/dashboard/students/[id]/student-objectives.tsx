@@ -14,6 +14,7 @@ type Checklist = {
   id: string
   title: string
   created_at: string
+  completed_at: string | null
   items: ChecklistItem[]
 }
 
@@ -29,6 +30,7 @@ export function StudentObjectives({
   const [creatingChecklist, setCreatingChecklist] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [deletingChecklist, setDeletingChecklist] = useState<string | null>(null)
+  const [togglingChecklist, setTogglingChecklist] = useState<string | null>(null)
   const [togglingItem, setTogglingItem] = useState<string | null>(null)
   const [deletingItem, setDeletingItem] = useState<string | null>(null)
   const [newItemText, setNewItemText] = useState<Record<string, string>>({})
@@ -51,6 +53,22 @@ export function StudentObjectives({
       setShowForm(false)
     }
     setCreatingChecklist(false)
+  }
+
+  async function handleToggleChecklist(checklistId: string, currentlyCompleted: boolean) {
+    setTogglingChecklist(checklistId)
+    const res = await fetch(`/api/student-checklists/${checklistId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: !currentlyCompleted }),
+    })
+    const json = await res.json()
+    if (json.data) {
+      setChecklists(prev => prev.map(c =>
+        c.id !== checklistId ? c : { ...c, completed_at: json.data.completed_at }
+      ))
+    }
+    setTogglingChecklist(null)
   }
 
   async function handleDeleteChecklist(checklistId: string) {
@@ -133,7 +151,7 @@ export function StudentObjectives({
             ref={titleInputRef}
             value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
-            placeholder="Título del checklist (ej. Técnica de revés)"
+            placeholder="Nombre del objetivo (ej. Mejora tu bandeja)"
             className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
           />
           <button
@@ -154,7 +172,7 @@ export function StudentObjectives({
       )}
 
       {checklists.length === 0 && !showForm && (
-        <p className="text-sm text-gray-400">Sin objetivos todavía. Crea un checklist para empezar.</p>
+        <p className="text-sm text-gray-400">Sin objetivos todavía. Crea uno para empezar.</p>
       )}
 
       <div className="space-y-4">
@@ -162,21 +180,42 @@ export function StudentObjectives({
           const done = completedCount(checklist.items)
           const total = checklist.items.length
           const pct = total > 0 ? Math.round((done / total) * 100) : 0
+          const isCompleted = !!checklist.completed_at
 
           return (
-            <div key={checklist.id} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-medium text-gray-900 truncate">{checklist.title}</span>
-                  {total > 0 && (
-                    <span className="shrink-0 text-xs text-gray-400">{done}/{total}</span>
+            <div key={checklist.id} className={`rounded-lg border ${isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-100 bg-gray-50'} p-4`}>
+              <div className="mb-2 flex items-center gap-2">
+                {/* Checkbox principal del objetivo */}
+                <button
+                  onClick={() => handleToggleChecklist(checklist.id, isCompleted)}
+                  disabled={togglingChecklist === checklist.id}
+                  className="shrink-0 disabled:opacity-40"
+                  title={isCompleted ? 'Marcar como pendiente' : 'Marcar como superado'}
+                >
+                  {isCompleted ? (
+                    <svg className="h-6 w-6 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="h-6 w-6 text-gray-300 hover:text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                      <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm0 1.5a8.25 8.25 0 100 16.5 8.25 8.25 0 000-16.5z" clipRule="evenodd" />
+                    </svg>
                   )}
-                </div>
+                </button>
+
+                <span className={`flex-1 font-medium truncate ${isCompleted ? 'text-green-800 line-through' : 'text-gray-900'}`}>
+                  {checklist.title}
+                </span>
+
+                {total > 0 && (
+                  <span className="shrink-0 text-xs text-gray-400">{done}/{total}</span>
+                )}
+
                 <button
                   onClick={() => handleDeleteChecklist(checklist.id)}
                   disabled={deletingChecklist === checklist.id}
                   className="shrink-0 rounded p-1 text-gray-300 hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
-                  title="Eliminar checklist"
+                  title="Eliminar objetivo"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -185,23 +224,19 @@ export function StudentObjectives({
               </div>
 
               {total > 0 && (
-                <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
-                  <div
-                    className="h-1.5 rounded-full bg-green-500 transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
+                <div className="mb-3 ml-8 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-1.5 rounded-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
                 </div>
               )}
 
               {checklist.items.length > 0 && (
-                <ul className="mb-3 space-y-1.5">
+                <ul className="mb-3 ml-8 space-y-1.5">
                   {[...checklist.items].sort((a, b) => a.sort_order - b.sort_order).map(item => (
                     <li key={item.id} className="flex items-center gap-2">
                       <button
                         onClick={() => handleToggleItem(checklist.id, item.id, !!item.completed_at)}
                         disabled={togglingItem === item.id}
                         className="shrink-0 disabled:opacity-40"
-                        title={item.completed_at ? 'Marcar como pendiente' : 'Marcar como conseguido'}
                       >
                         {item.completed_at ? (
                           <svg className="h-5 w-5 text-green-500" viewBox="0 0 24 24" fill="currentColor">
@@ -220,7 +255,6 @@ export function StudentObjectives({
                         onClick={() => handleDeleteItem(checklist.id, item.id)}
                         disabled={deletingItem === item.id}
                         className="shrink-0 rounded p-0.5 text-gray-200 hover:text-red-400 disabled:opacity-40"
-                        title="Eliminar objetivo"
                       >
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -231,11 +265,11 @@ export function StudentObjectives({
                 </ul>
               )}
 
-              <form onSubmit={e => handleAddItem(e, checklist.id)} className="flex gap-2">
+              <form onSubmit={e => handleAddItem(e, checklist.id)} className="ml-8 flex gap-2">
                 <input
                   value={newItemText[checklist.id] ?? ''}
                   onChange={e => setNewItemText(prev => ({ ...prev, [checklist.id]: e.target.value }))}
-                  placeholder="Añadir objetivo..."
+                  placeholder="Añadir sub-objetivo..."
                   className="flex-1 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
                 <button

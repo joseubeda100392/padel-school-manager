@@ -10,7 +10,7 @@ export default async function StudentProgressPage() {
   const admin = getAdminClient()
   const { data: checklists } = await admin
     .from('student_checklists')
-    .select('id, title, created_at, items:checklist_items(id, text, sort_order, completed_at)')
+    .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at)')
     .eq('student_id', user.id)
     .order('created_at', { ascending: false })
 
@@ -66,7 +66,8 @@ export default async function StudentProgressPage() {
           const done = checklist.items.filter((i: any) => i.completed_at).length
           const total = checklist.items.length
           const pct = total > 0 ? Math.round((done / total) * 100) : 0
-          const allDone = total > 0 && done === total
+          const isCompleted = !!(checklist as any).completed_at
+          const allDone = isCompleted || (total > 0 && done === total)
 
           return (
             <div key={checklist.id} className={`rounded-xl bg-white shadow-sm overflow-hidden ${allDone ? 'ring-1 ring-green-200' : ''}`}>
@@ -84,7 +85,7 @@ export default async function StudentProgressPage() {
                       </svg>
                     )}
                   </div>
-                  <h2 className={`font-semibold truncate ${allDone ? 'text-green-800' : 'text-gray-900'}`}>{checklist.title}</h2>
+                  <h2 className={`font-semibold truncate ${allDone ? 'text-green-800 line-through' : 'text-gray-900'}`}>{checklist.title}</h2>
                 </div>
                 {total > 0 && (
                   <span className={`shrink-0 text-sm font-semibold ${allDone ? 'text-green-600' : 'text-gray-400'}`}>

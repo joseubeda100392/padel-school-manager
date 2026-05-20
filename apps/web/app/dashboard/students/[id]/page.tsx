@@ -102,7 +102,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .limit(20),
     admin
       .from('student_checklists')
-      .select('id, title, created_at, items:checklist_items(id, text, sort_order, completed_at, completed_by_id)')
+      .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at, completed_by_id)')
       .eq('student_id', params.id)
       .order('created_at', { ascending: false }),
   ])
@@ -326,6 +326,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           id: c.id,
           title: c.title,
           created_at: c.created_at,
+          completed_at: c.completed_at,
           items: (c.items ?? []).map((it: any) => ({
             id: it.id,
             text: it.text,
