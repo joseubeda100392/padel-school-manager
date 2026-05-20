@@ -1,11 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
-import { StudentScheduleClient } from './schedule-client'
+import { formatTime, getDayOfWeek } from '@/lib/utils'
 import { SpotBookingCard } from './spot-booking-card'
 import { ScheduleSpotsPanel } from './schedule-spots-panel'
+import { UpcomingClassCard } from './upcoming-class-card'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -68,7 +67,7 @@ export default async function StudentSchedulePage() {
       id, monthly_price, paid_until, enrolled_at,
       schedule:schedules(id, start_time, end_time, max_students,
         court:courts(name),
-        level:levels(name, color)
+        level:levels(id, name, color)
       )
     `)
     .eq('student_id', user.id)
@@ -237,30 +236,39 @@ export default async function StudentSchedulePage() {
         startTime: formatTime(schedule?.start_time),
         endTime: formatTime(schedule?.end_time),
         courtName: schedule?.court?.name ?? '—',
-        level: schedule?.level ?? null,
+        levelId: schedule?.level?.id ?? null,
+        level: schedule?.level ? { name: schedule.level.name, color: schedule.level.color } : null,
       },
       exclusions: myExclusions,
     }
   })
 
-  // Week selector data
-  const today2 = new Date()
-  const dayOfWeek = today2.getDay() // 0=Sun
-  const monday = new Date(today2)
-  monday.setDate(today2.getDate() - ((dayOfWeek + 6) % 7))
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    return {
-      label: ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'][i],
-      num: d.getDate(),
-      isToday: d.toDateString() === today2.toDateString(),
-    }
-  })
-  const weekLabel = `${monday.getDate()} ${monday.toLocaleDateString('es-ES',{month:'short'})} – ${new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+6).getDate()} ${new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+6).toLocaleDateString('es-ES',{month:'short'})} ${monday.getFullYear()}`
+  // Upcoming events — flat list of occurrences in the next 14 days, sorted by date
+  const twoWeeksFromNow = new Date()
+  twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14)
+  const upcomingEvents = items
+    .flatMap(item =>
+      item.upcomingOccurrences
+        .filter(occ => new Date(occ.dateStr) <= twoWeeksFromNow)
+        .map(occ => ({
+          ...occ,
+          enrollmentId: item.enrollmentId,
+          scheduleId: item.schedule.id,
+          startTime: item.schedule.startTime,
+          endTime: item.schedule.endTime,
+          courtName: item.schedule.courtName,
+          levelId: item.schedule.levelId,
+          level: item.schedule.level,
+          isPaid: item.isPaid,
+          monthlyPrice: item.monthlyPrice,
+          isExcluded: item.exclusions.some(x => x.excluded_date === occ.dateStr),
+          exclusionId: item.exclusions.find(x => x.excluded_date === occ.dateStr)?.id ?? null,
+        })),
+    )
+    .sort((a, b) => a.dateStr.localeCompare(b.dateStr))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <RealtimeRefresh
         channelName={`student-schedule-${user.id}`}
         subs={[
@@ -274,7 +282,7 @@ export default async function StudentSchedulePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-extrabold tracking-tight" style={{color:'#0b1c30'}}>Mi Agenda</h1>
-          <p className="text-[13px] mt-0.5" style={{color:'#3e4a3d'}}>Gestiona tus entrenamientos y descubre nuevas oportunidades de juego.</p>
+          <p className="text-[13px] mt-0.5" style={{color:'#3e4a3d'}}>Tus próximas clases y sesiones disponibles.</p>
         </div>
         <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold" style={{background:'rgba(0,107,44,0.08)',color:'#006b2c'}}>
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -282,101 +290,74 @@ export default async function StudentSchedulePage() {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
+      {/* ── Sesiones disponibles — horizontal ── */}
+      <ScheduleSpotsPanel
+        spots={availableSpots}
+        balance60={balance60}
+        balance90={balance90}
+      />
 
-        {/* ── Columna principal ── */}
-        <div className="md:col-span-9 space-y-4">
+      {/* ── Próximas clases — 2 semanas ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[15px] font-extrabold" style={{color:'#0b1c30'}}>Próximas 2 semanas</h2>
+          {upcomingEvents.length > 0 && (
+            <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{background:'rgba(0,107,44,0.08)',color:'#006b2c'}}>
+              {upcomingEvents.length}
+            </span>
+          )}
+        </div>
 
-          {/* Tabs móvil */}
-          <div className="md:hidden flex p-1 rounded-xl gap-1" style={{background:'#eff4ff'}}>
-            <button className="flex-1 py-2 rounded-lg text-[12px] font-semibold shadow-sm" style={{background:'white',color:'#006b2c'}}>Mis Clases</button>
-            <Link href="/student/spots" className="flex-1 py-2 rounded-lg text-[12px] font-semibold text-center" style={{color:'#3e4a3d'}}>Sesiones</Link>
+        {items.length === 0 ? (
+          <div className="rounded-2xl border p-10 text-center" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',borderColor:'#bdcaba'}}>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl" style={{background:'#eff4ff'}}>
+              <svg className="h-6 w-6" style={{color:'#bdcaba'}} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <p className="text-[13px] font-semibold" style={{color:'#3e4a3d'}}>No estás inscrito en ninguna clase.</p>
+            <p className="mt-1 text-[12px]" style={{color:'#bdcaba'}}>Habla con tu administrador para inscribirte.</p>
           </div>
-
-          {/* Week selector */}
-          <div className="rounded-2xl border p-4" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',borderColor:'#bdcaba'}}>
-            <div className="flex items-center justify-between mb-3 gap-2">
-              <button className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-[#e5eeff]" style={{color:'#3e4a3d'}}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-              </button>
-              <span className="text-[12px] font-semibold text-center min-w-0 truncate" style={{color:'#0b1c30'}}>{weekLabel}</span>
-              <button className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-[#e5eeff]" style={{color:'#3e4a3d'}}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-              </button>
-            </div>
-            <div className="grid grid-cols-7">
-              {weekDays.map((d) => (
-                <div key={d.label} className="flex flex-col items-center gap-1 py-1">
-                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide" style={{color:'#3e4a3d'}}>{d.label}</span>
-                  <span
-                    className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full text-[12px] sm:text-[13px] font-bold"
-                    style={d.isToday
-                      ? {background:'#006b2c',color:'white'}
-                      : {color:'#0b1c30'}}
-                  >{d.num}</span>
-                </div>
-              ))}
-            </div>
+        ) : upcomingEvents.length === 0 ? (
+          <div className="rounded-2xl border p-8 text-center" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',borderColor:'#bdcaba'}}>
+            <p className="text-[13px]" style={{color:'#bdcaba'}}>No hay clases en los próximos 14 días.</p>
           </div>
-
-          {/* Lista de clases */}
-          {items.length === 0 ? (
-            <div className="rounded-2xl border p-10 text-center" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',borderColor:'#bdcaba'}}>
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl" style={{background:'#eff4ff'}}>
-                <svg className="h-6 w-6" style={{color:'#bdcaba'}} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </div>
-              <p className="text-[13px] font-semibold" style={{color:'#3e4a3d'}}>No estás inscrito en ninguna clase de grupo fijo.</p>
-              <p className="mt-1 text-[12px]" style={{color:'#bdcaba'}}>Habla con tu administrador para inscribirte.</p>
-            </div>
-          ) : (
-            items.map(item => (
-              <StudentScheduleClient
-                key={item.enrollmentId}
-                item={item}
+        ) : (
+          <div className="space-y-3">
+            {upcomingEvents.map(ev => (
+              <UpcomingClassCard
+                key={ev.scheduleId + '-' + ev.dateStr}
+                event={ev}
                 cancellationHours={cancellationHours}
               />
-            ))
-          )}
-        </div>
-
-        {/* ── Panel derecho ── */}
-        <div className="md:col-span-3 flex flex-col gap-4">
-
-          {/* Sesiones disponibles para reservar */}
-          <ScheduleSpotsPanel
-            spots={availableSpots}
-            balance60={balance60}
-            balance90={balance90}
-          />
-
-          {/* Reservas puntuales ya confirmadas */}
-          {(spotBookings ?? []).length > 0 && (
-            <div className="rounded-2xl border p-4" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',borderColor:'#bdcaba'}}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[13px] font-extrabold" style={{color:'#0b1c30'}}>Mis reservas</h2>
-                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{background:'rgba(0,107,44,0.1)',color:'#006b2c'}}>
-                  {(spotBookings ?? []).length}
-                </span>
-              </div>
-              <div className="space-y-2.5">
-                {(spotBookings ?? []).map(b => (
-                  <SpotBookingCard
-                    key={b.id}
-                    booking={{
-                      id: b.id,
-                      class_date: b.class_date as string,
-                      source: b.source as string,
-                      schedule: b.schedule as any,
-                    }}
-                    cancellationHours={cancellationHours}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* ── Reservas puntuales confirmadas ── */}
+      {(spotBookings ?? []).length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-[15px] font-extrabold" style={{color:'#0b1c30'}}>Mis reservas</h2>
+            <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold" style={{background:'rgba(0,107,44,0.08)',color:'#006b2c'}}>
+              {(spotBookings ?? []).length}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {(spotBookings ?? []).map(b => (
+              <SpotBookingCard
+                key={b.id}
+                booking={{
+                  id: b.id,
+                  class_date: b.class_date as string,
+                  source: b.source as string,
+                  schedule: b.schedule as any,
+                }}
+                cancellationHours={cancellationHours}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

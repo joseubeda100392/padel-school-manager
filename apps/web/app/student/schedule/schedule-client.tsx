@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
+import { ClassDetailModal } from './class-detail-modal'
 
 interface Occurrence {
   dateStr: string
@@ -23,6 +24,7 @@ interface ScheduleItem {
     startTime: string
     endTime: string
     courtName: string
+    levelId: string | null
     level: { name: string; color: string } | null
   }
   exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
@@ -34,6 +36,7 @@ export function StudentScheduleClient({ item, cancellationHours }: { item: Sched
   const [showPicker, setShowPicker] = useState(false)
   const [registering, setRegistering] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [showDetail, setShowDetail] = useState(false)
 
   async function handleRegistrar(occ: Occurrence) {
     if (!occ.canRegister) return
@@ -60,6 +63,18 @@ export function StudentScheduleClient({ item, cancellationHours }: { item: Sched
   const hasAnyAvailable = item.upcomingOccurrences.some(o => o.canRegister && !registeredDates.has(o.dateStr))
 
   return (
+    <>
+    <ClassDetailModal
+      open={showDetail}
+      onClose={() => setShowDetail(false)}
+      scheduleId={item.schedule.id}
+      levelId={item.schedule.levelId}
+      dayLabel={item.schedule.dayLabel}
+      startTime={item.schedule.startTime}
+      endTime={item.schedule.endTime}
+      courtName={item.schedule.courtName}
+      level={item.schedule.level}
+    />
     <div className="rounded-2xl overflow-hidden transition-shadow hover:shadow-md" style={{background:'rgba(255,255,255,0.85)',backdropFilter:'blur(8px)',border:'1px solid #bdcaba',borderLeft:'4px solid #006b2c'}}>
       <div className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -88,6 +103,13 @@ export function StudentScheduleClient({ item, cancellationHours }: { item: Sched
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowDetail(true)}
+            className="rounded-xl border px-4 py-2 text-[12px] font-bold transition-colors hover:bg-[#006b2c]/5"
+            style={{ borderColor: '#006b2c', color: '#006b2c' }}
+          >
+            Ver detalle
+          </button>
           {!item.isPaid && (
             <PayButton
               type="fixed_group_month"
@@ -155,5 +177,6 @@ export function StudentScheduleClient({ item, cancellationHours }: { item: Sched
         </div>
       )}
     </div>
+    </>
   )
 }

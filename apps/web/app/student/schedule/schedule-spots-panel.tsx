@@ -21,7 +21,7 @@ interface PanelSpot {
   maxStudents: number
 }
 
-function SpotRow({ spot, balance60, balance90 }: { spot: PanelSpot; balance60: number; balance90: number }) {
+function SpotCard({ spot, balance60, balance90 }: { spot: PanelSpot; balance60: number; balance90: number }) {
   const router = useRouter()
   const [booking, setBooking] = useState(false)
   const [booked, setBooked] = useState(false)
@@ -30,12 +30,11 @@ function SpotRow({ spot, balance60, balance90 }: { spot: PanelSpot; balance60: n
   const dateLabel = new Date(spot.excludedDate + 'T12:00:00').toLocaleDateString('es-ES', {
     weekday: 'short', day: 'numeric', month: 'short',
   })
-
   const durationType: '60' | '90' = spot.durationMin >= 80 ? '90' : '60'
   const hasBalance = durationType === '90' ? balance90 > 0 : (balance60 > 0 || balance90 > 0)
 
   async function handleUseBag() {
-    if (!confirm(`¿Usar 1 clase de tu bolsa para el ${dateLabel}?`)) return
+    if (!confirm('¿Usar 1 clase de tu bolsa para el ' + dateLabel + '?')) return
     setBooking(true)
     setError('')
     const endpoint = spot.spotType === 'absence' ? '/api/bookings/spot' : '/api/bookings/capacity-spot'
@@ -48,32 +47,41 @@ function SpotRow({ spot, balance60, balance90 }: { spot: PanelSpot; balance60: n
       body: JSON.stringify(body),
     })
     const json = await res.json()
-    if (res.ok) {
-      setBooked(true)
-      router.refresh()
-    } else {
-      setError(json.error ?? 'Error al reservar')
-    }
+    if (res.ok) { setBooked(true); router.refresh() }
+    else setError(json.error ?? 'Error')
     setBooking(false)
   }
 
+  const accentColor = spot.spotType === 'absence' ? '#f97316' : '#006a61'
+
   if (booked) {
     return (
-      <div className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(0,107,44,0.06)', border: '1px solid rgba(0,107,44,0.2)' }}>
-        <p className="text-[12px] font-bold" style={{ color: '#006b2c' }}>✓ Reservado</p>
-        <p className="text-[11px]" style={{ color: '#3e4a3d' }}>{dateLabel} · {spot.startTime}</p>
+      <div
+        className="flex shrink-0 flex-col justify-center items-center rounded-2xl p-4 w-[160px] text-center"
+        style={{ background: 'rgba(0,107,44,0.06)', border: '1px solid rgba(0,107,44,0.2)' }}
+      >
+        <p className="text-[13px] font-bold" style={{ color: '#006b2c' }}>Reservado</p>
+        <p className="text-[11px] mt-1 capitalize" style={{ color: '#3e4a3d' }}>{dateLabel}</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl p-3 border-l-4" style={{ background: 'rgba(255,255,255,0.7)', border: '1px solid #bdcaba', borderLeft: `4px solid ${spot.spotType === 'absence' ? '#f97316' : '#006a61'}` }}>
-      {/* Tipo + nivel */}
-      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-        <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+    <div
+      className="flex shrink-0 flex-col rounded-2xl p-3.5 w-[168px]"
+      style={{
+        background: 'rgba(255,255,255,0.7)',
+        border: '1px solid ' + accentColor + '33',
+        borderTop: '3px solid ' + accentColor,
+      }}
+    >
+      <div className="flex flex-wrap gap-1 mb-2">
+        <span
+          className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
           style={spot.spotType === 'absence'
             ? { background: 'rgba(249,115,22,0.1)', color: '#f97316' }
-            : { background: 'rgba(0,106,97,0.1)', color: '#006a61' }}>
+            : { background: 'rgba(0,106,97,0.1)', color: '#006a61' }}
+        >
           {spot.spotType === 'absence' ? 'Hueco falta' : 'Plaza libre'}
         </span>
         {spot.level && (
@@ -83,23 +91,21 @@ function SpotRow({ spot, balance60, balance90 }: { spot: PanelSpot; balance60: n
         )}
       </div>
 
-      {/* Fecha y hora */}
-      <p className="text-[12px] font-bold capitalize" style={{ color: '#0b1c30' }}>{dateLabel}</p>
-      <p className="text-[11px]" style={{ color: '#3e4a3d' }}>
-        {spot.startTime} – {spot.endTime} · {spot.courtName}
-        {spot.coachName && <span style={{ color: '#bdcaba' }}> · {spot.coachName}</span>}
+      <p className="text-[12px] font-extrabold capitalize leading-tight" style={{ color: '#0b1c30' }}>{dateLabel}</p>
+      <p className="text-[11px] mt-0.5" style={{ color: '#3e4a3d' }}>{spot.startTime} – {spot.endTime}</p>
+      <p className="text-[10px] mt-0.5 truncate" style={{ color: '#bdcaba' }}>
+        {spot.courtName}{spot.coachName ? ' · ' + spot.coachName : ''}
       </p>
 
-      {/* Acción */}
-      <div className="mt-2">
+      <div className="mt-auto pt-2.5">
         {hasBalance ? (
           <button
             onClick={handleUseBag}
             disabled={booking}
-            className="w-full rounded-lg py-1.5 text-[11px] font-bold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
+            className="w-full rounded-xl py-1.5 text-[11px] font-bold text-white disabled:opacity-50 transition-opacity hover:opacity-90"
             style={{ background: '#006b2c' }}
           >
-            {booking ? '...' : '🎾 Usar 1 clase'}
+            {booking ? '...' : 'Usar 1 clase'}
           </button>
         ) : (
           <PayButton
@@ -107,12 +113,12 @@ function SpotRow({ spot, balance60, balance90 }: { spot: PanelSpot; balance60: n
             scheduleId={spot.scheduleId}
             exclusionId={spot.exclusionId ?? undefined}
             classDate={spot.excludedDate}
-            label="💳 Pagar clase"
-            className="w-full rounded-lg py-1.5 text-[11px] font-bold text-white disabled:opacity-50 transition-opacity hover:opacity-90 bg-[#006a61]"
+            label="Pagar clase"
+            className="w-full rounded-xl py-1.5 text-[11px] font-bold text-white disabled:opacity-50 transition-opacity hover:opacity-90 bg-[#006a61]"
           />
         )}
+        {error && <p className="mt-1 text-[10px]" style={{ color: '#dc2626' }}>{error}</p>}
       </div>
-      {error && <p className="mt-1 text-[10px]" style={{ color: '#dc2626' }}>{error}</p>}
     </div>
   )
 }
@@ -128,65 +134,53 @@ export function ScheduleSpotsPanel({
 }) {
   return (
     <div className="rounded-2xl border p-4" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', borderColor: '#bdcaba' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-[13px] font-extrabold" style={{ color: '#0b1c30' }}>Sesiones disponibles</h2>
-          <p className="text-[10px] mt-0.5" style={{ color: '#3e4a3d' }}>De tu nivel · usa tu bolsa</p>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: 'rgba(249,115,22,0.1)' }}>
+            <svg className="h-4 w-4" style={{ color: '#f97316' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-[13px] font-extrabold" style={{ color: '#0b1c30' }}>Sesiones disponibles</h2>
+            <p className="text-[10px]" style={{ color: '#3e4a3d' }}>De tu nivel · usa tu bolsa</p>
+          </div>
         </div>
-        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-          style={spots.length > 0
-            ? { background: 'rgba(249,115,22,0.1)', color: '#f97316' }
-            : { background: '#eff4ff', color: '#bdcaba' }}>
-          {spots.length}
-        </span>
-      </div>
-
-      {/* Saldo bolsa */}
-      {(balance60 > 0 || balance90 > 0) && (
-        <div className="mb-3 flex gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {balance60 > 0 && (
-            <div className="flex-1 rounded-lg px-2 py-1.5 text-center" style={{ background: 'rgba(0,107,44,0.06)', border: '1px solid rgba(0,107,44,0.15)' }}>
-              <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#006b2c' }}>60 min</p>
-              <p className="text-[18px] font-extrabold" style={{ color: '#006b2c' }}>{balance60}</p>
+            <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ background: 'rgba(0,107,44,0.08)', border: '1px solid rgba(0,107,44,0.15)' }}>
+              <span className="text-[10px] font-bold" style={{ color: '#006b2c' }}>{balance60}</span>
+              <span className="text-[9px]" style={{ color: '#006b2c' }}>x60'</span>
             </div>
           )}
           {balance90 > 0 && (
-            <div className="flex-1 rounded-lg px-2 py-1.5 text-center" style={{ background: 'rgba(0,106,97,0.06)', border: '1px solid rgba(0,106,97,0.15)' }}>
-              <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#006a61' }}>90 min</p>
-              <p className="text-[18px] font-extrabold" style={{ color: '#006a61' }}>{balance90}</p>
+            <div className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{ background: 'rgba(0,106,97,0.08)', border: '1px solid rgba(0,106,97,0.15)' }}>
+              <span className="text-[10px] font-bold" style={{ color: '#006a61' }}>{balance90}</span>
+              <span className="text-[9px]" style={{ color: '#006a61' }}>x90'</span>
             </div>
           )}
+          {spots.length > 0 && (
+            <Link href="/student/spots" className="text-[11px] font-bold transition-opacity hover:opacity-70" style={{ color: '#006b2c' }}>
+              Ver todas
+            </Link>
+          )}
         </div>
-      )}
+      </div>
 
       {spots.length === 0 ? (
-        <div className="py-5 text-center">
-          <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: '#eff4ff' }}>
-            <svg className="h-4 w-4" style={{ color: '#bdcaba' }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          </div>
-          <p className="text-[11px] font-medium" style={{ color: '#3e4a3d' }}>Sin sesiones disponibles</p>
-          <p className="text-[10px] mt-0.5" style={{ color: '#bdcaba' }}>Vuelve más tarde</p>
+        <div className="py-4 text-center">
+          <p className="text-[12px]" style={{ color: '#bdcaba' }}>Sin sesiones disponibles ahora mismo</p>
         </div>
       ) : (
-        <div className="space-y-2.5">
-          {spots.slice(0, 4).map(spot => (
-            <SpotRow
-              key={`${spot.spotType}-${spot.exclusionId ?? spot.scheduleId}-${spot.excludedDate}`}
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+          {spots.map(spot => (
+            <SpotCard
+              key={spot.spotType + '-' + (spot.exclusionId ?? spot.scheduleId) + '-' + spot.excludedDate}
               spot={spot}
               balance60={balance60}
               balance90={balance90}
             />
           ))}
-          {spots.length > 4 && (
-            <Link
-              href="/student/spots"
-              className="block w-full rounded-xl py-2 text-center text-[11px] font-bold transition-colors hover:bg-[#e5eeff]"
-              style={{ color: '#006b2c', border: '1px solid #bdcaba' }}
-            >
-              Ver todas ({spots.length}) →
-            </Link>
-          )}
         </div>
       )}
     </div>

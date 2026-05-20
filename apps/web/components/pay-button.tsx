@@ -12,10 +12,11 @@ interface PayButtonProps {
   classDate?: string
   label: string
   className?: string
+  style?: React.CSSProperties
   disabled?: boolean
 }
 
-export function PayButton({ type, enrollmentId, packId, packType, scheduleId, exclusionId, classDate, label, className, disabled }: PayButtonProps) {
+export function PayButton({ type, enrollmentId, packId, packType, scheduleId, exclusionId, classDate, label, className, style, disabled }: PayButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -66,11 +67,12 @@ export function PayButton({ type, enrollmentId, packId, packType, scheduleId, ex
   }
 
   return (
-    <div>
+    <div className={className?.includes('w-full') ? 'w-full' : undefined}>
       <button
         onClick={handlePay}
         disabled={loading || disabled}
         className={className}
+        style={style}
       >
         {loading ? 'Procesando...' : label}
       </button>

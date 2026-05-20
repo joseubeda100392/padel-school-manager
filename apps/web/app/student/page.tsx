@@ -61,7 +61,7 @@ export default async function StudentHomePage() {
   const firstName = (userData as any)?.name?.split(' ')[0] ?? user.user_metadata?.full_name?.split(' ')[0] ?? user.user_metadata?.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'alumno'
 
   return (
-    <div className="space-y-6 pb-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="space-y-6 pb-4">
       <RealtimeRefresh
         channelName={`student-home-${user.id}`}
         subs={[
@@ -72,11 +72,11 @@ export default async function StudentHomePage() {
       />
 
       {/* Cabecera de bienvenida */}
-      <div className="rounded-xl p-5 sm:p-6" style={{ background: 'linear-gradient(135deg, #006b2c 0%, #00873a 100%)' }}>
+      <div className="rounded-2xl p-5 sm:p-6" style={{ background: 'linear-gradient(135deg, #005a25 0%, #006b2c 50%, #007d33 100%)' }}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[13px] font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>Bienvenido de nuevo</p>
-            <h1 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-white mt-0.5">Hola, {firstName} 👋</h1>
+            <p className="text-[13px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>Bienvenido de nuevo</p>
+            <h1 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-white mt-0.5 font-heading">Hola, {firstName}</h1>
           </div>
           {level && (
             <span
@@ -107,8 +107,8 @@ export default async function StudentHomePage() {
             <p className="text-[13px] font-bold" style={{ color: '#991b1b' }}>
               {pendingEnrollments.length} cuota{pendingEnrollments.length > 1 ? 's' : ''} pendiente{pendingEnrollments.length > 1 ? 's' : ''} de pago
             </p>
-            <Link href="/student/schedule" className="mt-0.5 block text-[12px] font-semibold hover:underline" style={{ color: '#dc2626' }}>
-              Ver mis clases y pagar →
+            <Link href="/student/fees" className="mt-0.5 block text-[12px] font-semibold hover:underline" style={{ color: '#dc2626' }}>
+              Ir a Mis Cuotas y pagar →
             </Link>
           </div>
         </div>
@@ -189,6 +189,18 @@ export default async function StudentHomePage() {
       <div>
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#3e4a3d' }}>Acceso rápido</p>
         <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/student/fees"
+            className="rounded-xl border p-4 flex items-center gap-3 transition-all hover:shadow-md hover:-translate-y-0.5"
+            style={{ background: '#ffffff', borderColor: '#bdcaba' }}
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: '#fef2f2' }}>
+              <svg className="h-4 w-4" style={{ color: '#dc2626' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <span className="text-[13px] font-semibold" style={{ color: '#0b1c30' }}>Mis Cuotas</span>
+          </Link>
           <Link
             href="/student/schedule"
             className="rounded-xl border p-4 flex items-center gap-3 transition-all hover:shadow-md hover:-translate-y-0.5"
