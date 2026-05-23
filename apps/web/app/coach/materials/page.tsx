@@ -1,17 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function CoachMaterialsPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profile } = await getAdminClient()
     .from('users')
     .select('club_id')
     .eq('id', user.id)
     .single()
+
+  const features = await getClubFeatures(profile?.club_id)
+  if (!features.enable_materials) redirect('/coach')
 
   const query = supabase
     .from('materials')

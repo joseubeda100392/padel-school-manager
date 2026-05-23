@@ -42,6 +42,14 @@ export default function SettingsPage() {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [features, setFeatures] = useState({
+    enable_60min: true, enable_90min: true, enable_payments: true,
+    enable_spots: true, enable_bag: true, enable_chat: true,
+    enable_materials: true, enable_objectives: true,
+  })
+  const [featuresSaving, setFeaturesSaving] = useState(false)
+  const [featuresSaved, setFeaturesSaved] = useState(false)
+
   const [redsys, setRedsys] = useState({ merchantCode: '', secretKey: '', terminal: '001', env: 'test', secretKeyMasked: '', hasSecretKey: false })
   const [redsysSaving, setRedsysSaving] = useState(false)
   const [redsysSaved, setRedsysSaved] = useState(false)
@@ -82,6 +90,15 @@ export default function SettingsPage() {
           setRedsys(prev => ({ ...prev, ...data, secretKey: '' }))
         }
       } catch { /* no bloquea el resto de la carga */ }
+
+      // Cargar features del club
+      try {
+        const featRes = await fetch('/api/admin/club-features')
+        if (featRes.ok) {
+          const { features: f } = await featRes.json()
+          setFeatures(prev => ({ ...prev, ...f }))
+        }
+      } catch { /* no bloquea */ }
 
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -213,6 +230,20 @@ export default function SettingsPage() {
     setShowSecretKey(false)
     setRedsysSaved(true)
     setTimeout(() => setRedsysSaved(false), 2000)
+  }
+
+  async function saveFeatures() {
+    setFeaturesSaving(true)
+    const res = await fetch('/api/admin/club-features', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(features),
+    })
+    setFeaturesSaving(false)
+    if (res.ok) {
+      setFeaturesSaved(true)
+      setTimeout(() => setFeaturesSaved(false), 2000)
+    }
   }
 
   if (loading) return <div className="text-gray-400">Cargando...</div>
@@ -504,6 +535,47 @@ export default function SettingsPage() {
             Error: {courtError}
           </p>
         )}
+      </div>
+
+      {/* Módulos activos */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-1 font-semibold text-gray-900">Módulos activos</h2>
+        <p className="mb-5 text-xs text-gray-400">Activa o desactiva funcionalidades para toda la escuela. Los cambios afectan a alumnos, monitores y administradores.</p>
+
+        <div className="space-y-1">
+          {([
+            { key: 'enable_60min', label: 'Clases de 60 minutos', desc: 'Bolsa 60min, bonos 60min y pago de clase suelta 60min' },
+            { key: 'enable_90min', label: 'Clases de 90 minutos', desc: 'Bolsa 90min, bonos 90min y pago de clase suelta 90min' },
+            { key: 'enable_payments', label: 'Pagos con tarjeta (Redsys)', desc: 'Flujo de pago online. La bolsa manual sigue funcionando siempre' },
+            { key: 'enable_spots', label: 'Huecos libres', desc: 'Los alumnos pueden reservar huecos cuando un compañero falta' },
+            { key: 'enable_bag', label: 'Bolsa de clases', desc: 'Saldo de clases disponibles y gestión de bonos' },
+            { key: 'enable_chat', label: 'Chat de soporte', desc: 'Chat entre alumnos/monitores y la administración' },
+            { key: 'enable_materials', label: 'Material didáctico', desc: 'PDFs y contenido formativo por nivel' },
+            { key: 'enable_objectives', label: 'Objetivos y progreso', desc: 'Checklists de progreso asignados por el monitor' },
+          ] as { key: keyof typeof features; label: string; desc: string }[]).map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between gap-4 rounded-lg px-3 py-3 hover:bg-gray-50">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900">{label}</p>
+                <p className="text-xs text-gray-400">{desc}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFeatures(prev => ({ ...prev, [key]: !prev[key] }))}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${features[key] ? 'bg-green-500' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${features[key] ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={saveFeatures}
+          disabled={featuresSaving}
+          className="mt-5 rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+        >
+          {featuresSaving ? 'Guardando...' : featuresSaved ? '¡Guardado!' : 'Guardar módulos'}
+        </button>
       </div>
 
       {/* TPV Redsys */}

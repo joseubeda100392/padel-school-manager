@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function StudentBagPage() {
   const supabase = createClient()
@@ -11,6 +12,9 @@ export default async function StudentBagPage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
+  const { data: bagProfile } = await admin.from('users').select('club_id').eq('id', user.id).single()
+  const features = await getClubFeatures((bagProfile as any)?.club_id)
+  if (!features.enable_bag) redirect('/student')
 
   const [{ data: bag }, { data: transactions }, { data: configs }] = await Promise.all([
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),

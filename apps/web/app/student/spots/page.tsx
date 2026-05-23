@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import { SpotsClient } from './spots-client'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -45,10 +46,13 @@ export default async function StudentSpotsPage() {
 
   const { data: userRow } = await admin
     .from('users')
-    .select('current_level_id')
+    .select('current_level_id, club_id')
     .eq('id', user.id)
     .single()
   const myLevelId: string | null = userRow?.current_level_id ?? null
+
+  const features = await getClubFeatures((userRow as any)?.club_id)
+  if (!features.enable_spots) redirect('/student')
 
   const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }, { data: mySpotBookings }] = await Promise.all([
     admin

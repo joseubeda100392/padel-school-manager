@@ -17,30 +17,42 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { ClubFeatures } from '@/lib/get-club-features'
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/students', label: 'Alumnos', icon: Users },
-  { href: '/dashboard/levels', label: 'Niveles', icon: Trophy },
-  { href: '/dashboard/schedule', label: 'Horarios', icon: CalendarDays },
-  { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard },
-  { href: '/dashboard/chat', label: 'Chat Soporte', icon: MessageSquare },
-  { href: '/dashboard/materials', label: 'Materiales', icon: BookOpen },
-  { href: '/dashboard/analytics', label: 'Estadísticas', icon: BarChart3 },
-  { href: '/dashboard/notifications', label: 'Notificaciones', icon: Bell },
-  { href: '/dashboard/settings', label: 'Configuración', icon: Settings },
+const baseNavItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, feature: null },
+  { href: '/dashboard/students', label: 'Alumnos', icon: Users, feature: null },
+  { href: '/dashboard/levels', label: 'Niveles', icon: Trophy, feature: null },
+  { href: '/dashboard/schedule', label: 'Clases', icon: CalendarDays, feature: null },
+  { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard, feature: 'enable_payments' },
+  { href: '/dashboard/chat', label: 'Chat Soporte', icon: MessageSquare, feature: 'enable_chat' },
+  { href: '/dashboard/materials', label: 'Materiales', icon: BookOpen, feature: 'enable_materials' },
+  { href: '/dashboard/analytics', label: 'Estadísticas', icon: BarChart3, feature: null },
+  { href: '/dashboard/notifications', label: 'Notificaciones', icon: Bell, feature: null },
+  { href: '/dashboard/settings', label: 'Configuración', icon: Settings, feature: null },
 ]
 
 const superAdminItems = [
   { href: '/dashboard/clubs', label: 'Clubes', icon: Building2 },
 ]
 
-export function Sidebar({ clubName, role, userName, onClose }: { clubName?: string; role?: string; userName?: string; onClose?: () => void }) {
+export function Sidebar({ clubName, role, userName, features, onClose }: {
+  clubName?: string
+  role?: string
+  userName?: string
+  features?: ClubFeatures
+  onClose?: () => void
+}) {
   const pathname = usePathname()
   const isSuperAdmin = role === 'super_admin'
   const initials = userName
     ? userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
     : 'P'
+
+  const navItems = baseNavItems.filter(item => {
+    if (!item.feature || !features) return true
+    return features[item.feature as keyof ClubFeatures]
+  })
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">

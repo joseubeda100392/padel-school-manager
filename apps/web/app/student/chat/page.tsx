@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { StudentChatClient } from './student-chat-client'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 async function findOrCreateThread(supabase: any, userId: string, type: string, clubId: string | null, recipientId?: string) {
   const query = supabase
@@ -50,6 +51,9 @@ export default async function StudentChatPage({
     .eq('id', user.id)
     .single()
   const clubId = (userProfile?.club_id as string | null) ?? null
+
+  const features = await getClubFeatures(clubId ?? undefined)
+  if (!features.enable_chat) redirect('/student')
 
   // Get student's coaches from active group enrollments (admin client bypasses RLS on users join)
   const { data: enrollments } = await admin

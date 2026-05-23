@@ -1,7 +1,9 @@
 export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { StudentChatClient } from '@/app/student/chat/student-chat-client'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function CoachChatPage({
   searchParams,
@@ -11,6 +13,11 @@ export default async function CoachChatPage({
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const admin = getAdminClient()
+  const { data: coachProfile } = await admin.from('users').select('club_id').eq('id', user.id).single()
+  const features = await getClubFeatures((coachProfile as any)?.club_id)
+  if (!features.enable_chat) redirect('/coach')
 
   // Coach's own thread with admin
   let { data: adminThread } = await supabase

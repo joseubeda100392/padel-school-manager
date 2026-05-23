@@ -7,18 +7,20 @@ import { createClient } from '@/lib/supabase/client'
 import { Home, Calendar, BookOpen, MessageCircle, LogOut, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
+import type { ClubFeatures } from '@/lib/get-club-features'
 
-const navItems = [
-  { href: '/coach', label: 'Inicio', icon: Home, exact: true },
-  { href: '/coach/classes', label: 'Mis Clases', icon: Calendar, exact: false },
-  { href: '/coach/materials', label: 'Material', icon: BookOpen, exact: false },
-  { href: '/coach/chat', label: 'Chat soporte', icon: MessageCircle, exact: false },
+const allNavItems = [
+  { href: '/coach', label: 'Inicio', icon: Home, exact: true, feature: null },
+  { href: '/coach/classes', label: 'Mis Clases', icon: Calendar, exact: false, feature: null },
+  { href: '/coach/materials', label: 'Material', icon: BookOpen, exact: false, feature: 'enable_materials' },
+  { href: '/coach/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
 ]
 
-export function CoachShell({ children, userName, clubName }: {
+export function CoachShell({ children, userName, clubName, features }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
+  features?: ClubFeatures
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -34,6 +36,11 @@ export function CoachShell({ children, userName, clubName }: {
   const initials = userName
     ? userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
     : 'M'
+
+  const navItems = allNavItems.filter(item => {
+    if (!item.feature || !features) return true
+    return features[item.feature as keyof ClubFeatures]
+  })
 
   return (
     <div className="flex min-h-screen bg-gray-50">

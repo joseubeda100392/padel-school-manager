@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -26,15 +27,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   let clubName: string | undefined
 
-  if (clubId && role !== 'super_admin') {
-    const { data } = await admin.from('clubs').select('name').eq('id', clubId).single()
-    clubName = data?.name ?? undefined
-  }
+  const [clubData, features] = await Promise.all([
+    clubId && role !== 'super_admin'
+      ? admin.from('clubs').select('name').eq('id', clubId).single()
+      : Promise.resolve({ data: null }),
+    getClubFeatures(role !== 'super_admin' ? clubId : null),
+  ])
 
+  clubName = (clubData as any)?.data?.name ?? undefined
   const userName = dbProfile?.name ?? user.user_metadata?.name ?? undefined
 
   return (
-    <DashboardShell clubName={clubName} role={role} userName={userName}>
+    <DashboardShell clubName={clubName} role={role} userName={userName} features={features}>
       {children}
     </DashboardShell>
   )

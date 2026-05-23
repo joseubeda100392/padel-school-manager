@@ -7,24 +7,26 @@ import { createClient } from '@/lib/supabase/client'
 import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
+import type { ClubFeatures } from '@/lib/get-club-features'
 
-const navItems = [
-  { href: '/student', label: 'Inicio', icon: Home, exact: true },
-  { href: '/student/schedule', label: 'Mis Clases', icon: Calendar, exact: false },
-  { href: '/student/progress', label: 'Mi Progreso', icon: Target, exact: false },
-  { href: '/student/spots', label: 'Huecos', icon: Zap, exact: false },
-  { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false },
-  { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false },
-  { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false },
-  { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false },
+const allNavItems = [
+  { href: '/student', label: 'Inicio', icon: Home, exact: true, feature: null },
+  { href: '/student/schedule', label: 'Mis Clases', icon: Calendar, exact: false, feature: null },
+  { href: '/student/progress', label: 'Mi Progreso', icon: Target, exact: false, feature: 'enable_objectives' },
+  { href: '/student/spots', label: 'Huecos', icon: Zap, exact: false, feature: 'enable_spots' },
+  { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false, feature: 'enable_bag' },
+  { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false, feature: 'enable_materials' },
+  { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false, feature: null },
+  { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
 ]
 
-export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0 }: {
+export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
   bagBalance?: number
   unreadCount?: number
+  features?: ClubFeatures
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -40,6 +42,13 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
   const initials = userName
     ? userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
     : 'A'
+
+  const navItems = allNavItems.filter(item => {
+    if (!item.feature || !features) return true
+    return features[item.feature as keyof ClubFeatures]
+  })
+
+  const showBag = !features || features.enable_bag
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -66,7 +75,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
           </button>
         </div>
 
-        {bagBalance !== undefined && (
+        {showBag && bagBalance !== undefined && (
           <div className="mx-3 mt-3 rounded-lg bg-green-50 px-3 py-2.5">
             <p className="text-xs text-green-600">Clases disponibles</p>
             <p className="text-3xl font-bold text-green-700">{bagBalance}</p>
@@ -126,7 +135,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
                 </span>
               )}
             </Link>
-            {bagBalance !== undefined && (
+            {showBag && bagBalance !== undefined && (
               <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
                 {bagBalance} clase{bagBalance !== 1 ? 's' : ''}
               </span>

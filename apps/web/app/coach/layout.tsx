@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { CoachShell } from '@/components/layout/coach-shell'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function CoachLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -16,10 +17,12 @@ export default async function CoachLayout({ children }: { children: React.ReactN
 
   if (!profile || profile.role !== 'coach') redirect('/dashboard')
 
+  const clubId = (profile as any)?.club_id as string | undefined
   const clubName = (profile as any)?.clubs?.name ?? undefined
+  const features = await getClubFeatures(clubId)
 
   return (
-    <CoachShell userName={profile.name ?? undefined} clubName={clubName}>
+    <CoachShell userName={profile.name ?? undefined} clubName={clubName} features={features}>
       {children}
     </CoachShell>
   )

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function StudentMaterialsPage() {
   const supabase = createClient()
@@ -9,9 +10,12 @@ export default async function StudentMaterialsPage() {
 
   const { data: userData } = await getAdminClient()
     .from('users')
-    .select('current_level_id')
+    .select('current_level_id, club_id')
     .eq('id', user.id)
     .single()
+
+  const features = await getClubFeatures((userData as any)?.club_id)
+  if (!features.enable_materials) redirect('/student')
 
   const levelId = (userData as any)?.current_level_id ?? null
   const { data: levelData } = levelId

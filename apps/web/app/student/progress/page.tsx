@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function StudentProgressPage() {
   const supabase = createClient()
@@ -8,6 +9,10 @@ export default async function StudentProgressPage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
+  const { data: progressProfile } = await admin.from('users').select('club_id').eq('id', user.id).single()
+  const features = await getClubFeatures((progressProfile as any)?.club_id)
+  if (!features.enable_objectives) redirect('/student')
+
   const { data: checklists } = await admin
     .from('student_checklists')
     .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at)')
