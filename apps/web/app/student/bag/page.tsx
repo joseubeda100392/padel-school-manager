@@ -55,51 +55,60 @@ export default async function StudentBagPage() {
 
       {/* Saldos */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase text-gray-500">Clases 1h disponibles</p>
-          <p className={`mt-2 text-5xl font-bold ${balance60 > 0 ? 'text-green-600' : 'text-gray-300'}`}>
-            {balance60}
-          </p>
-          <p className="mt-1 text-xs text-gray-400">Bono 60 min · válido para clases de 1h</p>
-        </div>
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase text-gray-500">Clases 1h 30min disponibles</p>
-          <p className={`mt-2 text-5xl font-bold ${balance90 > 0 ? 'text-blue-600' : 'text-gray-300'}`}>
-            {balance90}
-          </p>
-          <p className="mt-1 text-xs text-gray-400">Bono 90 min · válido para 1h y 1h 30min</p>
-        </div>
+        {features.enable_60min && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium uppercase text-gray-500">Clases 1h disponibles</p>
+            <p className={`mt-2 text-5xl font-bold ${balance60 > 0 ? 'text-green-600' : 'text-gray-300'}`}>
+              {balance60}
+            </p>
+            <p className="mt-1 text-xs text-gray-400">Bono 60 min · válido para clases de 1h</p>
+          </div>
+        )}
+        {features.enable_90min && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium uppercase text-gray-500">Clases 1h 30min disponibles</p>
+            <p className={`mt-2 text-5xl font-bold ${balance90 > 0 ? 'text-blue-600' : 'text-gray-300'}`}>
+              {balance90}
+            </p>
+            <p className="mt-1 text-xs text-gray-400">Bono 90 min · válido para 1h y 1h 30min</p>
+          </div>
+        )}
       </div>
 
       {/* Comprar bono */}
-      <div className="mb-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Comprar bono</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-lg font-bold text-gray-900">Bono 1 hora</p>
-            <p className="mt-1 text-sm text-gray-500">{pack60Classes} clases · solo clases de 60 min</p>
-            <p className="mt-3 text-2xl font-bold text-green-600">{formatCurrency(pack60Price)}</p>
-            <PayButton
-              type="class_pack"
-              packType="60"
-              label="💳 Comprar bono"
-              className="mt-4 w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-            />
-          </div>
-
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-lg font-bold text-gray-900">Bono 1h 30min</p>
-            <p className="mt-1 text-sm text-gray-500">{pack90Classes} clases · vale para 1h y 1h 30min</p>
-            <p className="mt-3 text-2xl font-bold text-blue-600">{formatCurrency(pack90Price)}</p>
-            <PayButton
-              type="class_pack"
-              packType="90"
-              label="💳 Comprar bono"
-              className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            />
+      {features.enable_payments && (
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Comprar bono</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {features.enable_60min && (
+              <div className="rounded-xl bg-white p-5 shadow-sm">
+                <p className="text-lg font-bold text-gray-900">Bono 1 hora</p>
+                <p className="mt-1 text-sm text-gray-500">{pack60Classes} clases · solo clases de 60 min</p>
+                <p className="mt-3 text-2xl font-bold text-green-600">{formatCurrency(pack60Price)}</p>
+                <PayButton
+                  type="class_pack"
+                  packType="60"
+                  label="💳 Comprar bono"
+                  className="mt-4 w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                />
+              </div>
+            )}
+            {features.enable_90min && (
+              <div className="rounded-xl bg-white p-5 shadow-sm">
+                <p className="text-lg font-bold text-gray-900">Bono 1h 30min</p>
+                <p className="mt-1 text-sm text-gray-500">{pack90Classes} clases · vale para 1h y 1h 30min</p>
+                <p className="mt-3 text-2xl font-bold text-blue-600">{formatCurrency(pack90Price)}</p>
+                <PayButton
+                  type="class_pack"
+                  packType="90"
+                  label="💳 Comprar bono"
+                  className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                />
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Historial */}
       {(transactions ?? []).length > 0 && (

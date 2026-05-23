@@ -28,7 +28,7 @@ interface ScheduleItem {
   exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
 }
 
-export function StudentScheduleClient({ item, cancellationHours }: { item: ScheduleItem; cancellationHours: number }) {
+export function StudentScheduleClient({ item, cancellationHours, enablePayments = true }: { item: ScheduleItem; cancellationHours: number; enablePayments?: boolean }) {
   const router = useRouter()
   const [exclusions, setExclusions] = useState(item.exclusions)
   const [showPicker, setShowPicker] = useState(false)
@@ -77,18 +77,20 @@ export function StudentScheduleClient({ item, cancellationHours }: { item: Sched
               </span>
             )}
           </div>
-          <div className="text-right">
-            <p className="text-lg font-bold text-gray-900">
-              {formatCurrency(item.monthlyPrice)}<span className="text-sm font-normal text-gray-400">/mes</span>
-            </p>
-            <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${item.isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-              {item.isPaid ? '✓ Pagado' : 'Pendiente de pago'}
-            </span>
-          </div>
+          {enablePayments && (
+            <div className="text-right">
+              <p className="text-lg font-bold text-gray-900">
+                {formatCurrency(item.monthlyPrice)}<span className="text-sm font-normal text-gray-400">/mes</span>
+              </p>
+              <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${item.isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                {item.isPaid ? '✓ Pagado' : 'Pendiente de pago'}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {!item.isPaid && (
+          {enablePayments && !item.isPaid && (
             <PayButton
               type="fixed_group_month"
               enrollmentId={item.enrollmentId}

@@ -6,6 +6,7 @@ import AttendanceForm from '@/app/dashboard/schedule/[id]/attendance-form'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -65,14 +66,16 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
     exclusionsByEnrollment[x.group_enrollment_id].push(x.excluded_date)
   }
 
+  const features = await getClubFeatures(schedule.club_id ?? undefined)
+
   const materialsQuery = admin
     .from('materials')
     .select('id, title, description, file_url, material_levels(level_id)')
     .eq('is_published', true)
     .order('created_at', { ascending: false })
-  const { data: allMaterials } = await (
+  const { data: allMaterials } = features.enable_materials ? await (
     schedule.club_id ? materialsQuery.eq('club_id', schedule.club_id) : materialsQuery
-  )
+  ) : { data: [] }
   const materials = (allMaterials ?? []).filter((m: any) => {
     if (!m.material_levels || m.material_levels.length === 0) return true
     if (!schedule.level_id) return true

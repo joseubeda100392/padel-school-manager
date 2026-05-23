@@ -20,7 +20,7 @@ interface Spot {
   enrolledCount: number | null
 }
 
-function SpotCard({ spot, balance60, balance90 }: { spot: Spot; balance60: number; balance90: number }) {
+function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true }: { spot: Spot; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean }) {
   const router = useRouter()
   const [booking, setBooking] = useState(false)
   const [booked, setBooked] = useState(false)
@@ -107,7 +107,7 @@ function SpotCard({ spot, balance60, balance90 }: { spot: Spot; balance60: numbe
             >
               {booking ? '...' : '🎾 Usar 1 clase'}
             </button>
-          ) : (
+          ) : enablePayments ? (
             <PayButton
               type="single_class"
               scheduleId={spot.scheduleId}
@@ -116,8 +116,8 @@ function SpotCard({ spot, balance60, balance90 }: { spot: Spot; balance60: numbe
               label="💳 Pagar clase"
               className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
             />
-          )}
-          {!hasBalance && durationType === '90' && (balance60 > 0) && (
+          ) : null}
+          {!hasBalance && enable90min && durationType === '90' && balance60 > 0 && (
             <p className="text-xs text-orange-600">Tu bono es de 60min — no válido para 1h 30min</p>
           )}
           {!hasBalance && balance60 === 0 && balance90 === 0 && (
@@ -130,17 +130,17 @@ function SpotCard({ spot, balance60, balance90 }: { spot: Spot; balance60: numbe
   )
 }
 
-export function SpotsClient({ spots, balance60, balance90 }: { spots: Spot[]; balance60: number; balance90: number }) {
-  const totalBalance = balance60 + balance90
+export function SpotsClient({ spots, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true }: { spots: Spot[]; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean }) {
+  const visibleBalance = (enable60min ? balance60 : 0) + (enable90min ? balance90 : 0)
   return (
     <div className="space-y-4">
-      {totalBalance > 0 && (
+      {visibleBalance > 0 && (
         <div className="rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
           <p className="text-sm text-orange-700">
             Tu bolsa:{' '}
-            {balance60 > 0 && <span><span className="font-bold">{balance60}</span> de 1h</span>}
-            {balance60 > 0 && balance90 > 0 && ' · '}
-            {balance90 > 0 && <span><span className="font-bold">{balance90}</span> de 1h 30min</span>}
+            {enable60min && balance60 > 0 && <span><span className="font-bold">{balance60}</span> de 1h</span>}
+            {enable60min && balance60 > 0 && enable90min && balance90 > 0 && ' · '}
+            {enable90min && balance90 > 0 && <span><span className="font-bold">{balance90}</span> de 1h 30min</span>}
             {' — úsalas para apuntarte a un hueco libre.'}
           </p>
         </div>
@@ -151,6 +151,9 @@ export function SpotsClient({ spots, balance60, balance90 }: { spots: Spot[]; ba
           spot={spot}
           balance60={balance60}
           balance90={balance90}
+          enablePayments={enablePayments}
+          enable60min={enable60min}
+          enable90min={enable90min}
         />
       ))}
     </div>

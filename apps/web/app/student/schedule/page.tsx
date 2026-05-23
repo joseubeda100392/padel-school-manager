@@ -5,6 +5,7 @@ import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
 import { SpotBookingCard } from './spot-booking-card'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -68,7 +69,7 @@ export default async function StudentSchedulePage() {
         .order('excluded_date')
     : { data: [] }
 
-  const [{ data: cfgRow }, { data: spotBookings }] = await Promise.all([
+  const [{ data: cfgRow }, { data: spotBookings }, { data: userRow }] = await Promise.all([
     getAdminClient().from('app_config').select('value').eq('key', 'cancellation_hours').single(),
     getAdminClient()
       .from('bookings')
@@ -85,9 +86,11 @@ export default async function StudentSchedulePage() {
       .not('class_date', 'is', null)
       .gte('class_date', (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })())
       .order('class_date'),
+    getAdminClient().from('users').select('club_id').eq('id', user.id).single(),
   ])
 
   const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
+  const features = await getClubFeatures((userRow as any)?.club_id)
 
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
@@ -142,6 +145,7 @@ export default async function StudentSchedulePage() {
                 key={item.enrollmentId}
                 item={item}
                 cancellationHours={cancellationHours}
+                enablePayments={features.enable_payments}
               />
             ))}
           </div>

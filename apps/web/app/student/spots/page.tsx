@@ -195,7 +195,14 @@ export default async function StudentSpotsPage() {
           <p className="mt-1 text-xs text-gray-400">Vuelve a consultar más adelante.</p>
         </div>
       ) : (
-        <SpotsClient spots={allSpots} balance60={balance60} balance90={balance90} />
+        <SpotsClient
+          spots={allSpots}
+          balance60={balance60}
+          balance90={balance90}
+          enablePayments={features.enable_payments}
+          enable60min={features.enable_60min}
+          enable90min={features.enable_90min}
+        />
       )}
     </div>
   )
