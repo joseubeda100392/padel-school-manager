@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface AppConfig {
@@ -26,6 +27,7 @@ const defaults: AppConfig = {
 }
 
 export default function SettingsPage() {
+  const router = useRouter()
   const [config, setConfig] = useState<AppConfig>(defaults)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -49,6 +51,7 @@ export default function SettingsPage() {
   })
   const [featuresSaving, setFeaturesSaving] = useState(false)
   const [featuresSaved, setFeaturesSaved] = useState(false)
+  const [featuresError, setFeaturesError] = useState('')
 
   const [redsys, setRedsys] = useState({ merchantCode: '', secretKey: '', terminal: '001', env: 'test', secretKeyMasked: '', hasSecretKey: false })
   const [redsysSaving, setRedsysSaving] = useState(false)
@@ -234,6 +237,7 @@ export default function SettingsPage() {
 
   async function saveFeatures() {
     setFeaturesSaving(true)
+    setFeaturesError('')
     const res = await fetch('/api/admin/club-features', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -243,6 +247,10 @@ export default function SettingsPage() {
     if (res.ok) {
       setFeaturesSaved(true)
       setTimeout(() => setFeaturesSaved(false), 2000)
+      router.refresh()
+    } else {
+      const j = await res.json().catch(() => ({}))
+      setFeaturesError(j.error ?? 'Error al guardar')
     }
   }
 
@@ -569,6 +577,9 @@ export default function SettingsPage() {
           ))}
         </div>
 
+        {featuresError && (
+          <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{featuresError}</p>
+        )}
         <button
           onClick={saveFeatures}
           disabled={featuresSaving}
