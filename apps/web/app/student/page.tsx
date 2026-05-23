@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -28,15 +29,19 @@ export default async function StudentHomePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: userData }, { data: bag }, { data: enrollments }, { data: spots }] = await Promise.all([
-    getAdminClient().from('users').select('name, current_level_id').eq('id', user.id).single(),
-    getAdminClient().from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
-    getAdminClient()
+  const admin = getAdminClient()
+  const { data: userData } = await admin.from('users').select('name, current_level_id, club_id').eq('id', user.id).single()
+  const clubId = (userData as any)?.club_id as string | undefined
+
+  const [features, { data: bag }, { data: enrollments }, { data: spots }] = await Promise.all([
+    getClubFeatures(clubId),
+    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
+    admin
       .from('group_enrollments')
       .select('id, monthly_price, paid_until, schedule:schedules(id, start_time, end_time, court:courts(name))')
       .eq('student_id', user.id)
       .eq('status', 'active'),
-    getAdminClient()
+    admin
       .from('schedule_exclusions')
       .select('id')
       .eq('publish_spot', true)
@@ -45,7 +50,7 @@ export default async function StudentHomePage() {
 
   const myLevelId = (userData as any)?.current_level_id ?? null
   const { data: levelData } = myLevelId
-    ? await getAdminClient().from('levels').select('name, color').eq('id', myLevelId).single()
+    ? await admin.from('levels').select('name, color').eq('id', myLevelId).single()
     : { data: null }
 
   const bagBalance = (bag?.balance_60 ?? 0) + (bag?.balance_90 ?? 0)
@@ -75,26 +80,28 @@ export default async function StudentHomePage() {
       </div>
 
       {/* Alerta cuota pendiente */}
-      {pendingEnrollments.length > 0 && (
+      {features.enable_payments && pendingEnrollments.length > 0 && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-semibold text-red-700">
             Tienes {pendingEnrollments.length} cuota{pendingEnrollments.length > 1 ? 's' : ''} pendiente{pendingEnrollments.length > 1 ? 's' : ''} de pago
           </p>
           <Link href="/student/schedule" className="mt-1 block text-xs text-red-600 underline">
-            Ver mis clases y pagar →
+            Ver mis clases →
           </Link>
         </div>
       )}
 
       {/* Cards resumen */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase text-gray-500">Clases disponibles</p>
-          <p className={`mt-2 text-4xl font-bold ${bagBalance > 0 ? 'text-green-600' : 'text-gray-400'}`}>{bagBalance}</p>
-          <Link href="/student/bag" className="mt-2 block text-xs text-green-600 hover:underline">
-            {bagBalance === 0 ? 'Comprar bono →' : 'Ver historial →'}
-          </Link>
-        </div>
+        {features.enable_bag && (
+          <div className="rounded-xl bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium uppercase text-gray-500">Clases disponibles</p>
+            <p className={`mt-2 text-4xl font-bold ${bagBalance > 0 ? 'text-green-600' : 'text-gray-400'}`}>{bagBalance}</p>
+            <Link href="/student/bag" className="mt-2 block text-xs text-green-600 hover:underline">
+              Ver historial →
+            </Link>
+          </div>
+        )}
 
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-xs font-medium uppercase text-gray-500">Mis clases</p>
@@ -102,11 +109,13 @@ export default async function StudentHomePage() {
           <Link href="/student/schedule" className="mt-2 block text-xs text-green-600 hover:underline">Ver clases →</Link>
         </div>
 
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase text-gray-500">Huecos libres</p>
-          <p className={`mt-2 text-4xl font-bold ${spotsCount > 0 ? 'text-orange-500' : 'text-gray-400'}`}>{spotsCount}</p>
-          <Link href="/student/spots" className="mt-2 block text-xs text-green-600 hover:underline">Ver huecos →</Link>
-        </div>
+        {features.enable_spots && (
+          <div className="rounded-xl bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium uppercase text-gray-500">Huecos libres</p>
+            <p className={`mt-2 text-4xl font-bold ${spotsCount > 0 ? 'text-orange-500' : 'text-gray-400'}`}>{spotsCount}</p>
+            <Link href="/student/spots" className="mt-2 block text-xs text-green-600 hover:underline">Ver huecos →</Link>
+          </div>
+        )}
       </div>
 
       {/* Próxima clase */}
@@ -126,12 +135,14 @@ export default async function StudentHomePage() {
                 {(nextClass.schedule as any)?.court?.name}
               </p>
             </div>
-            <div className="text-right">
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isPaidThisMonth(nextClass.paid_until) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                {isPaidThisMonth(nextClass.paid_until) ? 'Pagado' : 'Pendiente'}
-              </span>
-              <p className="mt-1 text-xs text-gray-400">{formatCurrency(nextClass.monthly_price)}/mes</p>
-            </div>
+            {features.enable_payments && (
+              <div className="text-right">
+                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isPaidThisMonth(nextClass.paid_until) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                  {isPaidThisMonth(nextClass.paid_until) ? 'Pagado' : 'Pendiente'}
+                </span>
+                <p className="mt-1 text-xs text-gray-400">{formatCurrency(nextClass.monthly_price)}/mes</p>
+              </div>
+            )}
           </div>
         </div>
       )}

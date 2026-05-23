@@ -9,6 +9,7 @@ import ScheduleMaterials from './schedule-materials'
 import { AdminAddSpotBooking } from './add-spot-booking'
 import { SpotBookingsList } from './spot-bookings-list'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -43,6 +44,8 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
   if (!schedule) notFound()
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+
+  const features = await getClubFeatures(schedule.club_id ?? undefined)
 
   // Simplified join: avoid nested currentLevel:levels that can fail silently
   const { data: bookings } = await admin
@@ -199,35 +202,41 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           initialExclusions={exclusionsByEnrollment}
           availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
           defaultMonthlyPrice={6000}
+          enablePayments={features.enable_payments}
+          enableSpots={features.enable_spots}
         />
       </div>
 
       {/* Material de clase */}
-      <div className="mb-6">
-        <ScheduleMaterials scheduleId={params.id} />
-      </div>
+      {features.enable_materials && (
+        <div className="mb-6">
+          <ScheduleMaterials scheduleId={params.id} />
+        </div>
+      )}
 
       {/* Reservas puntuales (huecos) */}
-      <div className="mb-6 rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Reservas puntuales</h2>
-          <p className="mt-0.5 text-xs text-gray-400">Alumnos apuntados a un hueco libre en una fecha concreta</p>
+      {features.enable_spots && (
+        <div className="mb-6 rounded-xl bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-6 py-4">
+            <h2 className="font-semibold text-gray-900">Reservas puntuales</h2>
+            <p className="mt-0.5 text-xs text-gray-400">Alumnos apuntados a un hueco libre en una fecha concreta</p>
+          </div>
+          <SpotBookingsList
+            bookings={spotBookings.map((b: any) => ({
+              id: b.id,
+              source: b.source,
+              class_date: b.class_date,
+              student: b.student ? { name: b.student.name, email: b.student.email } : null,
+            }))}
+          />
+          <AdminAddSpotBooking
+            scheduleId={params.id}
+            nextDate={nextDate}
+            availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
+            clubId={schedule.club_id ?? null}
+          />
         </div>
-        <SpotBookingsList
-          bookings={spotBookings.map((b: any) => ({
-            id: b.id,
-            source: b.source,
-            class_date: b.class_date,
-            student: b.student ? { name: b.student.name, email: b.student.email } : null,
-          }))}
-        />
-        <AdminAddSpotBooking
-          scheduleId={params.id}
-          nextDate={nextDate}
-          availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
-          clubId={schedule.club_id ?? null}
-        />
-      </div>
+      )}
 
       {/* Lista de alumnos + asistencia */}
       <div className="rounded-xl bg-white shadow-sm">

@@ -54,6 +54,8 @@ export default function GroupEnrollment({
   initialExclusions,
   availableStudents,
   defaultMonthlyPrice,
+  enablePayments = true,
+  enableSpots = true,
 }: {
   scheduleId: string
   scheduleStartTime: string
@@ -61,6 +63,8 @@ export default function GroupEnrollment({
   initialExclusions: Record<string, Exclusion[]>
   availableStudents: Student[]
   defaultMonthlyPrice: number
+  enablePayments?: boolean
+  enableSpots?: boolean
 }) {
   const router = useRouter()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
@@ -215,7 +219,7 @@ export default function GroupEnrollment({
       <div className="border-b border-gray-100 px-6 py-4">
         <h2 className="font-semibold text-gray-900">Grupo fijo</h2>
         <p className="mt-0.5 text-xs text-gray-400">
-          Alumnos con plaza permanente · Cuota de {currentMonth} {currentYear}
+          Alumnos con plaza permanente{enablePayments ? ` · Cuota de ${currentMonth} ${currentYear}` : ''}
         </p>
       </div>
 
@@ -245,7 +249,7 @@ export default function GroupEnrollment({
                     <p className="text-xs text-gray-400">{e.student.email}</p>
                   </div>
 
-                  {editingPriceId === e.id ? (
+                  {enablePayments && (editingPriceId === e.id ? (
                     <div className="flex items-center gap-1">
                       <input
                         type="number" min={0} step={0.5}
@@ -265,13 +269,15 @@ export default function GroupEnrollment({
                     >
                       {(e.monthly_price / 100).toFixed(2)}€/mes ✎
                     </button>
+                  ))}
+
+                  {enablePayments && (
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      {paid ? 'Pagado' : `Pendiente ${currentMonth}`}
+                    </span>
                   )}
 
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                    {paid ? 'Pagado' : `Pendiente ${currentMonth}`}
-                  </span>
-
-                  {!paid && (
+                  {enablePayments && !paid && (
                     <button
                       onClick={() => handleMarkPaid(e.id)}
                       disabled={isLoading}
@@ -313,16 +319,18 @@ export default function GroupEnrollment({
                           className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
                         />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs text-gray-600">Publicar plaza libre</label>
-                        <button
-                          onClick={() => setFaltaPublish(!faltaPublish)}
-                          className={`relative h-6 w-11 rounded-full transition-colors ${faltaPublish ? 'bg-green-500' : 'bg-gray-300'}`}
-                        >
-                          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${faltaPublish ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                        </button>
-                        <span className="text-xs text-gray-400">{faltaPublish ? 'Sí' : 'No'}</span>
-                      </div>
+                      {enableSpots && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-600">Publicar plaza libre</label>
+                          <button
+                            onClick={() => setFaltaPublish(!faltaPublish)}
+                            className={`relative h-6 w-11 rounded-full transition-colors ${faltaPublish ? 'bg-green-500' : 'bg-gray-300'}`}
+                          >
+                            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${faltaPublish ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                          </button>
+                          <span className="text-xs text-gray-400">{faltaPublish ? 'Sí' : 'No'}</span>
+                        </div>
+                      )}
                       <button
                         onClick={() => handleRegistrarFalta(e.id)}
                         disabled={faltaLoading || !faltaDate}
@@ -384,18 +392,20 @@ export default function GroupEnrollment({
             onChange={setSelectedStudentId}
             placeholder="Buscar alumno por nombre o email..."
           />
-          <div className="relative">
-            <input
-              type="number"
-              min={0}
-              step={0.5}
-              value={monthlyPrice / 100}
-              onChange={(e) => setMonthlyPrice(Math.round(Number(e.target.value) * 100))}
-              className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
-              placeholder="Precio/mes"
-            />
-            <span className="pointer-events-none absolute right-3 top-2 text-sm text-gray-400">€</span>
-          </div>
+          {enablePayments && (
+            <div className="relative">
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={monthlyPrice / 100}
+                onChange={(e) => setMonthlyPrice(Math.round(Number(e.target.value) * 100))}
+                className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+                placeholder="Precio/mes"
+              />
+              <span className="pointer-events-none absolute right-3 top-2 text-sm text-gray-400">€</span>
+            </div>
+          )}
           <button
             onClick={handleAdd}
             disabled={adding || !selectedStudentId}

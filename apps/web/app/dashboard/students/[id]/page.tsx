@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
+import { getClubFeatures } from '@/lib/get-club-features'
 import { notFound } from 'next/navigation'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { StudentLevelForm } from './student-level-form'
@@ -55,6 +56,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: makeups },
     { data: studentNotifications },
     { data: checklists },
+    features,
   ] = await Promise.all([
     admin
       .from('users')
@@ -105,6 +107,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at, completed_by_id)')
       .eq('student_id', params.id)
       .order('created_at', { ascending: false }),
+    getClubFeatures(clubId ?? undefined),
   ])
 
   if (studentError || !student) {
@@ -205,36 +208,42 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           />
         </div>
 
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Clases disponibles</h2>
-          <div className="mb-4 flex gap-6">
-            <div>
-              <p className="text-4xl font-bold text-green-600">{bag?.balance_60 ?? 0}</p>
-              <p className="text-xs text-gray-400">60 min</p>
+        {features.enable_bag && (
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="mb-4 font-semibold text-gray-900">Clases disponibles</h2>
+            <div className="mb-4 flex gap-6">
+              {features.enable_60min && (
+                <div>
+                  <p className="text-4xl font-bold text-green-600">{bag?.balance_60 ?? 0}</p>
+                  <p className="text-xs text-gray-400">60 min</p>
+                </div>
+              )}
+              {features.enable_90min && (
+                <div>
+                  <p className="text-4xl font-bold text-blue-600">{bag?.balance_90 ?? 0}</p>
+                  <p className="text-xs text-gray-400">90 min</p>
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-4xl font-bold text-blue-600">{bag?.balance_90 ?? 0}</p>
-              <p className="text-xs text-gray-400">90 min</p>
-            </div>
-          </div>
-          <BagAdjustForm studentId={student.id as string} balance60={bag?.balance_60 ?? 0} balance90={bag?.balance_90 ?? 0} />
+            <BagAdjustForm studentId={student.id as string} balance60={bag?.balance_60 ?? 0} balance90={bag?.balance_90 ?? 0} />
 
-          {bagHistory && bagHistory.length > 0 && (
-            <div className="mt-4 border-t border-gray-100 pt-4">
-              <p className="mb-2 text-xs font-medium uppercase text-gray-400">Últimos movimientos</p>
-              <ul className="space-y-1.5">
-                {bagHistory.map((t: any) => (
-                  <li key={t.id} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600">{t.reason || 'Sin motivo'}</span>
-                    <span className={t.delta > 0 ? 'font-medium text-green-600' : 'font-medium text-red-600'}>
-                      {t.delta > 0 ? '+' : ''}{t.delta}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+            {bagHistory && bagHistory.length > 0 && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <p className="mb-2 text-xs font-medium uppercase text-gray-400">Últimos movimientos</p>
+                <ul className="space-y-1.5">
+                  {bagHistory.map((t: any) => (
+                    <li key={t.id} className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600">{t.reason || 'Sin motivo'}</span>
+                      <span className={t.delta > 0 ? 'font-medium text-green-600' : 'font-medium text-red-600'}>
+                        {t.delta > 0 ? '+' : ''}{t.delta}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {makeups && makeups.length > 0 && (
@@ -250,46 +259,48 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      <div className="mb-6 rounded-xl bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Historial de pagos</h2>
-          {totalPagado > 0 && (
-            <span className="text-sm font-semibold text-green-700">
-              Total: {formatCurrency(totalPagado)}
-            </span>
+      {features.enable_payments && (
+        <div className="mb-6 rounded-xl bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <h2 className="font-semibold text-gray-900">Historial de pagos</h2>
+            {totalPagado > 0 && (
+              <span className="text-sm font-semibold text-green-700">
+                Total: {formatCurrency(totalPagado)}
+              </span>
+            )}
+          </div>
+          {!payments?.length ? (
+            <p className="px-6 py-8 text-center text-sm text-gray-400">Sin pagos registrados.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[400px]">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Tipo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {payments.map((p: any) => (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-3 text-sm text-gray-700">{typeLabel[p.type] ?? p.type ?? '—'}</td>
+                      <td className="px-6 py-3 text-sm font-semibold text-gray-900">{formatCurrency(p.amount, p.currency ?? 'EUR')}</td>
+                      <td className="px-6 py-3">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                          {statusLabel[p.status] ?? p.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 text-sm text-gray-500">{formatDate(p.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-        {!payments?.length ? (
-          <p className="px-6 py-8 text-center text-sm text-gray-400">Sin pagos registrados.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[400px]">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Tipo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {payments.map((p: any) => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 text-sm text-gray-700">{typeLabel[p.type] ?? p.type ?? '—'}</td>
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-900">{formatCurrency(p.amount, p.currency ?? 'EUR')}</td>
-                    <td className="px-6 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                        {statusLabel[p.status] ?? p.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-sm text-gray-500">{formatDate(p.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-4 font-semibold text-gray-900">Notificaciones del alumno</h2>
@@ -320,7 +331,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      <StudentObjectives
+      {features.enable_objectives && <StudentObjectives
         studentId={params.id}
         initialChecklists={(checklists ?? []).map((c: any) => ({
           id: c.id,
@@ -335,7 +346,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             completed_by_id: it.completed_by_id,
           })),
         }))}
-      />
+      />}
     </div>
   )
 }
