@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
+import { getClubFeatures } from '@/lib/get-club-features'
 import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
@@ -26,6 +27,7 @@ export default async function DashboardPage() {
     { data: pendingCount, error: errRpc2 },
     { data: recentStudents, error: errRecent },
     { data: unpaidList, error: errRpc3 },
+    features,
   ] = await Promise.all([
     filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
     filter(admin.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
@@ -33,14 +35,15 @@ export default async function DashboardPage() {
     admin.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
     filter(admin.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
     admin.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
+    getClubFeatures(clubId ?? undefined),
   ])
 
   const stats = [
-    { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500', border: 'border-l-blue-500' },
-    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-green-500', border: 'border-l-green-500' },
-    { label: 'Sin pagar este mes', value: (pendingCount as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500', border: 'border-l-yellow-500' },
-    { label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', border: 'border-l-purple-500' },
-  ]
+    { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500', border: 'border-l-blue-500', show: true },
+    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-green-500', border: 'border-l-green-500', show: true },
+    { label: 'Sin pagar este mes', value: (pendingCount as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500', border: 'border-l-yellow-500', show: features.enable_payments },
+    { label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', border: 'border-l-purple-500', show: features.enable_materials },
+  ].filter(s => s.show)
 
   return (
     <div className="space-y-8">
@@ -74,7 +77,7 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Sin pagar este mes */}
-        <div className="rounded-xl bg-white shadow-sm">
+        {features.enable_payments && <div className="rounded-xl bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <div>
               <h2 className="font-semibold text-gray-900">Sin pagar — {currentMonthLabel}</h2>
@@ -116,7 +119,7 @@ export default async function DashboardPage() {
               })}
             </ul>
           )}
-        </div>
+        </div>}
 
         {/* Últimos alumnos */}
         <div className="rounded-xl bg-white shadow-sm">
