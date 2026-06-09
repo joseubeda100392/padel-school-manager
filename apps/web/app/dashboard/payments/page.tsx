@@ -5,6 +5,7 @@ import PaymentsTable from './payments-table'
 import { UnpaidList } from './unpaid-list'
 import { MonthNavigator } from './month-navigator'
 import { DevError } from '@/components/dev-error'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -45,6 +46,13 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   return (
     <div className="space-y-6">
       <DevError errors={[errPayments?.message, errUnpaid?.message]} />
+      <RealtimeRefresh
+        channelName="admin-payments"
+        subs={[
+          { table: 'payments' },
+          { table: 'group_enrollments' },
+        ]}
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Pagos</h1>

@@ -1,6 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId, isSuperAdmin } from '@/lib/get-club'
 import StudentsTable from './students-table'
+import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 export default async function StudentsPage() {
   const admin = getAdminClient()
@@ -28,6 +29,10 @@ export default async function StudentsPage() {
 
   return (
     <div>
+      <RealtimeRefresh
+        channelName="admin-students"
+        subs={[{ table: 'users' }]}
+      />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
