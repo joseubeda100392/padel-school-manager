@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false)
+  const [linkError, setLinkError] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,6 +14,15 @@ export default function ResetPasswordPage() {
   const supabase = createClient()
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const urlError = params.get('error_code')
+    if (urlError) {
+      setLinkError(urlError === 'otp_expired'
+        ? 'El enlace ha caducado. Solicita uno nuevo.'
+        : 'El enlace no es válido. Solicita uno nuevo.')
+      return
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true)
     })
@@ -42,6 +52,19 @@ export default function ResetPasswordPage() {
     }
     setDone(true)
     setTimeout(() => { window.location.href = '/login' }, 2000)
+  }
+
+  if (linkError) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center space-y-4">
+          <p className="text-sm text-red-600">{linkError}</p>
+          <a href="/login/forgot-password" className="block text-sm text-green-600 hover:underline">
+            Solicitar nuevo enlace
+          </a>
+        </div>
+      </main>
+    )
   }
 
   if (!ready) {
