@@ -9,6 +9,11 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const role = user.user_metadata?.role
+  if (role !== 'admin' && role !== 'super_admin') {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
   const body = await req.json()
   const { codes } = body as { codes: string[] }
   if (!Array.isArray(codes) || codes.length === 0) {
