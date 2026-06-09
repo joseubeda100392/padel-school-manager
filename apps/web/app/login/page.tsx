@@ -24,6 +24,14 @@ export default function LoginPage() {
     }
 
     const role = data.user?.user_metadata?.role
+
+    if (role === 'admin' || role === 'super_admin') {
+      const { data: factorsData } = await supabase.auth.mfa.listFactors()
+      const verifiedTotp = (factorsData?.totp ?? []).filter(f => f.status === 'verified')
+      window.location.href = verifiedTotp.length === 0 ? '/login/mfa/enroll' : '/login/mfa'
+      return
+    }
+
     window.location.href = role === 'student' ? '/student' : '/dashboard'
   }
 
@@ -77,6 +85,13 @@ export default function LoginPage() {
             {loading ? 'Accediendo...' : 'Entrar'}
           </button>
         </form>
+
+        <a
+          href="/login/forgot-password"
+          className="mt-4 block text-center text-sm text-gray-400 hover:text-green-600"
+        >
+          ¿Olvidaste tu contraseña?
+        </a>
       </div>
     </main>
   )
