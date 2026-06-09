@@ -20,11 +20,12 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  await admin.from('admin_recovery_codes').delete().eq('user_id', user.id)
+  const { error: deleteError } = await admin.from('admin_recovery_codes').delete().eq('user_id', user.id)
+  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
 
   const rows = codes.map(code => ({
     user_id: user.id,
-    code_hash: createHash('sha256').update(code.trim()).digest('hex'),
+    code_hash: createHash('sha256').update(code.trim().toUpperCase().replace(/-/g, '')).digest('hex'),
     used: false,
   }))
 
