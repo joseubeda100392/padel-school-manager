@@ -1,4 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { notFound } from 'next/navigation'
@@ -10,6 +11,7 @@ import { StudentEnrollments } from './student-enrollments'
 import { StudentMakeups } from './student-makeups'
 import { NotificationList } from '@/app/student/notifications/notification-list'
 import { StudentObjectives } from './student-objectives'
+import { ResetMfaButton } from './reset-mfa-button'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -43,6 +45,9 @@ const typeLabel: Record<string, string> = {
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
   const admin = getAdminClient()
+  const supabase = createClient()
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  const viewerRole = currentUser?.user_metadata?.role ?? ''
   const clubId = await getClubId()
 
   const [
@@ -164,6 +169,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             <dd className="mt-1 text-sm text-gray-900">{formatDate((student as any).start_date ?? student.created_at as string)}</dd>
           </div>
         </dl>
+        {viewerRole === 'super_admin' && ['admin', 'super_admin'].includes((student as any).role) && (
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <p className="mb-2 text-xs font-medium uppercase text-gray-500">Seguridad</p>
+            <ResetMfaButton userId={student.id as string} />
+          </div>
+        )}
       </div>
 
       <div className="mb-6">
