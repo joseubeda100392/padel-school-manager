@@ -62,11 +62,17 @@ export default function MfaEnrollPage() {
     const codes = Array.from({ length: 10 }, generateCode)
     setRecoveryCodes(codes)
 
-    await fetch('/api/auth/recovery-code/save', {
+    const saveRes = await fetch('/api/auth/recovery-code/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ codes: codes.map(c => c.replace(/-/g, '')) }),
     })
+
+    if (!saveRes.ok) {
+      setError('Error al guardar los códigos de recuperación. Inténtalo de nuevo.')
+      setLoading(false)
+      return
+    }
 
     setPhase('codes')
     setLoading(false)
