@@ -13,9 +13,10 @@ interface DashboardShellProps {
   role?: string
   userName?: string
   features?: ClubFeatures
+  saActiveClub?: string
 }
 
-export function DashboardShell({ children, clubName, role, userName, features }: DashboardShellProps) {
+export function DashboardShell({ children, clubName, role, userName, features, saActiveClub }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
 
@@ -31,7 +32,7 @@ export function DashboardShell({ children, clubName, role, userName, features }:
 
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-30 transition-transform duration-200 md:static md:translate-x-0 md:z-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar clubName={clubName} role={role} userName={userName} features={features} onClose={() => setSidebarOpen(false)} />
+        <Sidebar clubName={clubName} role={role} userName={userName} features={features} saActiveClub={saActiveClub} onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Contenido */}

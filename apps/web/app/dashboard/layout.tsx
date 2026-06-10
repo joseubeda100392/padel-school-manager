@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
@@ -12,7 +13,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const admin = getAdminClient()
 
-  // Role must come from DB — user_metadata is user-writable and can be spoofed
   const { data: dbProfile } = await admin
     .from('users')
     .select('role, club_id, name')
@@ -25,20 +25,31 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!role || role === 'student') redirect('/student')
   if (role === 'coach') redirect('/coach')
 
-  let clubName: string | undefined
+  const cookieStore = cookies()
+  const saActiveClub = role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? undefined)
+    : undefined
+
+  const effectiveClubId = saActiveClub ?? (role !== 'super_admin' ? clubId : undefined)
 
   const [clubData, features] = await Promise.all([
-    clubId && role !== 'super_admin'
-      ? admin.from('clubs').select('name').eq('id', clubId).single()
+    effectiveClubId
+      ? admin.from('clubs').select('name').eq('id', effectiveClubId).single()
       : Promise.resolve({ data: null }),
-    getClubFeatures(role !== 'super_admin' ? clubId : null),
+    getClubFeatures(effectiveClubId),
   ])
 
-  clubName = (clubData as any)?.data?.name ?? undefined
+  const clubName = (clubData?.data as any)?.name ?? undefined
   const userName = dbProfile?.name ?? user.user_metadata?.name ?? undefined
 
   return (
-    <DashboardShell clubName={clubName} role={role} userName={userName} features={features}>
+    <DashboardShell
+      clubName={clubName}
+      role={role}
+      userName={userName}
+      features={features}
+      saActiveClub={saActiveClub}
+    >
       {children}
     </DashboardShell>
   )

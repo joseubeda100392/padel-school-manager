@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
+import { ClubManageButton } from '@/components/clubs/club-manage-button'
 
 const planLabel: Record<string, string> = {
   trial: 'Trial',
@@ -20,15 +22,12 @@ export default async function ClubsPage() {
 
   if (user?.user_metadata?.role !== 'super_admin') redirect('/dashboard')
 
-  const { data: clubs } = await supabase
-    .from('clubs')
-    .select('*, users(count)')
-    .order('created_at', { ascending: false })
+  const admin = getAdminClient()
 
-  const { data: userCounts } = await supabase
-    .from('users')
-    .select('club_id')
-    .not('club_id', 'is', null)
+  const [{ data: clubs }, { data: userCounts }] = await Promise.all([
+    admin.from('clubs').select('id, name, slug, plan, is_active, created_at').order('created_at', { ascending: false }),
+    admin.from('users').select('club_id').not('club_id', 'is', null),
+  ])
 
   const countMap: Record<string, number> = {}
   userCounts?.forEach((u: any) => {
@@ -37,7 +36,7 @@ export default async function ClubsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">Clubes</h1>
           <p className="mt-1 text-sm text-gray-500">{clubs?.length ?? 0} clubes registrados</p>
@@ -50,8 +49,8 @@ export default async function ClubsPage() {
         </a>
       </div>
 
-      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Club</th>
@@ -66,7 +65,7 @@ export default async function ClubsPage() {
           <tbody className="divide-y divide-gray-50">
             {!clubs?.length && (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
                   No hay clubes aún.
                 </td>
               </tr>
@@ -88,10 +87,15 @@ export default async function ClubsPage() {
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">{formatDate(club.created_at)}</td>
                 <td className="px-6 py-4">
-                  <a href={`/dashboard/clubs/${club.id}/edit`}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
-                    Editar
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <ClubManageButton clubId={club.id} />
+                    <a
+                      href={`/dashboard/clubs/${club.id}/edit`}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    >
+                      Editar
+                    </a>
+                  </div>
                 </td>
               </tr>
             ))}

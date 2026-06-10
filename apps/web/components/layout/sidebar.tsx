@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +15,7 @@ import {
   Building2,
   Bell,
   X,
+  LogOut,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -38,14 +39,16 @@ const superAdminItems = [
   { href: '/dashboard/clubs', label: 'Clubes', icon: Building2 },
 ]
 
-export function Sidebar({ clubName, role, userName, features, onClose }: {
+export function Sidebar({ clubName, role, userName, features, saActiveClub, onClose }: {
   clubName?: string
   role?: string
   userName?: string
   features?: ClubFeatures
+  saActiveClub?: string
   onClose?: () => void
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const isSuperAdmin = role === 'super_admin'
   const initials = userName
     ? userName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -55,6 +58,12 @@ export function Sidebar({ clubName, role, userName, features, onClose }: {
     if (!item.feature || !features) return true
     return features[item.feature as keyof ClubFeatures]
   })
+
+  async function handleExitClub() {
+    await fetch('/api/superadmin/active-club', { method: 'DELETE' })
+    router.push('/dashboard/clubs')
+    router.refresh()
+  }
 
   return (
     <aside className="flex h-screen w-64 flex-col bg-court-900">
@@ -76,6 +85,23 @@ export function Sidebar({ clubName, role, userName, features, onClose }: {
           </button>
         )}
       </div>
+
+      {/* Banner club activo (solo super admin gestionando un club) */}
+      {isSuperAdmin && saActiveClub && clubName && (
+        <div className="mx-3 mt-3 flex items-center gap-2 rounded-xl border border-brand-500/30 bg-brand-500/10 px-3 py-2.5">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-400">Gestionando</p>
+            <p className="truncate text-sm font-semibold text-white">{clubName}</p>
+          </div>
+          <button
+            onClick={handleExitClub}
+            title="Salir del club"
+            className="shrink-0 rounded-lg p-1 text-brand-400 transition hover:bg-brand-500/20 hover:text-white"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <motion.nav
         className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4"
