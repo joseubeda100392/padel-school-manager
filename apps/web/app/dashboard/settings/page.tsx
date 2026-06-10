@@ -63,7 +63,13 @@ export default function SettingsPage() {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       const clubId = user?.user_metadata?.club_id ?? null
-      const [{ data: cfg }, { data: c }, { data: userData }] = await Promise.all([
+      const [
+        { data: cfg },
+        { data: c },
+        { data: userData },
+        redsysRes,
+        featRes,
+      ] = await Promise.all([
         supabase.from('app_config').select('key, value'),
         clubId
           ? supabase.from('courts').select('*').eq('club_id', clubId).order('name')
@@ -71,7 +77,10 @@ export default function SettingsPage() {
         user
           ? supabase.from('users').select('name, email, avatar_url').eq('id', user.id).single()
           : Promise.resolve({ data: null, error: null }),
+        fetch('/api/club/redsys').catch(() => null),
+        fetch('/api/admin/club-features').catch(() => null),
       ])
+
       if (userData && user) setProfile({ id: user.id, ...userData })
       if (cfg) {
         const merged = { ...defaults }
@@ -84,25 +93,14 @@ export default function SettingsPage() {
         setConfig(merged)
       }
       if (c) setCourts(c)
-
-      // Cargar configuración Redsys del club (error silencioso — la sección igual se muestra)
-      try {
-        const redsysRes = await fetch('/api/club/redsys')
-        if (redsysRes.ok) {
-          const data = await redsysRes.json()
-          setRedsys(prev => ({ ...prev, ...data, secretKey: '' }))
-        }
-      } catch { /* no bloquea el resto de la carga */ }
-
-      // Cargar features del club
-      try {
-        const featRes = await fetch('/api/admin/club-features')
-        if (featRes.ok) {
-          const { features: f } = await featRes.json()
-          setFeatures(prev => ({ ...prev, ...f }))
-        }
-      } catch { /* no bloquea */ }
-
+      if (redsysRes?.ok) {
+        const data = await redsysRes.json().catch(() => null)
+        if (data) setRedsys(prev => ({ ...prev, ...data, secretKey: '' }))
+      }
+      if (featRes?.ok) {
+        const json = await featRes.json().catch(() => null)
+        if (json?.features) setFeatures(prev => ({ ...prev, ...json.features }))
+      }
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])

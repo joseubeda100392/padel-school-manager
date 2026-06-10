@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-transpilePackages: ['@padel/db', '@padel/types', '@padel/stripe'],
+  transpilePackages: ['@padel/db', '@padel/types', '@padel/stripe'],
+  experimental: {
+    staleTimes: {
+      dynamic: 120,
+      static: 300,
+    },
+  },
   images: {
     remotePatterns: [
       {

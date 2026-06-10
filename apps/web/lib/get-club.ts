@@ -1,4 +1,4 @@
-// @ts-expect-error - cache exists in React 18.3 runtime but is missing from @types/react 18.x
+// @ts-ignore - cache exists in React 18.3 runtime; @types/react version varies by environment
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 
