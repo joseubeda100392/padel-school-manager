@@ -62,24 +62,18 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   useEffect(() => {
     const supabase = createClient()
     Promise.all([
-      supabase.from('app_config').select('key, value'),
+      fetch('/api/admin/club-config').catch(() => null),
       clubId
         ? supabase.from('courts').select('*').eq('club_id', clubId).order('name')
         : supabase.from('courts').select('*').order('name'),
       supabase.from('users').select('name, email, avatar_url').eq('id', userId).single(),
       fetch('/api/club/redsys').catch(() => null),
       fetch('/api/admin/club-features').catch(() => null),
-    ]).then(async ([{ data: cfg }, { data: c }, { data: userData }, redsysRes, featRes]) => {
+    ]).then(async ([cfgRes, { data: c }, { data: userData }, redsysRes, featRes]) => {
       if (userData) setProfile({ id: userId, ...userData })
-      if (cfg) {
-        const merged = { ...defaults }
-        cfg.forEach((row: any) => {
-          if (row.key in merged) {
-            ;(merged as any)[row.key] =
-              typeof (defaults as any)[row.key] === 'number' ? Number(row.value) : row.value
-          }
-        })
-        setConfig(merged)
+      if (cfgRes?.ok) {
+        const json = await cfgRes.json().catch(() => null)
+        if (json?.config) setConfig(prev => ({ ...prev, ...json.config }))
       }
       if (c) setCourts(c)
       if (redsysRes?.ok) {
@@ -123,16 +117,15 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   async function saveConfig() {
     setSaving(true)
     setSaveError('')
-    const supabase = createClient()
-    const results = await Promise.all(
-      Object.entries(config).map(([key, value]) =>
-        supabase.from('app_config').upsert({ key, value: String(value) }, { onConflict: 'key' })
-      )
-    )
-    const firstError = results.find((r) => r.error)?.error
+    const res = await fetch('/api/admin/club-config', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    })
     setSaving(false)
-    if (firstError) {
-      setSaveError(firstError.message)
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      setSaveError(j.error ?? 'Error al guardar')
       return
     }
     setSaved(true)
