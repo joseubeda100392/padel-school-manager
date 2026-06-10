@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -17,7 +18,13 @@ async function getAdminProfile() {
     .single()
 
   if (!profile || !['admin', 'super_admin'].includes(profile.role)) return null
-  return { profile, admin }
+
+  const cookieStore = cookies()
+  const effectiveClubId = profile.role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? profile.club_id)
+    : profile.club_id
+
+  return { profile: { ...profile, club_id: effectiveClubId }, admin }
 }
 
 export async function GET() {

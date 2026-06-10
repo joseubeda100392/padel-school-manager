@@ -1,19 +1,28 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { DEFAULT_FEATURES } from '@/lib/get-club-features'
 
-export async function GET() {
+async function getEffectiveCaller() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
+  if (!user) return null
   const admin = getAdminClient()
   const { data: caller } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
-  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-  }
+  if (!caller || !['admin', 'super_admin'].includes(caller.role)) return null
+  const cookieStore = cookies()
+  const effectiveClubId = caller.role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id)
+    : caller.club_id
+  return { caller: { ...caller, club_id: effectiveClubId }, admin }
+}
+
+export async function GET() {
+  const result = await getEffectiveCaller()
+  if (!result) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  const { caller, admin } = result
 
   if (!caller.club_id) return NextResponse.json({ features: DEFAULT_FEATURES })
 
@@ -22,15 +31,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
-  const admin = getAdminClient()
-  const { data: caller } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
-  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-  }
+  const result = await getEffectiveCaller()
+  if (!result) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  const { caller, admin } = result
 
   if (!caller.club_id) return NextResponse.json({ error: 'Sin club asignado' }, { status: 400 })
 
