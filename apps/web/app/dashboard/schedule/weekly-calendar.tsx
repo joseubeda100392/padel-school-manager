@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -58,7 +58,7 @@ export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
         <div className="text-center">
           <p className="text-sm font-semibold text-gray-900">{weekRange}</p>
           {weekOffset !== 0 && (
-            <button onClick={() => setWeekOffset(0)} className="text-xs text-green-600 hover:underline">
+            <button onClick={() => setWeekOffset(0)} className="text-xs text-brand-500 hover:underline">
               Volver a hoy
             </button>
           )}
@@ -84,7 +84,7 @@ export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
           return (
             <div key={idx}>
               {/* Header del día */}
-              <div className={`mb-2 rounded-lg px-2 py-2 text-center ${isToday ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+              <div className={`mb-2 rounded-lg px-2 py-2 text-center ${isToday ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
                 <p className="text-xs font-semibold">{dayName}</p>
                 <p className={`text-lg font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
                   {date.getDate()}

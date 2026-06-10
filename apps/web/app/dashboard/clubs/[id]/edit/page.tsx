@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -58,19 +58,19 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre del club *</label>
           <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Slug (URL)</label>
           <input type="text" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none font-mono" />
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none font-mono" />
         </div>
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Plan</label>
           <select value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none">
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
             <option value="trial">Trial</option>
             <option value="basic">Basic</option>
             <option value="pro">Pro</option>
@@ -80,7 +80,7 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
         <div className="flex items-center gap-3">
           <input type="checkbox" id="is_active" checked={form.is_active}
             onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-green-600" />
+            className="h-4 w-4 rounded border-gray-300 text-brand-500" />
           <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Club activo</label>
         </div>
 
@@ -92,7 +92,7 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
             Cancelar
           </a>
           <button type="submit" disabled={loading}
-            className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60">
+            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
             {loading ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>

@@ -35,20 +35,20 @@ export default async function StudentsPage() {
       />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-sm text-gray-500">{students?.length ?? 0} usuarios registrados</p>
+          <h1 className="font-display text-2xl font-bold text-gray-900">Usuarios</h1>
+          <p className="mt-1 text-sm text-gray-500">{students?.length ?? 0} usuarios registrados</p>
           {error && <p className="mt-1 text-xs text-red-500">Error: {error.message}</p>}
         </div>
         <div className="flex flex-wrap gap-2">
           <a
             href="/dashboard/students/import"
-            className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+            className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100"
           >
             ↑ Importar Excel
           </a>
           <a
             href="/dashboard/students/new"
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600"
           >
             + Nuevo usuario
           </a>

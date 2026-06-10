@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -89,7 +89,7 @@ export default function ScheduleExclusions({ scheduleId, enrollments }: { schedu
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Alumno *</label>
               <select value={form.enrollmentId} onChange={(e) => setForm({ ...form, enrollmentId: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none">
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
                 <option value="">Seleccionar...</option>
                 {enrollments.map((e) => (
                   <option key={e.id} value={e.id}>{e.student.name}</option>
@@ -99,13 +99,13 @@ export default function ScheduleExclusions({ scheduleId, enrollments }: { schedu
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Fecha de la clase cancelada *</label>
               <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none" />
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1 block text-xs font-medium text-gray-700">Motivo (opcional)</label>
               <input type="text" value={form.reason} placeholder="Ej: Viaje, enfermedad..."
                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none" />
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}

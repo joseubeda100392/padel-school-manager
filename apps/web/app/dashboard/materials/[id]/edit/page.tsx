@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -116,7 +116,7 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
@@ -126,7 +126,7 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
@@ -159,7 +159,7 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
             role="switch"
             aria-checked={isPublished}
             onClick={() => setIsPublished(!isPublished)}
-            className={`relative h-6 w-11 rounded-full transition ${isPublished ? 'bg-green-600' : 'bg-gray-300'}`}
+            className={`relative h-6 w-11 rounded-full transition ${isPublished ? 'bg-brand-500' : 'bg-gray-300'}`}
           >
             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isPublished ? 'translate-x-5' : 'translate-x-0.5'}`} />
           </button>
@@ -174,7 +174,7 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>

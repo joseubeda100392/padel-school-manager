@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -77,7 +77,7 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
             onChange={(e) => { setQ(e.target.value); setSelectedStudent(null); setShowList(true) }}
             onFocus={() => setShowList(true)}
             onBlur={() => setTimeout(() => setShowList(false), 150)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
           {showList && filtered.length > 0 && (
             <ul className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg">
@@ -99,12 +99,12 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
           value={date}
           min={today}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         />
         <button
           onClick={handleAdd}
           disabled={saving || !selectedStudent}
-          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
         >
           {saving ? '...' : 'Añadir'}
         </button>

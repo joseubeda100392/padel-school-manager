@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -274,11 +274,11 @@ export default function SettingsPage() {
               <img
                 src={profile.avatar_url}
                 alt={profile.name}
-                className="h-20 w-20 rounded-full object-cover ring-2 ring-green-500"
+                className="h-20 w-20 rounded-full object-cover ring-2 ring-brand-500"
               />
             ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 ring-2 ring-green-500">
-                <span className="text-2xl font-bold text-green-700">{initials}</span>
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-100 ring-2 ring-brand-500">
+                <span className="text-2xl font-bold text-brand-600">{initials}</span>
               </div>
             )}
             {uploading && (
@@ -319,7 +319,7 @@ export default function SettingsPage() {
             type="text"
             value={config.school_name}
             onChange={(e) => setConfig({ ...config, school_name: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
       </div>
@@ -336,7 +336,7 @@ export default function SettingsPage() {
                     type="number" min={0} step={0.5}
                     value={config.pay_per_class_price_60 / 100}
                     onChange={(e) => setConfig({ ...config, pay_per_class_price_60: Math.round(Number(e.target.value) * 100) })}
-                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                   <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
                 </div>
@@ -350,7 +350,7 @@ export default function SettingsPage() {
                     type="number" min={0} step={0.5}
                     value={config.pay_per_class_price_90 / 100}
                     onChange={(e) => setConfig({ ...config, pay_per_class_price_90: Math.round(Number(e.target.value) * 100) })}
-                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                   <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
                 </div>
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                     type="number" min={1}
                     value={config.classes_per_pack_60}
                     onChange={(e) => setConfig({ ...config, classes_per_pack_60: Number(e.target.value) })}
-                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
                 <div>
@@ -384,7 +384,7 @@ export default function SettingsPage() {
                       type="number" min={0} step={0.5}
                       value={config.pack_price_60 / 100}
                       onChange={(e) => setConfig({ ...config, pack_price_60: Math.round(Number(e.target.value) * 100) })}
-                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
                   </div>
@@ -406,7 +406,7 @@ export default function SettingsPage() {
                     type="number" min={1}
                     value={config.classes_per_pack_90}
                     onChange={(e) => setConfig({ ...config, classes_per_pack_90: Number(e.target.value) })}
-                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
                 <div>
@@ -416,7 +416,7 @@ export default function SettingsPage() {
                       type="number" min={0} step={0.5}
                       value={config.pack_price_90 / 100}
                       onChange={(e) => setConfig({ ...config, pack_price_90: Math.round(Number(e.target.value) * 100) })}
-                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
                   </div>
@@ -441,7 +441,7 @@ export default function SettingsPage() {
               type="number" min={0} max={168}
               value={config.cancellation_hours}
               onChange={(e) => setConfig({ ...config, cancellation_hours: Number(e.target.value) })}
-              className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             <span className="text-sm text-gray-500">horas antes del inicio de la clase</span>
           </div>
@@ -463,7 +463,7 @@ export default function SettingsPage() {
       <button
         onClick={saveConfig}
         disabled={saving}
-        className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+        className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
       >
         {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar cambios'}
       </button>
@@ -480,18 +480,18 @@ export default function SettingsPage() {
                     value={editingCourt.name}
                     onChange={(e) => setEditingCourt({ ...editingCourt, name: e.target.value })}
                     onKeyDown={(e) => { if (e.key === 'Enter') saveEditCourt(court.id); if (e.key === 'Escape') setEditingCourtId(null) }}
-                    className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                    className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
                     autoFocus
                   />
                   <select
                     value={editingCourt.type}
                     onChange={(e) => setEditingCourt({ ...editingCourt, type: e.target.value })}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-green-500 focus:outline-none"
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
                   >
                     <option value="indoor">Interior</option>
                     <option value="outdoor">Exterior</option>
                   </select>
-                  <button onClick={() => saveEditCourt(court.id)} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">
+                  <button onClick={() => saveEditCourt(court.id)} className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600">
                     Guardar
                   </button>
                   <button onClick={() => setEditingCourtId(null)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
@@ -507,7 +507,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleCourt(court.id, court.is_active)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${court.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${court.is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}
                     >
                       {court.is_active ? 'Activa' : 'Inactiva'}
                     </button>
@@ -540,12 +540,12 @@ export default function SettingsPage() {
             value={newCourt.name}
             onChange={(e) => setNewCourt({ ...newCourt, name: e.target.value })}
             onKeyDown={(e) => { if (e.key === 'Enter') addCourt() }}
-            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
           <select
             value={newCourt.type}
             onChange={(e) => setNewCourt({ ...newCourt, type: e.target.value })}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           >
             <option value="indoor">Interior</option>
             <option value="outdoor">Exterior</option>
@@ -553,7 +553,7 @@ export default function SettingsPage() {
           <button
             onClick={addCourt}
             disabled={addingCourt || !newCourt.name.trim()}
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
             Añadir
           </button>
@@ -589,7 +589,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setFeatures(prev => ({ ...prev, [key]: !prev[key] }))}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${features[key] ? 'bg-green-500' : 'bg-gray-200'}`}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${features[key] ? 'bg-brand-500' : 'bg-gray-200'}`}
               >
                 <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${features[key] ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
@@ -603,7 +603,7 @@ export default function SettingsPage() {
         <button
           onClick={saveFeatures}
           disabled={featuresSaving}
-          className="mt-5 rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+          className="mt-5 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
         >
           {featuresSaving ? 'Guardando...' : featuresSaved ? '¡Guardado!' : 'Guardar módulos'}
         </button>
@@ -625,7 +625,7 @@ export default function SettingsPage() {
                 value={redsys.merchantCode}
                 onChange={e => setRedsys({ ...redsys, merchantCode: e.target.value })}
                 placeholder="Ej: 999008881"
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
               />
             </div>
             <div>
@@ -635,7 +635,7 @@ export default function SettingsPage() {
                 value={redsys.terminal}
                 onChange={e => setRedsys({ ...redsys, terminal: e.target.value })}
                 placeholder="001"
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
               />
             </div>
           </div>
@@ -654,7 +654,7 @@ export default function SettingsPage() {
                   value={redsys.secretKey}
                   onChange={e => setRedsys({ ...redsys, secretKey: e.target.value })}
                   placeholder="Pega aquí la clave del panel Redsys"
-                  className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none font-mono"
+                  className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none font-mono"
                 />
                 <button
                   onClick={() => { setShowSecretKey(false); setRedsys(prev => ({ ...prev, secretKey: '' })) }}
@@ -682,7 +682,7 @@ export default function SettingsPage() {
                   onClick={() => setRedsys({ ...redsys, env: opt.value })}
                   className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
                     redsys.env === opt.value
-                      ? opt.value === 'production' ? 'bg-green-600 text-white' : 'bg-blue-500 text-white'
+                      ? opt.value === 'production' ? 'bg-brand-500 text-white' : 'bg-blue-500 text-white'
                       : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -704,7 +704,7 @@ export default function SettingsPage() {
           <button
             onClick={saveRedsys}
             disabled={redsysSaving}
-            className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
             {redsysSaving ? 'Guardando...' : redsysSaved ? '¡Guardado!' : 'Guardar TPV'}
           </button>

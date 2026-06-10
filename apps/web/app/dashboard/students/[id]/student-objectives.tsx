@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef } from 'react'
 
@@ -183,7 +183,7 @@ export function StudentObjectives({
           const isCompleted = !!checklist.completed_at
 
           return (
-            <div key={checklist.id} className={`rounded-lg border ${isCompleted ? 'border-green-200 bg-green-50' : 'border-gray-100 bg-gray-50'} p-4`}>
+            <div key={checklist.id} className={`rounded-lg border ${isCompleted ? 'border-brand-200 bg-brand-50' : 'border-gray-100 bg-gray-50'} p-4`}>
               <div className="mb-2 flex items-center gap-2">
                 {/* Checkbox principal del objetivo */}
                 <button
@@ -193,7 +193,7 @@ export function StudentObjectives({
                   title={isCompleted ? 'Marcar como pendiente' : 'Marcar como superado'}
                 >
                   {isCompleted ? (
-                    <svg className="h-6 w-6 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="h-6 w-6 text-brand-500" viewBox="0 0 24 24" fill="currentColor">
                       <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                     </svg>
                   ) : (
@@ -225,7 +225,7 @@ export function StudentObjectives({
 
               {total > 0 && (
                 <div className="mb-3 ml-8 h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
-                  <div className="h-1.5 rounded-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
+                  <div className="h-1.5 rounded-full bg-brand-500 transition-all" style={{ width: `${pct}%` }} />
                 </div>
               )}
 
@@ -239,7 +239,7 @@ export function StudentObjectives({
                         className="shrink-0 disabled:opacity-40"
                       >
                         {item.completed_at ? (
-                          <svg className="h-5 w-5 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                          <svg className="h-5 w-5 text-brand-500" viewBox="0 0 24 24" fill="currentColor">
                             <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                           </svg>
                         ) : (

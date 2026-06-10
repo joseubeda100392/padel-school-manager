@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -77,7 +77,7 @@ export default function NewClubPage() {
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
             required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             placeholder="Club Pádel Madrid"
           />
         </div>
@@ -88,7 +88,7 @@ export default function NewClubPage() {
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-mono focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-mono focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             placeholder="club-padel-madrid"
           />
         </div>
@@ -98,7 +98,7 @@ export default function NewClubPage() {
           <select
             value={plan}
             onChange={(e) => setPlan(e.target.value as any)}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="trial">Trial</option>
             <option value="basic">Basic</option>
@@ -113,14 +113,14 @@ export default function NewClubPage() {
               type="text"
               value={adminName}
               onChange={(e) => setAdminName(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="Nombre del administrador"
             />
             <input
               type="email"
               value={adminEmail}
               onChange={(e) => setAdminEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="admin@club.com"
             />
           </div>
@@ -138,7 +138,7 @@ export default function NewClubPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
             {loading ? 'Creando...' : 'Crear club'}
           </button>

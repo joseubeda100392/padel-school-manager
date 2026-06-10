@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
@@ -96,8 +96,8 @@ export default async function StudentHomePage() {
         {features.enable_bag && (
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <p className="text-xs font-medium uppercase text-gray-500">Clases disponibles</p>
-            <p className={`mt-2 text-4xl font-bold ${bagBalance > 0 ? 'text-green-600' : 'text-gray-400'}`}>{bagBalance}</p>
-            <Link href="/student/bag" className="mt-2 block text-xs text-green-600 hover:underline">
+            <p className={`mt-2 text-4xl font-bold ${bagBalance > 0 ? 'text-brand-500' : 'text-gray-400'}`}>{bagBalance}</p>
+            <Link href="/student/bag" className="mt-2 block text-xs text-brand-500 hover:underline">
               Ver historial →
             </Link>
           </div>
@@ -106,14 +106,14 @@ export default async function StudentHomePage() {
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-xs font-medium uppercase text-gray-500">Mis clases</p>
           <p className="mt-2 text-4xl font-bold text-gray-900">{activeEnrollments.length}</p>
-          <Link href="/student/schedule" className="mt-2 block text-xs text-green-600 hover:underline">Ver clases →</Link>
+          <Link href="/student/schedule" className="mt-2 block text-xs text-brand-500 hover:underline">Ver clases →</Link>
         </div>
 
         {features.enable_spots && (
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <p className="text-xs font-medium uppercase text-gray-500">Huecos libres</p>
             <p className={`mt-2 text-4xl font-bold ${spotsCount > 0 ? 'text-orange-500' : 'text-gray-400'}`}>{spotsCount}</p>
-            <Link href="/student/spots" className="mt-2 block text-xs text-green-600 hover:underline">Ver huecos →</Link>
+            <Link href="/student/spots" className="mt-2 block text-xs text-brand-500 hover:underline">Ver huecos →</Link>
           </div>
         )}
       </div>
@@ -137,7 +137,7 @@ export default async function StudentHomePage() {
             </div>
             {features.enable_payments && (
               <div className="text-right">
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isPaidThisMonth(nextClass.paid_until) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isPaidThisMonth(nextClass.paid_until) ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
                   {isPaidThisMonth(nextClass.paid_until) ? 'Pagado' : 'Pendiente'}
                 </span>
                 <p className="mt-1 text-xs text-gray-400">{formatCurrency(nextClass.monthly_price)}/mes</p>

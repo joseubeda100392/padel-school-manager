@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -49,7 +49,7 @@ export function StudentLevelForm({ studentId, currentLevelId, levels }: Props) {
       <select
         value={selected}
         onChange={(e) => setSelected(e.target.value)}
-        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
       >
         <option value="">Sin nivel asignado</option>
         {levels.map((l) => (
@@ -61,7 +61,7 @@ export function StudentLevelForm({ studentId, currentLevelId, levels }: Props) {
       <button
         onClick={save}
         disabled={saving || selected === (currentLevelId ?? '')}
-        className="w-full rounded-lg bg-green-600 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:opacity-60"
+        className="w-full rounded-lg bg-brand-500 py-2 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
       >
         {saving ? 'Guardando...' : done ? '¡Guardado!' : 'Guardar nivel'}
       </button>

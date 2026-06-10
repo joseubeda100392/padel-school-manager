@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -97,7 +97,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Pista *</label>
           <select value={form.court_id} onChange={(e) => setForm({ ...form, court_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none">
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
             <option value="">Selecciona pista...</option>
             {courts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -106,7 +106,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Monitor *</label>
           <select value={form.coach_id} onChange={(e) => setForm({ ...form, coach_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none">
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
             <option value="">Selecciona monitor...</option>
             {coaches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -115,7 +115,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Nivel requerido</label>
           <select value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none">
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
             <option value="">Abierto a todos los niveles</option>
             {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
@@ -124,19 +124,19 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha *</label>
           <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Hora inicio</label>
             <input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Duración</label>
             <select value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none">
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
               <option value={60}>1 hora</option>
               <option value={90}>1 hora 30 min</option>
             </select>
@@ -147,7 +147,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Recurrencia</label>
             <select value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none">
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
               <option value="none">Clase única</option>
               <option value="weekly">Semanal</option>
               <option value="biweekly">Quincenal</option>
@@ -157,7 +157,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Máx. alumnos</label>
             <input type="number" min={1} max={20} value={form.max_students}
               onChange={(e) => setForm({ ...form, max_students: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha fin de recurrencia</label>
             <input type="date" value={form.recurrence_end_date} min={form.date}
               onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
             <p className="mt-1 text-xs text-gray-400">Opcional. Deja vacío si la clase no tiene fecha de fin.</p>
           </div>
         )}
@@ -174,7 +174,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         <div className="flex items-center gap-3">
           <input type="checkbox" id="is_active" checked={form.is_active}
             onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-green-600" />
+            className="h-4 w-4 rounded border-gray-300 text-brand-500" />
           <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Clase activa (visible para alumnos)</label>
         </div>
 
@@ -186,7 +186,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
             Cancelar
           </a>
           <button type="submit" disabled={loading}
-            className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60">
+            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
             {loading ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>

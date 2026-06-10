@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -77,9 +77,9 @@ export default async function StudentProgressPage() {
           return (
             <div key={checklist.id} className={`rounded-xl bg-white shadow-sm overflow-hidden ${allDone ? 'ring-1 ring-green-200' : ''}`}>
               {/* Header del checklist */}
-              <div className={`flex items-center justify-between gap-3 px-5 py-4 ${allDone ? 'bg-green-50' : ''}`}>
+              <div className={`flex items-center justify-between gap-3 px-5 py-4 ${allDone ? 'bg-brand-50' : ''}`}>
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${allDone ? 'bg-green-500' : 'bg-gray-100'}`}>
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${allDone ? 'bg-brand-500' : 'bg-gray-100'}`}>
                     {allDone ? (
                       <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                         <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
@@ -93,7 +93,7 @@ export default async function StudentProgressPage() {
                   <h2 className={`font-semibold truncate ${allDone ? 'text-green-800 line-through' : 'text-gray-900'}`}>{checklist.title}</h2>
                 </div>
                 {total > 0 && (
-                  <span className={`shrink-0 text-sm font-semibold ${allDone ? 'text-green-600' : 'text-gray-400'}`}>
+                  <span className={`shrink-0 text-sm font-semibold ${allDone ? 'text-brand-500' : 'text-gray-400'}`}>
                     {done}/{total}
                   </span>
                 )}
@@ -103,7 +103,7 @@ export default async function StudentProgressPage() {
               {total > 0 && (
                 <div className="h-1 w-full bg-gray-100">
                   <div
-                    className={`h-1 transition-all ${allDone ? 'bg-green-500' : 'bg-green-400'}`}
+                    className={`h-1 transition-all ${allDone ? 'bg-brand-500' : 'bg-green-400'}`}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -115,7 +115,7 @@ export default async function StudentProgressPage() {
                   {checklist.items.map((item: any) => (
                     <li key={item.id} className="flex items-start gap-3">
                       {item.completed_at ? (
-                        <svg className="mt-0.5 h-5 w-5 shrink-0 text-green-500" viewBox="0 0 24 24" fill="currentColor">
+                        <svg className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" viewBox="0 0 24 24" fill="currentColor">
                           <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                         </svg>
                       ) : (

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -107,7 +107,7 @@ export default function NewSchedulePage() {
           <select
             value={form.court_id}
             onChange={(e) => setForm({ ...form, court_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="">Selecciona pista...</option>
             {courts.map((c) => (
@@ -121,7 +121,7 @@ export default function NewSchedulePage() {
           <select
             value={form.coach_id}
             onChange={(e) => setForm({ ...form, coach_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="">Selecciona monitor...</option>
             {coaches.map((c) => (
@@ -135,7 +135,7 @@ export default function NewSchedulePage() {
           <select
             value={form.level_id}
             onChange={(e) => setForm({ ...form, level_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="">Abierto a todos los niveles</option>
             {levels.map((l) => (
@@ -152,7 +152,7 @@ export default function NewSchedulePage() {
             value={form.date}
             min={new Date().toISOString().split('T')[0]}
             onChange={(e) => setForm({ ...form, date: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
@@ -163,7 +163,7 @@ export default function NewSchedulePage() {
               type="time"
               value={form.start_time}
               onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <div>
@@ -171,7 +171,7 @@ export default function NewSchedulePage() {
             <select
               value={form.duration}
               onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
               <option value={60}>1 hora</option>
               <option value={90}>1 hora 30 min</option>
@@ -185,7 +185,7 @@ export default function NewSchedulePage() {
             <select
               value={form.recurrence}
               onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
               <option value="none">Clase única</option>
               <option value="weekly">Semanal</option>
@@ -200,7 +200,7 @@ export default function NewSchedulePage() {
               max={20}
               value={form.max_students}
               onChange={(e) => setForm({ ...form, max_students: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function NewSchedulePage() {
               value={form.recurrence_end_date}
               min={form.date}
               onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             <p className="mt-1 text-xs text-gray-400">Opcional. Deja vacío si la clase no tiene fecha de fin.</p>
           </div>
@@ -233,7 +233,7 @@ export default function NewSchedulePage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
             {loading ? 'Guardando...' : 'Crear clase'}
           </button>

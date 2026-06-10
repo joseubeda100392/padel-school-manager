@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
@@ -43,7 +43,7 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
 
   if (!list.length) {
     return (
-      <p className="px-6 py-8 text-center text-sm text-green-600 font-medium">
+      <p className="px-6 py-8 text-center text-sm text-brand-500 font-medium">
         ✓ Todos los alumnos están al día en {monthLabel}
       </p>
     )
@@ -57,7 +57,7 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
           placeholder="Buscar alumno..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+          className="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         />
       </div>
       <div className="overflow-x-auto">
@@ -101,11 +101,11 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
                           type="number" min={0} step={0.5}
                           value={editingPrice / 100}
                           onChange={(ev) => setEditingPrice(Math.round(Number(ev.target.value) * 100))}
-                          className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-green-500 focus:outline-none"
+                          className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
                           autoFocus
                         />
                         <button onClick={() => handleSavePrice(e.id)} disabled={saving}
-                          className="text-xs font-medium text-green-600">
+                          className="text-xs font-medium text-brand-500">
                           {saving ? '...' : '✓'}
                         </button>
                         <button onClick={() => setEditingId(null)} className="text-xs text-gray-400">✕</button>
@@ -136,7 +136,7 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
                   </td>
                   <td className="px-6 py-4">
                     <a href={`/dashboard/schedule/${e.schedule_id}`}
-                      className="text-xs font-medium text-green-600 hover:underline whitespace-nowrap">
+                      className="text-xs font-medium text-brand-500 hover:underline whitespace-nowrap">
                       Marcar pagado →
                     </a>
                   </td>

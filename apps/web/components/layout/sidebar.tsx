@@ -55,48 +55,52 @@ export function Sidebar({ clubName, role, userName, features, onClose }: {
   })
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-gray-200 bg-white">
-      <div className="flex items-center gap-3 border-b border-gray-200 p-4 md:p-6">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-600">
+    <aside className="flex h-screen w-64 flex-col bg-court-900">
+      <div className="flex items-center gap-3 border-b border-court-700 px-5 py-[18px]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-blue-500">
           <span className="text-sm font-bold text-white">{initials}</span>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-gray-900">
+          <p className="truncate text-sm font-semibold text-white">
             {isSuperAdmin ? 'Super Admin' : (clubName ?? 'Padel Manager')}
           </p>
-          <p className="truncate text-xs text-gray-400">
+          <p className="truncate text-xs text-court-300">
             {userName ?? (isSuperAdmin ? 'Todos los clubes' : 'Panel admin')}
           </p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="ml-auto rounded-lg p-1 text-gray-400 hover:bg-gray-100 md:hidden">
+          <button onClick={onClose} className="ml-auto rounded-lg p-1 text-court-300 hover:bg-court-800 md:hidden">
             <X className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
         {isSuperAdmin && (
           <>
-            <p className="mb-1 px-3 text-xs font-medium uppercase tracking-wide text-gray-400">Super Admin</p>
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-court-400">
+              Super Admin
+            </p>
             {superAdminItems.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={onClose}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                   pathname.startsWith(href)
-                    ? 'bg-green-50 text-green-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                    ? 'bg-brand-500/15 text-brand-400'
+                    : 'text-court-200 hover:bg-court-800 hover:text-white',
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 {label}
               </Link>
             ))}
-            <div className="my-2 border-t border-gray-100" />
-            <p className="mb-1 px-3 text-xs font-medium uppercase tracking-wide text-gray-400">Panel</p>
+            <div className="my-3 border-t border-court-700" />
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-court-400">
+              Panel
+            </p>
           </>
         )}
         {navItems.map(({ href, label, icon: Icon }) => (
@@ -105,10 +109,10 @@ export function Sidebar({ clubName, role, userName, features, onClose }: {
             href={href}
             onClick={onClose}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
               (href === '/dashboard' ? pathname === href : pathname.startsWith(href))
-                ? 'bg-green-50 text-green-700'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                ? 'bg-brand-500/15 text-brand-400'
+                : 'text-court-200 hover:bg-court-800 hover:text-white',
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />

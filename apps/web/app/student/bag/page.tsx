@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
@@ -58,7 +58,7 @@ export default async function StudentBagPage() {
         {features.enable_60min && (
           <div className="rounded-xl bg-white p-6 shadow-sm">
             <p className="text-sm font-medium uppercase text-gray-500">Clases 1h disponibles</p>
-            <p className={`mt-2 text-5xl font-bold ${balance60 > 0 ? 'text-green-600' : 'text-gray-300'}`}>
+            <p className={`mt-2 text-5xl font-bold ${balance60 > 0 ? 'text-brand-500' : 'text-gray-300'}`}>
               {balance60}
             </p>
             <p className="mt-1 text-xs text-gray-400">Bono 60 min · válido para clases de 1h</p>
@@ -84,12 +84,12 @@ export default async function StudentBagPage() {
               <div className="rounded-xl bg-white p-5 shadow-sm">
                 <p className="text-lg font-bold text-gray-900">Bono 1 hora</p>
                 <p className="mt-1 text-sm text-gray-500">{pack60Classes} clases · solo clases de 60 min</p>
-                <p className="mt-3 text-2xl font-bold text-green-600">{formatCurrency(pack60Price)}</p>
+                <p className="mt-3 text-2xl font-bold text-brand-500">{formatCurrency(pack60Price)}</p>
                 <PayButton
                   type="class_pack"
                   packType="60"
                   label="💳 Comprar bono"
-                  className="mt-4 w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                  className="mt-4 w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
                 />
               </div>
             )}
@@ -134,7 +134,7 @@ export default async function StudentBagPage() {
                     <td className="px-4 py-3 text-sm text-gray-400">
                       {tx.class_duration ? `${tx.class_duration} min` : '—'}
                     </td>
-                    <td className={`whitespace-nowrap px-4 py-3 text-right text-sm font-semibold ${tx.delta > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    <td className={`whitespace-nowrap px-4 py-3 text-right text-sm font-semibold ${tx.delta > 0 ? 'text-brand-500' : 'text-red-500'}`}>
                       {tx.delta > 0 ? `+${tx.delta}` : tx.delta}
                     </td>
                   </tr>

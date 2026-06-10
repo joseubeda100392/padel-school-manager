@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 
 export default function PaySuccessPage() {
   return (
@@ -8,7 +8,7 @@ export default function PaySuccessPage() {
       <p className="mb-8 text-gray-500">Tu pago se ha procesado correctamente.</p>
       <Link
         href="/student"
-        className="rounded-xl bg-green-600 px-6 py-3 text-sm font-semibold text-white hover:bg-green-700"
+        className="rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600"
       >
         Volver a la app
       </Link>

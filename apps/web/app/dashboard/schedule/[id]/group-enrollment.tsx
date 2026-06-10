@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -228,7 +228,7 @@ export default function GroupEnrollment({
       )}
 
       {faltaSuccessMsg && (
-        <p className="mx-6 mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">{faltaSuccessMsg}</p>
+        <p className="mx-6 mt-3 rounded-lg bg-brand-50 px-3 py-2 text-xs font-medium text-brand-600">{faltaSuccessMsg}</p>
       )}
 
       {enrollments.length === 0 ? (
@@ -255,16 +255,16 @@ export default function GroupEnrollment({
                         type="number" min={0} step={0.5}
                         value={editingPriceValue / 100}
                         onChange={(ev) => setEditingPriceValue(Math.round(Number(ev.target.value) * 100))}
-                        className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-green-500 focus:outline-none"
+                        className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
                         autoFocus
                       />
-                      <button onClick={() => handleUpdatePrice(e.id)} className="text-xs font-medium text-green-600">✓</button>
+                      <button onClick={() => handleUpdatePrice(e.id)} className="text-xs font-medium text-brand-500">✓</button>
                       <button onClick={() => setEditingPriceId(null)} className="text-xs text-gray-400">✕</button>
                     </div>
                   ) : (
                     <button
                       onClick={() => { setEditingPriceId(e.id); setEditingPriceValue(e.monthly_price) }}
-                      className="text-sm font-medium text-gray-600 hover:text-green-600"
+                      className="text-sm font-medium text-gray-600 hover:text-brand-500"
                       title="Editar cuota"
                     >
                       {(e.monthly_price / 100).toFixed(2)}€/mes ✎
@@ -272,7 +272,7 @@ export default function GroupEnrollment({
                   ))}
 
                   {enablePayments && (
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
                       {paid ? 'Pagado' : `Pendiente ${currentMonth}`}
                     </span>
                   )}
@@ -324,7 +324,7 @@ export default function GroupEnrollment({
                           <label className="text-xs text-gray-600">Publicar plaza libre</label>
                           <button
                             onClick={() => setFaltaPublish(!faltaPublish)}
-                            className={`relative h-6 w-11 rounded-full transition-colors ${faltaPublish ? 'bg-green-500' : 'bg-gray-300'}`}
+                            className={`relative h-6 w-11 rounded-full transition-colors ${faltaPublish ? 'bg-brand-500' : 'bg-gray-300'}`}
                           >
                             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${faltaPublish ? 'translate-x-5' : 'translate-x-0.5'}`} />
                           </button>
@@ -358,7 +358,7 @@ export default function GroupEnrollment({
                         </span>
                         <button
                           onClick={() => handleTogglePublish(e.id, x)}
-                          className={`text-xs font-medium ${x.publish_spot ? 'text-green-600' : 'text-gray-400'}`}
+                          className={`text-xs font-medium ${x.publish_spot ? 'text-brand-500' : 'text-gray-400'}`}
                           title={x.publish_spot ? 'Plaza publicada · click para ocultar' : 'Plaza no publicada · click para publicar'}
                         >
                           {x.publish_spot ? '● Publicada' : '○ No publicada'}
@@ -400,7 +400,7 @@ export default function GroupEnrollment({
                 step={0.5}
                 value={monthlyPrice / 100}
                 onChange={(e) => setMonthlyPrice(Math.round(Number(e.target.value) * 100))}
-                className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+                className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 placeholder="Precio/mes"
               />
               <span className="pointer-events-none absolute right-3 top-2 text-sm text-gray-400">€</span>
@@ -409,7 +409,7 @@ export default function GroupEnrollment({
           <button
             onClick={handleAdd}
             disabled={adding || !selectedStudentId}
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
           >
             {adding ? '...' : 'Añadir'}
           </button>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -81,18 +81,18 @@ export function StudentEditForm({ student }: Props) {
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre</label>
           <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Teléfono</label>
           <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
             placeholder="Opcional"
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Rol</label>
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none">
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
             <option value="student">Alumno</option>
             <option value="coach">Monitor</option>
             <option value="admin">Admin</option>
@@ -102,26 +102,26 @@ export function StudentEditForm({ student }: Props) {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha de alta</label>
             <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha de baja</label>
             <input type="date" value={form.end_date} min={form.start_date}
               onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
         </div>
         <div className="flex items-center gap-3">
           <input type="checkbox" id="is_active_edit" checked={form.is_active}
             onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-green-600" />
+            className="h-4 w-4 rounded border-gray-300 text-brand-500" />
           <label htmlFor="is_active_edit" className="text-sm font-medium text-gray-700">Usuario activo</label>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button onClick={handleSave} disabled={saving}
-          className="w-full rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60">
+          className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
           {saving ? 'Guardando...' : done ? '¡Guardado!' : 'Guardar cambios'}
         </button>
       </div>
@@ -138,7 +138,7 @@ export function StudentEditForm({ student }: Props) {
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             placeholder="nuevo@email.com"
-            className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+            className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
           />
           <button
             onClick={handleChangeEmail}

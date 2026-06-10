@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -87,7 +87,7 @@ export function NotificationList({ initial, targetUserId }: { initial: Notificat
           })
 
           const card = (
-            <div className={`flex gap-4 rounded-xl p-4 shadow-sm transition-colors ${n.is_read ? 'bg-white' : 'bg-green-50 border border-green-100'}`}>
+            <div className={`flex gap-4 rounded-xl p-4 shadow-sm transition-colors ${n.is_read ? 'bg-white' : 'bg-brand-50 border border-green-100'}`}>
               <div className="mt-0.5 text-2xl">{icon}</div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -95,7 +95,7 @@ export function NotificationList({ initial, targetUserId }: { initial: Notificat
                     {n.title}
                   </p>
                   {!n.is_read && (
-                    <span className="shrink-0 h-2 w-2 rounded-full bg-green-500 mt-1.5" />
+                    <span className="shrink-0 h-2 w-2 rounded-full bg-brand-500 mt-1.5" />
                   )}
                 </div>
                 <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>

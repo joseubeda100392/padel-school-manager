@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef, useEffect } from 'react'
 
@@ -51,7 +51,7 @@ export function StudentCombobox({ students, value, onChange, placeholder = 'Busc
   return (
     <div ref={ref} className="relative flex-1 min-w-[200px]">
       <div
-        className="flex items-center rounded-lg border border-gray-200 bg-white focus-within:border-green-500"
+        className="flex items-center rounded-lg border border-gray-200 bg-white focus-within:border-brand-500"
         onClick={() => setOpen(true)}
       >
         {selected && !open ? (

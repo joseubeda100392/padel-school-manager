@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -95,8 +95,8 @@ export function StudentChatClient({ threadId, threadStatus, initialMessages, cur
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-gray-100 p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100">
-            <span className="text-sm font-bold text-green-700">{recipientLabel[0]?.toUpperCase()}</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100">
+            <span className="text-sm font-bold text-brand-600">{recipientLabel[0]?.toUpperCase()}</span>
           </div>
           <div>
             <p className="font-semibold text-gray-900">{recipientLabel}</p>
@@ -133,7 +133,7 @@ export function StudentChatClient({ threadId, threadStatus, initialMessages, cur
               const isMe = m.sender_id === currentUserId
               return (
                 <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
-                  <div className={`max-w-xs rounded-2xl px-4 py-2.5 sm:max-w-sm ${isMe ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                  <div className={`max-w-xs rounded-2xl px-4 py-2.5 sm:max-w-sm ${isMe ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-900'}`}>
                     {!isMe && (
                       <p className="mb-0.5 text-xs font-medium opacity-70">{m.sender?.name ?? recipientLabel}</p>
                     )}
@@ -161,12 +161,12 @@ export function StudentChatClient({ threadId, threadStatus, initialMessages, cur
               onChange={e => setText(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               placeholder="Escribe un mensaje..."
-              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             <button
               onClick={send}
               disabled={!text.trim() || sending}
-              className="rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+              className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
             >
               Enviar
             </button>

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -78,7 +78,7 @@ export default async function StudentMaterialsPage() {
                   href={m.file_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="shrink-0 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
+                  className="shrink-0 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600"
                 >
                   Abrir
                 </a>

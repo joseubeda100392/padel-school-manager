@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -40,7 +40,7 @@ export default function AttendanceForm({ bookings: initial, scheduleId }: { book
       {/* Resumen */}
       <div className="border-b border-gray-100 px-6 py-3">
         <div className="flex gap-4 text-sm">
-          <span className="text-green-700">✓ Asistieron: <strong>{attended}</strong></span>
+          <span className="text-brand-600">✓ Asistieron: <strong>{attended}</strong></span>
           <span className="text-red-600">✗ No asistieron: <strong>{absent}</strong></span>
           <span className="text-gray-400">Sin marcar: <strong>{bookings.length - attended - absent}</strong></span>
         </div>
@@ -87,7 +87,7 @@ export default function AttendanceForm({ bookings: initial, scheduleId }: { book
                 <button
                   onClick={() => markStatus(b.id, 'confirmed')}
                   disabled={isLoading}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${b.status === 'confirmed' ? 'bg-green-600 text-white' : 'border border-gray-200 text-gray-500 hover:border-green-500 hover:text-green-600'}`}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${b.status === 'confirmed' ? 'bg-brand-500 text-white' : 'border border-gray-200 text-gray-500 hover:border-brand-500 hover:text-brand-500'}`}
                 >
                   {isLoading ? '...' : '✓'}
                 </button>

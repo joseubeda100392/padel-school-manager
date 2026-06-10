@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -54,7 +54,7 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
         <select
           value={durationType}
           onChange={(e) => setDurationType(e.target.value as '60' | '90')}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         >
           <option value="60">60 min</option>
           <option value="90">90 min</option>
@@ -65,21 +65,21 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
           max={100}
           value={amount}
           onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))}
-          className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+          className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         />
         <input
           type="text"
           placeholder="Motivo (opcional)"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         />
       </div>
       <div className="flex gap-2">
         <button
           onClick={() => adjust(1)}
           disabled={saving}
-          className="flex-1 rounded-lg bg-green-600 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+          className="flex-1 rounded-lg bg-brand-500 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
         >
           + Añadir
         </button>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -99,7 +99,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
                   onClick={() => setTarget(opt.value)}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                     target === opt.value
-                      ? 'bg-green-600 text-white'
+                      ? 'bg-brand-500 text-white'
                       : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
                 >
@@ -115,7 +115,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
               <select
                 value={levelId}
                 onChange={e => setLevelId(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
               >
                 <option value="">Selecciona un nivel</option>
                 {levels.map(l => (
@@ -141,7 +141,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
                   onChange={e => setTitle(e.target.value)}
                   placeholder="Ej: ¡Clase cancelada mañana!"
                   maxLength={100}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
                 />
               </div>
               <div>
@@ -152,7 +152,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
                   placeholder="Ej: La clase del martes a las 10h queda cancelada por obras en la pista."
                   maxLength={300}
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+                  className="w-full resize-none rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
                 />
                 <p className="mt-1 text-right text-xs text-gray-400">{body.length}/300</p>
               </div>
@@ -160,7 +160,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
           )}
 
           {result && (
-            <div className={`rounded-lg px-4 py-3 text-sm ${result.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+            <div className={`rounded-lg px-4 py-3 text-sm ${result.ok ? 'bg-brand-50 text-brand-600' : 'bg-red-50 text-red-600'}`}>
               {result.ok
                 ? `✓ Enviado a ${result.sent} dispositivo${result.sent !== 1 ? 's' : ''}`
                 : `Error: ${result.error}`}
@@ -170,7 +170,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
           <button
             onClick={handleSend}
             disabled={sending || (target !== 'payment_pending' && (!title.trim() || !body.trim())) || (target === 'level' && !levelId)}
-            className="w-full rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
             {sending ? 'Enviando...' : '🔔 Enviar notificación'}
           </button>

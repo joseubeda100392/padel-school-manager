@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef } from 'react'
 import * as XLSX from 'xlsx'
@@ -150,7 +150,7 @@ export default function ImportStudentsPage() {
           </div>
           <button
             onClick={downloadTemplate}
-            className="shrink-0 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100"
+            className="shrink-0 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-100"
           >
             ↓ Plantilla Excel
           </button>
@@ -160,7 +160,7 @@ export default function ImportStudentsPage() {
       {/* Paso 2: Subir fichero */}
       <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-3 font-semibold text-gray-900">2. Sube el fichero rellenado</h2>
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 px-6 py-10 transition hover:border-green-400 hover:bg-green-50">
+        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 px-6 py-10 transition hover:border-green-400 hover:bg-brand-50">
           <span className="text-3xl mb-2">📂</span>
           <span className="text-sm font-medium text-gray-700">Haz clic para seleccionar el archivo</span>
           <span className="mt-1 text-xs text-gray-400">.xlsx, .xls o .csv</span>
@@ -186,7 +186,7 @@ export default function ImportStudentsPage() {
             <button
               onClick={handleImport}
               disabled={importing}
-              className="w-full rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 sm:w-auto"
+              className="w-full rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 sm:w-auto"
             >
               {importing ? 'Importando...' : `Importar ${rows.length} alumnos`}
             </button>
@@ -225,7 +225,7 @@ export default function ImportStudentsPage() {
             <div>
               <h2 className="font-semibold text-gray-900">Resultado de la importación</h2>
               <div className="mt-1 flex gap-4 text-sm">
-                <span className="text-green-700">✓ {ok.length} creados</span>
+                <span className="text-brand-600">✓ {ok.length} creados</span>
                 {errors.length > 0 && <span className="text-red-600">✗ {errors.length} errores</span>}
               </div>
             </div>
@@ -236,7 +236,7 @@ export default function ImportStudentsPage() {
               >
                 ↓ Descargar resultado
               </button>
-              <a href="/dashboard/students" className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
+              <a href="/dashboard/students" className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
                 Ver alumnos
               </a>
             </div>
@@ -257,7 +257,7 @@ export default function ImportStudentsPage() {
                     <td className="px-4 py-3 font-medium text-gray-900">{r.name ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{r.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${r.status === 'ok' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${r.status === 'ok' ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-700'}`}>
                         {r.status === 'ok' ? '✓ Creado' : '✗ Error'}
                       </span>
                     </td>

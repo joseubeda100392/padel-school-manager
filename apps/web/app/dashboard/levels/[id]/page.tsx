@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -62,14 +62,14 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre *</label>
           <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Descripción</label>
           <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
             rows={3} placeholder="Opcional"
-            className="w-full resize-none rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-full resize-none rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
 
         <div>
@@ -92,7 +92,7 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Orden (posición en la lista)</label>
           <input type="number" min={1} value={form.order} onChange={(e) => setForm({ ...form, order: e.target.value })}
-            className="w-32 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none" />
+            className="w-32 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
 
         {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
@@ -103,7 +103,7 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
             Cancelar
           </a>
           <button type="submit" disabled={saving}
-            className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60">
+            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>

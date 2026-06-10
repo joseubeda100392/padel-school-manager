@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { LevelCard } from '@/components/levels/level-card'
 import { DevError } from '@/components/dev-error'
@@ -36,7 +36,7 @@ export default async function LevelsPage() {
         </div>
         <a
           href="/dashboard/levels/new"
-          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
         >
           + Nuevo nivel
         </a>

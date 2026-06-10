@@ -17,7 +17,7 @@ export function DashboardShell({ children, clubName, role, userName, features }:
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-court-50">
       {/* Overlay móvil */}
       {sidebarOpen && (
         <div

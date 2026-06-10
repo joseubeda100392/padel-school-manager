@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 
@@ -76,7 +76,7 @@ export function PushNotificationProvider() {
       <div className="mt-3 flex gap-2">
         <button
           onClick={handleEnable}
-          className="flex-1 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700"
+          className="flex-1 rounded-lg bg-brand-500 px-3 py-2 text-xs font-medium text-white hover:bg-brand-600"
         >
           Activar
         </button>

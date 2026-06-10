@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -141,7 +141,7 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
               const isMe = m.sender_id === currentUserId
               return (
                 <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
-                  <div className={`max-w-sm rounded-2xl px-4 py-2.5 ${isMe ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                  <div className={`max-w-sm rounded-2xl px-4 py-2.5 ${isMe ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-900'}`}>
                     {!isMe && (
                       <p className="mb-0.5 text-xs font-medium opacity-70">{m.sender?.name}</p>
                     )}
@@ -169,12 +169,12 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
               placeholder="Escribe un mensaje..."
-              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
             <button
               onClick={send}
               disabled={!text.trim() || sending}
-              className="rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+              className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
             >
               Enviar
             </button>

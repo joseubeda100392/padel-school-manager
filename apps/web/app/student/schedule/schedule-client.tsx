@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -82,7 +82,7 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
               <p className="text-lg font-bold text-gray-900">
                 {formatCurrency(item.monthlyPrice)}<span className="text-sm font-normal text-gray-400">/mes</span>
               </p>
-              <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${item.isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+              <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${item.isPaid ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
                 {item.isPaid ? '✓ Pagado' : 'Pendiente de pago'}
               </span>
             </div>
@@ -95,7 +95,7 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
               type="fixed_group_month"
               enrollmentId={item.enrollmentId}
               label="💳 Pagar cuota"
-              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
             />
           )}
 
@@ -123,7 +123,7 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
                       {occ.label}
                     </span>
                     {isRegistered ? (
-                      <span className="text-xs font-medium text-green-600">✓ Registrada</span>
+                      <span className="text-xs font-medium text-brand-500">✓ Registrada</span>
                     ) : occ.canRegister ? (
                       <button
                         onClick={() => handleRegistrar(occ)}
@@ -150,7 +150,7 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
             {exclusions.map(x => (
               <span key={x.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600">
                 {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                {x.publish_spot && <span className="text-green-500">● Plaza libre</span>}
+                {x.publish_spot && <span className="text-brand-500">● Plaza libre</span>}
               </span>
             ))}
           </div>

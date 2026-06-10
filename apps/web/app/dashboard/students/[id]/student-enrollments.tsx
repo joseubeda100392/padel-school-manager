@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
@@ -85,12 +85,12 @@ export function StudentEnrollments({ initialEnrollments }: { initialEnrollments:
                     type="number" min={0} step={0.5}
                     value={editingPrice / 100}
                     onChange={(ev) => setEditingPrice(Math.round(Number(ev.target.value) * 100))}
-                    className="w-24 rounded border border-gray-200 px-2 py-1 text-sm focus:border-green-500 focus:outline-none"
+                    className="w-24 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
                     autoFocus
                   />
                   <span className="text-sm text-gray-400">€/mes</span>
                   <button onClick={() => handleSavePrice(e.id)} disabled={saving}
-                    className="rounded bg-green-600 px-2 py-1 text-xs font-medium text-white hover:bg-green-700">
+                    className="rounded bg-brand-500 px-2 py-1 text-xs font-medium text-white hover:bg-brand-600">
                     {saving ? '...' : '✓'}
                   </button>
                   <button onClick={() => setEditingId(null)} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
@@ -98,19 +98,19 @@ export function StudentEnrollments({ initialEnrollments }: { initialEnrollments:
               ) : (
                 <button
                   onClick={() => { setEditingId(e.id); setEditingPrice(e.monthly_price) }}
-                  className="text-sm font-semibold text-gray-700 hover:text-green-600"
+                  className="text-sm font-semibold text-gray-700 hover:text-brand-500"
                   title="Editar cuota"
                 >
                   {formatCurrency(e.monthly_price)} ✎
                 </button>
               )}
 
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-brand-100 text-brand-600' : 'bg-yellow-100 text-yellow-700'}`}>
                 {paid ? 'Al día' : `Pdte. ${currentMonth}`}
               </span>
 
               <a href={`/dashboard/schedule/${e.schedule?.id}`}
-                className="text-xs font-medium text-green-600 hover:underline shrink-0">
+                className="text-xs font-medium text-brand-500 hover:underline shrink-0">
                 Ver clase →
               </a>
             </div>

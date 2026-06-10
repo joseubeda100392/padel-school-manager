@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -24,7 +24,7 @@ const statusLabel: Record<string, string> = {
 }
 const statusColor: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-green-100 text-green-700',
+  completed: 'bg-brand-100 text-brand-600',
   cancelled: 'bg-gray-100 text-gray-500',
 }
 
@@ -85,7 +85,7 @@ export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: 
           <p className="text-xs text-gray-400">{makeups.filter(m => m.status === 'pending').length} pendientes</p>
         </div>
         <button onClick={() => setOpen((o) => !o)}
-          className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">
+          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600">
           + Nueva
         </button>
       </div>
@@ -96,7 +96,7 @@ export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Alumno *</label>
               <select value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none">
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
                 <option value="">Seleccionar...</option>
                 {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
@@ -105,19 +105,19 @@ export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: 
               <label className="mb-1 block text-xs font-medium text-gray-700">Fecha clase perdida</label>
               <input type="date" value={form.originalDate}
                 onChange={(e) => setForm({ ...form, originalDate: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none" />
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Fecha recuperación</label>
               <input type="date" value={form.makeupDate}
                 onChange={(e) => setForm({ ...form, makeupDate: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none" />
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Notas</label>
               <input type="text" value={form.notes} placeholder="Opcional"
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none" />
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
@@ -127,7 +127,7 @@ export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: 
               Cancelar
             </button>
             <button onClick={handleAdd} disabled={saving}
-              className="flex-1 rounded-lg bg-green-600 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-60">
+              className="flex-1 rounded-lg bg-brand-500 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-60">
               {saving ? 'Guardando...' : 'Guardar recuperación'}
             </button>
           </div>
@@ -154,7 +154,7 @@ export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: 
               {m.status === 'pending' && (
                 <div className="flex gap-1">
                   <button onClick={() => handleStatus(m.id, 'completed')}
-                    className="rounded border border-green-200 px-2 py-1 text-xs text-green-600 hover:bg-green-50">
+                    className="rounded border border-brand-200 px-2 py-1 text-xs text-brand-500 hover:bg-brand-50">
                     ✓ Realizada
                   </button>
                   <button onClick={() => handleStatus(m.id, 'cancelled')}

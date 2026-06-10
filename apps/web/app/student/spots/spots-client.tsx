@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -63,9 +63,9 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
 
   if (booked) {
     return (
-      <div className="rounded-xl bg-green-50 border border-green-200 p-5">
-        <p className="text-green-700 font-medium">✓ Plaza reservada — {dateLabel}</p>
-        <p className="text-xs text-green-600 mt-1">{spot.startTime} – {spot.endTime} · {spot.courtName}</p>
+      <div className="rounded-xl bg-brand-50 border border-brand-200 p-5">
+        <p className="text-brand-600 font-medium">✓ Plaza reservada — {dateLabel}</p>
+        <p className="text-xs text-brand-500 mt-1">{spot.startTime} – {spot.endTime} · {spot.courtName}</p>
       </div>
     )
   }
@@ -114,7 +114,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
               exclusionId={spot.exclusionId ?? undefined}
               classDate={spot.excludedDate}
               label="💳 Pagar clase"
-              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
             />
           ) : null}
           {!hasBalance && enable90min && durationType === '90' && balance60 > 0 && (

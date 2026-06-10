@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo } from 'react'
 import { formatDate } from '@/lib/utils'
@@ -12,7 +12,7 @@ const roleLabel: Record<string, string> = {
 const roleBadge: Record<string, string> = {
   student: 'bg-blue-100 text-blue-700',
   coach: 'bg-purple-100 text-purple-700',
-  admin: 'bg-green-100 text-green-700',
+  admin: 'bg-brand-100 text-brand-600',
 }
 
 interface Props {
@@ -61,12 +61,12 @@ export default function StudentsTable({ students, levelMap }: Props) {
           placeholder="Buscar por nombre o email..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="min-w-[200px] flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+          className="min-w-[200px] flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
         >
           <option value="">Todos los roles</option>
           <option value="student">Alumnos</option>
@@ -76,7 +76,7 @@ export default function StudentsTable({ students, levelMap }: Props) {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
         >
           <option value="">Todos los estados</option>
           <option value="active">Activos</option>
@@ -129,7 +129,7 @@ export default function StudentsTable({ students, levelMap }: Props) {
                 return (
                   <tr key={s.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <a href={`/dashboard/students/${s.id}`} className="flex items-center gap-3 font-medium text-gray-900 hover:text-green-600">
+                      <a href={`/dashboard/students/${s.id}`} className="flex items-center gap-3 font-medium text-gray-900 hover:text-brand-500">
                         {s.avatar_url ? (
                           <img src={s.avatar_url} alt={s.name} className="h-8 w-8 rounded-full object-cover" />
                         ) : (
@@ -156,7 +156,7 @@ export default function StudentsTable({ students, levelMap }: Props) {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
                         {s.is_active ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>

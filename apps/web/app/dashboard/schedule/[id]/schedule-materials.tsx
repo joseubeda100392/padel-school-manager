@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -86,7 +86,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
         </div>
         <button
           onClick={() => setOpen((o) => !o)}
-          className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600"
         >
           + Subir
         </button>
@@ -101,7 +101,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej: Ejercicios de volea"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-green-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
             />
           </div>
           <div>
@@ -125,7 +125,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
             <button
               onClick={handleUpload}
               disabled={uploading}
-              className="flex-1 rounded-lg bg-green-600 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-60"
+              className="flex-1 rounded-lg bg-brand-500 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-60"
             >
               {uploading ? 'Subiendo...' : 'Subir archivo'}
             </button>
@@ -141,7 +141,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
         <ul className="divide-y divide-gray-50">
           {materials.map((m) => (
             <li key={m.id} className="flex items-center gap-4 px-6 py-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-700">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -152,7 +152,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
               </div>
               <div className="flex items-center gap-3">
                 <a href={m.file_url} target="_blank" rel="noreferrer"
-                  className="text-xs font-medium text-green-600 hover:underline">
+                  className="text-xs font-medium text-brand-500 hover:underline">
                   Ver
                 </a>
                 <button onClick={() => handleDelete(m.id)}

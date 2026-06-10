@@ -1,4 +1,4 @@
-import { Users } from 'lucide-react'
+﻿import { Users } from 'lucide-react'
 
 interface Props {
   level: { id: string; name: string; description: string | null; color: string; order: number }
@@ -28,7 +28,7 @@ export function LevelCard({ level, studentCount }: Props) {
 
       <a
         href={`/dashboard/levels/${level.id}`}
-        className="mt-4 block text-center rounded-lg border border-gray-200 py-1.5 text-sm font-medium text-gray-600 hover:border-green-500 hover:text-green-600 transition-colors"
+        className="mt-4 block text-center rounded-lg border border-gray-200 py-1.5 text-sm font-medium text-gray-600 hover:border-brand-500 hover:text-brand-500 transition-colors"
       >
         Editar
       </a>

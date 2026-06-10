@@ -1,4 +1,4 @@
-import { getAdminClient } from '@/lib/supabase/admin'
+﻿import { getAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -20,7 +20,7 @@ const roleLabel: Record<string, string> = {
 }
 
 const statusBadge: Record<string, string> = {
-  succeeded: 'bg-green-100 text-green-700',
+  succeeded: 'bg-brand-100 text-brand-600',
   pending: 'bg-yellow-100 text-yellow-700',
   failed: 'bg-red-100 text-red-700',
   refunded: 'bg-gray-100 text-gray-500',
@@ -144,7 +144,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </a>
         <span className="text-gray-300">/</span>
         <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${(student as any).is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${(student as any).is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
           {(student as any).is_active ? 'Activo' : 'Inactivo'}
         </span>
       </div>
@@ -225,7 +225,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             <div className="mb-4 flex gap-6">
               {features.enable_60min && (
                 <div>
-                  <p className="text-4xl font-bold text-green-600">{bag?.balance_60 ?? 0}</p>
+                  <p className="text-4xl font-bold text-brand-500">{bag?.balance_60 ?? 0}</p>
                   <p className="text-xs text-gray-400">60 min</p>
                 </div>
               )}
@@ -245,7 +245,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                   {bagHistory.map((t: any) => (
                     <li key={t.id} className="flex items-center justify-between text-xs">
                       <span className="text-gray-600">{t.reason || 'Sin motivo'}</span>
-                      <span className={t.delta > 0 ? 'font-medium text-green-600' : 'font-medium text-red-600'}>
+                      <span className={t.delta > 0 ? 'font-medium text-brand-500' : 'font-medium text-red-600'}>
                         {t.delta > 0 ? '+' : ''}{t.delta}
                       </span>
                     </li>
@@ -275,7 +275,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <h2 className="font-semibold text-gray-900">Historial de pagos</h2>
             {totalPagado > 0 && (
-              <span className="text-sm font-semibold text-green-700">
+              <span className="text-sm font-semibold text-brand-600">
                 Total: {formatCurrency(totalPagado)}
               </span>
             )}

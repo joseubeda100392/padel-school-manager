@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 
@@ -29,7 +29,7 @@ export function ResetMfaButton({ userId }: { userId: string }) {
 
   if (done) {
     return (
-      <p className="text-sm text-green-600">MFA reseteado. El usuario deberá registrar su autenticador al próximo login.</p>
+      <p className="text-sm text-brand-500">MFA reseteado. El usuario deberá registrar su autenticador al próximo login.</p>
     )
   }
 

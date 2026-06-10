@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { formatDate, formatTime, getDayOfWeek } from '@/lib/utils'
@@ -179,7 +179,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
         <div className="mt-4">
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
             <div
-              className="h-2 rounded-full bg-green-500 transition-all"
+              className="h-2 rounded-full bg-brand-500 transition-all"
               style={{ width: `${Math.min((enrolled / schedule.max_students) * 100, 100)}%` }}
             />
           </div>

@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+﻿export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
@@ -106,7 +106,7 @@ export default async function StudentChatPage({
           <a
             href="/student/chat?with=admin"
             className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              withParam === 'admin' ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50'
+              withParam === 'admin' ? 'bg-brand-50 text-brand-600' : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">A</span>
@@ -117,7 +117,7 @@ export default async function StudentChatPage({
               key={c.id}
               href={`/student/chat?with=${c.id}`}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                withParam === c.id ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50'
+                withParam === c.id ? 'bg-brand-50 text-brand-600' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">

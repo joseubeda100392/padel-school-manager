@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { formatDate } from '@/lib/utils'
 import { DevError } from '@/components/dev-error'
@@ -24,7 +24,7 @@ export default async function MaterialsPage() {
         </div>
         <a
           href="/dashboard/materials/new"
-          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
         >
           + Subir material
         </a>
@@ -34,7 +34,7 @@ export default async function MaterialsPage() {
         {materials?.length === 0 && (
           <div className="rounded-xl bg-white p-12 text-center shadow-sm">
             <p className="text-gray-400">No hay materiales. Sube el primero.</p>
-            <a href="/dashboard/materials/new" className="mt-3 inline-block text-sm font-medium text-green-600 hover:underline">
+            <a href="/dashboard/materials/new" className="mt-3 inline-block text-sm font-medium text-brand-500 hover:underline">
               Subir PDF
             </a>
           </div>
@@ -74,7 +74,7 @@ export default async function MaterialsPage() {
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <p className="text-xs text-gray-400">{formatDate(m.created_at)}</p>
-                <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${m.is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${m.is_published ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
                   {m.is_published ? 'Publicado' : 'Borrador'}
                 </span>
               </div>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -82,12 +82,12 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
           placeholder="Buscar por pista, monitor o nivel..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="min-w-[200px] flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+          className="min-w-[200px] flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
         />
         <select
           value={day}
           onChange={(e) => setDay(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-green-500 focus:outline-none"
+          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
         >
           <option value="">Todos los días</option>
           <option value="1">Lunes</option>
@@ -131,7 +131,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                     type="checkbox"
                     checked={allFilteredSelected}
                     onChange={toggleAll}
-                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
                   />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Día</th>
@@ -167,12 +167,12 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                         checked={selected.has(s.id)}
                         onChange={() => toggleOne(s.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
                       />
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 text-xs font-semibold text-green-700">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-xs font-semibold text-brand-600">
                       {dayName(s.start_time)}
                     </span>
                   </td>
@@ -210,7 +210,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
                           <div
-                            className={`h-1.5 rounded-full ${(s.bookings_count / s.max_students) >= 1 ? 'bg-red-500' : (s.bookings_count / s.max_students) >= 0.7 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                            className={`h-1.5 rounded-full ${(s.bookings_count / s.max_students) >= 1 ? 'bg-red-500' : (s.bookings_count / s.max_students) >= 0.7 ? 'bg-yellow-500' : 'bg-brand-500'}`}
                             style={{ width: `${Math.min((s.bookings_count / s.max_students) * 100, 100)}%` }}
                           />
                         </div>

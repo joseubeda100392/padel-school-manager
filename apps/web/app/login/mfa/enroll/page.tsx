@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import QRCode from 'react-qr-code'
@@ -89,7 +89,7 @@ export default function MfaEnrollPage() {
       <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
         <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
           <div className="mb-6 flex flex-col items-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-600">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500">
               <span className="text-xl font-bold text-white">P</span>
             </div>
             <h1 className="text-xl font-bold text-gray-900">Códigos de recuperación</h1>
@@ -121,7 +121,7 @@ export default function MfaEnrollPage() {
           <button
             type="button"
             onClick={() => { window.location.href = '/dashboard' }}
-            className="w-full rounded-lg bg-green-600 py-2.5 font-medium text-white transition hover:bg-green-700"
+            className="w-full rounded-lg bg-brand-500 py-2.5 font-medium text-white transition hover:bg-brand-600"
           >
             He guardado mis códigos → Entrar
           </button>
@@ -134,7 +134,7 @@ export default function MfaEnrollPage() {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
         <div className="mb-6 flex flex-col items-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-green-600">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500">
             <span className="text-xl font-bold text-white">P</span>
           </div>
           <h1 className="text-xl font-bold text-gray-900">Configurar autenticador</h1>
@@ -176,7 +176,7 @@ export default function MfaEnrollPage() {
               required
               autoComplete="one-time-code"
               autoFocus
-              className="w-full rounded-lg border border-gray-200 px-4 py-3 text-center text-2xl tracking-widest text-gray-900 placeholder-gray-300 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-3 text-center text-2xl tracking-widest text-gray-900 placeholder-gray-300 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="000000"
             />
           </div>
@@ -188,7 +188,7 @@ export default function MfaEnrollPage() {
           <button
             type="submit"
             disabled={loading || verifyCode.length !== 6}
-            className="w-full rounded-lg bg-green-600 py-2.5 font-medium text-white transition hover:bg-green-700 disabled:opacity-60"
+            className="w-full rounded-lg bg-brand-500 py-2.5 font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
           >
             {loading ? 'Verificando...' : 'Confirmar y activar 2FA'}
           </button>

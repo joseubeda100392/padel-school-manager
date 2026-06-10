@@ -1,4 +1,4 @@
-import { getAdminClient } from '@/lib/supabase/admin'
+﻿import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { formatCurrency } from '@/lib/utils'
 
@@ -55,7 +55,7 @@ export default async function AnalyticsPage() {
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Ingresos totales</p>
-          <p className="mt-1 text-3xl font-bold text-green-600">{formatCurrency(totalRevenue)}</p>
+          <p className="mt-1 text-3xl font-bold text-brand-500">{formatCurrency(totalRevenue)}</p>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Clases disponibles</p>
@@ -80,7 +80,7 @@ export default async function AnalyticsPage() {
                     <span className="font-medium text-gray-900">{formatCurrency(amt)}</span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-green-500" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               )

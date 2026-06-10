@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -113,7 +113,7 @@ export default function NewMaterialPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             placeholder="Técnica de globo — Nivel intermedio"
           />
         </div>
@@ -124,7 +124,7 @@ export default function NewMaterialPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             placeholder="Breve descripción del contenido..."
           />
         </div>
@@ -135,7 +135,7 @@ export default function NewMaterialPage() {
             type="file"
             accept="application/pdf"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-500 file:mr-3 file:rounded-md file:border-0 file:bg-green-600 file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-green-700"
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-500 file:mr-3 file:rounded-md file:border-0 file:bg-brand-500 file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-green-700"
           />
           {file && (
             <p className="mt-1 text-xs text-gray-500">{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</p>
@@ -171,7 +171,7 @@ export default function NewMaterialPage() {
             role="switch"
             aria-checked={isPublished}
             onClick={() => setIsPublished(!isPublished)}
-            className={`relative h-6 w-11 rounded-full transition ${isPublished ? 'bg-green-600' : 'bg-gray-300'}`}
+            className={`relative h-6 w-11 rounded-full transition ${isPublished ? 'bg-brand-500' : 'bg-gray-300'}`}
           >
             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isPublished ? 'translate-x-5' : 'translate-x-0.5'}`} />
           </button>
@@ -186,7 +186,7 @@ export default function NewMaterialPage() {
           <button
             type="submit"
             disabled={uploading}
-            className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
             {uploading ? 'Subiendo...' : 'Subir material'}
           </button>

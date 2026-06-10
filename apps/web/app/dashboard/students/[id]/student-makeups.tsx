@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 
@@ -15,7 +15,7 @@ const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const statusLabel: Record<string, string> = { pending: 'Pendiente', completed: 'Realizada', cancelled: 'Cancelada' }
 const statusColor: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-green-100 text-green-700',
+  completed: 'bg-brand-100 text-brand-600',
   cancelled: 'bg-gray-100 text-gray-500',
 }
 
@@ -61,7 +61,7 @@ export function StudentMakeups({ initialMakeups }: { initialMakeups: Makeup[] })
               {m.status === 'pending' && (
                 <div className="flex gap-1">
                   <button onClick={() => handleStatus(m.id, 'completed')}
-                    className="rounded border border-green-200 px-2 py-1 text-xs text-green-600 hover:bg-green-50">
+                    className="rounded border border-brand-200 px-2 py-1 text-xs text-brand-500 hover:bg-brand-50">
                     ✓ Realizada
                   </button>
                   <button onClick={() => handleStatus(m.id, 'cancelled')}
@@ -72,7 +72,7 @@ export function StudentMakeups({ initialMakeups }: { initialMakeups: Makeup[] })
               )}
               {m.schedule?.id && (
                 <a href={`/dashboard/schedule/${m.schedule.id}`}
-                  className="shrink-0 text-xs font-medium text-green-600 hover:underline">
+                  className="shrink-0 text-xs font-medium text-brand-500 hover:underline">
                   Ver clase →
                 </a>
               )}

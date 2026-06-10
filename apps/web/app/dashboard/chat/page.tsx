@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { ChatWindow } from './chat-window'
@@ -52,7 +52,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
             <a
               key={t.id}
               href={`/dashboard/chat?thread=${t.id}`}
-              className={`block border-b border-gray-50 p-4 hover:bg-gray-50 ${activeThreadId === t.id ? 'bg-green-50 border-l-2 border-l-green-600' : ''}`}
+              className={`block border-b border-gray-50 p-4 hover:bg-gray-50 ${activeThreadId === t.id ? 'bg-brand-50 border-l-2 border-l-green-600' : ''}`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -60,7 +60,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
                   <p className="truncate text-xs text-gray-400">{t.lastMessage?.[0]?.content ?? 'Sin mensajes'}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${t.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${t.status === 'active' ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
                     {t.status === 'active' ? 'Activo' : 'Resuelto'}
                   </span>
                 </div>

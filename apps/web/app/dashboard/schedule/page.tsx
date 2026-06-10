@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getDayOfWeek } from '@/lib/utils'
@@ -117,7 +117,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
           <ScheduleViewToggle current={view} />
           <a
             href="/dashboard/schedule/new"
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
           >
             + Nueva clase
           </a>
