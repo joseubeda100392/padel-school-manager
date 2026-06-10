@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Home, Calendar, BookOpen, MessageCircle, LogOut, Menu, X } from 'lucide-react'
+import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
+import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
 import type { ClubFeatures } from '@/lib/get-club-features'
 
@@ -70,21 +72,28 @@ export function CoachShell({ children, userName, clubName, features }: {
           <p className="text-xs font-semibold text-blue-400">Panel de Monitor</p>
         </div>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        <motion.nav
+          className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="show"
+        >
           {navItems.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href)
             return (
-              <Link key={href} href={href} onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                  active ? 'bg-blue-500/15 text-blue-400' : 'text-court-200 hover:bg-court-800 hover:text-white'
-                )}>
-                <Icon className="h-4 w-4 shrink-0" />
-                {label}
-              </Link>
+              <motion.div key={href} variants={fadeUp}>
+                <Link href={href} onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    active ? 'bg-blue-500/15 text-blue-400' : 'text-court-200 hover:bg-court-800 hover:text-white'
+                  )}>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {label}
+                </Link>
+              </motion.div>
             )
           })}
-        </nav>
+        </motion.nav>
 
         <div className="border-t border-court-700 p-3">
           <button onClick={handleLogout}

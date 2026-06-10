@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'motion/react'
+import { usePathname } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 import type { ClubFeatures } from '@/lib/get-club-features'
@@ -15,6 +17,7 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, clubName, role, userName, features }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const pathname = usePathname()
 
   return (
     <div className="flex min-h-screen bg-court-50">
@@ -34,7 +37,16 @@ export function DashboardShell({ children, clubName, role, userName, features }:
       {/* Contenido */}
       <div className="flex flex-1 flex-col min-w-0">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto p-4 md:p-8">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-8">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+          >
+            {children}
+          </motion.div>
+        </main>
       </div>
     </div>
   )

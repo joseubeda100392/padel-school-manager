@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -54,19 +55,34 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-brand-500/20 blur-3xl" />
         <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
 
-        <div className="relative">
+        <motion.div
+          className="relative"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-blue-500">
             <span className="text-base font-bold text-white">P</span>
           </div>
-        </div>
+        </motion.div>
 
         <div className="relative space-y-6">
-          <h1 className="font-display text-[52px] font-bold leading-[1.1] text-white">
+          <motion.h1
+            className="font-display text-[52px] font-bold leading-[1.1] text-white"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
+          >
             Gestiona<br />tu escuela<br />de <span className="text-brand-400">pádel.</span>
-          </h1>
-          <p className="text-lg leading-relaxed text-court-300">
+          </motion.h1>
+          <motion.p
+            className="text-lg leading-relaxed text-court-300"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3, ease: 'easeOut' }}
+          >
             Alumnos, clases y pagos<br />en un solo lugar.
-          </p>
+          </motion.p>
         </div>
 
         <div className="relative text-xs text-court-400">
@@ -75,7 +91,12 @@ export default function LoginPage() {
       </div>
 
       {/* Panel derecho — formulario */}
-      <div className="flex flex-1 flex-col items-center justify-center bg-white px-6 py-12">
+      <motion.div
+        className="flex flex-1 flex-col items-center justify-center bg-white px-6 py-12"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+      >
         <div className="w-full max-w-sm">
           <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-blue-500 lg:hidden">
             <span className="text-lg font-bold text-white">P</span>
@@ -115,13 +136,15 @@ export default function LoginPage() {
               <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
             )}
 
-            <button
+            <motion.button
               type="submit"
               disabled={loading}
               className="w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             >
               {loading ? 'Accediendo...' : 'Entrar'}
-            </button>
+            </motion.button>
           </form>
 
           <a
@@ -131,7 +154,7 @@ export default function LoginPage() {
             ¿Olvidaste tu contraseña?
           </a>
         </div>
-      </div>
+      </motion.div>
     </main>
   )
 }

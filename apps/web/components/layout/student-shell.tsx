@@ -1,13 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { motion, useSpring, useTransform } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
 import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
 import type { ClubFeatures } from '@/lib/get-club-features'
+
+function AnimatedNumber({ target }: { target: number }) {
+  const spring = useSpring(0, { stiffness: 300, damping: 30 })
+  const rounded = useTransform(spring, Math.round)
+
+  useEffect(() => {
+    spring.set(target)
+  }, [target, spring])
+
+  return <motion.span>{rounded}</motion.span>
+}
 
 const allNavItems = [
   { href: '/student', label: 'Inicio', icon: Home, exact: true, feature: null },
@@ -77,31 +90,40 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
         {showBag && bagBalance !== undefined && (
           <div className="mx-3 mt-3 overflow-hidden rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-3">
             <p className="text-xs font-medium text-brand-100">Clases disponibles</p>
-            <p className="mt-0.5 font-display text-3xl font-bold text-white">{bagBalance}</p>
+            <p className="mt-0.5 font-display text-3xl font-bold text-white">
+              <AnimatedNumber target={bagBalance} />
+            </p>
           </div>
         )}
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+        <motion.nav
+          className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="show"
+        >
           {navItems.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href)
             const isNotif = href === '/student/notifications'
             return (
-              <Link key={href} href={href} onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                  active ? 'bg-brand-500/15 text-brand-400' : 'text-court-200 hover:bg-court-800 hover:text-white'
-                )}>
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="flex-1">{label}</span>
-                {isNotif && unreadCount > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Link>
+              <motion.div key={href} variants={fadeUp}>
+                <Link href={href} onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    active ? 'bg-brand-500/15 text-brand-400' : 'text-court-200 hover:bg-court-800 hover:text-white'
+                  )}>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="flex-1">{label}</span>
+                  {isNotif && unreadCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              </motion.div>
             )
           })}
-        </nav>
+        </motion.nav>
 
         <div className="border-t border-court-700 p-3">
           <button onClick={handleLogout}

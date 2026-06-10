@@ -16,7 +16,9 @@ import {
   Bell,
   X,
 } from 'lucide-react'
+import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
+import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import type { ClubFeatures } from '@/lib/get-club-features'
 
 const baseNavItems = [
@@ -75,27 +77,33 @@ export function Sidebar({ clubName, role, userName, features, onClose }: {
         )}
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+      <motion.nav
+        className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
         {isSuperAdmin && (
           <>
             <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-court-400">
               Super Admin
             </p>
             {superAdminItems.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={onClose}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                  pathname.startsWith(href)
-                    ? 'bg-brand-500/15 text-brand-400'
-                    : 'text-court-200 hover:bg-court-800 hover:text-white',
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {label}
-              </Link>
+              <motion.div key={href} variants={fadeUp}>
+                <Link
+                  href={href}
+                  onClick={onClose}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    pathname.startsWith(href)
+                      ? 'bg-brand-500/15 text-brand-400'
+                      : 'text-court-200 hover:bg-court-800 hover:text-white',
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {label}
+                </Link>
+              </motion.div>
             ))}
             <div className="my-3 border-t border-court-700" />
             <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-court-400">
@@ -104,22 +112,23 @@ export function Sidebar({ clubName, role, userName, features, onClose }: {
           </>
         )}
         {navItems.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={onClose}
-            className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-              (href === '/dashboard' ? pathname === href : pathname.startsWith(href))
-                ? 'bg-brand-500/15 text-brand-400'
-                : 'text-court-200 hover:bg-court-800 hover:text-white',
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            {label}
-          </Link>
+          <motion.div key={href} variants={fadeUp}>
+            <Link
+              href={href}
+              onClick={onClose}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                (href === '/dashboard' ? pathname === href : pathname.startsWith(href))
+                  ? 'bg-brand-500/15 text-brand-400'
+                  : 'text-court-200 hover:bg-court-800 hover:text-white',
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {label}
+            </Link>
+          </motion.div>
         ))}
-      </nav>
+      </motion.nav>
     </aside>
   )
 }

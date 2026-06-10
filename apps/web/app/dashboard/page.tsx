@@ -6,6 +6,7 @@ import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
+import { AnimatedStatsGrid } from '@/components/ui/animated-stats'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -61,9 +62,9 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <AnimatedStatsGrid>
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md hover:ring-gray-200">
+          <div key={stat.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full">
             <div className={`inline-flex rounded-xl p-2.5 ${stat.color} bg-opacity-10`}>
               <stat.icon className={`h-5 w-5 ${stat.color.replace('bg-', 'text-')}`} />
             </div>
@@ -71,7 +72,7 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm text-gray-500">{stat.label}</p>
           </div>
         ))}
-      </div>
+      </AnimatedStatsGrid>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Sin pagar este mes */}
