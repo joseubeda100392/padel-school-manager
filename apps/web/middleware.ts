@@ -64,5 +64,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/webhooks).*)'],
+  matcher: [
+    '/',
+    '/dashboard/:path*',
+    '/student/:path*',
+    '/coach/:path*',
+    '/login/:path*',
+  ],
 }

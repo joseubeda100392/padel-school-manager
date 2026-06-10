@@ -55,11 +55,11 @@ export default async function StudentHomePage() {
 
   const bagBalance = (bag?.balance_60 ?? 0) + (bag?.balance_90 ?? 0)
   const activeEnrollments = enrollments ?? []
-  const pendingEnrollments = activeEnrollments.filter(e => !isPaidThisMonth(e.paid_until))
+  const pendingEnrollments = activeEnrollments.filter((e: any) => !isPaidThisMonth(e.paid_until))
 
   const nextClass = activeEnrollments
-    .map(e => ({ ...e, nextDate: getNextOccurrence((e.schedule as any)?.start_time ?? '') }))
-    .sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime())[0]
+    .map((e: any) => ({ ...e, nextDate: getNextOccurrence((e.schedule as any)?.start_time ?? '') }))
+    .sort((a: any, b: any) => a.nextDate.getTime() - b.nextDate.getTime())[0]
 
   const level = levelData
   const spotsCount = spots?.length ?? 0

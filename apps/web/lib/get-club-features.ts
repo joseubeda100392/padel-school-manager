@@ -1,3 +1,5 @@
+// @ts-expect-error - cache exists in React 18.3 runtime but is missing from @types/react 18.x
+import { cache } from 'react'
 import { getAdminClient } from './supabase/admin'
 
 export type ClubFeatures = {
@@ -22,9 +24,9 @@ export const DEFAULT_FEATURES: ClubFeatures = {
   enable_objectives: true,
 }
 
-export async function getClubFeatures(clubId: string | null | undefined): Promise<ClubFeatures> {
+export const getClubFeatures = cache(async (clubId: string | null | undefined): Promise<ClubFeatures> => {
   if (!clubId) return DEFAULT_FEATURES
   const admin = getAdminClient()
   const { data } = await admin.from('clubs').select('features').eq('id', clubId).single()
   return { ...DEFAULT_FEATURES, ...(data?.features ?? {}) }
-}
+})
