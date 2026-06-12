@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import { toast } from 'sonner'
 import { useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
 
@@ -31,14 +32,19 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
 
   async function handleSavePrice(id: string) {
     setSaving(true)
-    await fetch(`/api/group-enrollments/${id}`, {
+    const res = await fetch(`/api/group-enrollments/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ monthly_price: editingPrice }),
     })
+    setSaving(false)
+    if (!res.ok) {
+      toast.error('No se pudo actualizar la cuota')
+      return
+    }
     setList((prev) => prev.map((e) => e.id === id ? { ...e, monthly_price: editingPrice } : e))
     setEditingId(null)
-    setSaving(false)
+    toast.success('Cuota actualizada')
   }
 
   if (!list.length) {

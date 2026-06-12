@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -45,6 +46,7 @@ export default function NewStudentPage() {
       return
     }
 
+    toast.success('Usuario creado correctamente')
     router.refresh()
     router.push('/dashboard/students')
   }

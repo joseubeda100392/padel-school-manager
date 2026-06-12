@@ -1,5 +1,6 @@
 'use client'
 
+import { toast } from 'sonner'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -107,7 +108,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id)
       setProfile((prev) => prev ? { ...prev, avatar_url: publicUrl } : prev)
     } catch (err: any) {
-      alert('Error al subir la foto: ' + (err.message ?? err))
+      toast.error('Error al subir la foto: ' + (err.message ?? err))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -153,7 +154,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
 
   async function toggleCourt(id: string, active: boolean) {
     const supabase = createClient()
-    await supabase.from('courts').update({ is_active: !active }).eq('id', id)
+    const { error } = await supabase.from('courts').update({ is_active: !active }).eq('id', id)
+    if (error) {
+      toast.error('No se pudo actualizar la pista')
+      return
+    }
     setCourts((prev) => prev.map((c) => (c.id === id ? { ...c, is_active: !active } : c)))
   }
 
@@ -178,8 +183,13 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   async function deleteCourt(id: string) {
     if (!confirm('¿Eliminar esta pista?')) return
     const supabase = createClient()
-    await supabase.from('courts').delete().eq('id', id)
+    const { error } = await supabase.from('courts').delete().eq('id', id)
+    if (error) {
+      toast.error('No se pudo eliminar la pista (puede tener clases asociadas)')
+      return
+    }
     setCourts((prev) => prev.filter((c) => c.id !== id))
+    toast.success('Pista eliminada')
   }
 
   async function saveRedsys() {

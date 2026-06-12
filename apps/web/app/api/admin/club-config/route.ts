@@ -52,7 +52,15 @@ export async function PATCH(req: NextRequest) {
   const updates: Record<string, number | string> = {}
   for (const key of Object.keys(DEFAULT_CONFIG)) {
     if (!(key in body)) continue
-    updates[key] = numericKeys.includes(key) ? Number(body[key]) : String(body[key])
+    if (numericKeys.includes(key)) {
+      const n = Number(body[key])
+      if (!Number.isFinite(n) || n < 0) {
+        return NextResponse.json({ error: `Valor inválido para ${key}` }, { status: 400 })
+      }
+      updates[key] = n
+    } else {
+      updates[key] = String(body[key])
+    }
   }
 
   const { data: existing } = await admin.from('clubs').select('config').eq('id', caller.club_id).single()

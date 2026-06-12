@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -8,8 +10,13 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { scheduleId, studentId, monthlyPrice } = await req.json()
-  if (!scheduleId || !studentId) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+  const { data: body, error: badRequest } = await parseBody(req, z.object({
+    scheduleId: z.string().uuid(),
+    studentId: z.string().uuid(),
+    monthlyPrice: z.number().nonnegative().optional(),
+  }))
+  if (badRequest) return badRequest
+  const { scheduleId, studentId, monthlyPrice } = body
 
   const admin = getAdminClient()
 

@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import Image from 'next/image'
 import { useState, useMemo } from 'react'
 import { formatDate } from '@/lib/utils'
 
@@ -131,7 +132,7 @@ export default function StudentsTable({ students, levelMap }: Props) {
                     <td className="px-6 py-4">
                       <a href={`/dashboard/students/${s.id}`} className="flex items-center gap-3 font-medium text-gray-900 hover:text-brand-500">
                         {s.avatar_url ? (
-                          <img src={s.avatar_url} alt={s.name} className="h-8 w-8 rounded-full object-cover" />
+                          <Image src={s.avatar_url} alt={s.name} width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
                         ) : (
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">
                             {(s.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}

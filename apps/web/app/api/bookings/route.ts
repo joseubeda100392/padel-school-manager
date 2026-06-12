@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -8,8 +10,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { scheduleId } = await req.json()
-  if (!scheduleId) return NextResponse.json({ error: 'Falta scheduleId' }, { status: 400 })
+  const { data: body, error: badRequest } = await parseBody(req, z.object({ scheduleId: z.string().uuid() }))
+  if (badRequest) return badRequest
+  const { scheduleId } = body
 
   const admin = getAdminClient()
   const { data, error } = await admin.rpc('book_with_bag', {
@@ -27,7 +30,13 @@ export async function DELETE(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { bookingId, scheduleId, refundBag } = await req.json()
+  const { data: delBody, error: badDelete } = await parseBody(req, z.object({
+    bookingId: z.string().uuid().optional(),
+    scheduleId: z.string().uuid().optional(),
+    refundBag: z.boolean().optional(),
+  }).refine((v) => v.bookingId || v.scheduleId, { message: 'Falta bookingId o scheduleId' }))
+  if (badDelete) return badDelete
+  const { bookingId, scheduleId, refundBag } = delBody
   const admin = getAdminClient()
 
   let bookingQuery = admin.from('bookings').select('id, source, schedule_id').eq('student_id', user.id).neq('status', 'cancelled')

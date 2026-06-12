@@ -19,16 +19,24 @@ export default async function CoachChatPage({
   const features = await getClubFeatures((coachProfile as any)?.club_id)
   if (!features.enable_chat) redirect('/coach')
 
-  // Coach's own thread with admin
-  let { data: adminThread } = await supabase
-    .from('chat_threads')
-    .select('id, status')
-    .eq('user_id', user.id)
-    .eq('thread_type', 'admin')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // Coach's own thread with admin + threads de alumnos (independientes, en paralelo)
+  let [{ data: adminThread }, { data: studentThreads }] = await Promise.all([
+    supabase
+      .from('chat_threads')
+      .select('id, status')
+      .eq('user_id', user.id)
+      .eq('thread_type', 'admin')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('chat_threads')
+      .select('id, status, user:users!chat_threads_user_id_fkey(id, name)')
+      .eq('recipient_id', user.id)
+      .eq('thread_type', 'coach')
+      .order('created_at', { ascending: false }),
+  ])
 
   if (!adminThread) {
     const { data: t } = await supabase
@@ -38,14 +46,6 @@ export default async function CoachChatPage({
       .single()
     adminThread = t
   }
-
-  // Threads from students directed to this coach
-  const { data: studentThreads } = await supabase
-    .from('chat_threads')
-    .select('id, status, user:users!chat_threads_user_id_fkey(id, name)')
-    .eq('recipient_id', user.id)
-    .eq('thread_type', 'coach')
-    .order('created_at', { ascending: false })
 
   // Active thread: from searchParams or admin thread by default
   const activeId = searchParams.thread ?? adminThread?.id ?? null

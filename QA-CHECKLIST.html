@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA Checklist — Padel School Manager</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+  .header { background: #16a34a; color: white; padding: 24px 32px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .header h1 { font-size: 20px; font-weight: 700; }
+  .header-meta { display: flex; align-items: center; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
+  .total-bar { flex: 1; min-width: 200px; height: 8px; background: rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden; }
+  .total-bar-fill { height: 100%; background: white; border-radius: 4px; transition: width 0.3s; }
+  .total-label { font-size: 13px; opacity: 0.9; white-space: nowrap; }
+  .btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .btn-reset { background: rgba(255,255,255,0.2); color: white; }
+  .btn-reset:hover { background: rgba(255,255,255,0.3); }
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
+  .role-block { margin-bottom: 32px; }
+  .role-title { font-size: 22px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .role-badge { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .section { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 12px; overflow: hidden; }
+  .section-header { padding: 14px 18px; display: flex; align-items: center; justify-between; gap: 12px; cursor: pointer; user-select: none; border-bottom: 1px solid #f0f0f0; }
+  .section-header:hover { background: #fafafa; }
+  .section-title { font-weight: 600; font-size: 15px; flex: 1; }
+  .section-progress { font-size: 12px; color: #666; white-space: nowrap; }
+  .section-bar { width: 80px; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .section-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .section-arrow { font-size: 12px; color: #999; transition: transform 0.2s; }
+  .section-arrow.open { transform: rotate(90deg); }
+  .section-body { padding: 4px 0; display: none; }
+  .section-body.open { display: block; }
+  .check-item { display: flex; align-items: flex-start; gap: 12px; padding: 9px 18px; cursor: pointer; transition: background 0.1s; }
+  .check-item:hover { background: #f9fafb; }
+  .check-item input[type=checkbox] { width: 17px; height: 17px; margin-top: 1px; cursor: pointer; accent-color: #16a34a; flex-shrink: 0; }
+  .check-item label { font-size: 14px; line-height: 1.5; cursor: pointer; color: #374151; flex: 1; }
+  .check-item.done label { text-decoration: line-through; color: #9ca3af; }
+  .check-item .note { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+  .tag-critico { background: #fee2e2; color: #dc2626; }
+  .tag-redsys { background: #dbeafe; color: #2563eb; }
+  .divider { height: 1px; background: #f3f4f6; margin: 0 18px; }
+  .floating-tester { position: fixed; bottom: 20px; right: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 12px 16px; display: flex; align-items: center; gap: 10px; z-index: 200; }
+  .tester-label { font-size: 12px; color: #666; }
+  .tester-select { border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px 8px; font-size: 13px; background: white; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎾 QA Checklist — Padel School Manager</h1>
+  <div class="header-meta">
+    <div class="total-bar"><div class="total-bar-fill" id="totalFill"></div></div>
+    <span class="total-label" id="totalLabel">0 / 0 completados</span>
+    <button class="btn btn-reset" onclick="resetAll()">↺ Reiniciar todo</button>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ===================== ACCESO ===================== -->
+<div class="role-block">
+  <div class="role-title">🔐 Acceso general</div>
+
+  <div class="section" id="s-acceso">
+    <div class="section-header" onclick="toggleSection('acceso')">
+      <span class="section-title">Login y redirección</span>
+      <span class="section-progress" id="prog-acceso"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-acceso"></div></div>
+      <span class="section-arrow" id="arrow-acceso">▶</span>
+    </div>
+    <div class="section-body" id="body-acceso">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Ir a <code>/</code> redirige según rol: admin → /dashboard, alumno → /student, coach → /coach</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Login con email y contraseña correctos funciona</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Login con credenciales incorrectas muestra error claro</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Sesión persiste al recargar la página (F5)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cerrar sesión redirige al login</label></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ADMIN ===================== -->
+<div class="role-block">
+  <div class="role-title">👑 Admin <span class="role-badge" style="background:#fef3c7;color:#92400e">Panel /dashboard</span></div>
+
+  <div class="section" id="s-dash">
+    <div class="section-header" onclick="toggleSection('dash')">
+      <span class="section-title">Dashboard principal</span>
+      <span class="section-progress" id="prog-dash"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-dash"></div></div>
+      <span class="section-arrow" id="arrow-dash">▶</span>
+    </div>
+    <div class="section-body" id="body-dash">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Carga sin errores ni pantalla en blanco</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Métricas principales muestran valores coherentes (alumnos activos, horarios)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Accesos rápidos (botones o links a secciones) funcionan</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-analytics">
+    <div class="section-header" onclick="toggleSection('analytics')">
+      <span class="section-title">Analytics</span>
+      <span class="section-progress" id="prog-analytics"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-analytics"></div></div>
+      <span class="section-arrow" id="arrow-analytics">▶</span>
+    </div>
+    <div class="section-body" id="body-analytics">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Página carga sin errores</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Gráficas y tablas muestran datos reales (no vacías)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Filtros de fecha cambian los datos mostrados</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-students">
+    <div class="section-header" onclick="toggleSection('students')">
+      <span class="section-title">Gestión de alumnos</span>
+      <span class="section-progress" id="prog-students"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-students"></div></div>
+      <span class="section-arrow" id="arrow-students">▶</span>
+    </div>
+    <div class="section-body" id="body-students">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de alumnos carga correctamente con todos los alumnos activos</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Búsqueda por nombre o email filtra resultados en tiempo real</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Filtro por nivel funciona</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Ficha de alumno (<code>/students/[id]</code>) carga con todos sus datos</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Editar nombre, teléfono y nivel del alumno y guardar</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cambiar email del alumno — se actualiza en auth y en la tabla users</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Activar / desactivar alumno cambia su estado</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Bolsa del alumno muestra saldo de 60 min y 90 min por separado</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Editar bolsa manualmente (añadir/quitar créditos) y guardar</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Historial de transacciones de bolsa visible y correcto</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Historial de cambios de nivel del alumno es correcto</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Crear alumno nuevo (<code>/students/new</code>) — aparece en la lista</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Importar alumnos CSV (<code>/students/import</code>) — filas OK se crean, filas con error muestran mensaje fila por fila</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Alumno importado tiene bolsa creada (balance_60: 0, balance_90: 0)</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-schedule">
+    <div class="section-header" onclick="toggleSection('schedule')">
+      <span class="section-title">Horarios — lista y gestión</span>
+      <span class="section-progress" id="prog-schedule"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-schedule"></div></div>
+      <span class="section-arrow" id="arrow-schedule">▶</span>
+    </div>
+    <div class="section-body" id="body-schedule">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de horarios carga sin errores</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Crear horario nuevo (<code>/schedule/new</code>) — aparece en la lista</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Editar horario existente (<code>/schedule/[id]/edit</code>) y guardar</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Seleccionar varios horarios con checkbox (área entera del checkbox clickable, no solo el cuadrado)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Eliminar en bulk los horarios seleccionados</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Clicar en una fila (fuera del checkbox) navega al detalle del horario</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-schedule-detail">
+    <div class="section-header" onclick="toggleSection('schedule-detail')">
+      <span class="section-title">Horarios — detalle y grupo fijo</span>
+      <span class="section-progress" id="prog-schedule-detail"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-schedule-detail"></div></div>
+      <span class="section-arrow" id="arrow-schedule-detail">▶</span>
+    </div>
+    <div class="section-body" id="body-schedule-detail">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Detalle de horario carga: día, hora, pista, monitor, nivel y ocupación correctos</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Contador de alumnos es correcto para la próxima fecha (grupo fijo menos faltas + puntuales)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Añadir alumno al grupo fijo — aparece en la lista inmediatamente</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Editar precio mensual de una inscripción del grupo</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Marcar cuota como pagada (mes actual)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Registrar falta de un alumno (admin) → la falta aparece bajo el alumno</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Al registrar falta → bolsa del alumno suma +1 crédito correcto (60 o 90 min según duración)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Publicar hueco al registrar falta (toggle publish_spot)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cancelar falta registrada → bolsa del alumno pierde -1 crédito</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Quitar alumno del grupo (cancelar inscripción)</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-spot-admin">
+    <div class="section-header" onclick="toggleSection('spot-admin')">
+      <span class="section-title">Horarios — reservas puntuales (admin)</span>
+      <span class="section-progress" id="prog-spot-admin"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-spot-admin"></div></div>
+      <span class="section-arrow" id="arrow-spot-admin">▶</span>
+    </div>
+    <div class="section-body" id="body-spot-admin">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Añadir alumno a una clase puntual (fuera del grupo) — aparece en "Reservas puntuales"</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>La reserva puntual muestra fecha correcta y badge "Admin"</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cancelar reserva puntual con source "Admin" → NO devuelve crédito de bolsa</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cancelar reserva puntual con source "Crédito bolsa" → SÍ devuelve crédito</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cancelar reserva puntual con source "Pago único" → SÍ devuelve crédito de bolsa (no dinero)</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-attendance">
+    <div class="section-header" onclick="toggleSection('attendance')">
+      <span class="section-title">Asistencia</span>
+      <span class="section-progress" id="prog-attendance"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-attendance"></div></div>
+      <span class="section-arrow" id="arrow-attendance">▶</span>
+    </div>
+    <div class="section-body" id="body-attendance">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de alumnos para la próxima fecha es correcta (grupo + puntuales, sin los que tienen falta ese día)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Marcar asistencia ✓ (presente) y guardar</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Marcar asistencia ✗ (ausente) y guardar</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-levels">
+    <div class="section-header" onclick="toggleSection('levels')">
+      <span class="section-title">Niveles</span>
+      <span class="section-progress" id="prog-levels"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-levels"></div></div>
+      <span class="section-arrow" id="arrow-levels">▶</span>
+    </div>
+    <div class="section-body" id="body-levels">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de niveles carga correctamente</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Crear nivel nuevo con nombre, descripción y color</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Editar nivel existente — cambios se guardan</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Ver alumnos asignados a ese nivel</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Asignar nivel a un alumno desde su ficha → aparece en el historial del alumno</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-materials-admin">
+    <div class="section-header" onclick="toggleSection('materials-admin')">
+      <span class="section-title">Materiales (PDFs)</span>
+      <span class="section-progress" id="prog-materials-admin"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-materials-admin"></div></div>
+      <span class="section-arrow" id="arrow-materials-admin">▶</span>
+    </div>
+    <div class="section-body" id="body-materials-admin">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de materiales carga</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Subir PDF nuevo y asignarlo a uno o varios niveles</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>El PDF recién subido aparece en la lista</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Editar material — cambiar título y niveles asignados</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Eliminar material — desaparece de la lista</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-payments">
+    <div class="section-header" onclick="toggleSection('payments')">
+      <span class="section-title">Pagos</span>
+      <span class="section-progress" id="prog-payments"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-payments"></div></div>
+      <span class="section-arrow" id="arrow-payments">▶</span>
+    </div>
+    <div class="section-body" id="body-payments">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de pagos carga sin errores</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cada pago muestra alumno, importe y estado correctamente</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Filtros por fecha o estado funcionan</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-chat-admin">
+    <div class="section-header" onclick="toggleSection('chat-admin')">
+      <span class="section-title">Chat (admin)</span>
+      <span class="section-progress" id="prog-chat-admin"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-chat-admin"></div></div>
+      <span class="section-arrow" id="arrow-chat-admin">▶</span>
+    </div>
+    <div class="section-body" id="body-chat-admin">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de hilos activos carga</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Abrir hilo y ver mensajes en orden cronológico</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Escribir y enviar respuesta — aparece en el hilo</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>El alumno recibe la respuesta en tiempo real (sin recargar)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Marcar hilo como resuelto — desaparece de hilos activos</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Ver hilos resueltos en el filtro correspondiente</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-notif-admin">
+    <div class="section-header" onclick="toggleSection('notif-admin')">
+      <span class="section-title">Notificaciones y avisos</span>
+      <span class="section-progress" id="prog-notif-admin"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-notif-admin"></div></div>
+      <span class="section-arrow" id="arrow-notif-admin">▶</span>
+    </div>
+    <div class="section-body" id="body-notif-admin">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Enviar notificación a un alumno concreto — le llega y aparece en su bandeja</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Enviar notificación a todos los alumnos de un nivel</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Publicar hueco libre manualmente para un horario concreto</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-settings">
+    <div class="section-header" onclick="toggleSection('settings')">
+      <span class="section-title">Configuración del club</span>
+      <span class="section-progress" id="prog-settings"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-settings"></div></div>
+      <span class="section-arrow" id="arrow-settings">▶</span>
+    </div>
+    <div class="section-body" id="body-settings">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Página de configuración carga sin errores</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Ver y cambiar horas mínimas de cancelación</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Configuración de Redsys del club visible (merchant code, clave)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Guardar cambios en configuración funciona</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-clubs">
+    <div class="section-header" onclick="toggleSection('clubs')">
+      <span class="section-title">Clubs (solo super_admin)</span>
+      <span class="section-progress" id="prog-clubs"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-clubs"></div></div>
+      <span class="section-arrow" id="arrow-clubs">▶</span>
+    </div>
+    <div class="section-body" id="body-clubs">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de clubs carga</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Crear club nuevo — aparece en la lista</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Editar club existente — cambios se guardan</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Admin de un club NO ve datos de otro club</label></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== ALUMNO ===================== -->
+<div class="role-block">
+  <div class="role-title">🎾 Alumno <span class="role-badge" style="background:#dcfce7;color:#166534">Vista /student</span></div>
+
+  <div class="section" id="s-student-home">
+    <div class="section-header" onclick="toggleSection('student-home')">
+      <span class="section-title">Home del alumno</span>
+      <span class="section-progress" id="prog-student-home"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-student-home"></div></div>
+      <span class="section-arrow" id="arrow-student-home">▶</span>
+    </div>
+    <div class="section-body" id="body-student-home">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Muestra nombre del alumno y nombre del club</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Badge de bolsa muestra saldo total correcto (60 min + 90 min)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Badge de notificaciones no leídas es correcto</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Navegación entre secciones funciona (Mis Clases, Huecos, Bolsa, etc.)</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-student-schedule">
+    <div class="section-header" onclick="toggleSection('student-schedule')">
+      <span class="section-title">Mis Clases</span>
+      <span class="section-progress" id="prog-student-schedule"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-student-schedule"></div></div>
+      <span class="section-arrow" id="arrow-student-schedule">▶</span>
+    </div>
+    <div class="section-body" id="body-student-schedule">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Clases del grupo fijo cargan correctamente con día, hora y pista</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Reservas puntuales aparecen con fecha concreta (no clases sin class_date)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Registrar falta en clase del grupo (dentro del plazo) → falta registrada, se suma crédito a bolsa</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>El crédito sumado es del tipo correcto (60 min si la clase es de 60, 90 si es de 90)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Intentar registrar falta fuera del plazo → error con las horas mínimas requeridas</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Intentar registrar falta en fecha ya registrada → error de duplicado</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cancelar reserva puntual propia (dentro del plazo) → desaparece y se devuelve crédito</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Intentar cancelar reserva puntual fuera del plazo → botón muestra "Plazo cerrado (Xh)" desactivado</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-spots">
+    <div class="section-header" onclick="toggleSection('spots')">
+      <span class="section-title">Huecos Libres <span class="tag tag-critico">CRÍTICO</span></span>
+      <span class="section-progress" id="prog-spots"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-spots"></div></div>
+      <span class="section-arrow" id="arrow-spots">▶</span>
+    </div>
+    <div class="section-body" id="body-spots">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de huecos disponibles carga (huecos con publish_spot = true)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Reservar hueco con bolsa de 60 min → descuenta 1 de balance_60</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Reservar hueco con bolsa de 90 min → descuenta 1 de balance_90</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Si bono es de 60 min pero el hueco es de 90 → mensaje de aviso correcto (no permite o advierte)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Tras reservar con bolsa → hueco desaparece de la lista de huecos libres</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Tras reservar con bolsa → la clase aparece en Mis Clases con fecha correcta</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Reservar hueco con tarjeta → redirige correctamente a la pasarela Redsys <span class="tag tag-redsys">REDSYS</span></label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Completar pago en Redsys → página de éxito (<code>/pay/success</code>) se muestra</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Tras pago OK → reserva aparece en Mis Clases con la fecha correcta del hueco</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Tras pago OK → hueco desaparece de Huecos Libres</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Pago cancelado o fallido → página de error (<code>/pay/error</code>) se muestra, no queda reserva fantasma</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-bag">
+    <div class="section-header" onclick="toggleSection('bag')">
+      <span class="section-title">Mi Bolsa</span>
+      <span class="section-progress" id="prog-bag"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-bag"></div></div>
+      <span class="section-arrow" id="arrow-bag">▶</span>
+    </div>
+    <div class="section-body" id="body-bag">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Página carga sin errores</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Muestra saldo de clases de 60 min y 90 min por separado</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Historial de transacciones en orden cronológico inverso</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cada transacción muestra motivo, tipo (crédito/débito), duración y fecha</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-student-materials">
+    <div class="section-header" onclick="toggleSection('student-materials')">
+      <span class="section-title">Materiales (alumno)</span>
+      <span class="section-progress" id="prog-student-materials"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-student-materials"></div></div>
+      <span class="section-arrow" id="arrow-student-materials">▶</span>
+    </div>
+    <div class="section-body" id="body-student-materials">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Solo muestra PDFs asignados al nivel del alumno (no los de otros niveles)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Abrir PDF funciona (abre en nueva pestaña o visor)</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-student-chat">
+    <div class="section-header" onclick="toggleSection('student-chat')">
+      <span class="section-title">Chat (alumno)</span>
+      <span class="section-progress" id="prog-student-chat"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-student-chat"></div></div>
+      <span class="section-arrow" id="arrow-student-chat">▶</span>
+    </div>
+    <div class="section-body" id="body-student-chat">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Iniciar conversación nueva con admin</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Enviar mensaje — aparece en el hilo</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Recibir respuesta del admin en tiempo real (sin recargar)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Badge de notificaciones en el header se actualiza al recibir mensaje</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-student-notif">
+    <div class="section-header" onclick="toggleSection('student-notif')">
+      <span class="section-title">Notificaciones (alumno)</span>
+      <span class="section-progress" id="prog-student-notif"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-student-notif"></div></div>
+      <span class="section-arrow" id="arrow-student-notif">▶</span>
+    </div>
+    <div class="section-body" id="body-student-notif">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de notificaciones carga correctamente</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Notificaciones no leídas destacan visualmente</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Marcar como leídas → badge del header baja a 0</label></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== COACH ===================== -->
+<div class="role-block">
+  <div class="role-title">🏃 Coach <span class="role-badge" style="background:#dbeafe;color:#1e40af">Vista /coach</span></div>
+
+  <div class="section" id="s-coach-home">
+    <div class="section-header" onclick="toggleSection('coach-home')">
+      <span class="section-title">Home del coach</span>
+      <span class="section-progress" id="prog-coach-home"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-coach-home"></div></div>
+      <span class="section-arrow" id="arrow-coach-home">▶</span>
+    </div>
+    <div class="section-body" id="body-coach-home">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Muestra nombre del coach y nombre del club correctamente</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Navegación a sus secciones funciona</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Un coach no puede acceder al panel admin (<code>/dashboard</code>) — redirige</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-coach-classes">
+    <div class="section-header" onclick="toggleSection('coach-classes')">
+      <span class="section-title">Mis clases (coach)</span>
+      <span class="section-progress" id="prog-coach-classes"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-coach-classes"></div></div>
+      <span class="section-arrow" id="arrow-coach-classes">▶</span>
+    </div>
+    <div class="section-body" id="body-coach-classes">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de clases carga — solo muestra las clases asignadas a ese coach</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>NO muestra clases de otros coaches</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Entrar al detalle de una clase (<code>/coach/classes/[id]</code>)</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Lista de alumnos del grupo para la próxima fecha es correcta</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Cada alumno muestra su nivel actual</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Marcar asistencia ✓ / ✗ y guardar funciona</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-coach-materials">
+    <div class="section-header" onclick="toggleSection('coach-materials')">
+      <span class="section-title">Materiales (coach)</span>
+      <span class="section-progress" id="prog-coach-materials"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-coach-materials"></div></div>
+      <span class="section-arrow" id="arrow-coach-materials">▶</span>
+    </div>
+    <div class="section-body" id="body-coach-materials">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Muestra TODOS los PDFs sin filtro de nivel</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Abrir PDF funciona</label></div>
+    </div>
+  </div>
+
+  <div class="section" id="s-coach-chat">
+    <div class="section-header" onclick="toggleSection('coach-chat')">
+      <span class="section-title">Chat (coach)</span>
+      <span class="section-progress" id="prog-coach-chat"></span>
+      <div class="section-bar"><div class="section-bar-fill" id="bar-coach-chat"></div></div>
+      <span class="section-arrow" id="arrow-coach-chat">▶</span>
+    </div>
+    <div class="section-body" id="body-coach-chat">
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Iniciar conversación con admin</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>Enviar mensaje y recibir respuesta en tiempo real</label></div>
+      <div class="divider"></div>
+      <div class="check-item" onclick="toggle(this)"><input type="checkbox"><label>El coach solo ve sus propios hilos, no los de alumnos</label></div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- end container -->
+
+<div class="floating-tester">
+  <span class="tester-label">Tester:</span>
+  <select class="tester-select" id="testerSelect" onchange="saveTester()">
+    <option value="">— Selecciona —</option>
+    <option value="Jose">Jose</option>
+    <option value="Tester 2">Tester 2</option>
+    <option value="Tester 3">Tester 3</option>
+  </select>
+</div>
+
+<script>
+const STORAGE_KEY = 'qa-padel-v1';
+
+function getState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+}
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function toggle(item) {
+  const cb = item.querySelector('input[type=checkbox]');
+  cb.checked = !cb.checked;
+  item.classList.toggle('done', cb.checked);
+  persistAll();
+  updateAll();
+}
+
+function toggleSection(id) {
+  const body = document.getElementById('body-' + id);
+  const arrow = document.getElementById('arrow-' + id);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+}
+
+function persistAll() {
+  const state = {};
+  document.querySelectorAll('.check-item').forEach((item, i) => {
+    state['item-' + i] = item.querySelector('input').checked;
+  });
+  saveState(state);
+}
+
+function restoreAll() {
+  const state = getState();
+  document.querySelectorAll('.check-item').forEach((item, i) => {
+    const checked = !!state['item-' + i];
+    item.querySelector('input').checked = checked;
+    item.classList.toggle('done', checked);
+  });
+}
+
+function updateAll() {
+  let total = 0, done = 0;
+  document.querySelectorAll('.section').forEach(section => {
+    const id = section.id.replace('s-', '');
+    const items = section.querySelectorAll('.check-item');
+    const checkedItems = section.querySelectorAll('.check-item.done');
+    const t = items.length, d = checkedItems.length;
+    total += t; done += d;
+    const pct = t ? Math.round(d / t * 100) : 0;
+    const fill = document.getElementById('bar-' + id);
+    const prog = document.getElementById('prog-' + id);
+    if (fill) { fill.style.width = pct + '%'; fill.style.background = pct === 100 ? '#16a34a' : pct > 50 ? '#f59e0b' : '#e5e7eb'; }
+    if (prog) prog.textContent = d + '/' + t;
+  });
+  const totalPct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('totalFill').style.width = totalPct + '%';
+  document.getElementById('totalLabel').textContent = done + ' / ' + total + ' completados (' + totalPct + '%)';
+}
+
+function resetAll() {
+  if (!confirm('¿Reiniciar todos los checks? Se perderá el progreso.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  document.querySelectorAll('.check-item').forEach(item => {
+    item.querySelector('input').checked = false;
+    item.classList.remove('done');
+  });
+  updateAll();
+}
+
+function saveTester() {
+  const v = document.getElementById('testerSelect').value;
+  localStorage.setItem('qa-tester', v);
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  restoreAll();
+  updateAll();
+  const tester = localStorage.getItem('qa-tester') || '';
+  document.getElementById('testerSelect').value = tester;
+
+  // Open first section of each role by default if nothing done yet
+  const state = getState();
+  const hasProgress = Object.values(state).some(Boolean);
+  if (!hasProgress) {
+    ['acceso', 'dash', 'student-home', 'coach-home'].forEach(id => {
+      document.getElementById('body-' + id)?.classList.add('open');
+      document.getElementById('arrow-' + id)?.classList.add('open');
+    });
+  }
+});
+</script>
+</body>
+</html>

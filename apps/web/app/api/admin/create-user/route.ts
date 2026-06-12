@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -20,8 +22,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Solo los administradores pueden crear usuarios' }, { status: 403 })
   }
 
-  const { email, name, role, levelId, tempPassword, clubIdOverride } = await req.json()
-  const clubId = clubIdOverride ?? caller.club_id
+  const { data: body, error: badRequest } = await parseBody(req, z.object({
+    email: z.string().email(),
+    name: z.string().min(1).max(200),
+    role: z.enum(['student', 'coach', 'admin']),
+    levelId: z.string().uuid().nullish(),
+    tempPassword: z.string().min(6).max(100),
+    clubIdOverride: z.string().uuid().optional(),
+  }))
+  if (badRequest) return badRequest
+  const { email, name, role, levelId, tempPassword, clubIdOverride } = body
+
+  // Solo un super_admin puede crear administradores
+  if (role === 'admin' && caller.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Sin permisos para crear administradores' }, { status: 403 })
+  }
+  const clubId = caller.role === 'super_admin' ? (clubIdOverride ?? caller.club_id) : caller.club_id
+
+  if (!clubId) {
+    return NextResponse.json({ error: 'Club no determinado' }, { status: 400 })
+  }
 
   const { data: authData, error: authError } = await admin.auth.admin.createUser({
     email,

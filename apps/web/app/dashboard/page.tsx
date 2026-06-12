@@ -1,4 +1,5 @@
 ﻿import { createClient } from '@/lib/supabase/server'
+import Image from 'next/image'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -139,7 +140,7 @@ export default async function DashboardPage() {
                 return (
                   <li key={s.id} className="flex items-center gap-4 px-6 py-3">
                     {s.avatar_url ? (
-                      <img src={s.avatar_url} alt={s.name} className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                      <Image src={s.avatar_url} alt={s.name} width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" />
                     ) : (
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600">
                         {initials}

@@ -49,10 +49,21 @@ export async function POST(req: NextRequest) {
 
   const success = isPaymentSuccessful(responseCode)
 
-  await adminSupabase
+  // Idempotencia: Redsys puede retransmitir el IPN; solo el primer aviso aplica efectos
+  if (payment.status !== 'pending') {
+    return NextResponse.json({ ok: true, already_processed: true })
+  }
+
+  const { data: claimed } = await adminSupabase
     .from('payments')
     .update({ status: success ? 'succeeded' : 'failed' })
     .eq('id', payment.id)
+    .eq('status', 'pending')
+    .select('id')
+
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.json({ ok: true, already_processed: true })
+  }
 
   if (!success) return NextResponse.json({ ok: false })
 

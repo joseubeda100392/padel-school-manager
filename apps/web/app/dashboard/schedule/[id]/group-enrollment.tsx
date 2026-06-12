@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import { toast } from 'sonner'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StudentCombobox } from '@/components/student-combobox'
@@ -115,24 +116,33 @@ export default function GroupEnrollment({
   async function handleRemove(id: string) {
     if (!confirm('¿Quitar al alumno del grupo fijo?')) return
     setLoadingId(id)
-    await fetch(`/api/group-enrollments/${id}`, { method: 'DELETE' })
-    setEnrollments((prev) => prev.filter((e) => e.id !== id))
+    const res = await fetch(`/api/group-enrollments/${id}`, { method: 'DELETE' })
     setLoadingId(null)
+    if (!res.ok) {
+      toast.error('No se pudo quitar al alumno')
+      return
+    }
+    setEnrollments((prev) => prev.filter((e) => e.id !== id))
+    toast.success('Alumno dado de baja del grupo')
     router.refresh()
   }
 
   async function handleUpdatePrice(id: string) {
     setLoadingId(id)
-    await fetch(`/api/group-enrollments/${id}`, {
+    const res = await fetch(`/api/group-enrollments/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ monthly_price: editingPriceValue }),
     })
+    setLoadingId(null)
+    if (!res.ok) {
+      toast.error('No se pudo actualizar la cuota')
+      return
+    }
     setEnrollments((prev) =>
       prev.map((e) => e.id === id ? { ...e, monthly_price: editingPriceValue } : e)
     )
     setEditingPriceId(null)
-    setLoadingId(null)
   }
 
   async function handleMarkPaid(id: string) {
@@ -184,16 +194,22 @@ export default function GroupEnrollment({
         setTimeout(() => setFaltaSuccessMsg(null), 5000)
       }
       router.refresh()
+    } else {
+      toast.error(json.error ?? 'No se pudo registrar la falta')
     }
     setFaltaLoading(false)
   }
 
   async function handleDeleteExclusion(enrollmentId: string, exclusionId: string) {
-    await fetch('/api/schedule-exclusions', {
+    const res = await fetch('/api/schedule-exclusions', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: exclusionId }),
     })
+    if (!res.ok) {
+      toast.error('No se pudo eliminar la falta')
+      return
+    }
     setExclusions((prev) => ({
       ...prev,
       [enrollmentId]: (prev[enrollmentId] ?? []).filter((x) => x.id !== exclusionId),
@@ -201,11 +217,15 @@ export default function GroupEnrollment({
   }
 
   async function handleTogglePublish(enrollmentId: string, exclusion: Exclusion) {
-    await fetch('/api/schedule-exclusions', {
+    const res = await fetch('/api/schedule-exclusions', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: exclusion.id, publish_spot: !exclusion.publish_spot }),
     })
+    if (!res.ok) {
+      toast.error('No se pudo actualizar el hueco')
+      return
+    }
     setExclusions((prev) => ({
       ...prev,
       [enrollmentId]: (prev[enrollmentId] ?? []).map((x) =>

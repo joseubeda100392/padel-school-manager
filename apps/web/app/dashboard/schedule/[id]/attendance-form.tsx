@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -55,7 +56,7 @@ export default function AttendanceForm({ bookings: initial, scheduleId }: { book
           return (
             <div key={b.id} className="flex items-center gap-4 px-6 py-4">
               {student?.avatar_url ? (
-                <img src={student.avatar_url} className="h-10 w-10 rounded-full object-cover" alt={student.name} />
+                <Image src={student.avatar_url} width={40} height={40} className="h-10 w-10 rounded-full object-cover" alt={student.name} />
               ) : (
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-500">
                   {initials}

@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import {
@@ -50,14 +52,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'TPV no configurado para este club. Contacta con el administrador.' }, { status: 503 })
   }
 
-  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate }: {
-    type: PaymentType
-    scheduleId?: string
-    packType?: '60' | '90'
-    enrollmentId?: string
-    exclusionId?: string
-    classDate?: string
-  } = await req.json()
+  const { data: orderBody, error: badRequest } = await parseBody(req, z.object({
+    type: z.enum(['single_class', 'class_pack', 'fixed_group_month']),
+    scheduleId: z.string().uuid().optional(),
+    packType: z.enum(['60', '90']).optional(),
+    enrollmentId: z.string().uuid().optional(),
+    exclusionId: z.string().uuid().optional(),
+    classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  }))
+  if (badRequest) return badRequest
+  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate } = orderBody
 
   const { data: configs } = await admin
     .from('app_config')
