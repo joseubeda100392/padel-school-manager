@@ -49,8 +49,7 @@ export default function NewStudentPage() {
     }
 
     toast.success('Usuario creado correctamente')
-    router.refresh()
-    router.push('/dashboard/students')
+    window.location.href = '/dashboard/students'
   }
 
   return (

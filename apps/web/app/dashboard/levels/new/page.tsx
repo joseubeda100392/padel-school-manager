@@ -11,6 +11,7 @@ export default function NewLevelPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [color, setColor] = useState('#6366f1')
+  const [order, setOrder] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const supabase = createClient()
@@ -22,7 +23,7 @@ export default function NewLevelPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     const { data: userData } = await supabase.from('users').select('club_id').eq('id', user!.id).single()
-    const { error: err } = await supabase.from('levels').insert({ name, description, color, club_id: userData?.club_id ?? null })
+    const { error: err } = await supabase.from('levels').insert({ name, description, color, order, club_id: userData?.club_id ?? null })
 
     if (err) {
       setError(err.message)
@@ -30,8 +31,7 @@ export default function NewLevelPage() {
       return
     }
 
-    router.refresh()
-    router.push('/dashboard/levels')
+    window.location.href = '/dashboard/levels'
   }
 
   return (
@@ -58,6 +58,17 @@ export default function NewLevelPage() {
             rows={3}
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             placeholder="Descripción del nivel..."
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Posición en la lista</label>
+          <input
+            type="number"
+            min={1}
+            value={order}
+            onChange={(e) => setOrder(Number(e.target.value))}
+            className="w-32 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
