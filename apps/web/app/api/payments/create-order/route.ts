@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
 
   const signature = generateSignature(secretKey, orderId, merchantParams)
 
-  await admin.from('payments').insert({
+  const { error: insertErr } = await admin.from('payments').insert({
     user_id: user.id,
     club_id: clubId,
     redsys_order_id: orderId,
@@ -225,6 +225,10 @@ export async function POST(req: NextRequest) {
       class_dates: classDates ?? null,
     },
   })
+  if (insertErr) {
+    console.error('[create-order] payment insert failed:', insertErr.message)
+    return NextResponse.json({ error: 'Error al registrar el pago. Inténtalo de nuevo.' }, { status: 500 })
+  }
 
   return NextResponse.json({
     redsysUrl: getRedsysUrl(redsysEnv),
