@@ -40,9 +40,15 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link href="/dashboard/tournaments" className="text-sm text-gray-400 hover:text-gray-600">
           ← Torneos
+        </Link>
+        <Link
+          href={`/dashboard/tournaments/${params.id}/edit`}
+          className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+        >
+          Editar
         </Link>
       </div>
 

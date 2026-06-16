@@ -84,6 +84,12 @@ export default async function TournamentsPage() {
                     >
                       Ver inscritos
                     </Link>
+                    <Link
+                      href={`/dashboard/tournaments/${t.id}/edit`}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    >
+                      Editar
+                    </Link>
                     <TournamentActions tournamentId={t.id} currentStatus={t.status} />
                   </div>
                 </div>
