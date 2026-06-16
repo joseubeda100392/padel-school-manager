@@ -35,13 +35,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // MFA enforcement for admins: if dashboard access but TOTP not completed → /login/mfa
-  if (isDashboard && user && (role === 'admin' || role === 'super_admin')) {
-    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-    if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
-      return NextResponse.redirect(new URL('/login/mfa', request.url))
-    }
-  }
+  // MFA enforcement temporalmente desactivado para presentación
+  // TODO: reactivar tras la demo
+  // if (isDashboard && user && (role === 'admin' || role === 'super_admin')) {
+  //   const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+  //   if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel !== 'aal2') {
+  //     return NextResponse.redirect(new URL('/login/mfa', request.url))
+  //   }
+  // }
 
   if (user) {
     if (isDashboard && role === 'student') {
