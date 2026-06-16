@@ -36,6 +36,8 @@ export default async function AnalyticsPage() {
     fixed_group_month: 'Mensualidad grupo fijo',
     single_class: 'Clase suelta',
     class_pack: 'Bono de clases',
+    tournament: 'Inscripción torneo',
+    intensivo_group: 'Semana intensiva',
     manual: 'Manual',
   }
 
