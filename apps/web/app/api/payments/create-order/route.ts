@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     const is90 = packType === '90'
     amount = cfg[is90 ? 'pack_price_90' : 'pack_price_60']
     classesToAdd = cfg[is90 ? 'classes_per_pack_90' : 'classes_per_pack_60']
-    productDesc = is90 ? 'Bono clases de pádel 1h 30min' : 'Clase de pádel 1h'
+    productDesc = is90 ? 'Bono clases de pádel 1h 30min' : 'Bono clases de pádel 1h'
   }
 
   if (!amount || amount <= 0) {

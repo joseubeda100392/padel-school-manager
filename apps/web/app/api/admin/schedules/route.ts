@@ -67,6 +67,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Non-superadmin always uses their own club_id
+  const effectiveClubId = caller.role === 'super_admin' ? (body.club_id ?? caller.club_id ?? null) : caller.club_id
+
   const { data, error } = await admin.from('schedules').insert({
     court_id: body.court_id,
     coach_id: body.coach_id,
@@ -77,7 +80,7 @@ export async function POST(req: NextRequest) {
     recurrence_end_date: body.recurrence_end_date ?? null,
     max_students: body.max_students,
     is_active: true,
-    club_id: body.club_id ?? caller.club_id ?? null,
+    club_id: effectiveClubId,
   }).select('id').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -90,7 +93,7 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdminClient()
-  const { data: caller } = await admin.from('users').select('role').eq('id', user.id).single()
+  const { data: caller } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
@@ -99,6 +102,13 @@ export async function PATCH(req: NextRequest) {
     id: z.string().uuid(),
   }))
   if (badRequest) return badRequest
+
+  if (caller.role !== 'super_admin') {
+    const { data: existing } = await admin.from('schedules').select('club_id').eq('id', body.id).single()
+    if (!existing || existing.club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos para editar este horario' }, { status: 403 })
+    }
+  }
 
   const overlap = await checkOverlap(admin, body.court_id, body.start_time, body.end_time, body.id)
   if (overlap) {
@@ -121,5 +131,33 @@ export async function PATCH(req: NextRequest) {
   }).eq('id', body.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
+export async function DELETE(req: NextRequest) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdminClient()
+  const { data: caller } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
+  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const { scheduleId } = await req.json()
+  if (!scheduleId) return NextResponse.json({ error: 'scheduleId requerido' }, { status: 400 })
+
+  if (caller.role !== 'super_admin') {
+    const { data: existing } = await admin.from('schedules').select('club_id').eq('id', scheduleId).single()
+    if (!existing || existing.club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos para borrar este horario' }, { status: 403 })
+    }
+  }
+
+  await admin.from('group_enrollments').delete().eq('schedule_id', scheduleId)
+  await admin.from('bookings').delete().eq('schedule_id', scheduleId)
+  await admin.from('schedules').delete().eq('id', scheduleId)
+
   return NextResponse.json({ ok: true })
 }

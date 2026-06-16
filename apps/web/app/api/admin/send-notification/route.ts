@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -25,7 +26,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Título y mensaje son obligatorios' }, { status: 400 })
   }
 
-  const clubId = caller.club_id
+  const cookieStore = cookies()
+  const clubId = caller.role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id)
+    : caller.club_id
 
   let query = admin
     .from('users')

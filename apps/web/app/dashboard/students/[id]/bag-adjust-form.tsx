@@ -1,8 +1,6 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 interface Props {
   studentId: string
@@ -11,7 +9,6 @@ interface Props {
 }
 
 export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
-  const router = useRouter()
   const [amount, setAmount] = useState(1)
   const [durationType, setDurationType] = useState<'60' | '90'>('60')
   const [reason, setReason] = useState('')
@@ -21,31 +18,23 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
 
   async function adjust(sign: 1 | -1) {
     setSaving(true)
-    const supabase = createClient()
     const delta = amount * sign
-    const field = durationType === '60' ? 'balance_60' : 'balance_90'
-    const newBalance = Math.max(0, currentBalance + delta)
 
-    const { data: bag } = await supabase
-      .from('class_bag')
-      .update({ [field]: newBalance })
-      .eq('user_id', studentId)
-      .select('id')
-      .single()
-
-    if (bag) {
-      await supabase.from('bag_transactions').insert({
-        user_id: studentId,
-        class_bag_id: bag.id,
-        delta,
-        type: sign === 1 ? 'credit' : 'debit',
-        reason: reason.trim() || (sign === 1 ? 'Recarga manual' : 'Descuento manual'),
-        class_duration: durationType,
-      })
-    }
+    const res = await fetch('/api/admin/students/bag-adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: studentId,
+        delta60: durationType === '60' ? delta : undefined,
+        delta90: durationType === '90' ? delta : undefined,
+        reason: reason.trim() || undefined,
+      }),
+    })
 
     setSaving(false)
-    router.refresh()
+    if (res.ok) {
+      window.location.reload()
+    }
   }
 
   return (

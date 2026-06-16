@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export function ScheduleActions({ scheduleId }: { scheduleId: string }) {
   const [deleting, setDeleting] = useState(false)
@@ -9,9 +8,13 @@ export function ScheduleActions({ scheduleId }: { scheduleId: string }) {
   async function handleDelete() {
     if (!confirm('¿Eliminar esta clase? Se eliminarán también todas las reservas asociadas.')) return
     setDeleting(true)
-    const supabase = createClient()
-    await supabase.from('bookings').delete().eq('schedule_id', scheduleId)
-    await supabase.from('schedules').delete().eq('id', scheduleId)
+
+    await fetch('/api/admin/schedules', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduleId }),
+    })
+
     window.location.href = '/dashboard/schedule'
   }
 

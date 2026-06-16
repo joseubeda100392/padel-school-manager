@@ -1,8 +1,7 @@
-﻿'use client'
+'use client'
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -63,15 +62,18 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
     const ids = [...selected]
     if (!confirm(`¿Eliminar ${ids.length} clase${ids.length > 1 ? 's' : ''}? Se eliminarán también sus reservas e inscripciones.`)) return
     setDeleting(true)
-    const supabase = createClient()
-    for (const id of ids) {
-      await supabase.from('bookings').delete().eq('schedule_id', id)
-      await supabase.from('group_enrollments').delete().eq('schedule_id', id)
-      await supabase.from('schedules').delete().eq('id', id)
-    }
+
+    const res = await fetch('/api/admin/schedules/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduleIds: ids }),
+    })
+
     setSelected(new Set())
     setDeleting(false)
-    router.refresh()
+    if (res.ok) {
+      window.location.reload()
+    }
   }
 
   return (

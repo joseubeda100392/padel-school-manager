@@ -53,17 +53,25 @@ export async function POST(req: NextRequest) {
       const now = new Date()
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
 
-      const { data: withNull } = await admin
+      let qNull = admin
         .from('group_enrollments')
         .select('student_id')
         .eq('status', 'active')
         .is('paid_until', null)
 
-      const { data: withOld } = await admin
+      let qOld = admin
         .from('group_enrollments')
         .select('student_id')
         .eq('status', 'active')
         .lt('paid_until', endOfMonth)
+
+      if (clubId) {
+        qNull = qNull.eq('club_id', clubId)
+        qOld = qOld.eq('club_id', clubId)
+      }
+
+      const { data: withNull } = await qNull
+      const { data: withOld } = await qOld
 
       const allIds = [
         ...((withNull ?? []).map((e: any) => e.student_id)),

@@ -1,8 +1,6 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 interface Level {
   id: string
@@ -17,31 +15,24 @@ interface Props {
 }
 
 export function StudentLevelForm({ studentId, currentLevelId, levels }: Props) {
-  const router = useRouter()
   const [selected, setSelected] = useState(currentLevelId ?? '')
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
 
   async function save() {
     setSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
 
-    await Promise.all([
-      supabase.from('users').update({ current_level_id: selected || null }).eq('id', studentId),
-      selected
-        ? supabase.from('user_levels').insert({
-            user_id: studentId,
-            level_id: selected,
-            assigned_by: user?.id,
-          })
-        : Promise.resolve(),
-    ])
+    const res = await fetch('/api/admin/students/level', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: studentId, levelId: selected || null }),
+    })
 
     setSaving(false)
-    setDone(true)
-    router.refresh()
-    setTimeout(() => setDone(false), 2000)
+    if (res.ok) {
+      setDone(true)
+      window.location.reload()
+    }
   }
 
   return (

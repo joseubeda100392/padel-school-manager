@@ -26,13 +26,19 @@ export async function POST(req: NextRequest) {
 
   if (!schedule) return NextResponse.json({ ok: true, sent: 0 })
 
-  const { count: occupied } = await admin
+  const { count: bookingsCount } = await admin
     .from('bookings')
     .select('*', { count: 'exact', head: true })
     .eq('schedule_id', scheduleId)
     .neq('status', 'cancelled')
 
-  const freePlaces = schedule.max_students - (occupied ?? 0)
+  const { count: groupEnrollmentsCount } = await admin
+    .from('group_enrollments')
+    .select('*', { count: 'exact', head: true })
+    .eq('schedule_id', scheduleId)
+    .eq('status', 'active')
+
+  const freePlaces = schedule.max_students - (bookingsCount ?? 0) - (groupEnrollmentsCount ?? 0)
   if (freePlaces <= 0) return NextResponse.json({ ok: true, sent: 0 })
 
   const { data: enrolled } = await admin

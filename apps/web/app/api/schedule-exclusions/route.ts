@@ -156,7 +156,7 @@ export async function DELETE(req: NextRequest) {
 
   const { data: exclusion } = await admin
     .from('schedule_exclusions')
-    .select('group_enrollment_id')
+    .select('group_enrollment_id, excluded_date')
     .eq('id', id)
     .single()
 
@@ -165,7 +165,7 @@ export async function DELETE(req: NextRequest) {
   if (exclusion?.group_enrollment_id) {
     const { data: enrollment } = await admin
       .from('group_enrollments')
-      .select('student_id')
+      .select('student_id, schedule_id')
       .eq('id', exclusion.group_enrollment_id)
       .single()
 
@@ -175,12 +175,26 @@ export async function DELETE(req: NextRequest) {
         .select('class_duration')
         .eq('user_id', enrollment.student_id)
         .eq('type', 'credit')
-        .like('reason', `Falta registrada ${exclusion?.group_enrollment_id ? '%' : '%'}`)
+        .like('reason', `Falta registrada ${exclusion.excluded_date}%`)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      const durationType: '60' | '90' = originalTx?.class_duration === '90' ? '90' : '60'
+      let durationType: '60' | '90' = originalTx?.class_duration === '90' ? '90' : '60'
+
+      if (!originalTx && enrollment.schedule_id) {
+        const { data: sched } = await admin
+          .from('schedules')
+          .select('start_time, end_time')
+          .eq('id', enrollment.schedule_id)
+          .single()
+        if (sched) {
+          const durationMin = Math.round(
+            (new Date(sched.end_time).getTime() - new Date(sched.start_time).getTime()) / 60000
+          )
+          durationType = durationMin >= 80 ? '90' : '60'
+        }
+      }
 
       const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', enrollment.student_id).single()
       if (bag && (bag.balance_60 > 0 || bag.balance_90 > 0)) {

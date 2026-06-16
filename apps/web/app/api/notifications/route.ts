@@ -12,11 +12,12 @@ export async function DELETE(req: NextRequest) {
 
   const { data: profile } = await admin
     .from('users')
-    .select('role')
+    .select('role, club_id')
     .eq('id', user.id)
     .single()
 
   const isAdmin = profile && ['admin', 'super_admin'].includes(profile.role)
+  const isSuperAdmin = profile?.role === 'super_admin'
 
   let body: { id?: string; all?: boolean; userId?: string } = {}
   try { body = await req.json() } catch { /* sin body */ }
@@ -26,6 +27,16 @@ export async function DELETE(req: NextRequest) {
 
   if (id) {
     if (isAdmin) {
+      if (!isSuperAdmin && profile?.club_id) {
+        const { data: notif } = await admin
+          .from('notifications')
+          .select('club_id')
+          .eq('id', id)
+          .single()
+        if (notif && notif.club_id !== profile.club_id) {
+          return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+        }
+      }
       await admin.from('notifications').delete().eq('id', id)
     } else {
       await admin.from('notifications').delete().eq('id', id).eq('user_id', user.id)

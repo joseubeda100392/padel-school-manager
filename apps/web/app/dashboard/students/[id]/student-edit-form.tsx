@@ -68,9 +68,14 @@ export function StudentEditForm({ student }: Props) {
   async function handleDelete() {
     if (!confirm(`¿Eliminar a ${student.name}? Esta acción no se puede deshacer.`)) return
     setDeleting(true)
-    const supabase = createClient()
-    await supabase.from('users').delete().eq('id', student.id)
-    window.location.href = '/dashboard/students'
+    const res = await fetch(`/api/admin/students/${student.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      window.location.href = '/dashboard/students'
+    } else {
+      const json = await res.json()
+      setError(json.error ?? 'Error al eliminar usuario')
+      setDeleting(false)
+    }
   }
 
   return (

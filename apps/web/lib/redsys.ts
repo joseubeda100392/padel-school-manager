@@ -34,8 +34,10 @@ export function verifySignature(secretKey: string, order: string, params: string
 }
 
 export function generateOrderId(): string {
-  // Redsys: 4-12 chars, debe empezar por 4 dígitos
-  return Date.now().toString().slice(-10)
+  // Redsys: 4-12 chars alfanuméricos, debe empezar por 4 dígitos
+  const ts = Date.now().toString().slice(-8)
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
+  return (ts + rand).slice(0, 12)
 }
 
 export function parseRedsysResponse(params: string): Record<string, string> {
