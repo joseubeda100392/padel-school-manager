@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { PayButton } from '@/components/pay-button'
 
@@ -85,7 +86,9 @@ export function TournamentsClient({ tournaments }: { tournaments: Tournament[] }
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h2 className="font-semibold text-gray-900">{t.name}</h2>
+                  <Link href={`/student/tournaments/${t.id}`} className="font-semibold text-gray-900 hover:text-brand-600 hover:underline">
+                    {t.name}
+                  </Link>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[t.status] ?? 'bg-gray-100 text-gray-500'}`}>
                     {statusLabel[t.status] ?? t.status}
                   </span>
@@ -119,7 +122,13 @@ export function TournamentsClient({ tournaments }: { tournaments: Tournament[] }
                 </div>
               </div>
 
-              <div className="shrink-0">
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <Link
+                  href={`/student/tournaments/${t.id}`}
+                  className="text-xs text-brand-500 hover:underline"
+                >
+                  Ver info →
+                </Link>
                 {state.registered ? (
                   t.status === 'open' ? (
                     <button
@@ -158,6 +167,7 @@ export function TournamentsClient({ tournaments }: { tournaments: Tournament[] }
                   <span className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-500">Completo</span>
                 ) : null}
               </div>
+
             </div>
           </div>
         )
