@@ -15,6 +15,7 @@ type Tournament = {
   status: string
   registeredCount: number
   isRegistered: boolean
+  allowedLevels?: { id: string; name: string; color: string }[]
 }
 
 const statusLabel: Record<string, string> = { open: 'Abierto', closed: 'Cerrado', finished: 'Finalizado' }
@@ -97,9 +98,24 @@ export function TournamentsClient({ tournaments }: { tournaments: Tournament[] }
                 <p className="text-sm text-gray-500 capitalize">{dateLabel}</p>
                 {t.location && <p className="text-sm text-gray-400">{t.location}</p>}
                 {t.description && <p className="mt-1 text-sm text-gray-600">{t.description}</p>}
-                <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-400">
-                  <span>{state.count} / {t.max_players} inscritos</span>
-                  <span>{t.price_cents > 0 ? `${(t.price_cents / 100).toFixed(2)} €` : 'Gratuito'}</span>
+                <div className="mt-2 flex flex-wrap gap-2 items-center">
+                  <span className="text-xs text-gray-400">{state.count} / {t.max_players} inscritos</span>
+                  <span className="text-xs text-gray-400">·</span>
+                  <span className="text-xs text-gray-400">{t.price_cents > 0 ? `${(t.price_cents / 100).toFixed(2)} €` : 'Gratuito'}</span>
+                  {t.allowedLevels && t.allowedLevels.length > 0 && (
+                    <>
+                      <span className="text-xs text-gray-400">·</span>
+                      {t.allowedLevels.map(l => (
+                        <span
+                          key={l.id}
+                          className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
+                          style={{ backgroundColor: l.color }}
+                        >
+                          {l.name}
+                        </span>
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
 

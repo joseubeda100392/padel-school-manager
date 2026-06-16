@@ -38,6 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     max_players: z.number().int().min(2).optional(),
     price_cents: z.number().int().min(0).optional(),
     status: z.enum(['open', 'closed', 'finished']).optional(),
+    allowed_level_ids: z.array(z.string().uuid()).optional(),
   }))
   if (badRequest) return badRequest
 

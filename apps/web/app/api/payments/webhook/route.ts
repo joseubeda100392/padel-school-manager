@@ -148,10 +148,44 @@ export async function POST(req: NextRequest) {
       .eq('student_id', payment.user_id)
       .maybeSingle()
     if (!existing) {
-      await adminSupabase.from('tournament_registrations').insert({
+      const { error: regErr } = await adminSupabase.from('tournament_registrations').insert({
         tournament_id: meta.tournament_id,
         student_id: payment.user_id,
       })
+      if (regErr) {
+        console.error('[webhook] tournament registration failed:', regErr.message)
+        return NextResponse.json({ error: 'registration_failed', detail: regErr.message }, { status: 500 })
+      }
+    }
+
+  } else if (payment.type === 'intensivo_group' && meta.intensivo_group_id) {
+    const { data: schedules } = await adminSupabase
+      .from('schedules')
+      .select('id, start_time')
+      .eq('intensivo_group_id', meta.intensivo_group_id)
+      .eq('is_active', true)
+      .order('start_time')
+    const classDates: string[] = meta.class_dates ?? []
+    const sortedSchedules = (schedules ?? []).sort((a, b) => a.start_time.localeCompare(b.start_time))
+    for (let i = 0; i < sortedSchedules.length; i++) {
+      const s = sortedSchedules[i]
+      const { data: existing } = await adminSupabase
+        .from('bookings')
+        .select('id')
+        .eq('schedule_id', s.id)
+        .eq('student_id', payment.user_id)
+        .neq('status', 'cancelled')
+        .maybeSingle()
+      if (!existing) {
+        await adminSupabase.from('bookings').insert({
+          schedule_id: s.id,
+          student_id: payment.user_id,
+          status: 'confirmed',
+          source: 'pay_per_class',
+          club_id: payment.club_id ?? null,
+          class_date: classDates[i] ?? null,
+        })
+      }
     }
   }
 

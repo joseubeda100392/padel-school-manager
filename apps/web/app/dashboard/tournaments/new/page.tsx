@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function NewTournamentPage() {
-  const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [levels, setLevels] = useState<{ id: string; name: string; color: string }[]>([])
+  const [allowedLevelIds, setAllowedLevelIds] = useState<string[]>([])
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -16,6 +17,22 @@ export default function NewTournamentPage() {
     price_cents: 0,
     status: 'open' as 'open' | 'closed',
   })
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
+      const cid = userData?.club_id ?? null
+      if (!cid) return
+      const { data } = await supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order')
+      if (data) setLevels(data)
+    })
+  }, [])
+
+  function toggleLevel(id: string) {
+    setAllowedLevelIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -27,6 +44,7 @@ export default function NewTournamentPage() {
       body: JSON.stringify({
         ...form,
         price_cents: Math.round(form.price_cents * 100),
+        allowed_level_ids: allowedLevelIds,
       }),
     })
     setSaving(false)
@@ -104,6 +122,35 @@ export default function NewTournamentPage() {
           </div>
         </div>
 
+        {levels.length > 0 && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Niveles permitidos
+              <span className="ml-1 text-xs font-normal text-gray-400">(deja vacío para abrir a todos)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {levels.map(l => (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => toggleLevel(l.id)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
+                    allowedLevelIds.includes(l.id)
+                      ? 'text-white border-transparent'
+                      : 'text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                  style={allowedLevelIds.includes(l.id) ? { backgroundColor: l.color, borderColor: l.color } : {}}
+                >
+                  {l.name}
+                </button>
+              ))}
+            </div>
+            {allowedLevelIds.length === 0 && (
+              <p className="mt-1 text-xs text-gray-400">Abierto a todos los niveles</p>
+            )}
+          </div>
+        )}
+
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Descripción</label>
           <textarea
@@ -138,13 +185,12 @@ export default function NewTournamentPage() {
         )}
 
         <div className="flex gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => router.back()}
+          <a
+            href="/dashboard/tournaments"
             className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
             Cancelar
-          </button>
+          </a>
           <button
             type="submit"
             disabled={saving}

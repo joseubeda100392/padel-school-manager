@@ -87,7 +87,7 @@ export default async function StudentSpotsPage() {
     admin
       .from('schedules')
       .select(`
-        id, start_time, end_time, max_students, recurrence_end_date, type, price_cents,
+        id, start_time, end_time, max_students, recurrence_end_date, type, price_cents, recurrence, intensivo_group_id,
         court:courts(name),
         level:levels(id, name, color),
         coach:users!schedules_coach_id_fkey(name),
@@ -146,56 +146,98 @@ export default async function StudentSpotsPage() {
   // Capacity spots: classes with open spots where student is not enrolled
   const absenceScheduleIds = new Set(absenceSpots.map(s => s.scheduleId))
 
-  const capacitySpots = (schedulesRaw ?? [])
-    .filter(s => {
-      const enrollments = (s.enrollments ?? []) as any[]
-      const active = enrollments.filter((e: any) => e.status === 'active')
-      const alreadyIn = active.some((e: any) => e.student_id === user.id)
-      const levelId = (s.level as any)?.id ?? null
-      const levelOk = !myLevelId || !levelId || levelId === myLevelId
-      let nextDate = getNextDate(s.start_time)
-      // Advance past holidays
-      for (let i = 0; i < 52 && holidaySet.has(nextDate); i++) {
-        const d = new Date(nextDate + 'T12:00:00Z')
-        d.setUTCDate(d.getUTCDate() + 7)
-        nextDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
-      }
-      const alreadyBooked = (mySpotBookings ?? []).some(
-        b => b.schedule_id === s.id && b.class_date === nextDate
-      )
-      const notExpired = !(s.recurrence_end_date && nextDate > s.recurrence_end_date)
-      return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked && notExpired
-    })
-    .map(s => {
-      const enrollments = (s.enrollments ?? []) as any[]
-      const activeCount = enrollments.filter((e: any) => e.status === 'active').length
-      const startDt = new Date(s.start_time)
-      const endDt = new Date(s.end_time)
-      let computedDate = getNextDate(s.start_time)
-      for (let i = 0; i < 52 && holidaySet.has(computedDate); i++) {
-        const d = new Date(computedDate + 'T12:00:00Z')
-        d.setUTCDate(d.getUTCDate() + 7)
-        computedDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
-      }
-      return {
-        spotType: 'capacity' as const,
-        exclusionId: null,
-        excludedDate: computedDate,
-        scheduleId: s.id,
-        scheduleType: (s.type ?? 'regular') as 'regular' | 'intensivo',
-        schedulePriceCents: (s.price_cents as number | null) ?? null,
-        dayLabel: DAYS[getDayOfWeek(startDt)],
-        startTime: formatTime(startDt),
-        endTime: formatTime(endDt),
-        durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
-        courtName: (s.court as any)?.name ?? '—',
-        coachName: (s.coach as any)?.name ?? null,
-        maxStudents: s.max_students,
-        level: s.level as any,
-        enrolledCount: activeCount,
-      }
-    })
-    .sort((a, b) => a.excludedDate.localeCompare(b.excludedDate))
+  function getClassDate(s: any): string | null {
+    if (s.recurrence === 'none') {
+      // One-off class: use the actual date from start_time
+      const d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
+      return d < today ? null : d // null if past
+    }
+    let nextDate = getNextDate(s.start_time)
+    for (let i = 0; i < 52 && holidaySet.has(nextDate); i++) {
+      const d = new Date(nextDate + 'T12:00:00Z')
+      d.setUTCDate(d.getUTCDate() + 7)
+      nextDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
+    }
+    if (s.recurrence_end_date && nextDate > s.recurrence_end_date) return null
+    return nextDate
+  }
+
+  const eligibleCapacity = (schedulesRaw ?? []).filter(s => {
+    const enrollments = (s.enrollments ?? []) as any[]
+    const active = enrollments.filter((e: any) => e.status === 'active')
+    const alreadyIn = active.some((e: any) => e.student_id === user.id)
+    const levelId = (s.level as any)?.id ?? null
+    const levelOk = !myLevelId || !levelId || levelId === myLevelId
+    const classDate = getClassDate(s)
+    if (!classDate) return false
+    const alreadyBooked = (mySpotBookings ?? []).some(
+      b => b.schedule_id === s.id && b.class_date === classDate
+    )
+    return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
+  })
+
+  // Group intensivos by intensivo_group_id
+  const intensivoGroups: Record<string, any[]> = {}
+  const regularCapacity: any[] = []
+  for (const s of eligibleCapacity) {
+    const gid = (s as any).intensivo_group_id
+    if (s.type === 'intensivo' && gid) {
+      if (!intensivoGroups[gid]) intensivoGroups[gid] = []
+      intensivoGroups[gid].push(s)
+    } else {
+      regularCapacity.push(s)
+    }
+  }
+
+  const capacitySpots = regularCapacity.map(s => {
+    const enrollments = (s.enrollments ?? []) as any[]
+    const activeCount = enrollments.filter((e: any) => e.status === 'active').length
+    const startDt = new Date(s.start_time)
+    const endDt = new Date(s.end_time)
+    const computedDate = getClassDate(s) ?? today
+    return {
+      spotType: 'capacity' as const,
+      exclusionId: null,
+      excludedDate: computedDate,
+      scheduleId: s.id,
+      scheduleType: (s.type ?? 'regular') as 'regular' | 'intensivo',
+      schedulePriceCents: (s.price_cents as number | null) ?? null,
+      dayLabel: DAYS[getDayOfWeek(startDt)],
+      startTime: formatTime(startDt),
+      endTime: formatTime(endDt),
+      durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
+      courtName: (s.court as any)?.name ?? '—',
+      coachName: (s.coach as any)?.name ?? null,
+      maxStudents: s.max_students,
+      level: s.level as any,
+      enrolledCount: activeCount,
+    }
+  }).sort((a, b) => a.excludedDate.localeCompare(b.excludedDate))
+
+  // Build intensivo packs (one card per group)
+  const intensivoPacks = Object.entries(intensivoGroups).map(([groupId, classes]) => {
+    const sorted = [...classes].sort((a, b) => a.start_time.localeCompare(b.start_time))
+    const first = sorted[0]
+    const startDt = new Date(first.start_time)
+    const endDt = new Date(first.end_time)
+    const totalPrice = sorted.reduce((sum, s) => sum + ((s.price_cents as number | null) ?? 0), 0)
+    const firstDate = getClassDate(first) ?? today
+    return {
+      groupId,
+      scheduleIds: sorted.map((s: any) => s.id),
+      classDates: sorted.map((s: any) => getClassDate(s) ?? today),
+      days: sorted.map((s: any) => DAYS[getDayOfWeek(new Date(s.start_time))]),
+      startTime: formatTime(startDt),
+      endTime: formatTime(endDt),
+      durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
+      courtName: (first.court as any)?.name ?? '—',
+      coachName: (first.coach as any)?.name ?? null,
+      maxStudents: first.max_students,
+      level: first.level as any,
+      totalPriceCents: totalPrice,
+      firstDate,
+    }
+  }).sort((a, b) => a.firstDate.localeCompare(b.firstDate))
 
   const allSpots = [...absenceSpots, ...capacitySpots]
 
@@ -213,7 +255,7 @@ export default async function StudentSpotsPage() {
         <p className="text-sm text-gray-500">Plazas disponibles por ausencia de otro alumno o por capacidad libre</p>
       </div>
 
-      {allSpots.length === 0 ? (
+      {allSpots.length === 0 && intensivoPacks.length === 0 ? (
         <div className="rounded-xl bg-white p-10 text-center shadow-sm">
           <p className="text-2xl mb-2">🎾</p>
           <p className="text-gray-400">No hay huecos libres disponibles ahora mismo.</p>
@@ -222,6 +264,7 @@ export default async function StudentSpotsPage() {
       ) : (
         <SpotsClient
           spots={allSpots}
+          intensivoPacks={intensivoPacks}
           balance60={balance60}
           balance90={balance90}
           enablePayments={features.enable_payments}

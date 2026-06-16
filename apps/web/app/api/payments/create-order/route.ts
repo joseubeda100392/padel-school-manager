@@ -11,7 +11,7 @@ import {
   getRedsysUrl,
 } from '@/lib/redsys'
 
-type PaymentType = 'single_class' | 'class_pack' | 'fixed_group_month' | 'tournament'
+type PaymentType = 'single_class' | 'class_pack' | 'fixed_group_month' | 'tournament' | 'intensivo_group'
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -65,16 +65,18 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: orderBody, error: badRequest } = await parseBody(req, z.object({
-    type: z.enum(['single_class', 'class_pack', 'fixed_group_month', 'tournament']),
+    type: z.enum(['single_class', 'class_pack', 'fixed_group_month', 'tournament', 'intensivo_group']),
     scheduleId: z.string().uuid().optional(),
     packType: z.enum(['60', '90']).optional(),
     enrollmentId: z.string().uuid().optional(),
     exclusionId: z.string().uuid().optional(),
     classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     tournamentId: z.string().uuid().optional(),
+    intensivoGroupId: z.string().uuid().optional(),
+    classDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
   }))
   if (badRequest) return badRequest
-  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate, tournamentId } = orderBody
+  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate, tournamentId, intensivoGroupId, classDates } = orderBody
 
   let amount: number
   let productDesc: string
@@ -145,6 +147,36 @@ export async function POST(req: NextRequest) {
     amount = tournament.price_cents
     productDesc = `Inscripción torneo: ${tournament.name}`
 
+  } else if (type === 'intensivo_group') {
+    if (!intensivoGroupId) return NextResponse.json({ error: 'intensivoGroupId requerido' }, { status: 400 })
+    const { data: schedules } = await admin
+      .from('schedules')
+      .select('id, price_cents, max_students, club_id, enrollments:group_enrollments(student_id, status)')
+      .eq('intensivo_group_id', intensivoGroupId)
+      .eq('is_active', true)
+    if (!schedules || schedules.length === 0) {
+      return NextResponse.json({ error: 'Intensivo no encontrado' }, { status: 404 })
+    }
+    if (schedules[0].club_id !== clubId) {
+      return NextResponse.json({ error: 'No perteneces a este club' }, { status: 403 })
+    }
+    // Validate capacity and not already enrolled
+    for (const s of schedules) {
+      const active = (s.enrollments as any[]).filter((e: any) => e.status === 'active')
+      if (active.some((e: any) => e.student_id === user.id)) {
+        return NextResponse.json({ error: 'Ya estás inscrito en alguna clase de este intensivo' }, { status: 409 })
+      }
+      if (active.length >= s.max_students) {
+        return NextResponse.json({ error: 'No hay plazas disponibles en alguna clase del intensivo' }, { status: 409 })
+      }
+    }
+    const totalPrice = schedules.reduce((sum, s) => sum + ((s.price_cents as number | null) ?? 0), 0)
+    if (totalPrice <= 0) {
+      return NextResponse.json({ error: 'Precio del intensivo no configurado' }, { status: 400 })
+    }
+    amount = totalPrice
+    productDesc = `Semana intensivo pádel (${schedules.length} clases)`
+
   } else {
     const is90 = packType === '90'
     amount = cfg[is90 ? 'pack_price_90' : 'pack_price_60']
@@ -189,6 +221,8 @@ export async function POST(req: NextRequest) {
       exclusion_id: exclusionId ?? null,
       class_date: classDate ?? null,
       tournament_id: tournamentId ?? null,
+      intensivo_group_id: intensivoGroupId ?? null,
+      class_dates: classDates ?? null,
     },
   })
 

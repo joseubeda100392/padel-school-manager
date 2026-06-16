@@ -139,7 +139,76 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
   )
 }
 
-export function SpotsClient({ spots, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true }: { spots: Spot[]; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean }) {
+interface IntensivoPack {
+  groupId: string
+  scheduleIds: string[]
+  classDates: string[]
+  days: string[]
+  startTime: string
+  endTime: string
+  durationMin: number
+  courtName: string
+  coachName: string | null
+  maxStudents: number
+  level: { name: string; color: string } | null
+  totalPriceCents: number
+  firstDate: string
+}
+
+function IntensivoPackCard({ pack, enablePayments }: { pack: IntensivoPack; enablePayments: boolean }) {
+  const firstDateLabel = new Date(pack.firstDate + 'T12:00:00').toLocaleDateString('es-ES', {
+    day: 'numeric', month: 'long',
+  })
+
+  return (
+    <div className="rounded-xl bg-white shadow-sm p-5 border-l-4 border-purple-400">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Intensivo</span>
+            <span className="text-xs text-gray-400">{pack.days.length} clases</span>
+          </div>
+          <p className="text-lg font-bold text-gray-900">Semana del {firstDateLabel}</p>
+          <p className="mt-0.5 text-sm text-gray-500">
+            {pack.startTime} – {pack.endTime} · {pack.courtName}
+            {pack.coachName && <span className="text-gray-400"> · {pack.coachName}</span>}
+          </p>
+          <ul className="mt-2 space-y-0.5">
+            {pack.days.map((day, i) => (
+              <li key={i} className="text-xs text-gray-500">
+                {day} —{' '}
+                {new Date(pack.classDates[i] + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+              </li>
+            ))}
+          </ul>
+          {pack.level && (
+            <span
+              className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+              style={{ backgroundColor: pack.level.color }}
+            >
+              {pack.level.name}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <p className="text-lg font-bold text-gray-900">{(pack.totalPriceCents / 100).toFixed(2)} €</p>
+          <p className="text-xs text-gray-400">pago único · {pack.days.length} clases</p>
+          {enablePayments && (
+            <PayButton
+              type="intensivo_group"
+              intensivoGroupId={pack.groupId}
+              classDates={pack.classDates}
+              label="💳 Pagar intensivo"
+              className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function SpotsClient({ spots, intensivoPacks = [], balance60, balance90, enablePayments = true, enable60min = true, enable90min = true }: { spots: Spot[]; intensivoPacks?: IntensivoPack[]; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean }) {
   const visibleBalance = (enable60min ? balance60 : 0) + (enable90min ? balance90 : 0)
   return (
     <div className="space-y-4">
@@ -154,6 +223,9 @@ export function SpotsClient({ spots, balance60, balance90, enablePayments = true
           </p>
         </div>
       )}
+      {intensivoPacks.map(pack => (
+        <IntensivoPackCard key={pack.groupId} pack={pack} enablePayments={enablePayments} />
+      ))}
       {spots.map(spot => (
         <SpotCard
           key={`${spot.spotType}-${spot.exclusionId ?? spot.scheduleId}-${spot.excludedDate}`}

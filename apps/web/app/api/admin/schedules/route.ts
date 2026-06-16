@@ -18,6 +18,7 @@ const scheduleSchema = z.object({
   club_id: z.string().uuid().nullable().optional(),
   type: z.enum(['regular', 'intensivo']).optional(),
   price_cents: z.number().int().min(0).nullable().optional(),
+  intensivo_group_id: z.string().uuid().nullable().optional(),
 })
 
 function toMinutes(iso: string) {
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
     club_id: effectiveClubId,
     type: body.type ?? 'regular',
     price_cents: body.price_cents ?? null,
+    intensivo_group_id: body.intensivo_group_id ?? null,
   }).select('id').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

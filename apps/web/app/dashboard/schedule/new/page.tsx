@@ -60,6 +60,8 @@ export default function NewSchedulePage() {
     setLoading(true)
     setError('')
 
+    const intensivoGroupId = form.type === 'intensivo' ? crypto.randomUUID() : null
+
     // For intensivos: create one schedule per selected day in the same week
     const datesToCreate: string[] = form.type === 'intensivo' ? (() => {
       const base = new Date(form.date + 'T12:00:00Z')
@@ -93,6 +95,7 @@ export default function NewSchedulePage() {
           club_id: clubId,
           type: form.type,
           price_cents: form.price_cents > 0 ? form.price_cents : null,
+          intensivo_group_id: intensivoGroupId,
         }),
       })
       const json = await res.json().catch(() => ({}))

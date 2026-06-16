@@ -14,6 +14,7 @@ const tournamentSchema = z.object({
   max_players: z.number().int().min(2).max(256),
   price_cents: z.number().int().min(0),
   status: z.enum(['open', 'closed', 'finished']).optional(),
+  allowed_level_ids: z.array(z.string().uuid()).optional(),
 })
 
 async function getCaller() {
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
       max_players: body.max_players,
       price_cents: body.price_cents,
       status: body.status ?? 'open',
+      allowed_level_ids: body.allowed_level_ids ?? [],
     })
     .select('id')
     .single()
