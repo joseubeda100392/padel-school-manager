@@ -120,6 +120,11 @@ export default function WeeklyCalendar({ schedules, holidays = [] }: { schedules
                           FIJO
                         </span>
                       )}
+                      {s.type === 'intensivo' && (
+                        <span className="shrink-0 rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-semibold text-purple-700">
+                          INT
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-500 truncate">{s.court?.name ?? '—'}</p>
                     <p className="text-xs text-gray-400 truncate">{s.coach?.name ?? '—'}</p>

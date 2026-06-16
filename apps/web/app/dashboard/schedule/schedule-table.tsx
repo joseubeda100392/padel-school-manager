@@ -17,6 +17,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
   const router = useRouter()
   const [q, setQ] = useState('')
   const [day, setDay] = useState('')
+  const [type, setType] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
 
@@ -28,9 +29,10 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
         (s.coach?.name ?? '').toLowerCase().includes(qLower) ||
         (s.level?.name ?? '').toLowerCase().includes(qLower)
       const matchDay = !day || String(new Date(s.start_time).getDay()) === day
-      return matchQ && matchDay
+      const matchType = !type || (s.type ?? 'regular') === type
+      return matchQ && matchDay && matchType
     })
-  }, [schedules, q, day])
+  }, [schedules, q, day, type])
 
   const allFilteredSelected = filtered.length > 0 && filtered.every(s => selected.has(s.id))
 
@@ -100,9 +102,18 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
           <option value="6">Sábado</option>
           <option value="0">Domingo</option>
         </select>
-        {(q || day) && (
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+        >
+          <option value="">Todos los tipos</option>
+          <option value="regular">Regular</option>
+          <option value="intensivo">Intensivo</option>
+        </select>
+        {(q || day || type) && (
           <button
-            onClick={() => { setQ(''); setDay('') }}
+            onClick={() => { setQ(''); setDay(''); setType('') }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
           >
             Limpiar
@@ -119,7 +130,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
         )}
       </div>
 
-      {(q || day) && (
+      {(q || day || type) && (
         <p className="mb-3 text-sm text-gray-400">{filtered.length} de {schedules.length} clases</p>
       )}
 
@@ -149,7 +160,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
               {!filtered.length && (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
-                    {q || day ? 'Sin resultados para esa búsqueda.' : 'No hay clases programadas. Crea la primera.'}
+                    {q || day || type ? 'Sin resultados para esa búsqueda.' : 'No hay clases programadas. Crea la primera.'}
                   </td>
                 </tr>
               )}
@@ -203,6 +214,11 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                       {s.is_fixed_group && (
                         <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-700">
                           Grupo fijo
+                        </span>
+                      )}
+                      {(s.type === 'intensivo') && (
+                        <span className="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">
+                          Intensivo
                         </span>
                       )}
                     </div>

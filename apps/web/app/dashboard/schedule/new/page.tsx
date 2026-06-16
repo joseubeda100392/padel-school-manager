@@ -17,6 +17,7 @@ export default function NewSchedulePage() {
     recurrence: 'weekly',
     recurrence_end_date: '',
     max_students: 4,
+    type: 'regular' as 'regular' | 'intensivo',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -72,6 +73,7 @@ export default function NewSchedulePage() {
         recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
         max_students: form.max_students,
         club_id: clubId,
+        type: form.type,
       }),
     })
     const json = await res.json().catch(() => ({}))
@@ -201,6 +203,24 @@ export default function NewSchedulePage() {
               onChange={(e) => setForm({ ...form, max_students: Number(e.target.value) })}
               className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">Tipo de clase</label>
+          <div className="flex gap-3">
+            {[{ value: 'regular', label: 'Regular' }, { value: 'intensivo', label: 'Intensivo (verano)' }].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setForm({ ...form, type: opt.value as any })}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+                  form.type === opt.value ? 'bg-brand-500 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
