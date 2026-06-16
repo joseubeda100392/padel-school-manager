@@ -39,17 +39,24 @@ export async function DELETE(req: NextRequest) {
   const { bookingId, scheduleId, refundBag } = delBody
   const admin = getAdminClient()
 
-  let bookingQuery = admin.from('bookings').select('id, source, schedule_id').eq('student_id', user.id).neq('status', 'cancelled')
+  const { data: callerProfile } = await admin.from('users').select('role').eq('id', user.id).single()
+  const isAdmin = ['admin', 'super_admin', 'coach'].includes(callerProfile?.role ?? '')
+
+  // Admins can cancel any booking; students only their own
+  let bookingQuery = admin.from('bookings').select('id, source, schedule_id, student_id').neq('status', 'cancelled')
   if (bookingId) {
     bookingQuery = bookingQuery.eq('id', bookingId)
+    if (!isAdmin) bookingQuery = bookingQuery.eq('student_id', user.id)
   } else {
-    bookingQuery = bookingQuery.eq('schedule_id', scheduleId)
+    bookingQuery = bookingQuery.eq('schedule_id', scheduleId).eq('student_id', user.id)
   }
   const { data: booking } = await bookingQuery.single()
 
   if (!booking) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 })
 
   await admin.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id)
+
+  const studentId = booking.student_id ?? user.id
 
   if (refundBag && (booking.source === 'bag' || booking.source === 'pay_per_class')) {
     let durationType: '60' | '90' = '60'
@@ -63,7 +70,6 @@ export async function DELETE(req: NextRequest) {
         .maybeSingle()
       durationType = originalTx?.class_duration === '90' ? '90' : '60'
     } else {
-      // pay_per_class: derive duration from the schedule
       const { data: sched } = await admin
         .from('schedules')
         .select('start_time, end_time')
@@ -75,13 +81,13 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', user.id).single()
+    const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', studentId).single()
     if (bag) {
       const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
       const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
       await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
       await admin.from('bag_transactions').insert({
-        user_id: user.id,
+        user_id: studentId,
         class_bag_id: bag.id,
         delta: 1,
         type: 'credit',
