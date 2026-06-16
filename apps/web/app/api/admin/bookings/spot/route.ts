@@ -58,6 +58,21 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Reactivate cancelled booking if exists (avoids unique constraint violation)
+  const { data: cancelled } = await admin
+    .from('bookings')
+    .select('id')
+    .eq('schedule_id', scheduleId)
+    .eq('student_id', studentId)
+    .eq('class_date', classDate)
+    .eq('status', 'cancelled')
+    .maybeSingle()
+
+  if (cancelled) {
+    await admin.from('bookings').update({ status: 'confirmed', source: 'admin' }).eq('id', cancelled.id)
+    return NextResponse.json({ ok: true, bookingId: cancelled.id })
+  }
+
   const { data, error } = await admin
     .from('bookings')
     .insert({
@@ -71,7 +86,12 @@ export async function POST(req: NextRequest) {
     .select('id')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'Este alumno ya tiene una reserva para esta fecha' }, { status: 409 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true, bookingId: data.id })
 }
