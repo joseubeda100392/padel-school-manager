@@ -58,6 +58,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Limpiar fila cancelada previa si existe (legacy antes de borrado directo)
+  await admin
+    .from('bookings')
+    .delete()
+    .eq('schedule_id', scheduleId)
+    .eq('student_id', studentId)
+    .eq('class_date', classDate)
+    .eq('status', 'cancelled')
+
   const { data, error } = await admin
     .from('bookings')
     .insert({
