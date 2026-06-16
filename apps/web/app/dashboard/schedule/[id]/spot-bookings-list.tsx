@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 type SpotBooking = {
   id: string
@@ -18,7 +17,6 @@ const sourceBadge: Record<string, string> = {
 }
 
 export function SpotBookingsList({ bookings }: { bookings: SpotBooking[] }) {
-  const router = useRouter()
   const [deleting, setDeleting] = useState<string | null>(null)
 
   async function handleDelete(bookingId: string) {
@@ -29,8 +27,7 @@ export function SpotBookingsList({ bookings }: { bookings: SpotBooking[] }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bookingId, refundBag: true }),
     })
-    setDeleting(null)
-    router.refresh()
+    window.location.reload()
   }
 
   if (bookings.length === 0) return null
