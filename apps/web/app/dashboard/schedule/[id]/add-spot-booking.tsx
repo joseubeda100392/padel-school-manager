@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 interface Student { id: string; name: string; email: string }
 
@@ -50,17 +49,14 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
     if (!date) { setError('Selecciona una fecha'); return }
     setSaving(true)
     setError('')
-    const supabase = createClient()
-    const { error: err } = await supabase.from('bookings').insert({
-      schedule_id: scheduleId,
-      student_id: selectedStudent.id,
-      status: 'confirmed',
-      source: 'admin',
-      class_date: date,
-      club_id: clubId,
+    const res = await fetch('/api/admin/bookings/spot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduleId, studentId: selectedStudent.id, classDate: date, clubId }),
     })
-    if (err) {
-      setError(err.message)
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setError(json.error ?? 'Error al añadir la reserva')
       setSaving(false)
       return
     }
