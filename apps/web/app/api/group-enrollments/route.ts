@@ -61,12 +61,11 @@ export async function POST(req: NextRequest) {
   const today = new Date().toISOString().split('T')[0]
   await admin
     .from('bookings')
-    .update({ status: 'cancelled' })
+    .delete()
     .eq('schedule_id', scheduleId)
     .eq('student_id', studentId)
     .eq('source', 'admin')
     .gte('class_date', today)
-    .neq('status', 'cancelled')
 
   return NextResponse.json({ data })
 }

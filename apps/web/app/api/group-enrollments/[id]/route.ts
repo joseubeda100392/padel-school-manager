@@ -49,6 +49,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     }
   }
 
-  await admin.from('group_enrollments').update({ status: 'cancelled' }).eq('id', params.id)
+  await admin.from('group_enrollments').delete().eq('id', params.id)
   return NextResponse.json({ ok: true })
 }
