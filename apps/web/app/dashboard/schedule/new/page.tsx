@@ -281,7 +281,7 @@ export default function NewSchedulePage() {
                   type="number"
                   min={0}
                   step={0.5}
-                  value={form.price_cents / 100}
+                  value={form.price_cents === 0 ? '' : form.price_cents / 100}
                   onChange={e => setForm({ ...form, price_cents: Math.round(Number(e.target.value) * 100) })}
                   className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   placeholder="0 = usa el precio general del club"
