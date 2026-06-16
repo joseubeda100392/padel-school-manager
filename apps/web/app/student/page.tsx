@@ -41,11 +41,9 @@ export default async function StudentHomePage() {
       .select('id, monthly_price, paid_until, schedule:schedules(id, start_time, end_time, court:courts(name))')
       .eq('student_id', user.id)
       .eq('status', 'active'),
-    admin
-      .from('schedule_exclusions')
-      .select('id')
-      .eq('publish_spot', true)
-      .gte('excluded_date', new Date().toISOString().split('T')[0]),
+    clubId
+      ? admin.from('schedule_exclusions').select('id, group_enrollment:group_enrollments!group_enrollment_id(schedule:schedules!schedule_id(club_id))').eq('publish_spot', true).gte('excluded_date', new Date().toISOString().split('T')[0])
+      : admin.from('schedule_exclusions').select('id').eq('publish_spot', true).gte('excluded_date', new Date().toISOString().split('T')[0]),
   ])
 
   const myLevelId = (userData as any)?.current_level_id ?? null
@@ -62,7 +60,9 @@ export default async function StudentHomePage() {
     .sort((a: any, b: any) => a.nextDate.getTime() - b.nextDate.getTime())[0]
 
   const level = levelData
-  const spotsCount = spots?.length ?? 0
+  const spotsCount = clubId
+    ? (spots ?? []).filter((s: any) => (s.group_enrollment as any)?.schedule?.club_id === clubId).length
+    : spots?.length ?? 0
 
   return (
     <div className="max-w-2xl">

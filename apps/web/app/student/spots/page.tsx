@@ -50,6 +50,7 @@ export default async function StudentSpotsPage() {
     .eq('id', user.id)
     .single()
   const myLevelId: string | null = userRow?.current_level_id ?? null
+  const myClubId: string | null = (userRow as any)?.club_id ?? null
 
   const features = await getClubFeatures((userRow as any)?.club_id)
   if (!features.enable_spots) redirect('/student')
@@ -62,7 +63,7 @@ export default async function StudentSpotsPage() {
         group_enrollment:group_enrollments!group_enrollment_id(
           schedule_id,
           schedule:schedules!schedule_id(
-            id, start_time, end_time, max_students,
+            id, start_time, end_time, max_students, club_id,
             court:courts(name),
             level:levels(id, name, color),
             coach:users!schedules_coach_id_fkey(name)
@@ -86,7 +87,8 @@ export default async function StudentSpotsPage() {
         level:levels(id, name, color),
         coach:users!schedules_coach_id_fkey(name),
         enrollments:group_enrollments(student_id, status)
-      `),
+      `)
+      .eq('club_id', myClubId ?? ''),
     admin
       .from('bookings')
       .select('schedule_id, class_date')
@@ -106,10 +108,11 @@ export default async function StudentSpotsPage() {
       const schedule = ge?.schedule as any
       const levelId = schedule?.level?.id ?? null
       const levelOk = !myLevelId || !levelId || levelId === myLevelId
+      const clubOk = !myClubId || schedule?.club_id === myClubId
       const alreadyBooked = (mySpotBookings ?? []).some(
         b => b.schedule_id === ge?.schedule_id && b.class_date === s.excluded_date
       )
-      return ge?.schedule_id && !myScheduleIds.has(ge.schedule_id) && levelOk && !alreadyBooked
+      return ge?.schedule_id && !myScheduleIds.has(ge.schedule_id) && levelOk && clubOk && !alreadyBooked
     })
     .map(s => {
       const ge = s.group_enrollment as any

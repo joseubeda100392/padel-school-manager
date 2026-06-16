@@ -22,11 +22,14 @@ export default async function StudentMaterialsPage() {
     ? await getAdminClient().from('levels').select('name, color').eq('id', levelId).single()
     : { data: null }
 
-  const { data: materialsRaw } = await getAdminClient()
+  const clubId = (userData as any)?.club_id ?? null
+  const materialsQuery = getAdminClient()
     .from('materials')
     .select('id, title, description, file_url, created_at, material_levels(level_id)')
     .eq('is_published', true)
     .order('created_at', { ascending: false })
+
+  const { data: materialsRaw } = await (clubId ? materialsQuery.eq('club_id', clubId) : materialsQuery)
 
   // Show materials for student's level + materials with no level assigned (global)
   const materials = (materialsRaw ?? []).filter((m: any) => {
