@@ -54,7 +54,7 @@ export async function DELETE(req: NextRequest) {
 
   if (!booking) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 })
 
-  await admin.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id)
+  await admin.from('bookings').delete().eq('id', booking.id)
 
   const studentId = booking.student_id ?? user.id
 
