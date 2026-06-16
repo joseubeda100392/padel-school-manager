@@ -56,5 +56,17 @@ export async function POST(req: NextRequest) {
   }, { onConflict: 'schedule_id,student_id' }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  // Cancelar reservas puntuales futuras del alumno en esta clase (ya no las necesita)
+  const today = new Date().toISOString().split('T')[0]
+  await admin
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('schedule_id', scheduleId)
+    .eq('student_id', studentId)
+    .eq('source', 'admin')
+    .gte('class_date', today)
+    .neq('status', 'cancelled')
+
   return NextResponse.json({ data })
 }

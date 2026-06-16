@@ -15,10 +15,15 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
-  const [{ data: exclusion }, { data: schedule }] = await Promise.all([
+  const [{ data: exclusion }, { data: schedule }, { data: inGroup }] = await Promise.all([
     admin.from('schedule_exclusions').select('id, publish_spot, excluded_date').eq('id', exclusionId).single(),
     admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single(),
+    admin.from('group_enrollments').select('id').eq('schedule_id', scheduleId).eq('student_id', user.id).eq('status', 'active').maybeSingle(),
   ])
+
+  if (inGroup) {
+    return NextResponse.json({ error: 'Ya formas parte del grupo fijo de esta clase' }, { status: 409 })
+  }
 
   if (!exclusion || !exclusion.publish_spot) {
     return NextResponse.json({ error: 'Este hueco ya no está disponible' }, { status: 409 })
