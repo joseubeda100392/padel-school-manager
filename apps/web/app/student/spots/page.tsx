@@ -82,7 +82,7 @@ export default async function StudentSpotsPage() {
     admin
       .from('schedules')
       .select(`
-        id, start_time, end_time, max_students,
+        id, start_time, end_time, max_students, recurrence_end_date,
         court:courts(name),
         level:levels(id, name, color),
         coach:users!schedules_coach_id_fkey(name),
