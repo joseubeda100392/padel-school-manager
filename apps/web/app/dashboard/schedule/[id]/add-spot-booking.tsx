@@ -11,9 +11,10 @@ interface Props {
   nextDate: string
   availableStudents: Student[]
   clubId: string | null
+  existingBookings: { studentId: string; classDate: string }[]
 }
 
-export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, clubId }: Props) {
+export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, clubId, existingBookings }: Props) {
   const router = useRouter()
   const [q, setQ] = useState('')
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
@@ -24,13 +25,18 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
 
   const today = new Date().toISOString().split('T')[0]
 
+  const bookedOnDate = useMemo(() => {
+    return new Set(existingBookings.filter(b => b.classDate === date).map(b => b.studentId))
+  }, [existingBookings, date])
+
   const filtered = useMemo(() => {
-    if (!q.trim()) return availableStudents.slice(0, 8)
+    const eligible = availableStudents.filter(s => !bookedOnDate.has(s.id))
+    if (!q.trim()) return eligible.slice(0, 8)
     const lower = q.toLowerCase()
-    return availableStudents
+    return eligible
       .filter(s => s.name.toLowerCase().includes(lower) || s.email.toLowerCase().includes(lower))
       .slice(0, 8)
-  }, [q, availableStudents])
+  }, [q, availableStudents, bookedOnDate])
 
   function selectStudent(s: Student) {
     setSelectedStudent(s)

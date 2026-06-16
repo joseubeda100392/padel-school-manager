@@ -52,7 +52,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
   // Simplified join: avoid nested currentLevel:levels that can fail silently
   const { data: bookings } = await admin
     .from('bookings')
-    .select('id, status, source, class_date, student:users!bookings_student_id_fkey(name, email, avatar_url)')
+    .select('id, status, source, class_date, student_id, student:users!bookings_student_id_fkey(name, email, avatar_url)')
     .eq('schedule_id', params.id)
     .neq('status', 'cancelled')
     .not('class_date', 'is', null)
@@ -122,6 +122,16 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
   const nextDateLabel = new Date(nextDate + 'T12:00:00Z').toLocaleDateString('es-ES', {
     weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ,
   })
+
+  const enrolledStudentIds = new Set(
+    (groupEnrollments ?? []).map((e: any) => e.student?.id).filter(Boolean)
+  )
+  const spotAvailableStudents = (allStudents ?? [])
+    .map((s: any) => ({ id: s.id, name: s.name, email: s.email }))
+    .filter((s) => !enrolledStudentIds.has(s.id))
+  const existingBookings = (bookings ?? [])
+    .filter((b: any) => b.student_id)
+    .map((b: any) => ({ studentId: b.student_id as string, classDate: b.class_date as string }))
 
   return (
     <div className="max-w-2xl">
@@ -234,8 +244,9 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           <AdminAddSpotBooking
             scheduleId={params.id}
             nextDate={nextDate}
-            availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
+            availableStudents={spotAvailableStudents}
             clubId={schedule.club_id ?? null}
+            existingBookings={existingBookings}
           />
         </div>
       )}
