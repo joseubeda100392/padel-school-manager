@@ -33,10 +33,15 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
   }
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar este club? Esta acción no se puede deshacer.')) return
+    if (!confirm('¿Eliminar este club y TODOS sus datos (alumnos, clases, pagos, etc.)? Esta acción NO se puede deshacer.')) return
     setDeleting(true)
-    const supabase = createClient()
-    await supabase.from('clubs').delete().eq('id', params.id)
+    const res = await fetch(`/api/admin/clubs/${params.id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      setError(json.error ?? 'Error al eliminar el club')
+      setDeleting(false)
+      return
+    }
     window.location.href = '/dashboard/clubs'
   }
 
