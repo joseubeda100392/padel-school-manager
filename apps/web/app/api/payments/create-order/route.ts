@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
   }
 
   let cfg = { ...DEFAULT_CFG }
-  let clubRow: any = null
 
   if (clubId) {
     const { data: club } = await admin
@@ -54,7 +53,6 @@ export async function POST(req: NextRequest) {
       .eq('id', clubId)
       .single()
 
-    clubRow = club
     if (club?.redsys_merchant_code) merchantCode = club.redsys_merchant_code
     if (club?.redsys_secret_key) secretKey = club.redsys_secret_key
     if (club?.redsys_merchant_terminal) terminal = club.redsys_merchant_terminal

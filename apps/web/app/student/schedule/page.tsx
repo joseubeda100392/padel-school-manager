@@ -69,8 +69,13 @@ export default async function StudentSchedulePage() {
         .order('excluded_date')
     : { data: [] }
 
-  const [{ data: cfgRow }, { data: spotBookings }, { data: userRow }] = await Promise.all([
-    getAdminClient().from('app_config').select('value').eq('key', 'cancellation_hours').single(),
+  const { data: userRow } = await getAdminClient().from('users').select('club_id').eq('id', user.id).single()
+  const clubId = (userRow as any)?.club_id ?? null
+
+  const [{ data: clubRow }, { data: spotBookings }] = await Promise.all([
+    clubId
+      ? getAdminClient().from('clubs').select('config').eq('id', clubId).single()
+      : { data: null },
     getAdminClient()
       .from('bookings')
       .select(`
@@ -86,11 +91,10 @@ export default async function StudentSchedulePage() {
       .not('class_date', 'is', null)
       .gte('class_date', (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })())
       .order('class_date'),
-    getAdminClient().from('users').select('club_id').eq('id', user.id).single(),
   ])
 
-  const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
-  const features = await getClubFeatures((userRow as any)?.club_id)
+  const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
+  const features = await getClubFeatures(clubId)
 
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any

@@ -35,14 +35,14 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const clubId = await getClubId()
   const view = searchParams.view === 'week' ? 'week' : 'list'
 
-  const schedulesQuery = supabase
+  const schedulesQuery = admin
     .from('schedules')
     .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name), level:levels(name, color)')
     .eq('is_active', true)
     .order('start_time', { ascending: true })
     .limit(200)
 
-  const courtsQuery = supabase
+  const courtsQuery = admin
     .from('courts')
     .select('id, name')
     .eq('is_active', true)

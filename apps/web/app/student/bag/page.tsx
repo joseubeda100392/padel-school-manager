@@ -16,7 +16,9 @@ export default async function StudentBagPage() {
   const features = await getClubFeatures((bagProfile as any)?.club_id)
   if (!features.enable_bag) redirect('/student')
 
-  const [{ data: bag }, { data: transactions }, { data: configs }] = await Promise.all([
+  const clubId = (bagProfile as any)?.club_id ?? null
+
+  const [{ data: bag }, { data: transactions }, { data: clubRow }] = await Promise.all([
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
       .from('bag_transactions')
@@ -24,20 +26,20 @@ export default async function StudentBagPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30),
-    admin
-      .from('app_config')
-      .select('key, value')
-      .in('key', ['pack_price_60', 'classes_per_pack_60', 'pack_price_90', 'classes_per_pack_90']),
+    clubId
+      ? admin.from('clubs').select('config').eq('id', clubId).single()
+      : { data: null },
   ])
 
   const balance60 = bag?.balance_60 ?? 0
   const balance90 = bag?.balance_90 ?? 0
-  const cfg = Object.fromEntries((configs ?? []).map(c => [c.key, c.value]))
+  const DEFAULT_CFG = { pack_price_60: 9000, classes_per_pack_60: 10, pack_price_90: 12000, classes_per_pack_90: 10 }
+  const cfg = { ...DEFAULT_CFG, ...((clubRow as any)?.config ?? {}) }
 
-  const pack60Price = parseInt(cfg.pack_price_60 ?? '9000')
-  const pack60Classes = parseInt(cfg.classes_per_pack_60 ?? '10')
-  const pack90Price = parseInt(cfg.pack_price_90 ?? '12000')
-  const pack90Classes = parseInt(cfg.classes_per_pack_90 ?? '10')
+  const pack60Price = cfg.pack_price_60
+  const pack60Classes = cfg.classes_per_pack_60
+  const pack90Price = cfg.pack_price_90
+  const pack90Classes = cfg.classes_per_pack_90
 
   return (
     <div className="max-w-2xl">

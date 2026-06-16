@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
-  const [{ data: enrollment }, { data: schedule }, { data: cfgRow }] = await Promise.all([
+  const { data: userProfile } = await admin.from('users').select('club_id').eq('id', user.id).single()
+  const clubId = (userProfile as any)?.club_id ?? null
+
+  const [{ data: enrollment }, { data: schedule }, { data: clubRow }] = await Promise.all([
     admin.from('group_enrollments')
       .select('id')
       .eq('schedule_id', scheduleId)
@@ -30,13 +33,15 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
       .single(),
     admin.from('schedules').select('start_time, end_time, court:courts(name), level:levels(name)').eq('id', scheduleId).single(),
-    admin.from('app_config').select('value').eq('key', 'cancellation_hours').single(),
+    clubId
+      ? admin.from('clubs').select('config').eq('id', clubId).single()
+      : { data: null },
   ])
 
   if (!enrollment) return NextResponse.json({ error: 'No estás inscrito en este grupo' }, { status: 403 })
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
 
-  const cancellationHours = cfgRow ? Number(cfgRow.value) : 24
+  const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
   const dateStr = date as string
   const classDt = getClassDatetime(schedule.start_time, dateStr)
 
@@ -98,9 +103,6 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
 
     const excludedIds = new Set((enrolledIds ?? []).map((e: any) => e.student_id))
-
-    const { data: adminUser } = await admin.from('users').select('club_id').eq('id', user.id).single()
-    const clubId = (adminUser as any)?.club_id
 
     const q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
     const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)

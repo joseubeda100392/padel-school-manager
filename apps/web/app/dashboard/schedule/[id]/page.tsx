@@ -37,7 +37,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
   const supabase = createClient()
   const admin = getAdminClient()
 
-  const { data: schedule } = await supabase
+  const { data: schedule } = await admin
     .from('schedules')
     .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name, email), level:levels(name, color)')
     .eq('id', params.id)
