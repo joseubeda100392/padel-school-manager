@@ -25,11 +25,11 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
   const today = new Date().toISOString().split('T')[0]
 
   const filtered = useMemo(() => {
-    if (!q.trim()) return []
+    if (!q.trim()) return availableStudents.slice(0, 8)
     const lower = q.toLowerCase()
     return availableStudents
       .filter(s => s.name.toLowerCase().includes(lower) || s.email.toLowerCase().includes(lower))
-      .slice(0, 6)
+      .slice(0, 8)
   }, [q, availableStudents])
 
   function selectStudent(s: Student) {
