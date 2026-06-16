@@ -14,15 +14,23 @@ export default async function AnalyticsPage() {
     { count: totalStudents },
     { count: totalCoaches },
     { data: payments },
-    { data: levels },
+    { data: levelsRaw },
     { data: bagStats },
+    { data: studentsRaw },
   ] = await Promise.all([
     filter(admin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
     filter(admin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true)),
     filter(admin.from('payments').select('amount, type, status, currency').eq('status', 'succeeded')),
-    filter(admin.from('levels').select('id, name, color, users(count)')).order('order'),
+    filter(admin.from('levels').select('id, name, color').order('order')),
     filter(admin.from('class_bag').select('balance_60, balance_90')),
+    filter(admin.from('users').select('current_level_id').eq('role', 'student').eq('is_active', true)),
   ])
+
+  const levelCountMap: Record<string, number> = {}
+  for (const s of studentsRaw ?? []) {
+    if (s.current_level_id) levelCountMap[s.current_level_id] = (levelCountMap[s.current_level_id] ?? 0) + 1
+  }
+  const levels = (levelsRaw ?? []).map((l: any) => ({ ...l, studentCount: levelCountMap[l.id] ?? 0 }))
 
   const totalRevenue = payments?.reduce((acc: number, p: any) => acc + p.amount, 0) ?? 0
   const revenueByType = (payments ?? []).reduce((acc: Record<string, number>, p: any) => {
@@ -62,7 +70,7 @@ export default async function AnalyticsPage() {
           <p className="mt-1 text-3xl font-bold text-brand-500">{formatCurrency(totalRevenue)}</p>
         </div>
         <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Clases disponibles</p>
+          <p className="text-sm text-gray-500">Clases en bolsa (total alumnos)</p>
           <p className="mt-1 text-3xl font-bold text-gray-900">{totalBagClasses}</p>
         </div>
       </div>
@@ -94,13 +102,13 @@ export default async function AnalyticsPage() {
 
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Alumnos por nivel</h2>
-          {levels?.length === 0 && (
+          {levels.length === 0 && (
             <p className="text-sm text-gray-400">No hay niveles creados.</p>
           )}
           <div className="space-y-3">
-            {levels?.map((level: any) => {
-              const count = level.users?.[0]?.count ?? 0
-              const max = Math.max(...(levels.map((l: any) => l.users?.[0]?.count ?? 0)), 1)
+            {levels.map((level: any) => {
+              const count = level.studentCount
+              const max = Math.max(...levels.map((l: any) => l.studentCount), 1)
               const pct = Math.round((count / max) * 100)
               return (
                 <div key={level.id}>
