@@ -35,17 +35,31 @@ export async function POST(req: NextRequest) {
   let terminal = process.env.REDSYS_TERMINAL ?? '001'
   let redsysEnv: string | null = null
 
+  const DEFAULT_CFG = {
+    pay_per_class_price_60: 1200,
+    pay_per_class_price_90: 1500,
+    pack_price_60: 9000,
+    classes_per_pack_60: 10,
+    pack_price_90: 12000,
+    classes_per_pack_90: 10,
+  }
+
+  let cfg = { ...DEFAULT_CFG }
+  let clubRow: any = null
+
   if (clubId) {
     const { data: club } = await admin
       .from('clubs')
-      .select('redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env')
+      .select('redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env, config')
       .eq('id', clubId)
       .single()
 
+    clubRow = club
     if (club?.redsys_merchant_code) merchantCode = club.redsys_merchant_code
     if (club?.redsys_secret_key) secretKey = club.redsys_secret_key
     if (club?.redsys_merchant_terminal) terminal = club.redsys_merchant_terminal
     if (club?.redsys_env) redsysEnv = club.redsys_env
+    if (club?.config) cfg = { ...DEFAULT_CFG, ...club.config }
   }
 
   if (!merchantCode || !secretKey) {
@@ -62,13 +76,6 @@ export async function POST(req: NextRequest) {
   }))
   if (badRequest) return badRequest
   const { type, scheduleId, packType, enrollmentId, exclusionId, classDate } = orderBody
-
-  const { data: configs } = await admin
-    .from('app_config')
-    .select('key, value')
-    .in('key', ['pay_per_class_price_60', 'pay_per_class_price_90', 'pack_price_60', 'classes_per_pack_60', 'pack_price_90', 'classes_per_pack_90'])
-
-  const cfg = Object.fromEntries((configs ?? []).map((c: any) => [c.key, c.value]))
 
   let amount: number
   let productDesc: string
@@ -89,7 +96,7 @@ export async function POST(req: NextRequest) {
       }
     }
     const priceKey = durationMin >= 80 ? 'pay_per_class_price_90' : 'pay_per_class_price_60'
-    amount = parseInt(cfg[priceKey] ?? (durationMin >= 80 ? '1500' : '1200'))
+    amount = cfg[priceKey]
     productDesc = durationMin >= 80 ? 'Clase de pádel 1h 30min' : 'Clase de pádel 1h'
 
   } else if (type === 'fixed_group_month') {
@@ -107,9 +114,9 @@ export async function POST(req: NextRequest) {
 
   } else {
     const is90 = packType === '90'
-    amount = parseInt(cfg[is90 ? 'pack_price_90' : 'pack_price_60'] ?? (is90 ? '12000' : '9000'))
-    classesToAdd = parseInt(cfg[is90 ? 'classes_per_pack_90' : 'classes_per_pack_60'] ?? '10')
-    productDesc = is90 ? 'Bono clases de pádel 1h 30min' : 'Bono clases de pádel 1h'
+    amount = cfg[is90 ? 'pack_price_90' : 'pack_price_60']
+    classesToAdd = cfg[is90 ? 'classes_per_pack_90' : 'classes_per_pack_60']
+    productDesc = is90 ? 'Bono clases de pádel 1h 30min' : 'Clase de pádel 1h'
   }
 
   if (!amount || amount <= 0) {
