@@ -77,9 +77,10 @@ export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
         {DAY_NAMES.map((dayName, idx) => {
           const date = weekDates[idx]
           const isToday = date.toDateString() === new Date().toDateString()
-          const classes = byDay[idx].sort((a, b) =>
-            new Date(a.start_time).getHours() - new Date(b.start_time).getHours()
-          )
+          const dateStr = date.toISOString().split('T')[0]
+          const classes = byDay[idx]
+            .filter((s: any) => !s.recurrence_end_date || dateStr <= s.recurrence_end_date)
+            .sort((a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours())
 
           return (
             <div key={idx}>
