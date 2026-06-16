@@ -30,9 +30,21 @@ export default function WeeklyCalendar({ schedules, holidays = [] }: { schedules
 
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset])
 
+  // Separate intensivos (shown as weekly banner) from regular classes
+  const intensivoGroups = useMemo(() => {
+    const groups: Record<string, any[]> = {}
+    for (const s of schedules) {
+      if (s.type !== 'intensivo' || !s.intensivo_group_id) continue
+      if (!groups[s.intensivo_group_id]) groups[s.intensivo_group_id] = []
+      groups[s.intensivo_group_id].push(s)
+    }
+    return groups
+  }, [schedules])
+
   const byDay = useMemo(() => {
     const map: Record<number, any[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
     schedules.forEach((s) => {
+      if (s.type === 'intensivo' && s.intensivo_group_id) return // shown in banner
       const idx = JS_DAY_TO_IDX[new Date(s.start_time).getDay()]
       if (idx !== undefined) map[idx].push(s)
     })
@@ -70,6 +82,59 @@ export default function WeeklyCalendar({ schedules, holidays = [] }: { schedules
           Siguiente →
         </button>
       </div>
+
+      {/* Intensivos de la semana — una tarjeta por grupo */}
+      {(() => {
+        const weekStart = weekDates[0].toISOString().split('T')[0]
+        const weekEnd = weekDates[6].toISOString().split('T')[0]
+        const weekGroups = Object.entries(intensivoGroups)
+          .map(([gid, classes]) => {
+            const thisWeek = classes.filter(s => {
+              const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(s.start_time))
+              return d >= weekStart && d <= weekEnd
+            })
+            if (!thisWeek.length) return null
+            const sorted = [...thisWeek].sort((a, b) => a.start_time.localeCompare(b.start_time))
+            return { gid, classes: sorted }
+          })
+          .filter(Boolean)
+
+        if (!weekGroups.length) return null
+        return (
+          <div className="mb-4 space-y-2">
+            {weekGroups.map(group => {
+              if (!group) return null
+              const first = group.classes[0]
+              const dayNames = group.classes.map((s: any) => DAY_NAMES[JS_DAY_TO_IDX[new Date(s.start_time).getDay()]])
+              const enrolled = group.classes.reduce((sum: number, s: any) => sum + (s.bookings_count ?? 0), 0)
+              return (
+                <div
+                  key={group.gid}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 cursor-pointer hover:bg-purple-100 transition-colors"
+                  onClick={() => router.push(`/dashboard/schedule/${first.id}`)}
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="rounded-full bg-purple-200 px-2.5 py-0.5 text-xs font-semibold text-purple-800">
+                      Intensivo
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {dayNames.join(' · ')} — {timeOnly(first.start_time)}–{timeOnly(group.classes[group.classes.length - 1].end_time)}
+                    </span>
+                    <span className="text-sm text-gray-500">{first.court?.name ?? '—'}</span>
+                    {first.coach?.name && <span className="text-sm text-gray-400">{first.coach.name}</span>}
+                    {first.level && (
+                      <span className="rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: first.level.color }}>
+                        {first.level.name}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-500">{enrolled}/{first.max_students} alumnos · {group.classes.length} clases</span>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
 
       {/* Columnas por día */}
       <div className="overflow-x-auto pb-2">

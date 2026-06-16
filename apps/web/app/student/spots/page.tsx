@@ -176,18 +176,8 @@ export default async function StudentSpotsPage() {
     return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
   })
 
-  // Group intensivos by intensivo_group_id
-  const intensivoGroups: Record<string, any[]> = {}
-  const regularCapacity: any[] = []
-  for (const s of eligibleCapacity) {
-    const gid = (s as any).intensivo_group_id
-    if (s.type === 'intensivo' && gid) {
-      if (!intensivoGroups[gid]) intensivoGroups[gid] = []
-      intensivoGroups[gid].push(s)
-    } else {
-      regularCapacity.push(s)
-    }
-  }
+  // Intensivos are handled in /student/intensivos — exclude them here
+  const regularCapacity = eligibleCapacity.filter((s: any) => s.type !== 'intensivo')
 
   const capacitySpots = regularCapacity.map(s => {
     const enrollments = (s.enrollments ?? []) as any[]
@@ -214,31 +204,6 @@ export default async function StudentSpotsPage() {
     }
   }).sort((a, b) => a.excludedDate.localeCompare(b.excludedDate))
 
-  // Build intensivo packs (one card per group)
-  const intensivoPacks = Object.entries(intensivoGroups).map(([groupId, classes]) => {
-    const sorted = [...classes].sort((a, b) => a.start_time.localeCompare(b.start_time))
-    const first = sorted[0]
-    const startDt = new Date(first.start_time)
-    const endDt = new Date(first.end_time)
-    const totalPrice = sorted.reduce((sum, s) => sum + ((s.price_cents as number | null) ?? 0), 0)
-    const firstDate = getClassDate(first) ?? today
-    return {
-      groupId,
-      scheduleIds: sorted.map((s: any) => s.id),
-      classDates: sorted.map((s: any) => getClassDate(s) ?? today),
-      days: sorted.map((s: any) => DAYS[getDayOfWeek(new Date(s.start_time))]),
-      startTime: formatTime(startDt),
-      endTime: formatTime(endDt),
-      durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
-      courtName: (first.court as any)?.name ?? '—',
-      coachName: (first.coach as any)?.name ?? null,
-      maxStudents: first.max_students,
-      level: first.level as any,
-      totalPriceCents: totalPrice,
-      firstDate,
-    }
-  }).sort((a, b) => a.firstDate.localeCompare(b.firstDate))
-
   const allSpots = [...absenceSpots, ...capacitySpots]
 
   return (
@@ -255,7 +220,7 @@ export default async function StudentSpotsPage() {
         <p className="text-sm text-gray-500">Plazas disponibles por ausencia de otro alumno o por capacidad libre</p>
       </div>
 
-      {allSpots.length === 0 && intensivoPacks.length === 0 ? (
+      {allSpots.length === 0 ? (
         <div className="rounded-xl bg-white p-10 text-center shadow-sm">
           <p className="text-2xl mb-2">🎾</p>
           <p className="text-gray-400">No hay huecos libres disponibles ahora mismo.</p>
@@ -264,7 +229,6 @@ export default async function StudentSpotsPage() {
       ) : (
         <SpotsClient
           spots={allSpots}
-          intensivoPacks={intensivoPacks}
           balance60={balance60}
           balance90={balance90}
           enablePayments={features.enable_payments}
