@@ -11,6 +11,8 @@ export type ClubFeatures = {
   enable_chat: boolean
   enable_materials: boolean
   enable_objectives: boolean
+  enable_tournaments: boolean
+  enable_intensivos: boolean
 }
 
 export const DEFAULT_FEATURES: ClubFeatures = {
@@ -22,6 +24,8 @@ export const DEFAULT_FEATURES: ClubFeatures = {
   enable_chat: true,
   enable_materials: true,
   enable_objectives: true,
+  enable_tournaments: true,
+  enable_intensivos: true,
 }
 
 export const getClubFeatures = cache(async (clubId: string | null | undefined): Promise<ClubFeatures> => {

@@ -49,6 +49,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     enable_60min: true, enable_90min: true, enable_payments: true,
     enable_spots: true, enable_bag: true, enable_chat: true,
     enable_materials: true, enable_objectives: true,
+    enable_tournaments: true, enable_intensivos: true,
   })
   const [featuresSaving, setFeaturesSaving] = useState(false)
   const [featuresSaved, setFeaturesSaved] = useState(false)
@@ -597,6 +598,8 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
             { key: 'enable_chat', label: 'Chat de soporte', desc: 'Chat entre alumnos/monitores y la administración' },
             { key: 'enable_materials', label: 'Material didáctico', desc: 'PDFs y contenido formativo por nivel' },
             { key: 'enable_objectives', label: 'Objetivos y progreso', desc: 'Checklists de progreso asignados por el monitor' },
+            { key: 'enable_tournaments', label: 'Torneos', desc: 'Gestión de torneos e inscripciones de alumnos' },
+            { key: 'enable_intensivos', label: 'Semanas intensivas', desc: 'Clases intensivas de pago único por semana' },
           ] as { key: keyof typeof features; label: string; desc: string }[]).map(({ key, label, desc }) => (
             <div key={key} className="flex items-center justify-between gap-4 rounded-lg px-3 py-3 hover:bg-gray-50">
               <div className="min-w-0">
