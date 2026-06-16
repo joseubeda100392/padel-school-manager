@@ -59,22 +59,24 @@ export default function NewSchedulePage() {
     const startDateTime = new Date(`${form.date}T${form.start_time}:00`)
     const endDateTime = new Date(startDateTime.getTime() + form.duration * 60 * 1000)
 
-    const supabase = createClient()
-    const { error: err } = await supabase.from('schedules').insert({
-      court_id: form.court_id,
-      coach_id: form.coach_id,
-      level_id: form.level_id || null,
-      start_time: startDateTime.toISOString(),
-      end_time: endDateTime.toISOString(),
-      recurrence: form.recurrence,
-      recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
-      max_students: form.max_students,
-      is_active: true,
-      club_id: clubId,
+    const res = await fetch('/api/admin/schedules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        court_id: form.court_id,
+        coach_id: form.coach_id,
+        level_id: form.level_id || null,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        recurrence: form.recurrence,
+        recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
+        max_students: form.max_students,
+        club_id: clubId,
+      }),
     })
-
-    if (err) {
-      setError(err.message)
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setError(json.error ?? 'Error al crear la clase')
       setLoading(false)
       return
     }

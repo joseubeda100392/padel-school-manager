@@ -63,20 +63,25 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
 
     setLoading(true)
     setError('')
-    const supabase = createClient()
-    const { error: err } = await supabase.from('schedules').update({
-      court_id: form.court_id,
-      coach_id: form.coach_id,
-      level_id: form.level_id || null,
-      start_time: startDateTime.toISOString(),
-      end_time: endDateTime.toISOString(),
-      recurrence: form.recurrence,
-      recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
-      max_students: form.max_students,
-      is_active: form.is_active,
-    }).eq('id', params.id)
 
-    if (err) { setError(err.message); setLoading(false); return }
+    const res = await fetch('/api/admin/schedules', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: params.id,
+        court_id: form.court_id,
+        coach_id: form.coach_id,
+        level_id: form.level_id || null,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        recurrence: form.recurrence,
+        recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
+        max_students: form.max_students,
+        is_active: form.is_active,
+      }),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) { setError(json.error ?? 'Error al guardar'); setLoading(false); return }
     window.location.href = `/dashboard/schedule/${params.id}`
   }
 
