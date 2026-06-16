@@ -24,7 +24,7 @@ function getWeekDates(offset: number) {
   })
 }
 
-export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
+export default function WeeklyCalendar({ schedules, holidays = [] }: { schedules: any[]; holidays?: string[] }) {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
 
@@ -78,7 +78,8 @@ export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
           const date = weekDates[idx]
           const isToday = date.toDateString() === new Date().toDateString()
           const dateStr = date.toISOString().split('T')[0]
-          const classes = byDay[idx]
+          const isHoliday = holidays.includes(dateStr)
+          const classes = isHoliday ? [] : byDay[idx]
             .filter((s: any) => !s.recurrence_end_date || dateStr <= s.recurrence_end_date)
             .sort((a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours())
 
@@ -94,7 +95,12 @@ export default function WeeklyCalendar({ schedules }: { schedules: any[] }) {
 
               {/* Clases del día */}
               <div className="space-y-2">
-                {classes.length === 0 && (
+                {isHoliday && (
+                  <div className="rounded-lg bg-orange-50 border border-orange-100 px-2 py-4 text-center">
+                    <p className="text-xs font-medium text-orange-500">Festivo</p>
+                  </div>
+                )}
+                {!isHoliday && classes.length === 0 && (
                   <div className="rounded-lg border border-dashed border-gray-200 px-2 py-4 text-center">
                     <p className="text-xs text-gray-300">Sin clases</p>
                   </div>

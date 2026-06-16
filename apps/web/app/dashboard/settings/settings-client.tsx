@@ -60,6 +60,10 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [redsysError, setRedsysError] = useState('')
   const [showSecretKey, setShowSecretKey] = useState(false)
 
+  const [holidays, setHolidays] = useState<string[]>([])
+  const [newHoliday, setNewHoliday] = useState('')
+  const [holidaysSaving, setHolidaysSaving] = useState(false)
+
   useEffect(() => {
     const supabase = createClient()
     Promise.all([
@@ -70,7 +74,8 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       supabase.from('users').select('name, email, avatar_url').eq('id', userId).single(),
       fetch('/api/club/redsys').catch(() => null),
       fetch('/api/admin/club-features').catch(() => null),
-    ]).then(async ([cfgRes, { data: c }, { data: userData }, redsysRes, featRes]) => {
+      fetch('/api/admin/club-holidays').catch(() => null),
+    ]).then(async ([cfgRes, { data: c }, { data: userData }, redsysRes, featRes, holRes]) => {
       if (userData) setProfile({ id: userId, ...userData })
       if (cfgRes?.ok) {
         const json = await cfgRes.json().catch(() => null)
@@ -84,6 +89,10 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       if (featRes?.ok) {
         const json = await featRes.json().catch(() => null)
         if (json?.features) setFeatures(prev => ({ ...prev, ...json.features }))
+      }
+      if (holRes?.ok) {
+        const json = await holRes.json().catch(() => null)
+        if (json?.holidays) setHolidays(json.holidays)
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -220,6 +229,34 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     setShowSecretKey(false)
     setRedsysSaved(true)
     setTimeout(() => setRedsysSaved(false), 2000)
+  }
+
+  async function addHoliday() {
+    if (!newHoliday || holidays.includes(newHoliday)) return
+    const updated = [...holidays, newHoliday].sort()
+    setHolidaysSaving(true)
+    const res = await fetch('/api/admin/club-holidays', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ holidays: updated }),
+    })
+    setHolidaysSaving(false)
+    if (res.ok) {
+      setHolidays(updated)
+      setNewHoliday('')
+    }
+  }
+
+  async function removeHoliday(date: string) {
+    const updated = holidays.filter(d => d !== date)
+    setHolidaysSaving(true)
+    const res = await fetch('/api/admin/club-holidays', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ holidays: updated }),
+    })
+    setHolidaysSaving(false)
+    if (res.ok) setHolidays(updated)
   }
 
   async function saveFeatures() {
@@ -590,6 +627,57 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       </div>
 
       {/* TPV Redsys */}
+      {/* Días festivos */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-1 font-semibold text-gray-900">Días festivos</h2>
+        <p className="mb-4 text-xs text-gray-400">
+          Las clases no se imparten estos días. No aparecerán en el calendario ni en los huecos disponibles.
+        </p>
+
+        <div className="mb-4 space-y-2">
+          {holidays.length === 0 && (
+            <p className="text-sm text-gray-400">No hay días festivos configurados.</p>
+          )}
+          {holidays.map(date => {
+            const label = new Date(date + 'T12:00:00').toLocaleDateString('es-ES', {
+              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+            })
+            return (
+              <div key={date} className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-2.5">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 capitalize">{label}</p>
+                  <p className="text-xs text-gray-400">{date}</p>
+                </div>
+                <button
+                  onClick={() => removeHoliday(date)}
+                  disabled={holidaysSaving}
+                  className="rounded-lg border border-red-100 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+                >
+                  Eliminar
+                </button>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={newHoliday}
+            onChange={e => setNewHoliday(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') addHoliday() }}
+            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+          />
+          <button
+            onClick={addHoliday}
+            disabled={holidaysSaving || !newHoliday || holidays.includes(newHoliday)}
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+          >
+            {holidaysSaving ? 'Guardando...' : 'Añadir'}
+          </button>
+        </div>
+      </div>
+
       {features.enable_payments && <div className="rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-1 font-semibold text-gray-900">TPV Redsys</h2>
         <p className="mb-5 text-xs text-gray-400">

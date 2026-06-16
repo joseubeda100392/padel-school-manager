@@ -48,19 +48,29 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     .eq('is_active', true)
     .order('name')
 
-  const [{ data: rawSchedules, error: errSchedules }, { data: courts, error: errCourts }, { data: enrollmentsRaw, error: errEnrollments }] = await Promise.all([
+  const [{ data: rawSchedules, error: errSchedules }, { data: courts, error: errCourts }, { data: enrollmentsRaw, error: errEnrollments }, { data: clubRow }] = await Promise.all([
     clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
     admin
       .from('group_enrollments')
       .select('id, schedule_id, schedule_exclusions(excluded_date)')
       .eq('status', 'active'),
+    clubId ? admin.from('clubs').select('config').eq('id', clubId).single() : Promise.resolve({ data: null }),
   ])
 
-  // Compute next occurrence date per schedule, skip if past recurrence_end_date
+  const holidays: string[] = (clubRow as any)?.config?.holidays ?? []
+  const holidaySet = new Set(holidays)
+
+  // Compute next occurrence date per schedule, skip if past recurrence_end_date or holiday
   const nextDateMap: Record<string, string> = {}
   for (const s of rawSchedules ?? []) {
-    const next = getNextDate(s.start_time)
+    let next = getNextDate(s.start_time)
+    // Advance past holidays (up to 52 weeks)
+    for (let i = 0; i < 52 && holidaySet.has(next); i++) {
+      const d = new Date(next + 'T12:00:00Z')
+      d.setUTCDate(d.getUTCDate() + 7)
+      next = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
+    }
     if (s.recurrence_end_date && next > s.recurrence_end_date) continue
     nextDateMap[s.id] = next
   }
@@ -135,7 +145,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       )}
 
       {view === 'week'
-        ? <WeeklyCalendar schedules={schedules} />
+        ? <WeeklyCalendar schedules={schedules} holidays={holidays} />
         : <ScheduleTable schedules={schedules} />
       }
     </div>

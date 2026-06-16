@@ -55,6 +55,11 @@ export default async function StudentSpotsPage() {
   const features = await getClubFeatures((userRow as any)?.club_id)
   if (!features.enable_spots) redirect('/student')
 
+  const { data: clubRow } = myClubId
+    ? await admin.from('clubs').select('config').eq('id', myClubId).single()
+    : { data: null }
+  const holidaySet = new Set<string>((clubRow as any)?.config?.holidays ?? [])
+
   const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }, { data: mySpotBookings }] = await Promise.all([
     admin
       .from('schedule_exclusions')
@@ -146,7 +151,13 @@ export default async function StudentSpotsPage() {
       const alreadyIn = active.some((e: any) => e.student_id === user.id)
       const levelId = (s.level as any)?.id ?? null
       const levelOk = !myLevelId || !levelId || levelId === myLevelId
-      const nextDate = getNextDate(s.start_time)
+      let nextDate = getNextDate(s.start_time)
+      // Advance past holidays
+      for (let i = 0; i < 52 && holidaySet.has(nextDate); i++) {
+        const d = new Date(nextDate + 'T12:00:00Z')
+        d.setUTCDate(d.getUTCDate() + 7)
+        nextDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
+      }
       const alreadyBooked = (mySpotBookings ?? []).some(
         b => b.schedule_id === s.id && b.class_date === nextDate
       )
@@ -161,7 +172,7 @@ export default async function StudentSpotsPage() {
       return {
         spotType: 'capacity' as const,
         exclusionId: null,
-        excludedDate: getNextDate(s.start_time),
+        excludedDate: nextDate,
         scheduleId: s.id,
         dayLabel: DAYS[getDayOfWeek(startDt)],
         startTime: formatTime(startDt),
