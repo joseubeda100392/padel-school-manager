@@ -41,7 +41,7 @@ export default async function CoachChatPage({
   if (!adminThread) {
     const { data: t } = await supabase
       .from('chat_threads')
-      .insert({ user_id: user.id, status: 'active', thread_type: 'admin' })
+      .insert({ user_id: user.id, status: 'active', thread_type: 'admin', club_id: (coachProfile as any)?.club_id ?? null })
       .select('id, status')
       .single()
     adminThread = t
