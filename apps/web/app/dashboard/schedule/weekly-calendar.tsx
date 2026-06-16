@@ -106,7 +106,7 @@ export default function WeeklyCalendar({ schedules, holidays = [] }: { schedules
               if (!group) return null
               const first = group.classes[0]
               const dayNames = group.classes.map((s: any) => DAY_NAMES[JS_DAY_TO_IDX[new Date(s.start_time).getDay()]])
-              const enrolled = group.classes.reduce((sum: number, s: any) => sum + (s.bookings_count ?? 0), 0)
+              const enrolled = first.bookings_count ?? 0
               return (
                 <div
                   key={group.gid}
