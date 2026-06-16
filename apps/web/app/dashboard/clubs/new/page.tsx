@@ -59,6 +59,7 @@ export default function NewClubPage() {
       }
     }
 
+    router.refresh()
     router.push('/dashboard/clubs')
   }
 

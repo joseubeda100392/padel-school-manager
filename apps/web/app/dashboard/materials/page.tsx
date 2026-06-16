@@ -1,4 +1,6 @@
-﻿import { createClient } from '@/lib/supabase/server'
+﻿export const dynamic = 'force-dynamic'
+
+import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { formatDate } from '@/lib/utils'
 import { DevError } from '@/components/dev-error'

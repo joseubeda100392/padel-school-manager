@@ -1,4 +1,6 @@
-﻿import { createClient } from '@/lib/supabase/server'
+﻿export const dynamic = 'force-dynamic'
+
+import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { LevelCard } from '@/components/levels/level-card'
 import { DevError } from '@/components/dev-error'

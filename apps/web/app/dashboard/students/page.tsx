@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId, isSuperAdmin } from '@/lib/get-club'
 import StudentsTable from './students-table'

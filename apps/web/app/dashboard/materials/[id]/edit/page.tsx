@@ -25,7 +25,9 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      const clubId = user?.user_metadata?.club_id ?? null
+      if (!user) return
+      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
+      const clubId = userData?.club_id ?? null
       const [{ data: material }, { data: lvls }] = await Promise.all([
         supabase
           .from('materials')

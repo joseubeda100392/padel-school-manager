@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { NotificationsClient } from './notifications-client'

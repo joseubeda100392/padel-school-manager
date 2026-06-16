@@ -42,7 +42,8 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
 
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    const clubId = user?.user_metadata?.club_id ?? null
+    const { data: userData } = await supabase.from('users').select('club_id').eq('id', user!.id).single()
+    const clubId = userData?.club_id ?? null
 
     const ext = file.name.split('.').pop()
     const path = `${clubId ?? 'global'}/${Date.now()}.${ext}`

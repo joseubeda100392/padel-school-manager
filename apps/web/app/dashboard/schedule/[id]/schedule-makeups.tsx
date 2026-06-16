@@ -53,7 +53,8 @@ export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: 
     setError('')
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    const clubId = user?.user_metadata?.club_id ?? null
+    const { data: userData } = await supabase.from('users').select('club_id').eq('id', user!.id).single()
+    const clubId = userData?.club_id ?? null
 
     const { error: err } = await supabase.from('makeups').insert({
       student_id: form.studentId,

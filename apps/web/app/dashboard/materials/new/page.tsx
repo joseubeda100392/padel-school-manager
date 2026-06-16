@@ -18,15 +18,19 @@ export default function NewMaterialPage() {
   const [levels, setLevels] = useState<Level[]>([])
   const [selectedLevels, setSelectedLevels] = useState<string[]>([])
   const [isPublished, setIsPublished] = useState(true)
+  const [clubId, setClubId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      const clubId = user?.user_metadata?.club_id ?? null
+      if (!user) return
+      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
+      const cid = userData?.club_id ?? null
+      setClubId(cid)
       const query = supabase.from('levels').select('id, name, color').order('order')
-      const { data } = await (clubId ? query.eq('club_id', clubId) : query)
+      const { data } = await (cid ? query.eq('club_id', cid) : query)
       if (data) setLevels(data)
     })
   }, [])
@@ -63,8 +67,6 @@ export default function NewMaterialPage() {
     }
 
     const { data: urlData } = supabase.storage.from('materials').getPublicUrl(path)
-
-    const clubId = user.user_metadata?.club_id ?? null
 
     const { data: material, error: insertError } = await supabase
       .from('materials')

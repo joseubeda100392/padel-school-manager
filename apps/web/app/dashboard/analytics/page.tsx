@@ -1,4 +1,6 @@
-﻿import { getAdminClient } from '@/lib/supabase/admin'
+﻿export const dynamic = 'force-dynamic'
+
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { formatCurrency } from '@/lib/utils'
 

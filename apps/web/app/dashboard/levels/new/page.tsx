@@ -1,11 +1,13 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6']
 
 export default function NewLevelPage() {
+  const router = useRouter()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [color, setColor] = useState('#6366f1')
@@ -28,7 +30,8 @@ export default function NewLevelPage() {
       return
     }
 
-    window.location.href = '/dashboard/levels'
+    router.refresh()
+    router.push('/dashboard/levels')
   }
 
   return (
