@@ -136,12 +136,15 @@ export function TournamentsClient({ tournaments }: { tournaments: Tournament[] }
                   )
                 ) : canRegister ? (
                   t.price_cents > 0 ? (
-                    <PayButton
-                      type="tournament"
-                      tournamentId={t.id}
-                      label={`Pagar y apuntarme — ${(t.price_cents / 100).toFixed(2)} €`}
-                      className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-                    />
+                    <div className="flex flex-col items-end gap-1">
+                      <PayButton
+                        type="tournament"
+                        tournamentId={t.id}
+                        label={`Pagar y apuntarme — ${(t.price_cents / 100).toFixed(2)} €`}
+                        className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+                      />
+                      <p className="text-xs text-gray-400">La inscripción no es reembolsable</p>
+                    </div>
                   ) : (
                     <button
                       onClick={() => handleRegister(t.id)}
