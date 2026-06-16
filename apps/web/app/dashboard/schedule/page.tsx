@@ -33,7 +33,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const supabase = createClient()
   const admin = getAdminClient()
   const clubId = await getClubId()
-  const view = searchParams.view === 'week' ? 'week' : 'list'
+  const view = searchParams.view === 'list' ? 'list' : 'week'
 
   const schedulesQuery = admin
     .from('schedules')
