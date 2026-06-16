@@ -191,11 +191,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Alumnos activos</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{totalStudents ?? 0}</p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Monitores</p>
           <p className="mt-1 text-3xl font-bold text-gray-900">{totalCoaches ?? 0}</p>
