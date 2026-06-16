@@ -2,12 +2,17 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
+import { getClubFeatures } from '@/lib/get-club-features'
+import { redirect } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
 import { DevError } from '@/components/dev-error'
 
 export default async function MaterialsPage() {
   const supabase = createClient()
   const clubId = await getClubId()
+
+  const features = await getClubFeatures(clubId ?? undefined)
+  if (!features.enable_materials) redirect('/dashboard')
 
   const query = supabase
     .from('materials')

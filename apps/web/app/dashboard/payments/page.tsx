@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
+import { getClubFeatures } from '@/lib/get-club-features'
+import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import PaymentsTable from './payments-table'
 import { UnpaidList } from './unpaid-list'
@@ -14,6 +16,9 @@ const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto
 export default async function PaymentsPage({ searchParams }: { searchParams: { month?: string } }) {
   const admin = getAdminClient()
   const clubId = await getClubId()
+
+  const features = await getClubFeatures(clubId ?? undefined)
+  if (!features.enable_payments) redirect('/dashboard')
 
   const now = new Date()
   const parsedDate = searchParams.month ? new Date(searchParams.month + '-01') : null

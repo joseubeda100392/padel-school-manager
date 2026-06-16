@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
+import { getClubFeatures } from '@/lib/get-club-features'
+import { redirect } from 'next/navigation'
 import { ChatWindow } from './chat-window'
 import { DevError } from '@/components/dev-error'
 
@@ -10,6 +12,9 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   const supabase = createClient()
   const admin = getAdminClient()
   const clubId = await getClubId()
+
+  const features = await getClubFeatures(clubId ?? undefined)
+  if (!features.enable_chat) redirect('/dashboard')
 
   let threadsQuery = admin
     .from('chat_threads')
