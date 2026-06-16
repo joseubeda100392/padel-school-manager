@@ -160,13 +160,32 @@ export async function POST(req: NextRequest) {
     if (schedules[0].club_id !== clubId) {
       return NextResponse.json({ error: 'No perteneces a este club' }, { status: 403 })
     }
-    // Validate capacity and not already enrolled
+    // Check existing bookings (intensivos use bookings, not group_enrollments)
+    const scheduleIds = schedules.map(s => s.id)
+    const { data: existingBookings } = await admin
+      .from('bookings')
+      .select('schedule_id')
+      .eq('student_id', user.id)
+      .eq('status', 'confirmed')
+      .in('schedule_id', scheduleIds)
+    if (existingBookings && existingBookings.length > 0) {
+      return NextResponse.json({ error: 'Ya estás inscrito en este intensivo' }, { status: 409 })
+    }
+
+    // Validate capacity (group_enrollments + confirmed bookings per schedule)
+    const { data: allBookings } = await admin
+      .from('bookings')
+      .select('schedule_id')
+      .eq('status', 'confirmed')
+      .in('schedule_id', scheduleIds)
+    const bookingCountMap: Record<string, number> = {}
+    for (const b of allBookings ?? []) {
+      bookingCountMap[b.schedule_id] = (bookingCountMap[b.schedule_id] ?? 0) + 1
+    }
     for (const s of schedules) {
-      const active = (s.enrollments as any[]).filter((e: any) => e.status === 'active')
-      if (active.some((e: any) => e.student_id === user.id)) {
-        return NextResponse.json({ error: 'Ya estás inscrito en alguna clase de este intensivo' }, { status: 409 })
-      }
-      if (active.length >= s.max_students) {
+      const groupActive = (s.enrollments as any[]).filter((e: any) => e.status === 'active').length
+      const spotBookings = bookingCountMap[s.id] ?? 0
+      if (groupActive + spotBookings >= s.max_students) {
         return NextResponse.json({ error: 'No hay plazas disponibles en alguna clase del intensivo' }, { status: 409 })
       }
     }

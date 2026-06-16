@@ -23,7 +23,7 @@ export default async function StudentIntensivosPage() {
 
   const features = await getClubFeatures(myClubId)
 
-  const [{ data: schedulesRaw }, { data: myBookings }] = await Promise.all([
+  const [{ data: schedulesRaw }, { data: myBookings }, { data: allIntensivosBookings }] = await Promise.all([
     myClubId
       ? admin
           .from('schedules')
@@ -44,9 +44,16 @@ export default async function StudentIntensivosPage() {
       .select('schedule_id')
       .eq('student_id', user.id)
       .eq('status', 'confirmed'),
+    myClubId
+      ? admin.from('bookings').select('schedule_id').eq('status', 'confirmed')
+      : { data: [] },
   ])
 
   const bookedScheduleIds = new Set((myBookings ?? []).map((b: any) => b.schedule_id))
+  const bookingCountMap: Record<string, number> = {}
+  for (const b of allIntensivosBookings ?? []) {
+    bookingCountMap[(b as any).schedule_id] = (bookingCountMap[(b as any).schedule_id] ?? 0) + 1
+  }
 
   // Group by intensivo_group_id, filter to current/future
   const groups: Record<string, any[]> = {}
@@ -67,8 +74,9 @@ export default async function StudentIntensivosPage() {
     const totalPrice = sorted.reduce((sum: number, s: any) => sum + ((s.price_cents as number | null) ?? 0), 0)
     const isEnrolled = sorted.some((s: any) => bookedScheduleIds.has(s.id))
     const isFull = sorted.some((s: any) => {
-      const active = ((s.enrollments ?? []) as any[]).filter((e: any) => e.status === 'active')
-      return active.length >= s.max_students
+      const groupActive = ((s.enrollments ?? []) as any[]).filter((e: any) => e.status === 'active').length
+      const spotCount = bookingCountMap[s.id] ?? 0
+      return groupActive + spotCount >= s.max_students
     })
 
     return {
