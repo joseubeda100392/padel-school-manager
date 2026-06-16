@@ -1,7 +1,6 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Level {
@@ -11,7 +10,6 @@ interface Level {
 }
 
 export default function EditMaterialPage({ params }: { params: { id: string } }) {
-  const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isPublished, setIsPublished] = useState(true)
@@ -84,8 +82,7 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
       )
     }
 
-    router.refresh()
-    router.push('/dashboard/materials')
+    window.location.href = '/dashboard/materials'
   }
 
   async function handleDelete() {
@@ -94,8 +91,7 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
     const supabase = createClient()
     await supabase.from('material_levels').delete().eq('material_id', params.id)
     await supabase.from('materials').delete().eq('id', params.id)
-    router.refresh()
-    router.push('/dashboard/materials')
+    window.location.href = '/dashboard/materials'
   }
 
   if (!loaded) return <div className="p-8 text-center text-gray-400">Cargando...</div>

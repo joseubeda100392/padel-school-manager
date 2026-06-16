@@ -1,11 +1,9 @@
 ﻿'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function NewClubPage() {
-  const router = useRouter()
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [plan, setPlan] = useState<'trial' | 'basic' | 'pro'>('trial')
@@ -59,8 +57,7 @@ export default function NewClubPage() {
       }
     }
 
-    router.refresh()
-    router.push('/dashboard/clubs')
+    window.location.href = '/dashboard/clubs'
   }
 
   return (

@@ -1,11 +1,9 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function EditClubPage({ params }: { params: { id: string } }) {
-  const router = useRouter()
   const [form, setForm] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -31,8 +29,7 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
       is_active: form.is_active,
     }).eq('id', params.id)
     if (err) { setError(err.message); setLoading(false); return }
-    router.refresh()
-    router.push('/dashboard/clubs')
+    window.location.href = '/dashboard/clubs'
   }
 
   async function handleDelete() {
@@ -40,8 +37,7 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
     setDeleting(true)
     const supabase = createClient()
     await supabase.from('clubs').delete().eq('id', params.id)
-    router.refresh()
-    router.push('/dashboard/clubs')
+    window.location.href = '/dashboard/clubs'
   }
 
   if (!form) return <div className="p-8 text-center text-gray-400">Cargando...</div>

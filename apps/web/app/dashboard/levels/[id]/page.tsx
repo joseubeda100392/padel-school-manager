@@ -1,13 +1,11 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#6b7280', '#1d4ed8']
 
 export default function EditLevelPage({ params }: { params: { id: string } }) {
-  const router = useRouter()
   const [form, setForm] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -34,8 +32,7 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
     }).eq('id', params.id)
     setSaving(false)
     if (err) { setError(err.message); return }
-    router.refresh()
-    router.push('/dashboard/levels')
+    window.location.href = '/dashboard/levels'
   }
 
   async function handleDelete() {
@@ -44,8 +41,7 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
     const supabase = createClient()
     await supabase.from('users').update({ current_level_id: null }).eq('current_level_id', params.id)
     await supabase.from('levels').delete().eq('id', params.id)
-    router.refresh()
-    router.push('/dashboard/levels')
+    window.location.href = '/dashboard/levels'
   }
 
   if (!form) return <div className="p-8 text-center text-gray-400">Cargando...</div>

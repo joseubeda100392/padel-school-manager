@@ -1,7 +1,6 @@
 ﻿'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 
 interface Message {
   id: string
@@ -34,7 +33,6 @@ function formatDate(dateStr: string) {
 }
 
 export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
-  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -80,16 +78,14 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'resolved' }),
     })
-    router.refresh()
-    router.push('/dashboard/chat')
+    window.location.href = '/dashboard/chat'
   }
 
   async function deleteThread() {
     if (!confirm('¿Eliminar esta conversación? Se borrarán todos los mensajes.')) return
     setDeleting(true)
     await fetch(`/api/chat/threads/${thread.id}`, { method: 'DELETE' })
-    router.refresh()
-    router.push('/dashboard/chat')
+    window.location.href = '/dashboard/chat'
   }
 
   const grouped: { date: string; msgs: Message[] }[] = []

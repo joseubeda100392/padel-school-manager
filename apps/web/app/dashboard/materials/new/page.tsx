@@ -1,7 +1,6 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Level {
@@ -11,7 +10,6 @@ interface Level {
 }
 
 export default function NewMaterialPage() {
-  const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -93,8 +91,7 @@ export default function NewMaterialPage() {
       )
     }
 
-    router.refresh()
-    router.push('/dashboard/materials')
+    window.location.href = '/dashboard/materials'
   }
 
   return (

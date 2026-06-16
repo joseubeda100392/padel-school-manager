@@ -1,11 +1,9 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function EditSchedulePage({ params }: { params: { id: string } }) {
-  const router = useRouter()
   const [courts, setCourts] = useState<any[]>([])
   const [coaches, setCoaches] = useState<any[]>([])
   const [levels, setLevels] = useState<any[]>([])
@@ -79,8 +77,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
     }).eq('id', params.id)
 
     if (err) { setError(err.message); setLoading(false); return }
-    router.refresh()
-    router.push(`/dashboard/schedule/${params.id}`)
+    window.location.href = `/dashboard/schedule/${params.id}`
   }
 
   if (!form) return <div className="p-8 text-center text-gray-400">Cargando...</div>

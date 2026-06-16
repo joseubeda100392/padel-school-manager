@@ -1,11 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export function ScheduleActions({ scheduleId }: { scheduleId: string }) {
-  const router = useRouter()
   const [deleting, setDeleting] = useState(false)
 
   async function handleDelete() {
@@ -14,8 +12,7 @@ export function ScheduleActions({ scheduleId }: { scheduleId: string }) {
     const supabase = createClient()
     await supabase.from('bookings').delete().eq('schedule_id', scheduleId)
     await supabase.from('schedules').delete().eq('id', scheduleId)
-    router.refresh()
-    router.push('/dashboard/schedule')
+    window.location.href = '/dashboard/schedule'
   }
 
   return (
