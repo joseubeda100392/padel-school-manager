@@ -21,38 +21,51 @@ export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionI
   async function handlePay() {
     setLoading(true)
     setError('')
-    const res = await fetch('/api/payments/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, enrollmentId, packType, scheduleId, exclusionId, classDate }),
-    })
-    const json = await res.json()
-    if (!res.ok) {
-      setError(json.error ?? 'Error al procesar el pago')
+    try {
+      const res = await fetch('/api/payments/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, enrollmentId, packType, scheduleId, exclusionId, classDate }),
+      })
+
+      let json: any
+      try {
+        json = await res.json()
+      } catch {
+        setError('Error del servidor. Inténtalo de nuevo.')
+        setLoading(false)
+        return
+      }
+
+      if (!res.ok) {
+        setError(json.error ?? 'Error al procesar el pago')
+        setLoading(false)
+        return
+      }
+
+      const form = document.createElement('form')
+      form.method = 'POST'
+      form.action = json.redsysUrl
+
+      const fields = {
+        Ds_SignatureVersion: 'HMAC_SHA256_V1',
+        Ds_MerchantParameters: json.merchantParameters,
+        Ds_Signature: json.signature,
+      }
+      for (const [name, value] of Object.entries(fields)) {
+        const input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = name
+        input.value = value
+        form.appendChild(input)
+      }
+
+      document.body.appendChild(form)
+      form.submit()
+    } catch (err: any) {
+      setError('Error de conexión. Inténtalo de nuevo.')
       setLoading(false)
-      return
     }
-
-    // Submit directly to Redsys — avoids base64 corruption through URL query params
-    const form = document.createElement('form')
-    form.method = 'POST'
-    form.action = json.redsysUrl
-
-    const fields = {
-      Ds_SignatureVersion: 'HMAC_SHA256_V1',
-      Ds_MerchantParameters: json.merchantParameters,
-      Ds_Signature: json.signature,
-    }
-    for (const [name, value] of Object.entries(fields)) {
-      const input = document.createElement('input')
-      input.type = 'hidden'
-      input.name = name
-      input.value = value
-      form.appendChild(input)
-    }
-
-    document.body.appendChild(form)
-    form.submit()
   }
 
   return (
