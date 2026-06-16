@@ -17,6 +17,7 @@ const scheduleSchema = z.object({
   is_active: z.boolean().optional(),
   club_id: z.string().uuid().nullable().optional(),
   type: z.enum(['regular', 'intensivo']).optional(),
+  price_cents: z.number().int().min(0).nullable().optional(),
 })
 
 function toMinutes(iso: string) {
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
     is_active: true,
     club_id: effectiveClubId,
     type: body.type ?? 'regular',
+    price_cents: body.price_cents ?? null,
   }).select('id').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -131,6 +133,7 @@ export async function PATCH(req: NextRequest) {
     max_students: body.max_students,
     is_active: body.is_active ?? true,
     type: body.type ?? 'regular',
+    price_cents: body.price_cents ?? null,
   }).eq('id', body.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -68,7 +68,7 @@ export default async function StudentSpotsPage() {
         group_enrollment:group_enrollments!group_enrollment_id(
           schedule_id,
           schedule:schedules!schedule_id(
-            id, start_time, end_time, max_students, club_id,
+            id, start_time, end_time, max_students, club_id, type, price_cents,
             court:courts(name),
             level:levels(id, name, color),
             coach:users!schedules_coach_id_fkey(name)
@@ -87,7 +87,7 @@ export default async function StudentSpotsPage() {
     admin
       .from('schedules')
       .select(`
-        id, start_time, end_time, max_students, recurrence_end_date,
+        id, start_time, end_time, max_students, recurrence_end_date, type, price_cents,
         court:courts(name),
         level:levels(id, name, color),
         coach:users!schedules_coach_id_fkey(name),
@@ -129,6 +129,8 @@ export default async function StudentSpotsPage() {
         exclusionId: s.id,
         excludedDate: s.excluded_date,
         scheduleId: ge?.schedule_id,
+        scheduleType: (schedule?.type ?? 'regular') as 'regular' | 'intensivo',
+        schedulePriceCents: (schedule?.price_cents as number | null) ?? null,
         dayLabel: DAYS[getDayOfWeek(startDt)],
         startTime: formatTime(startDt),
         endTime: formatTime(endDt),
@@ -180,6 +182,8 @@ export default async function StudentSpotsPage() {
         exclusionId: null,
         excludedDate: computedDate,
         scheduleId: s.id,
+        scheduleType: (s.type ?? 'regular') as 'regular' | 'intensivo',
+        schedulePriceCents: (s.price_cents as number | null) ?? null,
         dayLabel: DAYS[getDayOfWeek(startDt)],
         startTime: formatTime(startDt),
         endTime: formatTime(endDt),

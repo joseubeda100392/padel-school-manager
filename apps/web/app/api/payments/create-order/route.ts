@@ -81,21 +81,30 @@ export async function POST(req: NextRequest) {
 
   if (type === 'single_class') {
     let durationMin = 60
+    let scheduleType = 'regular'
+    let schedulePriceCents: number | null = null
     if (scheduleId) {
       const { data: schedule } = await admin
         .from('schedules')
-        .select('start_time, end_time')
+        .select('start_time, end_time, type, price_cents')
         .eq('id', scheduleId)
         .single()
       if (schedule) {
         durationMin = Math.round(
           (new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000
         )
+        scheduleType = (schedule as any).type ?? 'regular'
+        schedulePriceCents = (schedule as any).price_cents ?? null
       }
     }
-    const priceKey = durationMin >= 80 ? 'pay_per_class_price_90' : 'pay_per_class_price_60'
-    amount = cfg[priceKey]
-    productDesc = durationMin >= 80 ? 'Clase de pádel 1h 30min' : 'Clase de pádel 1h'
+    if (schedulePriceCents && schedulePriceCents > 0) {
+      amount = schedulePriceCents
+      productDesc = scheduleType === 'intensivo' ? 'Clase intensivo pádel' : 'Clase de pádel'
+    } else {
+      const priceKey = durationMin >= 80 ? 'pay_per_class_price_90' : 'pay_per_class_price_60'
+      amount = cfg[priceKey]
+      productDesc = durationMin >= 80 ? 'Clase de pádel 1h 30min' : 'Clase de pádel 1h'
+    }
 
   } else if (type === 'fixed_group_month') {
     if (!enrollmentId) return NextResponse.json({ error: 'enrollmentId requerido' }, { status: 400 })

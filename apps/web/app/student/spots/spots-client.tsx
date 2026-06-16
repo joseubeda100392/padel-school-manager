@@ -9,6 +9,8 @@ interface Spot {
   exclusionId: string | null
   excludedDate: string
   scheduleId: string
+  scheduleType?: 'regular' | 'intensivo'
+  schedulePriceCents?: number | null
   dayLabel: string
   startTime: string
   endTime: string
@@ -32,9 +34,10 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
 
   const freePlaces = spot.enrolledCount !== null ? spot.maxStudents - spot.enrolledCount : 1
   const durationType: '60' | '90' = spot.durationMin >= 80 ? '90' : '60'
-  const hasBalance = durationType === '90'
+  const isIntensivo = spot.scheduleType === 'intensivo'
+  const hasBalance = !isIntensivo && (durationType === '90'
     ? balance90 > 0
-    : balance60 > 0 || balance90 > 0
+    : balance60 > 0 || balance90 > 0)
 
   async function handleUseBag() {
     if (!confirm(`¿Confirmas que quieres usar 1 clase de tu bolsa para el ${dateLabel}?`)) return
@@ -80,6 +83,9 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
             ) : (
               <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">Hueco por falta</span>
             )}
+            {isIntensivo && (
+              <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Intensivo</span>
+            )}
             {spot.enrolledCount !== null && (
               <span className="text-xs text-gray-400">{spot.enrolledCount}/{spot.maxStudents} alumnos · {freePlaces} plaza{freePlaces !== 1 ? 's' : ''} libre{freePlaces !== 1 ? 's' : ''}</span>
             )}
@@ -120,8 +126,11 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
           {!hasBalance && enable90min && durationType === '90' && balance60 > 0 && (
             <p className="text-xs text-orange-600">Tu bono es de 60min — no válido para 1h 30min</p>
           )}
-          {!hasBalance && balance60 === 0 && balance90 === 0 && (
+          {!isIntensivo && !hasBalance && balance60 === 0 && balance90 === 0 && (
             <p className="text-xs text-gray-400">Sin saldo en bolsa</p>
+          )}
+          {isIntensivo && spot.schedulePriceCents && spot.schedulePriceCents > 0 && (
+            <p className="text-xs text-gray-400">{(spot.schedulePriceCents / 100).toFixed(2)} € / clase</p>
           )}
         </div>
       </div>
