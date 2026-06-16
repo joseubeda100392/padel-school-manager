@@ -22,6 +22,10 @@ export default async function TournamentsPage() {
   const admin = getAdminClient()
   const clubId = await getClubId()
 
+  const { getClubFeatures } = await import('@/lib/get-club-features')
+  const features = await getClubFeatures(clubId ?? undefined)
+  if (!features.enable_tournaments) redirect('/dashboard')
+
   const { data: tournaments } = await admin
     .from('tournaments')
     .select('*, registrations:tournament_registrations(count)')

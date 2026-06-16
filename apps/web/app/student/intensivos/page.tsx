@@ -22,6 +22,8 @@ export default async function StudentIntensivosPage() {
   const myClubId: string | null = (userRow as any)?.club_id ?? null
 
   const features = await getClubFeatures(myClubId)
+  if (!features.enable_intensivos) redirect('/student')
+
 
   const [{ data: schedulesRaw }, { data: myBookings }, { data: allIntensivosBookings }] = await Promise.all([
     myClubId

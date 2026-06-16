@@ -58,6 +58,9 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     clubId ? admin.from('clubs').select('config').eq('id', clubId).single() : Promise.resolve({ data: null }),
   ])
 
+  const { getClubFeatures } = await import('@/lib/get-club-features')
+  const features = await getClubFeatures(clubId ?? undefined)
+
   const holidays: string[] = (clubRow as any)?.config?.holidays ?? []
   const holidaySet = new Set(holidays)
 
@@ -153,7 +156,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       )}
 
       {view === 'week'
-        ? <WeeklyCalendar schedules={schedules} holidays={holidays} />
+        ? <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} />
         : <ScheduleTable schedules={schedules} />
       }
     </div>

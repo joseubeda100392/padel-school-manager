@@ -24,6 +24,7 @@ export default function NewSchedulePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [clubId, setClubId] = useState<string | null>(null)
+  const [enableIntensivos, setEnableIntensivos] = useState(true)
 
   useEffect(() => {
     const supabase = createClient()
@@ -33,7 +34,7 @@ export default function NewSchedulePage() {
       const cid = userData?.club_id ?? null
       setClubId(cid)
 
-      const [{ data: c }, { data: u }, { data: l }] = await Promise.all([
+      const [{ data: c }, { data: u }, { data: l }, featRes] = await Promise.all([
         cid
           ? supabase.from('courts').select('id, name').eq('is_active', true).eq('club_id', cid).order('name')
           : supabase.from('courts').select('id, name').eq('is_active', true).order('name'),
@@ -43,10 +44,15 @@ export default function NewSchedulePage() {
         cid
           ? supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order')
           : supabase.from('levels').select('id, name, color').order('order'),
+        fetch('/api/admin/club-features').catch(() => null),
       ])
       if (c) setCourts(c)
       if (u) setCoaches(u)
       if (l) setLevels(l)
+      if (featRes?.ok) {
+        const j = await featRes.json().catch(() => ({}))
+        if (j?.features?.enable_intensivos === false) setEnableIntensivos(false)
+      }
     })
   }, [])
 
@@ -236,7 +242,7 @@ export default function NewSchedulePage() {
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">Tipo de clase</label>
           <div className="flex gap-3">
-            {[{ value: 'regular', label: 'Regular' }, { value: 'intensivo', label: 'Intensivo (verano)' }].map(opt => (
+            {[{ value: 'regular', label: 'Regular' }, ...(enableIntensivos ? [{ value: 'intensivo', label: 'Intensivo (verano)' }] : [])].map(opt => (
               <button
                 key={opt.value}
                 type="button"

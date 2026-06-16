@@ -16,6 +16,10 @@ export default async function StudentTournamentsPage() {
   const clubId: string | null = (userRow as any)?.club_id ?? null
   const myLevelId: string | null = (userRow as any)?.current_level_id ?? null
 
+  const { getClubFeatures } = await import('@/lib/get-club-features')
+  const features = await getClubFeatures(clubId ?? undefined)
+  if (!features.enable_tournaments) redirect('/student')
+
   const [{ data: tournamentsRaw }, { data: myRegistrations }, { data: levelsRaw }] = await Promise.all([
     clubId
       ? admin

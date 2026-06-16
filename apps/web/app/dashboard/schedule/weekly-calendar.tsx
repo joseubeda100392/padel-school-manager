@@ -24,7 +24,7 @@ function getWeekDates(offset: number) {
   })
 }
 
-export default function WeeklyCalendar({ schedules, holidays = [] }: { schedules: any[]; holidays?: string[] }) {
+export default function WeeklyCalendar({ schedules, holidays = [], enableIntensivos = true }: { schedules: any[]; holidays?: string[]; enableIntensivos?: boolean }) {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
 
@@ -84,7 +84,7 @@ export default function WeeklyCalendar({ schedules, holidays = [] }: { schedules
       </div>
 
       {/* Intensivos de la semana — una tarjeta por grupo */}
-      {(() => {
+      {enableIntensivos && (() => {
         const weekStart = weekDates[0].toISOString().split('T')[0]
         const weekEnd = weekDates[6].toISOString().split('T')[0]
         const weekGroups = Object.entries(intensivoGroups)
