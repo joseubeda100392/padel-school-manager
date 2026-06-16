@@ -39,6 +39,8 @@ const typeLabel: Record<string, string> = {
   fixed_group_month: 'Cuota mensual',
   single_class:      'Clase suelta',
   class_pack:        'Bono de clases',
+  tournament:        'Inscripción torneo',
+  intensivo_group:   'Semana intensiva',
   manual:            'Manual',
   subscription:      'Suscripción',
   pay_per_class:     'Clase suelta',
