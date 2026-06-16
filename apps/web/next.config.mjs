@@ -17,7 +17,7 @@ const securityHeaders = [
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
       "frame-ancestors 'none'",
       // /pay envía un form oculto al TPV de Redsys (test y producción)
-      "form-action 'self' https://sis.redsys.es https://sis-t.redsys.es",
+      "form-action 'self' https://sis.redsys.es https://sis-t.redsys.es https://sis-t.redsys.es:25443",
       "base-uri 'self'",
     ].join('; '),
   },
