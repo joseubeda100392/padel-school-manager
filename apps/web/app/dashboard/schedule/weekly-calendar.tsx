@@ -80,7 +80,13 @@ export default function WeeklyCalendar({ schedules, holidays = [] }: { schedules
           const dateStr = date.toISOString().split('T')[0]
           const isHoliday = holidays.includes(dateStr)
           const classes = isHoliday ? [] : byDay[idx]
-            .filter((s: any) => !s.recurrence_end_date || dateStr <= s.recurrence_end_date)
+            .filter((s: any) => {
+              if (s.recurrence === 'none') {
+                const scheduleDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(s.start_time))
+                return dateStr === scheduleDate
+              }
+              return !s.recurrence_end_date || dateStr <= s.recurrence_end_date
+            })
             .sort((a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours())
 
           return (

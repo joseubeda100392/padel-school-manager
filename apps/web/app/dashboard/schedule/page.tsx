@@ -61,9 +61,17 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const holidays: string[] = (clubRow as any)?.config?.holidays ?? []
   const holidaySet = new Set(holidays)
 
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+
   // Compute next occurrence date per schedule, skip if past recurrence_end_date or holiday
   const nextDateMap: Record<string, string> = {}
   for (const s of rawSchedules ?? []) {
+    if (s.recurrence === 'none') {
+      // One-off class: use the actual date, skip if in the past
+      const scheduleDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
+      if (scheduleDate >= todaySpain) nextDateMap[s.id] = scheduleDate
+      continue
+    }
     let next = getNextDate(s.start_time)
     // Advance past holidays (up to 52 weeks)
     for (let i = 0; i < 52 && holidaySet.has(next); i++) {
