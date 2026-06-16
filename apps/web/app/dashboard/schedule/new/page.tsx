@@ -87,8 +87,8 @@ export default function NewSchedulePage() {
           level_id: form.level_id || null,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
-          recurrence: form.recurrence,
-          recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
+          recurrence: form.type === 'intensivo' ? 'none' : form.recurrence,
+          recurrence_end_date: form.type !== 'intensivo' && form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
           max_students: form.max_students,
           club_id: clubId,
           type: form.type,
@@ -203,6 +203,7 @@ export default function NewSchedulePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
+          {form.type !== 'intensivo' && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Recurrencia</label>
             <select
@@ -215,6 +216,7 @@ export default function NewSchedulePage() {
               <option value="biweekly">Quincenal</option>
             </select>
           </div>
+          )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Máx. alumnos</label>
             <input
