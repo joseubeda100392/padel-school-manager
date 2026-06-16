@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useSpring, useTransform } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target } from 'lucide-react'
+import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
@@ -27,6 +27,7 @@ const allNavItems = [
   { href: '/student/schedule', label: 'Mis Clases', icon: Calendar, exact: false, feature: null },
   { href: '/student/progress', label: 'Mi Progreso', icon: Target, exact: false, feature: 'enable_objectives' },
   { href: '/student/spots', label: 'Huecos', icon: Zap, exact: false, feature: 'enable_spots' },
+  { href: '/student/tournaments', label: 'Torneos', icon: Medal, exact: false, feature: null },
   { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false, feature: 'enable_bag' },
   { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false, feature: 'enable_materials' },
   { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false, feature: null },
