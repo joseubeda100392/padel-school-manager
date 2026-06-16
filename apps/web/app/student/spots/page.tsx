@@ -169,10 +169,16 @@ export default async function StudentSpotsPage() {
       const activeCount = enrollments.filter((e: any) => e.status === 'active').length
       const startDt = new Date(s.start_time)
       const endDt = new Date(s.end_time)
+      let computedDate = getNextDate(s.start_time)
+      for (let i = 0; i < 52 && holidaySet.has(computedDate); i++) {
+        const d = new Date(computedDate + 'T12:00:00Z')
+        d.setUTCDate(d.getUTCDate() + 7)
+        computedDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
+      }
       return {
         spotType: 'capacity' as const,
         exclusionId: null,
-        excludedDate: nextDate,
+        excludedDate: computedDate,
         scheduleId: s.id,
         dayLabel: DAYS[getDayOfWeek(startDt)],
         startTime: formatTime(startDt),
