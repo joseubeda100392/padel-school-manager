@@ -34,7 +34,7 @@ export default async function DashboardPage() {
     filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
     filter(admin.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
     admin.rpc('count_classes_today', { p_club_id: clubId ?? null }),
-    admin.rpc('count_pending_payments', { p_club_id: clubId ?? null }),
+    admin.rpc('count_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
     filter(admin.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
     admin.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
     getClubFeatures(clubId ?? undefined),

@@ -85,7 +85,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
           <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {monthLabel}</h2>
           <p className="text-xs text-gray-400">{unpaid.length} alumnos sin regularizar</p>
         </div>
-        <UnpaidList items={unpaid as any[]} monthLabel={monthLabel} />
+        <UnpaidList key={monthLabel} items={unpaid as any[]} monthLabel={monthLabel} />
       </div>
 
       <div>
