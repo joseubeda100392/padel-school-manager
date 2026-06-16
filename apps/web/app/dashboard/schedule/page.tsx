@@ -57,10 +57,12 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       .eq('status', 'active'),
   ])
 
-  // Compute next occurrence date per schedule
+  // Compute next occurrence date per schedule, skip if past recurrence_end_date
   const nextDateMap: Record<string, string> = {}
   for (const s of rawSchedules ?? []) {
-    nextDateMap[s.id] = getNextDate(s.start_time)
+    const next = getNextDate(s.start_time)
+    if (s.recurrence_end_date && next > s.recurrence_end_date) continue
+    nextDateMap[s.id] = next
   }
 
   // Count group members attending on their schedule's next date (no falta that day)
@@ -93,7 +95,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     }
   }
 
-  const schedules = (rawSchedules ?? []).map((s: any) => ({
+  const schedules = (rawSchedules ?? []).filter((s: any) => nextDateMap[s.id] !== undefined).map((s: any) => ({
     ...s,
     bookings_count: (groupAttendingMap[s.id] ?? 0) + (spotCountMap[s.id] ?? 0),
     is_fixed_group: isFixedGroupMap[s.id] ?? false,

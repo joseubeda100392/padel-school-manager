@@ -150,7 +150,8 @@ export default async function StudentSpotsPage() {
       const alreadyBooked = (mySpotBookings ?? []).some(
         b => b.schedule_id === s.id && b.class_date === nextDate
       )
-      return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
+      const notExpired = !(s.recurrence_end_date && nextDate > s.recurrence_end_date)
+      return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked && notExpired
     })
     .map(s => {
       const enrollments = (s.enrollments ?? []) as any[]
