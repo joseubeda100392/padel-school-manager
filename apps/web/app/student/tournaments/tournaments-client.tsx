@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { PayButton } from '@/components/pay-button'
 
 type Tournament = {
   id: string
@@ -118,13 +119,22 @@ export function TournamentsClient({ tournaments }: { tournaments: Tournament[] }
                     </span>
                   )
                 ) : canRegister ? (
-                  <button
-                    onClick={() => handleRegister(t.id)}
-                    disabled={state.loading}
-                    className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-                  >
-                    {state.loading ? '...' : 'Apuntarme'}
-                  </button>
+                  t.price_cents > 0 ? (
+                    <PayButton
+                      type="tournament"
+                      tournamentId={t.id}
+                      label={`Pagar y apuntarme — ${(t.price_cents / 100).toFixed(2)} €`}
+                      className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => handleRegister(t.id)}
+                      disabled={state.loading}
+                      className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+                    >
+                      {state.loading ? '...' : 'Apuntarme'}
+                    </button>
+                  )
                 ) : isFull ? (
                   <span className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-500">Completo</span>
                 ) : null}

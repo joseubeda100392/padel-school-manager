@@ -11,7 +11,7 @@ import {
   getRedsysUrl,
 } from '@/lib/redsys'
 
-type PaymentType = 'single_class' | 'class_pack' | 'fixed_group_month'
+type PaymentType = 'single_class' | 'class_pack' | 'fixed_group_month' | 'tournament'
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -65,15 +65,16 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: orderBody, error: badRequest } = await parseBody(req, z.object({
-    type: z.enum(['single_class', 'class_pack', 'fixed_group_month']),
+    type: z.enum(['single_class', 'class_pack', 'fixed_group_month', 'tournament']),
     scheduleId: z.string().uuid().optional(),
     packType: z.enum(['60', '90']).optional(),
     enrollmentId: z.string().uuid().optional(),
     exclusionId: z.string().uuid().optional(),
     classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    tournamentId: z.string().uuid().optional(),
   }))
   if (badRequest) return badRequest
-  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate } = orderBody
+  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate, tournamentId } = orderBody
 
   let amount: number
   let productDesc: string
@@ -119,6 +120,31 @@ export async function POST(req: NextRequest) {
     const now = new Date()
     productDesc = `Cuota grupo fijo ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
 
+  } else if (type === 'tournament') {
+    if (!tournamentId) return NextResponse.json({ error: 'tournamentId requerido' }, { status: 400 })
+    const { data: tournament } = await admin
+      .from('tournaments')
+      .select('id, name, status, price_cents, max_players, club_id')
+      .eq('id', tournamentId)
+      .single()
+    if (!tournament) return NextResponse.json({ error: 'Torneo no encontrado' }, { status: 404 })
+    if (tournament.status !== 'open') return NextResponse.json({ error: 'Las inscripciones están cerradas' }, { status: 409 })
+    if (tournament.club_id !== clubId) return NextResponse.json({ error: 'No perteneces a este club' }, { status: 403 })
+    const { count } = await admin
+      .from('tournament_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId)
+    if ((count ?? 0) >= tournament.max_players) return NextResponse.json({ error: 'El torneo está completo' }, { status: 409 })
+    const { data: alreadyReg } = await admin
+      .from('tournament_registrations')
+      .select('id')
+      .eq('tournament_id', tournamentId)
+      .eq('student_id', user.id)
+      .maybeSingle()
+    if (alreadyReg) return NextResponse.json({ error: 'Ya estás inscrito en este torneo' }, { status: 409 })
+    amount = tournament.price_cents
+    productDesc = `Inscripción torneo: ${tournament.name}`
+
   } else {
     const is90 = packType === '90'
     amount = cfg[is90 ? 'pack_price_90' : 'pack_price_60']
@@ -162,6 +188,7 @@ export async function POST(req: NextRequest) {
       enrollment_id: enrollmentId ?? null,
       exclusion_id: exclusionId ?? null,
       class_date: classDate ?? null,
+      tournament_id: tournamentId ?? null,
     },
   })
 

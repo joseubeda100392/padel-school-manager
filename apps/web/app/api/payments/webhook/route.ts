@@ -139,6 +139,20 @@ export async function POST(req: NextRequest) {
       .update({ paid_until: paidUntil })
       .eq('id', meta.enrollment_id)
       .eq('student_id', payment.user_id)
+
+  } else if (payment.type === 'tournament' && meta.tournament_id) {
+    const { data: existing } = await adminSupabase
+      .from('tournament_registrations')
+      .select('id')
+      .eq('tournament_id', meta.tournament_id)
+      .eq('student_id', payment.user_id)
+      .maybeSingle()
+    if (!existing) {
+      await adminSupabase.from('tournament_registrations').insert({
+        tournament_id: meta.tournament_id,
+        student_id: payment.user_id,
+      })
+    }
   }
 
   return NextResponse.json({ ok: true })

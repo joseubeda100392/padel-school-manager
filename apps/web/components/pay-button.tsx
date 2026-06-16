@@ -3,18 +3,19 @@
 import { useState } from 'react'
 
 interface PayButtonProps {
-  type: 'fixed_group_month' | 'class_pack' | 'single_class'
+  type: 'fixed_group_month' | 'class_pack' | 'single_class' | 'tournament'
   enrollmentId?: string
   packType?: '60' | '90'
   scheduleId?: string
   exclusionId?: string
   classDate?: string
+  tournamentId?: string
   label: string
   className?: string
   disabled?: boolean
 }
 
-export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionId, classDate, label, className, disabled }: PayButtonProps) {
+export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionId, classDate, tournamentId, label, className, disabled }: PayButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -25,7 +26,7 @@ export function PayButton({ type, enrollmentId, packType, scheduleId, exclusionI
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, enrollmentId, packType, scheduleId, exclusionId, classDate }),
+        body: JSON.stringify({ type, enrollmentId, packType, scheduleId, exclusionId, classDate, tournamentId }),
       })
 
       let json: any
