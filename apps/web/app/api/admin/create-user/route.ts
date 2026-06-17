@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -37,7 +38,10 @@ export async function POST(req: NextRequest) {
   if (role === 'admin' && caller.role !== 'super_admin') {
     return NextResponse.json({ error: 'Sin permisos para crear administradores' }, { status: 403 })
   }
-  const clubId = caller.role === 'super_admin' ? (clubIdOverride ?? caller.club_id) : caller.club_id
+  const cookieStore = cookies()
+  const clubId = caller.role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? clubIdOverride ?? caller.club_id)
+    : caller.club_id
 
   if (!clubId) {
     return NextResponse.json({ error: 'Club no determinado' }, { status: 400 })

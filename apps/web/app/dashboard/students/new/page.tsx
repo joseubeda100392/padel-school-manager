@@ -8,16 +8,21 @@ export default function NewStudentPage() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'student' | 'coach'>('student')
+  const [role, setRole] = useState<'student' | 'coach' | 'admin'>('student')
   const [levelId, setLevelId] = useState('')
   const [levels, setLevels] = useState<any[]>([])
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/admin/levels')
-      .then((r) => r.json())
-      .then(({ levels }) => { if (levels) setLevels(levels) })
+    Promise.all([
+      fetch('/api/admin/levels').then(r => r.json()),
+      fetch('/api/admin/club-features').then(r => r.json()),
+    ]).then(([levelsData, featData]) => {
+      if (levelsData.levels) setLevels(levelsData.levels)
+      if (featData.isSuperAdmin) setIsSuperAdmin(true)
+    })
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -83,11 +88,12 @@ export default function NewStudentPage() {
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Rol *</label>
           <select
             value={role}
-            onChange={(e) => setRole(e.target.value as 'student' | 'coach')}
+            onChange={(e) => setRole(e.target.value as 'student' | 'coach' | 'admin')}
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             <option value="student">Alumno</option>
             <option value="coach">Monitor</option>
+            {isSuperAdmin && <option value="admin">Admin</option>}
           </select>
         </div>
 

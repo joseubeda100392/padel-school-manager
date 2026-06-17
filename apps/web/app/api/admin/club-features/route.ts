@@ -24,10 +24,11 @@ export async function GET() {
   if (!result) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   const { caller, admin } = result
 
-  if (!caller.club_id) return NextResponse.json({ features: DEFAULT_FEATURES })
+  const isSuperAdmin = caller.role === 'super_admin'
+  if (!caller.club_id) return NextResponse.json({ features: DEFAULT_FEATURES, isSuperAdmin })
 
   const { data } = await admin.from('clubs').select('features').eq('id', caller.club_id).single()
-  return NextResponse.json({ features: { ...DEFAULT_FEATURES, ...(data?.features ?? {}) } })
+  return NextResponse.json({ features: { ...DEFAULT_FEATURES, ...(data?.features ?? {}) }, isSuperAdmin })
 }
 
 export async function PATCH(req: NextRequest) {
