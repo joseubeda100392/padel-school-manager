@@ -25,7 +25,7 @@ import type { ClubFeatures } from '@/lib/get-club-features'
 
 const baseNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, feature: null },
-  { href: '/dashboard/students', label: 'Alumnos', icon: Users, feature: null },
+  { href: '/dashboard/students', label: 'Usuarios', icon: Users, feature: null },
   { href: '/dashboard/levels', label: 'Niveles', icon: Trophy, feature: null },
   { href: '/dashboard/schedule', label: 'Clases', icon: CalendarDays, feature: null },
   { href: '/dashboard/tournaments', label: 'Torneos', icon: Medal, feature: 'enable_tournaments' },
