@@ -21,10 +21,23 @@ interface Props {
   levelMap: Record<string, any>
 }
 
+const TABS = [
+  { value: '', label: 'Todos' },
+  { value: 'student', label: 'Alumnos' },
+  { value: 'coach', label: 'Monitores' },
+  { value: 'admin', label: 'Admins' },
+]
+
 export default function StudentsTable({ students, levelMap }: Props) {
   const [q, setQ] = useState('')
-  const [role, setRole] = useState('')
+  const [role, setRole] = useState('student')
   const [status, setStatus] = useState('')
+
+  const countByRole = useMemo(() => {
+    const counts: Record<string, number> = { '': students.length }
+    for (const s of students) counts[s.role] = (counts[s.role] ?? 0) + 1
+    return counts
+  }, [students])
 
   function exportCSV() {
     const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta', 'Baja']
@@ -56,6 +69,25 @@ export default function StudentsTable({ students, levelMap }: Props) {
 
   return (
     <>
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border border-gray-100 bg-gray-50 p-1">
+        {TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setRole(tab.value)}
+            className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+              role === tab.value
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+            <span className={`rounded-full px-1.5 py-0.5 text-xs ${role === tab.value ? 'bg-brand-100 text-brand-600' : 'bg-gray-200 text-gray-500'}`}>
+              {countByRole[tab.value] ?? 0}
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div className="mb-4 flex flex-wrap gap-3">
         <input
           type="text"
@@ -64,16 +96,6 @@ export default function StudentsTable({ students, levelMap }: Props) {
           onChange={(e) => setQ(e.target.value)}
           className="min-w-[200px] flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
         />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-        >
-          <option value="">Todos los roles</option>
-          <option value="student">Alumnos</option>
-          <option value="coach">Monitores</option>
-          <option value="admin">Admins</option>
-        </select>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -100,7 +122,7 @@ export default function StudentsTable({ students, levelMap }: Props) {
       </div>
 
       <p className="mb-3 text-sm text-gray-400">
-        {filtered.length} de {students.length} usuarios
+        {filtered.length} {filtered.length === 1 ? 'usuario' : 'usuarios'}
       </p>
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
