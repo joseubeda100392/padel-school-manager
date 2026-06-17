@@ -3,7 +3,6 @@
 import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 export default function NewStudentPage() {
   const router = useRouter()
@@ -16,15 +15,9 @@ export default function NewStudentPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
-      const clubId = userData?.club_id ?? null
-      const query = supabase.from('levels').select('id,name,color').order('order')
-      const { data } = await (clubId ? query.eq('club_id', clubId) : query)
-      if (data) setLevels(data)
-    })
+    fetch('/api/admin/levels')
+      .then((r) => r.json())
+      .then(({ levels }) => { if (levels) setLevels(levels) })
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
