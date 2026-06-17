@@ -19,14 +19,8 @@ export default function NewTournamentPage() {
   })
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
-      const cid = userData?.club_id ?? null
-      if (!cid) return
-      const { data } = await supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order')
-      if (data) setLevels(data)
+    fetch('/api/admin/levels').then(r => r.json()).then(({ levels }) => {
+      if (levels) setLevels(levels)
     })
   }, [])
 

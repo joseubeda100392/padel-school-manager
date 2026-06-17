@@ -13,23 +13,15 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
-      const cid = userData?.club_id ?? null
-
-      const [{ data: s }, { data: c }, { data: u }, { data: l }] = await Promise.all([
-        supabase.from('schedules').select('*').eq('id', params.id).single(),
-        cid
-          ? supabase.from('courts').select('id, name').eq('is_active', true).eq('club_id', cid).order('name')
-          : supabase.from('courts').select('id, name').eq('is_active', true).order('name'),
-        cid
-          ? supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).eq('club_id', cid).order('name')
-          : supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name'),
-        cid
-          ? supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order')
-          : supabase.from('levels').select('id, name, color').order('order'),
-      ])
+    Promise.all([
+      supabase.from('schedules').select('*').eq('id', params.id).single(),
+      fetch('/api/admin/courts').then(r => r.json()),
+      fetch('/api/admin/coaches').then(r => r.json()),
+      fetch('/api/admin/levels').then(r => r.json()),
+    ]).then(([{ data: s }, courtsData, coachesData, levelsData]) => {
+      const c = courtsData.courts ?? []
+      const u = coachesData.coaches ?? []
+      const l = levelsData.levels ?? []
 
       if (s) {
         const start = new Date(s.start_time)

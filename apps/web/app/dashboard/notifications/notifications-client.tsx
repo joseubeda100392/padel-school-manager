@@ -1,7 +1,6 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 type Target = 'all' | 'level' | 'payment_pending'
 
@@ -16,8 +15,8 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
   const [result, setResult] = useState<{ ok: boolean; sent?: number; error?: string } | null>(null)
 
   useEffect(() => {
-    createClient().from('levels').select('id, name, color').order('order').then(({ data }) => {
-      setLevels(data ?? [])
+    fetch('/api/admin/levels').then(r => r.json()).then(({ levels }) => {
+      if (levels) setLevels(levels)
     })
   }, [])
 

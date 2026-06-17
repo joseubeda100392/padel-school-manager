@@ -25,13 +25,12 @@ export default function EditTournamentPage() {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
-      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
-      const cid = userData?.club_id ?? null
 
-      const [{ data: tournament }, { data: lvls }] = await Promise.all([
+      const [{ data: tournament }, levelsData] = await Promise.all([
         supabase.from('tournaments').select('*').eq('id', id).single(),
-        cid ? supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order') : Promise.resolve({ data: [] }),
+        fetch('/api/admin/levels').then(r => r.json()),
       ])
+      const lvls = levelsData.levels ?? []
 
       if (tournament) {
         setForm({

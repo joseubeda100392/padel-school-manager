@@ -23,36 +23,19 @@ export default function NewSchedulePage() {
   const [intensivoDays, setIntensivoDays] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [clubId, setClubId] = useState<string | null>(null)
   const [enableIntensivos, setEnableIntensivos] = useState(true)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
-      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
-      const cid = userData?.club_id ?? null
-      setClubId(cid)
-
-      const [{ data: c }, { data: u }, { data: l }, featRes] = await Promise.all([
-        cid
-          ? supabase.from('courts').select('id, name').eq('is_active', true).eq('club_id', cid).order('name')
-          : supabase.from('courts').select('id, name').eq('is_active', true).order('name'),
-        cid
-          ? supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).eq('club_id', cid).order('name')
-          : supabase.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name'),
-        cid
-          ? supabase.from('levels').select('id, name, color').eq('club_id', cid).order('order')
-          : supabase.from('levels').select('id, name, color').order('order'),
-        fetch('/api/admin/club-features').catch(() => null),
-      ])
-      if (c) setCourts(c)
-      if (u) setCoaches(u)
-      if (l) setLevels(l)
-      if (featRes?.ok) {
-        const j = await featRes.json().catch(() => ({}))
-        if (j?.features?.enable_intensivos === false) setEnableIntensivos(false)
-      }
+    Promise.all([
+      fetch('/api/admin/courts').then(r => r.json()),
+      fetch('/api/admin/coaches').then(r => r.json()),
+      fetch('/api/admin/levels').then(r => r.json()),
+      fetch('/api/admin/club-features').then(r => r.json()).catch(() => ({})),
+    ]).then(([courtsData, coachesData, levelsData, featData]) => {
+      if (courtsData.courts) setCourts(courtsData.courts)
+      if (coachesData.coaches) setCoaches(coachesData.coaches)
+      if (levelsData.levels) setLevels(levelsData.levels)
+      if (featData?.features?.enable_intensivos === false) setEnableIntensivos(false)
     })
   }, [])
 
@@ -98,7 +81,7 @@ export default function NewSchedulePage() {
           recurrence: form.type === 'intensivo' ? 'none' : form.recurrence,
           recurrence_end_date: form.type !== 'intensivo' && form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
           max_students: form.max_students,
-          club_id: clubId,
+
           type: form.type,
           price_cents: form.price_cents > 0 ? form.price_cents : null,
           intensivo_group_id: intensivoGroupId,

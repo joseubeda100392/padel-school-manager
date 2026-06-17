@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { cookies } from 'next/headers'
 
 const scheduleSchema = z.object({
   court_id: z.string().uuid(),
@@ -70,8 +71,10 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Non-superadmin always uses their own club_id
-  const effectiveClubId = caller.role === 'super_admin' ? (body.club_id ?? caller.club_id ?? null) : caller.club_id
+  const cookieStore = cookies()
+  const effectiveClubId = caller.role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id ?? null)
+    : caller.club_id
 
   const { data, error } = await admin.from('schedules').insert({
     court_id: body.court_id,
