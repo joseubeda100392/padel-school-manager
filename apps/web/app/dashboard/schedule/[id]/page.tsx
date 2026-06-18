@@ -149,7 +149,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           <span className="text-gray-300">/</span>
           <h1 className="text-2xl font-bold text-gray-900">Detalle de clase</h1>
         </div>
-        <ScheduleActions scheduleId={params.id} />
+        <ScheduleActions scheduleId={params.id} nextDate={nextDate} />
       </div>
 
       {/* Info de la clase */}
