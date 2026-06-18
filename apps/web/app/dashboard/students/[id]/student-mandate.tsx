@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Mandate {
   id: string
@@ -34,7 +34,6 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [payLink, setPayLink] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
-  const formRef = useRef<HTMLFormElement>(null)
 
   async function loadMandate() {
     const res = await fetch(`/api/admin/payment-mandates?userId=${studentId}`)
@@ -58,7 +57,7 @@ export function StudentMandate({ studentId }: { studentId: string }) {
     if (!res.ok) { setSubmitting(false); return }
 
     // Construir URL de pago para enviar al alumno
-    const payUrl = buildRedsysUrl(json)
+    const payUrl = `${window.location.origin}/pay/mandate/${json.mandateId}`
     setPayLink(payUrl)
     setShowForm(false)
     setSubmitting(false)
@@ -212,13 +211,3 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   )
 }
 
-function buildRedsysUrl(json: { redsysUrl: string; merchantParameters: string; signature: string }): string {
-  // Construye la URL completa de pago de Redsys con los parámetros como query string
-  // El alumno al abrirla verá el TPV de Redsys directamente
-  const params = new URLSearchParams({
-    Ds_SignatureVersion: 'HMAC_SHA256_V1',
-    Ds_MerchantParameters: json.merchantParameters,
-    Ds_Signature: json.signature,
-  })
-  return `${json.redsysUrl}?${params.toString()}`
-}
