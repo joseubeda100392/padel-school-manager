@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
     const nextChargeAt = getNextChargeDate(mandate)
     const now = new Date().toISOString()
 
+    const paidUntil = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
     await Promise.all([
       admin.from('payments').update({ status: success ? 'succeeded' : 'failed' }).eq('id', payment!.id),
       admin.from('payment_mandates').update({
@@ -72,6 +73,13 @@ export async function POST(req: NextRequest) {
         updated_at: now,
         ...(success ? {} : { status: 'paused' }),
       }).eq('id', mandate.id),
+      ...(success ? [
+        admin.from('group_enrollments')
+          .update({ paid_until: paidUntil })
+          .eq('student_id', mandate.user_id)
+          .eq('club_id', mandate.club_id)
+          .eq('status', 'active'),
+      ] : []),
     ])
 
     results.push({ mandateId: mandate.id, success, code: responseCode })

@@ -180,6 +180,15 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', meta.mandate_id)
 
+    // Marcar inscripciones activas del alumno como pagadas hasta fin de mes
+    const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    await adminSupabase
+      .from('group_enrollments')
+      .update({ paid_until: paidUntil })
+      .eq('student_id', payment.user_id)
+      .eq('club_id', payment.club_id)
+      .eq('status', 'active')
+
   } else if (payment.type === 'intensivo_group' && meta.intensivo_group_id) {
     const { data: schedules } = await adminSupabase
       .from('schedules')
