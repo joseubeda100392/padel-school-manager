@@ -14,6 +14,7 @@ import { StudentMakeups } from './student-makeups'
 import { NotificationList } from '@/app/student/notifications/notification-list'
 import { StudentObjectives } from './student-objectives'
 import { ResetMfaButton } from './reset-mfa-button'
+import { StudentMandate } from './student-mandate'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -45,6 +46,8 @@ const typeLabel: Record<string, string> = {
   subscription:      'Suscripción',
   pay_per_class:     'Clase suelta',
   bag_pack:          'Bono de clases',
+  mandate_init:      'Activación domiciliación',
+  mandate_charge:    'Cuota mensual (domiciliada)',
 }
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
@@ -271,6 +274,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             notes: m.notes,
             schedule: m.schedule ? { id: m.schedule.id, start_time: m.schedule.start_time } : null,
           }))} />
+        </div>
+      )}
+
+      {features.enable_payments && student.role === 'student' && (
+        <div className="mb-6">
+          <StudentMandate studentId={student.id as string} />
         </div>
       )}
 

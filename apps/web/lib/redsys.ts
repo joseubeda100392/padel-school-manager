@@ -52,3 +52,84 @@ export function isPaymentSuccessful(responseCode: string): boolean {
   const code = parseInt(responseCode, 10)
   return code >= 0 && code <= 99
 }
+
+// COF (Credential on File) — primer pago que inicia la domiciliación
+export function buildCofInitParams(base: Record<string, string>): Record<string, string> {
+  return {
+    ...base,
+    DS_MERCHANT_COF_INI: 'S',
+    DS_MERCHANT_COF_TYPE: 'R',
+  }
+}
+
+// MIT (Merchant Initiated Transaction) — cargo recurrente con token guardado
+export function buildMitParams(base: Record<string, string>, identifier: string): Record<string, string> {
+  return {
+    ...base,
+    DS_MERCHANT_COF_INI: 'N',
+    DS_MERCHANT_COF_TYPE: 'R',
+    DS_MERCHANT_IDENTIFIER: identifier,
+    DS_MERCHANT_DIRECTPAYMENT: 'true',
+  }
+}
+
+const REDSYS_REST_URL_TEST = 'https://sis-t.redsys.es:25443/sis/rest/trataPeticionREST'
+const REDSYS_REST_URL_PROD = 'https://sis.redsys.es/sis/rest/trataPeticionREST'
+
+export function getRedsysRestUrl(env?: string | null): string {
+  return (env ?? process.env.REDSYS_ENV) === 'production' ? REDSYS_REST_URL_PROD : REDSYS_REST_URL_TEST
+}
+
+// Lanza un cargo MIT directo contra la API REST de Redsys (sin redirección del usuario)
+export async function chargeMit(opts: {
+  secretKey: string
+  merchantCode: string
+  terminal: string
+  env?: string | null
+  identifier: string
+  amountCents: number
+  orderId: string
+}): Promise<{ success: boolean; responseCode: string; raw: Record<string, string> }> {
+  const params: Record<string, string> = {
+    DS_MERCHANT_MERCHANTCODE: opts.merchantCode,
+    DS_MERCHANT_TERMINAL: opts.terminal,
+    DS_MERCHANT_TRANSACTIONTYPE: '0',
+    DS_MERCHANT_AMOUNT: String(opts.amountCents),
+    DS_MERCHANT_ORDER: opts.orderId,
+    DS_MERCHANT_CURRENCY: '978',
+    DS_MERCHANT_COF_INI: 'N',
+    DS_MERCHANT_COF_TYPE: 'R',
+    DS_MERCHANT_IDENTIFIER: opts.identifier,
+    DS_MERCHANT_DIRECTPAYMENT: 'true',
+  }
+
+  const merchantParameters = buildMerchantParameters(params)
+  const signature = generateSignature(opts.secretKey, opts.orderId, merchantParameters)
+
+  const body = new URLSearchParams({
+    Ds_SignatureVersion: 'HMAC_SHA256_V1',
+    Ds_MerchantParameters: merchantParameters,
+    Ds_Signature: signature,
+  })
+
+  const url = getRedsysRestUrl(opts.env)
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  })
+
+  const text = await res.text()
+  let raw: Record<string, string> = {}
+  try {
+    const json = JSON.parse(text)
+    if (json.Ds_MerchantParameters) {
+      raw = parseRedsysResponse(json.Ds_MerchantParameters)
+    }
+  } catch {
+    raw = { error: text }
+  }
+
+  const responseCode = raw.Ds_Response ?? '9999'
+  return { success: isPaymentSuccessful(responseCode), responseCode, raw }
+}
