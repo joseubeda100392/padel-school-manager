@@ -49,9 +49,15 @@ export async function POST(req: NextRequest) {
   if (!userId || !amountCents) return NextResponse.json({ error: 'userId y amountCents requeridos' }, { status: 400 })
 
   const cookieStore = cookies()
-  const clubId = caller.role === 'super_admin'
+  let clubId = caller.role === 'super_admin'
     ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id)
     : caller.club_id
+
+  // Fallback: usar el club_id del alumno si el caller no tiene uno resuelto
+  if (!clubId) {
+    const { data: student } = await admin.from('users').select('club_id').eq('id', userId).single()
+    clubId = student?.club_id ?? null
+  }
 
   if (!clubId) return NextResponse.json({ error: 'Club no configurado' }, { status: 400 })
 
