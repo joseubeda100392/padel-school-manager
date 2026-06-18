@@ -159,7 +159,9 @@ export async function POST(req: NextRequest) {
     }
 
   } else if (payment.type === 'mandate_init' && meta.mandate_id) {
-    const identifier = response.Ds_Merchant_Identifier ?? response.DS_MERCHANT_IDENTIFIER ?? null
+    // Guardar respuesta completa en metadata para debug
+    await adminSupabase.from('payments').update({ metadata: { ...meta, _redsys_response: response } }).eq('id', payment.id)
+    const identifier = response.Ds_Merchant_Identifier ?? response.DS_MERCHANT_IDENTIFIER ?? response.Ds_Identifier ?? null
     if (identifier && meta.mandate_id) {
       const { data: mandate } = await adminSupabase
         .from('payment_mandates')
