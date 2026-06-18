@@ -32,6 +32,7 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   const [amount, setAmount] = useState('')
   const [day, setDay] = useState('1')
   const [submitting, setSubmitting] = useState(false)
+  const [payLink, setPayLink] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -58,11 +59,9 @@ export function StudentMandate({ studentId }: { studentId: string }) {
 
     // Construir URL de pago para enviar al alumno
     const payUrl = buildRedsysUrl(json)
+    setPayLink(payUrl)
     setShowForm(false)
     setSubmitting(false)
-    await navigator.clipboard.writeText(payUrl)
-    setLinkCopied(true)
-    setTimeout(() => setLinkCopied(false), 4000)
     loadMandate()
   }
 
@@ -106,9 +105,27 @@ export function StudentMandate({ studentId }: { studentId: string }) {
         )}
       </div>
 
-      {linkCopied && (
-        <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
-          Enlace de pago copiado. Envíaselo al alumno para que autorice la domiciliación.
+      {payLink && (
+        <div className="mb-4 rounded-lg border border-brand-200 bg-brand-50 p-4">
+          <p className="mb-2 text-sm font-medium text-brand-700">Enlace de pago generado — envíaselo al alumno:</p>
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={payLink}
+              className="flex-1 truncate rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs text-gray-700 focus:outline-none"
+            />
+            <button
+              onClick={async () => {
+                await navigator.clipboard.writeText(payLink)
+                setLinkCopied(true)
+                setTimeout(() => setLinkCopied(false), 2000)
+              }}
+              className="shrink-0 rounded-lg bg-brand-500 px-3 py-2 text-xs font-medium text-white hover:bg-brand-600"
+            >
+              {linkCopied ? '¡Copiado!' : 'Copiar'}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-brand-600">El enlace caduca cuando el alumno completa el pago o se regenera.</p>
         </div>
       )}
 
