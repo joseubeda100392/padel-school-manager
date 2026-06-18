@@ -100,6 +100,15 @@ export default function NewStudentPage() {
         {role === 'student' && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Nivel inicial</label>
+            {levels.length === 0 ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                Este club no tiene niveles creados.{' '}
+                <a href="/dashboard/levels/new" className="font-medium underline hover:text-amber-900">
+                  Crea los niveles primero
+                </a>{' '}
+                para poder asignar uno al alumno.
+              </div>
+            ) : (
             <select
               value={levelId}
               onChange={(e) => setLevelId(e.target.value)}
@@ -110,6 +119,7 @@ export default function NewStudentPage() {
                 <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>
+            )}
           </div>
         )}
 
