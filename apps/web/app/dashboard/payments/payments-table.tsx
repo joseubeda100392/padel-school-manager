@@ -28,6 +28,8 @@ const typeLabel: Record<string, string> = {
   bag_pack:          'Bono de clases',
   tournament:        'Inscripción torneo',
   intensivo_group:   'Semana intensiva',
+  mandate_init:      'Activación domiciliación',
+  mandate_charge:    'Cuota mensual (domiciliada)',
   manual:            'Manual',
 }
 
