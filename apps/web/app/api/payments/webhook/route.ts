@@ -159,30 +159,26 @@ export async function POST(req: NextRequest) {
     }
 
   } else if (payment.type === 'mandate_init' && meta.mandate_id) {
-    // Guardar respuesta completa en metadata para debug
-    await adminSupabase.from('payments').update({ metadata: { ...meta, _redsys_response: response } }).eq('id', payment.id)
     const identifier = response.Ds_Merchant_Identifier ?? response.DS_MERCHANT_IDENTIFIER ?? response.Ds_Identifier ?? null
-    if (identifier && meta.mandate_id) {
-      const { data: mandate } = await adminSupabase
-        .from('payment_mandates')
-        .select('day_of_month')
-        .eq('id', meta.mandate_id)
-        .single()
-      const dayOfMonth = mandate?.day_of_month ?? 1
-      const now = new Date()
-      const nextCharge = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth)
-      const nextChargeAt = nextCharge.toISOString().split('T')[0]
-      await adminSupabase
-        .from('payment_mandates')
-        .update({
-          redsys_identifier: identifier,
-          status: 'active',
-          last_charged_at: now.toISOString(),
-          next_charge_at: nextChargeAt,
-          updated_at: now.toISOString(),
-        })
-        .eq('id', meta.mandate_id)
-    }
+    const { data: mandate } = await adminSupabase
+      .from('payment_mandates')
+      .select('day_of_month')
+      .eq('id', meta.mandate_id)
+      .single()
+    const dayOfMonth = mandate?.day_of_month ?? 1
+    const now = new Date()
+    const nextCharge = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth)
+    const nextChargeAt = nextCharge.toISOString().split('T')[0]
+    await adminSupabase
+      .from('payment_mandates')
+      .update({
+        ...(identifier ? { redsys_identifier: identifier } : {}),
+        status: 'active',
+        last_charged_at: now.toISOString(),
+        next_charge_at: nextChargeAt,
+        updated_at: now.toISOString(),
+      })
+      .eq('id', meta.mandate_id)
 
   } else if (payment.type === 'intensivo_group' && meta.intensivo_group_id) {
     const { data: schedules } = await adminSupabase
