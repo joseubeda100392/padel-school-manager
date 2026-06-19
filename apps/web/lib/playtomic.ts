@@ -115,7 +115,16 @@ export class PlaytomicClient {
   }
 
   async searchTenants(text: string): Promise<PlaytomicTenant[]> {
-    const params = new URLSearchParams({ sport_ids: 'PADEL', text, size: '10' })
+    // La API de Playtomic requiere coordenadas para que el texto filtre correctamente.
+    // Sin coordenadas devuelve clubs aleatorios ignorando el texto.
+    // Usamos un radio muy grande centrado en España para cubrir clubs españoles.
+    const params = new URLSearchParams({
+      sport_ids: 'PADEL',
+      text,
+      size: '20',
+      coordinate: '40.4168,-3.7038',
+      radius: '2000000',
+    })
     const res = await fetch(`${CONSUMER_BASE}/v1/tenants?${params}`, {
       headers: { 'X-Requested-With': 'com.playtomic.web' },
     })
