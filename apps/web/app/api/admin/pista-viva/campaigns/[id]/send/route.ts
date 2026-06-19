@@ -39,15 +39,26 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Crear partido abierto en Playtomic
   const ptClient = getPlaytomicClient()
-  await ptClient.login(club.playtomic_email, club.playtomic_password)
+  try {
+    await ptClient.login(club.playtomic_email, club.playtomic_password)
+  } catch (e: any) {
+    return NextResponse.json({ error: `Login Playtomic falló: ${e.message}` }, { status: 502 })
+  }
 
-  const { matchId, matchUrl } = await ptClient.createMatch({
-    tenantId: club.playtomic_tenant_id,
-    resourceId: campaign.resource_id,
-    startTime: campaign.slot_datetime,
-    durationMinutes: campaign.duration_minutes,
-    playersNeeded: campaign.players_needed,
-  })
+  let matchId: string, matchUrl: string
+  try {
+    const result = await ptClient.createMatch({
+      tenantId: club.playtomic_tenant_id,
+      resourceId: campaign.resource_id,
+      startTime: campaign.slot_datetime,
+      durationMinutes: campaign.duration_minutes,
+      playersNeeded: campaign.players_needed,
+    })
+    matchId = result.matchId
+    matchUrl = result.matchUrl
+  } catch (e: any) {
+    return NextResponse.json({ error: `Crear partido Playtomic falló: ${e.message}` }, { status: 502 })
+  }
 
   // Actualizar campaña con matchId
   await admin
