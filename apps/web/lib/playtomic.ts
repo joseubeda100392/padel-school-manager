@@ -1,4 +1,14 @@
 const CONSUMER_BASE = 'https://api.playtomic.io'
+const OFFICIAL_BASE = 'https://thirdparty.playtomic.io/api/v1'
+
+export type PlaytomicPlayer = {
+  user_id: string
+  name: string
+  email: string
+  phone?: string
+  gender?: string
+  level?: number
+}
 
 export type PlaytomicSlot = {
   start_time: string
@@ -169,4 +179,67 @@ export class PlaytomicClient {
 
 export function getPlaytomicClient(): PlaytomicClient {
   return new PlaytomicClient()
+}
+
+export class PlaytomicOfficialClient {
+  private token: string | null = null
+
+  async login(clientId: string, clientSecret: string): Promise<void> {
+    const body = new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+    })
+    const res = await fetch(`${OFFICIAL_BASE}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`Playtomic API auth failed: ${res.status} — ${text}`)
+    }
+    const data = await res.json()
+    if (!data.access_token) throw new Error('Playtomic API: no access_token')
+    this.token = data.access_token
+  }
+
+  async getVenuePlayers(tenantId: string): Promise<PlaytomicPlayer[]> {
+    if (!this.token) throw new Error('Not authenticated')
+    const players: PlaytomicPlayer[] = []
+    let cursorId: string | null = null
+
+    while (true) {
+      const params = new URLSearchParams({ limit: '100' })
+      if (cursorId) params.set('cursor_id', cursorId)
+
+      const res = await fetch(`${OFFICIAL_BASE}/venues/${tenantId}/players?${params}`, {
+        headers: { Authorization: `Bearer ${this.token}` },
+      })
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(`getVenuePlayers failed: ${res.status} — ${text}`)
+      }
+      const data = await res.json()
+      const page: any[] = Array.isArray(data) ? data : (data.players ?? data.content ?? [])
+      if (!page.length) break
+
+      for (const p of page) {
+        players.push({
+          user_id: p.user_id ?? p.id ?? '',
+          name: p.full_name ?? p.name ?? '',
+          email: p.email ?? '',
+          phone: p.phone_number ?? p.phone ?? undefined,
+          gender: p.gender ?? undefined,
+          level: p.level ?? undefined,
+        })
+      }
+
+      // Playtomic pagina con cursor_id del último elemento
+      cursorId = page[page.length - 1]?.user_id ?? page[page.length - 1]?.id ?? null
+      if (page.length < 100) break
+    }
+
+    return players
+  }
 }

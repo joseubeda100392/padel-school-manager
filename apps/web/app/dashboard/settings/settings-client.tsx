@@ -62,12 +62,14 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [redsysError, setRedsysError] = useState('')
   const [showSecretKey, setShowSecretKey] = useState(false)
 
-  const [playtomic, setPlaytomic] = useState({ email: '', password: '', tenantId: '', bookingUrl: '' })
+  const [playtomic, setPlaytomic] = useState({ email: '', password: '', tenantId: '', bookingUrl: '', clientId: '', clientSecret: '' })
   const [playtomicSaving, setPlaytomicSaving] = useState(false)
   const [playtomicSaved, setPlaytomicSaved] = useState(false)
   const [playtomicError, setPlaytomicError] = useState('')
   const [tenantSearch, setTenantSearch] = useState('')
   const [tenantResults, setTenantResults] = useState<{ tenant_id: string; name: string; address: string }[]>([])
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: number; message: string } | null>(null)
 
   const [holidays, setHolidays] = useState<string[]>([])
   const [newHoliday, setNewHoliday] = useState('')
@@ -113,6 +115,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
           email: json.playtomic_email ?? '',
           tenantId: json.playtomic_tenant_id ?? '',
           bookingUrl: json.playtomic_booking_url ?? '',
+          clientId: json.playtomic_client_id ?? '',
         }))
       }
       setLoading(false)
@@ -772,6 +775,8 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                   playtomic_booking_url: playtomic.bookingUrl,
                 }
                 if (playtomic.password) body.playtomic_password = playtomic.password
+                if (playtomic.clientId) body.playtomic_client_id = playtomic.clientId
+                if (playtomic.clientSecret) body.playtomic_client_secret = playtomic.clientSecret
                 const res = await fetch('/api/admin/pista-viva/credentials', {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
@@ -782,12 +787,61 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                   setPlaytomicError(d.error ?? 'Error al guardar')
                 } else {
                   setPlaytomicSaved(true)
-                  setPlaytomic(p => ({ ...p, password: '' }))
+                  setPlaytomic(p => ({ ...p, password: '', clientSecret: '' }))
                   setTimeout(() => setPlaytomicSaved(false), 2000)
                 }
                 setPlaytomicSaving(false)
               }} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
                 {playtomicSaving ? 'Guardando...' : playtomicSaved ? '¡Guardado!' : 'Guardar Playtomic'}
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="mb-1 font-semibold text-gray-900">Importar jugadores desde Playtomic</h2>
+            <p className="mb-5 text-xs text-gray-400">
+              Usa la API oficial de Playtomic para traer todos los jugadores del club y crearlos automáticamente como alumnos en PSM.
+              Necesitas las credenciales de desarrollador de Playtomic (Client ID + Secret).
+            </p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Client ID</label>
+                  <input type="text" value={playtomic.clientId}
+                    onChange={(e) => setPlaytomic(p => ({ ...p, clientId: e.target.value }))}
+                    placeholder="clb_xxxxxxxxxxxxxxxx"
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-mono focus:border-brand-500 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Client Secret</label>
+                  <input type="password" value={playtomic.clientSecret}
+                    onChange={(e) => setPlaytomic(p => ({ ...p, clientSecret: e.target.value }))}
+                    placeholder="Solo se guarda si introduces uno nuevo"
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+                </div>
+              </div>
+
+              {importResult && (
+                <div className={`rounded-lg px-4 py-3 text-sm ${importResult.errors > 0 && importResult.imported === 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                  {importResult.message}
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={importing}
+                onClick={async () => {
+                  setImporting(true)
+                  setImportResult(null)
+                  const res = await fetch('/api/admin/playtomic/import-players', { method: 'POST' })
+                  const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
+                  if (!res.ok) setImportResult({ imported: 0, skipped: 0, errors: 1, message: data.error ?? 'Error' })
+                  else setImportResult(data)
+                  setImporting(false)
+                }}
+                className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+              >
+                {importing ? 'Importando jugadores...' : '⬇️ Importar jugadores de Playtomic'}
               </button>
             </div>
           </div>
