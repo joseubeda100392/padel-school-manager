@@ -31,10 +31,17 @@ export class PlaytomicClient {
   async login(email: string, password: string): Promise<void> {
     const res = await fetch(`${CONSUMER_BASE}/v3/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'com.playtomic.web' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'com.playtomic.app',
+        'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
+      },
       body: JSON.stringify({ email, password }),
     })
-    if (!res.ok) throw new Error(`Playtomic login failed: ${res.status}`)
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new Error(`Playtomic login failed: ${res.status} — ${body}`)
+    }
     const data = await res.json()
     if (!data.access_token) throw new Error('Playtomic login: no access_token')
     this.token = data.access_token
