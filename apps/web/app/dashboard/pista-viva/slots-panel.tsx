@@ -68,7 +68,7 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold text-gray-900">Pistas libres en Playtomic</h2>
-          <p className="text-sm text-gray-500">Próximas 48h · Se actualiza al pulsar el botón</p>
+          <p className="text-sm text-gray-500">Próximas 24h · Se actualiza al pulsar el botón</p>
         </div>
         <button
           onClick={fetchSlots}
