@@ -21,6 +21,14 @@ export default async function PistaVivaPage() {
   const clubId = await getClubId()
   const admin = getAdminClient()
 
+  const { data: clubConfig } = await admin
+    .from('clubs')
+    .select('playtomic_tenant_id, playtomic_email')
+    .eq('id', clubId!)
+    .single()
+
+  const needsSetup = !clubConfig?.playtomic_tenant_id || !clubConfig?.playtomic_email
+
   const { data: campaigns } = await admin
     .from('pista_viva_campaigns')
     .select('*, levels(name)')
@@ -66,6 +74,17 @@ export default async function PistaVivaPage() {
           <p className="mt-1 text-3xl font-bold text-gray-900">{stats.clicks}</p>
         </div>
       </div>
+
+      {/* Aviso de configuración pendiente */}
+      {needsSetup && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          <span className="font-medium">⚙️ Configuración pendiente.</span>{' '}
+          Para usar Pista Viva necesitas introducir tus credenciales de Playtomic.{' '}
+          <a href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
+            Configurar ahora →
+          </a>
+        </div>
+      )}
 
       {/* Panel de búsqueda de pistas libres */}
       <SlotsPanel clubId={clubId!} />

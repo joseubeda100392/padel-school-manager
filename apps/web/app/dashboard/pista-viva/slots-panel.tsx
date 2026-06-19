@@ -78,7 +78,16 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          {error.includes('tenant_id') || error.includes('Playtomic no configurado') ? (
+            <>
+              Primero debes configurar tus credenciales de Playtomic.{' '}
+              <a href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
+                Ir a Settings → Playtomic →
+              </a>
+            </>
+          ) : error}
+        </div>
       )}
 
       {resources.length > 0 && (
