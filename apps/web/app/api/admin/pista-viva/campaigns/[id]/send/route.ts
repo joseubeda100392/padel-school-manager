@@ -42,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     await ptClient.login(club.playtomic_email, club.playtomic_password)
   } catch (e: any) {
-    return NextResponse.json({ error: `Login Playtomic falló: ${e.message}` }, { status: 502 })
+    return NextResponse.json({ error: `Login Playtomic falló con email "${club.playtomic_email}": ${e.message}` }, { status: 502 })
   }
 
   let matchId: string, matchUrl: string
