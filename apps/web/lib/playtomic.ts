@@ -47,7 +47,6 @@ export class PlaytomicClient {
     duration = 90,
   ): Promise<PlaytomicResource[]> {
     const params = new URLSearchParams({
-      user_id: 'me',
       tenant_id: tenantId,
       sport_id: 'PADEL',
       start_min: startMin,
@@ -57,8 +56,12 @@ export class PlaytomicClient {
     const res = await fetch(`${CONSUMER_BASE}/v1/availability?${params}`, {
       headers: { 'X-Requested-With': 'com.playtomic.web' },
     })
-    if (!res.ok) return []
-    return res.json()
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`Playtomic availability ${res.status}: ${text}`)
+    }
+    const data = await res.json()
+    return Array.isArray(data) ? data : (data.content ?? data.resources ?? [])
   }
 
   async createMatch(opts: {

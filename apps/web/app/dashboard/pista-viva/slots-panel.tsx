@@ -23,7 +23,9 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
       ])
       const slotsData = await slotsRes.json()
       if (!slotsRes.ok) { setError(slotsData.error ?? 'Error al consultar Playtomic'); return }
-      setResources(slotsData.resources ?? [])
+      const res = slotsData.resources ?? []
+      setResources(res)
+      if (res.length === 0) setError('No hay pistas libres en las próximas 48h en Playtomic')
 
       if (levelsRes.ok) {
         const ld = await levelsRes.json()
@@ -86,7 +88,9 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
                 Ir a Settings → Playtomic →
               </a>
             </>
-          ) : error}
+          ) : (
+            <span>⚠️ {error}</span>
+          )}
         </div>
       )}
 
