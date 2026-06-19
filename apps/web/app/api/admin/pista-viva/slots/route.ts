@@ -37,29 +37,10 @@ export async function GET(req: NextRequest) {
   const startMin = now.toISOString().replace('Z', '').split('.')[0]
   const startMax = in24h.toISOString().replace('Z', '').split('.')[0]
 
-  // Fetch raw to debug field names
-  const params = new URLSearchParams({
-    tenant_id: club.playtomic_tenant_id,
-    sport_id: 'PADEL',
-    start_min: startMin,
-    start_max: startMax,
-    duration: '90',
-  })
-  const rawRes = await fetch(`https://api.playtomic.io/v1/availability?${params}`, {
-    headers: { 'X-Requested-With': 'com.playtomic.web' },
-  })
-  if (!rawRes.ok) {
-    const text = await rawRes.text().catch(() => '')
-    return NextResponse.json({ error: `Playtomic ${rawRes.status}: ${text}`, resources: [] }, { status: 502 })
-  }
-  const rawData = await rawRes.json()
-  const rawResources: any[] = Array.isArray(rawData) ? rawData : (rawData.content ?? rawData.resources ?? [])
-  const rawFirstSlot = rawResources[0]?.slots?.[0] ?? rawResources[0] ?? null
-
   const client = getPlaytomicClient()
   try {
     const resources = await client.getAvailableSlots(club.playtomic_tenant_id, startMin, startMax)
-    return NextResponse.json({ resources, _raw_first_slot: rawFirstSlot, _raw_first_resource_keys: rawResources[0] ? Object.keys(rawResources[0]) : [] })
+    return NextResponse.json({ resources })
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? 'Error al consultar Playtomic', resources: [] }, { status: 502 })
   }

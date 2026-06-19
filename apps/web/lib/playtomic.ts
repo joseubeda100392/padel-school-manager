@@ -61,17 +61,30 @@ export class PlaytomicClient {
       throw new Error(`Playtomic availability ${res.status}: ${text}`)
     }
     const data = await res.json()
+    // API returns one entry per (resource_id, date). Group by resource_id and merge slots.
+    // Each entry has: { resource_id, start_date: "2026-06-19", name?, slots: [{start_time: "11:00:00", duration, price: "20.8 EUR"}] }
     const raw: any[] = Array.isArray(data) ? data : (data.content ?? data.resources ?? [])
-    // Normalize slot field names — Playtomic may use "start" instead of "start_time"
-    return raw.map((r: any) => ({
-      ...r,
-      slots: (r.slots ?? []).map((s: any) => ({
-        ...s,
-        start_time: s.start_time ?? s.start ?? s.startTime ?? '',
-        duration: s.duration ?? s.duration_minutes ?? 90,
-        price: s.price ?? s.slot_price ?? 0,
-      })),
-    }))
+    const byResource = new Map<string, PlaytomicResource>()
+    let courtIndex = 1
+    for (const entry of raw) {
+      const id: string = entry.resource_id
+      const date: string = entry.start_date ?? ''
+      if (!byResource.has(id)) {
+        byResource.set(id, {
+          resource_id: id,
+          name: entry.name ?? entry.resource_name ?? `Pista ${courtIndex++}`,
+          slots: [],
+        })
+      }
+      const resource = byResource.get(id)!
+      for (const s of (entry.slots ?? [])) {
+        const start_time = date && s.start_time ? `${date}T${s.start_time}` : ''
+        const priceRaw = s.price ?? 0
+        const price = typeof priceRaw === 'string' ? parseFloat(priceRaw) : priceRaw
+        resource.slots.push({ start_time, duration: s.duration ?? 90, price })
+      }
+    }
+    return Array.from(byResource.values())
   }
 
   async createMatch(opts: {
