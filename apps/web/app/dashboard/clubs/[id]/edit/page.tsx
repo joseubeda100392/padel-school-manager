@@ -1,10 +1,11 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function EditClubPage({ params }: { params: { id: string } }) {
   const [form, setForm] = useState<any>(null)
+  const [existingFeatures, setExistingFeatures] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -12,7 +13,17 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const supabase = createClient()
     supabase.from('clubs').select('*').eq('id', params.id).single().then(({ data }) => {
-      if (data) setForm({ name: data.name, slug: data.slug, plan: data.plan, is_active: data.is_active })
+      if (data) {
+        const features = data.features ?? {}
+        setExistingFeatures(features)
+        setForm({
+          name: data.name,
+          slug: data.slug,
+          plan: data.plan,
+          is_active: data.is_active,
+          enable_pista_viva: features.enable_pista_viva ?? false,
+        })
+      }
     })
   }, [params.id])
 
@@ -22,11 +33,13 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
     setLoading(true)
     setError('')
     const supabase = createClient()
+    const mergedFeatures = { ...existingFeatures, enable_pista_viva: form.enable_pista_viva }
     const { error: err } = await supabase.from('clubs').update({
       name: form.name.trim(),
       slug: form.slug.trim(),
       plan: form.plan,
       is_active: form.is_active,
+      features: mergedFeatures,
     }).eq('id', params.id)
     if (err) { setError(err.message); setLoading(false); return }
     window.location.href = '/dashboard/clubs'
@@ -83,6 +96,22 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
             onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
             className="h-4 w-4 rounded border-gray-300 text-brand-500" />
           <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Club activo</label>
+        </div>
+
+        <div className="border-t border-gray-100 pt-4">
+          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-400">Módulos Premium</p>
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="enable_pista_viva"
+              checked={form.enable_pista_viva}
+              onChange={(e) => setForm({ ...form, enable_pista_viva: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500"
+            />
+            <label htmlFor="enable_pista_viva" className="text-sm font-medium text-gray-700">
+              ⚡ Pista Viva <span className="ml-1 text-xs font-normal text-gray-400">(detección de pistas libres + WhatsApp)</span>
+            </label>
+          </div>
         </div>
 
         {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}

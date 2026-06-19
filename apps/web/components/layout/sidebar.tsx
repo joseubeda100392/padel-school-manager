@@ -17,6 +17,7 @@ import {
   Bell,
   X,
   LogOut,
+  Zap,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -29,6 +30,7 @@ const baseNavItems = [
   { href: '/dashboard/levels', label: 'Niveles', icon: Trophy, feature: null },
   { href: '/dashboard/schedule', label: 'Clases', icon: CalendarDays, feature: null },
   { href: '/dashboard/tournaments', label: 'Torneos', icon: Medal, feature: 'enable_tournaments' },
+  { href: '/dashboard/pista-viva', label: 'Pista Viva', icon: Zap, feature: 'enable_pista_viva' },
   { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard, feature: 'enable_payments' },
   { href: '/dashboard/chat', label: 'Chat Soporte', icon: MessageSquare, feature: 'enable_chat' },
   { href: '/dashboard/materials', label: 'Materiales', icon: BookOpen, feature: 'enable_materials' },

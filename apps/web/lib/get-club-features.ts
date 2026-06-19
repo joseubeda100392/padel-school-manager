@@ -13,6 +13,7 @@ export type ClubFeatures = {
   enable_objectives: boolean
   enable_tournaments: boolean
   enable_intensivos: boolean
+  enable_pista_viva: boolean
 }
 
 export const DEFAULT_FEATURES: ClubFeatures = {
@@ -26,6 +27,7 @@ export const DEFAULT_FEATURES: ClubFeatures = {
   enable_objectives: true,
   enable_tournaments: true,
   enable_intensivos: true,
+  enable_pista_viva: false,
 }
 
 export const getClubFeatures = cache(async (clubId: string | null | undefined): Promise<ClubFeatures> => {

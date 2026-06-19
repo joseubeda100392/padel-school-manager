@@ -50,6 +50,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     enable_spots: true, enable_bag: true, enable_chat: true,
     enable_materials: true, enable_objectives: true,
     enable_tournaments: true, enable_intensivos: true,
+    enable_pista_viva: false,
   })
   const [featuresSaving, setFeaturesSaving] = useState(false)
   const [featuresSaved, setFeaturesSaved] = useState(false)
@@ -60,6 +61,13 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [redsysSaved, setRedsysSaved] = useState(false)
   const [redsysError, setRedsysError] = useState('')
   const [showSecretKey, setShowSecretKey] = useState(false)
+
+  const [playtomic, setPlaytomic] = useState({ email: '', password: '', tenantId: '', bookingUrl: '' })
+  const [playtomicSaving, setPlaytomicSaving] = useState(false)
+  const [playtomicSaved, setPlaytomicSaved] = useState(false)
+  const [playtomicError, setPlaytomicError] = useState('')
+  const [tenantSearch, setTenantSearch] = useState('')
+  const [tenantResults, setTenantResults] = useState<{ tenant_id: string; name: string; address: string }[]>([])
 
   const [holidays, setHolidays] = useState<string[]>([])
   const [newHoliday, setNewHoliday] = useState('')
@@ -76,7 +84,8 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       fetch('/api/club/redsys').catch(() => null),
       fetch('/api/admin/club-features').catch(() => null),
       fetch('/api/admin/club-holidays').catch(() => null),
-    ]).then(async ([cfgRes, { data: c }, { data: userData }, redsysRes, featRes, holRes]) => {
+      fetch('/api/admin/pista-viva/credentials').catch(() => null),
+    ]).then(async ([cfgRes, { data: c }, { data: userData }, redsysRes, featRes, holRes, ptRes]) => {
       if (userData) setProfile({ id: userId, ...userData })
       if (cfgRes?.ok) {
         const json = await cfgRes.json().catch(() => null)
@@ -94,6 +103,15 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       if (holRes?.ok) {
         const json = await holRes.json().catch(() => null)
         if (json?.holidays) setHolidays(json.holidays)
+      }
+      if (ptRes?.ok) {
+        const json = await ptRes.json().catch(() => null)
+        if (json) setPlaytomic(prev => ({
+          ...prev,
+          email: json.playtomic_email ?? '',
+          tenantId: json.playtomic_tenant_id ?? '',
+          bookingUrl: json.playtomic_booking_url ?? '',
+        }))
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -779,6 +797,129 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
           >
             {redsysSaving ? 'Guardando...' : redsysSaved ? '¡Guardado!' : 'Guardar TPV'}
           </button>
+        </div>
+      </div>}
+
+      {/* Playtomic — Pista Viva */}
+      {features.enable_pista_viva && <div id="playtomic" className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-1 font-semibold text-gray-900">⚡ Pista Viva — Playtomic</h2>
+        <p className="mb-5 text-xs text-gray-400">
+          Credenciales para detectar pistas libres y crear partidos abiertos en nombre del club.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Email de tu cuenta Playtomic</label>
+            <input
+              type="email"
+              value={playtomic.email}
+              onChange={(e) => setPlaytomic(p => ({ ...p, email: e.target.value }))}
+              placeholder="admin@venditto.com"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Contraseña de Playtomic</label>
+            <input
+              type="password"
+              value={playtomic.password}
+              onChange={(e) => setPlaytomic(p => ({ ...p, password: e.target.value }))}
+              placeholder="Solo se guarda si introduces una nueva"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Buscar tu club en Playtomic</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={tenantSearch}
+                onChange={(e) => setTenantSearch(e.target.value)}
+                placeholder="Nombre del club en Playtomic..."
+                className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  if (tenantSearch.length < 2) return
+                  const res = await fetch(`/api/admin/pista-viva/tenants/search?text=${encodeURIComponent(tenantSearch)}`)
+                  const data = await res.json()
+                  setTenantResults(data.tenants ?? [])
+                }}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Buscar
+              </button>
+            </div>
+            {tenantResults.length > 0 && (
+              <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 p-2 space-y-1">
+                {tenantResults.map((t) => (
+                  <button
+                    key={t.tenant_id}
+                    type="button"
+                    onClick={() => { setPlaytomic(p => ({ ...p, tenantId: t.tenant_id })); setTenantResults([]) }}
+                    className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-white"
+                  >
+                    <span className="font-medium text-gray-900">{t.name}</span>
+                    {t.address && <span className="ml-2 text-xs text-gray-400">{t.address}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Tenant ID (UUID)</label>
+            <input
+              type="text"
+              value={playtomic.tenantId}
+              onChange={(e) => setPlaytomic(p => ({ ...p, tenantId: e.target.value }))}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-mono focus:border-brand-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">URL del club en Playtomic</label>
+            <input
+              type="url"
+              value={playtomic.bookingUrl}
+              onChange={(e) => setPlaytomic(p => ({ ...p, bookingUrl: e.target.value }))}
+              placeholder="https://playtomic.io/tu-club/uuid"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+            />
+          </div>
+          {playtomicError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{playtomicError}</p>}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              disabled={playtomicSaving}
+              onClick={async () => {
+                setPlaytomicSaving(true)
+                setPlaytomicError('')
+                const body: Record<string, string> = {
+                  playtomic_email: playtomic.email,
+                  playtomic_tenant_id: playtomic.tenantId,
+                  playtomic_booking_url: playtomic.bookingUrl,
+                }
+                if (playtomic.password) body.playtomic_password = playtomic.password
+                const res = await fetch('/api/admin/pista-viva/credentials', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(body),
+                })
+                if (!res.ok) {
+                  const d = await res.json().catch(() => ({}))
+                  setPlaytomicError(d.error ?? 'Error al guardar')
+                } else {
+                  setPlaytomicSaved(true)
+                  setPlaytomic(p => ({ ...p, password: '' }))
+                  setTimeout(() => setPlaytomicSaved(false), 2000)
+                }
+                setPlaytomicSaving(false)
+              }}
+              className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+            >
+              {playtomicSaving ? 'Guardando...' : playtomicSaved ? '¡Guardado!' : 'Guardar Playtomic'}
+            </button>
+          </div>
         </div>
       </div>}
     </div>
