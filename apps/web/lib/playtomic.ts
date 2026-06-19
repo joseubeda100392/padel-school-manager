@@ -61,7 +61,17 @@ export class PlaytomicClient {
       throw new Error(`Playtomic availability ${res.status}: ${text}`)
     }
     const data = await res.json()
-    return Array.isArray(data) ? data : (data.content ?? data.resources ?? [])
+    const raw: any[] = Array.isArray(data) ? data : (data.content ?? data.resources ?? [])
+    // Normalize slot field names — Playtomic may use "start" instead of "start_time"
+    return raw.map((r: any) => ({
+      ...r,
+      slots: (r.slots ?? []).map((s: any) => ({
+        ...s,
+        start_time: s.start_time ?? s.start ?? s.startTime ?? '',
+        duration: s.duration ?? s.duration_minutes ?? 90,
+        price: s.price ?? s.slot_price ?? 0,
+      })),
+    }))
   }
 
   async createMatch(opts: {

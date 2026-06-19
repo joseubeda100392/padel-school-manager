@@ -40,7 +40,8 @@ export async function GET(req: NextRequest) {
   const client = getPlaytomicClient()
   try {
     const resources = await client.getAvailableSlots(club.playtomic_tenant_id, startMin, startMax)
-    return NextResponse.json({ resources })
+    const sampleSlot = resources[0]?.slots?.[0] ?? null
+    return NextResponse.json({ resources, _sample_slot: sampleSlot })
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? 'Error al consultar Playtomic', resources: [] }, { status: 502 })
   }
