@@ -717,11 +717,13 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Email de tu cuenta Playtomic</label>
               <input type="email" value={playtomic.email} onChange={(e) => setPlaytomic(p => ({ ...p, email: e.target.value }))}
+                autoComplete="off"
                 placeholder="admin@venditto.com" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Contraseña de Playtomic</label>
               <input type="password" value={playtomic.password} onChange={(e) => setPlaytomic(p => ({ ...p, password: e.target.value }))}
+                autoComplete="new-password"
                 placeholder="Solo se guarda si introduces una nueva" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
             </div>
             <div>

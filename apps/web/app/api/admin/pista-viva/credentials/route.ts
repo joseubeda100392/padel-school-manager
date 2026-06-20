@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   const { data: club } = await admin
     .from('clubs')
-    .select('playtomic_email, playtomic_tenant_id, playtomic_booking_url, playtomic_client_id')
+    .select('playtomic_email, playtomic_tenant_id, playtomic_booking_url')
     .eq('id', clubId)
     .single()
 
@@ -36,7 +36,6 @@ export async function GET(req: NextRequest) {
     playtomic_email: club?.playtomic_email ?? '',
     playtomic_tenant_id: club?.playtomic_tenant_id ?? '',
     playtomic_booking_url: club?.playtomic_booking_url ?? '',
-    playtomic_client_id: club?.playtomic_client_id ?? '',
   })
 }
 
