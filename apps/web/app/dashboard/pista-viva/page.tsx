@@ -1,21 +1,8 @@
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
-import { formatDate } from '@/lib/utils'
 import SlotsPanel from './slots-panel'
+import CampaignsList from './campaigns-list'
 
-const statusBadge: Record<string, string> = {
-  draft:     'bg-gray-100 text-gray-600',
-  sent:      'bg-blue-100 text-blue-700',
-  converted: 'bg-green-100 text-green-700',
-  closed:    'bg-red-100 text-red-600',
-}
-
-const statusLabel: Record<string, string> = {
-  draft:     'Borrador',
-  sent:      'Enviada',
-  converted: 'Convertida',
-  closed:    'Cerrada',
-}
 
 export default async function PistaVivaPage() {
   const clubId = await getClubId()
@@ -108,36 +95,7 @@ export default async function PistaVivaPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {!campaigns?.length && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                    No hay campañas aún. Pulsa "Buscar pistas libres" para empezar.
-                  </td>
-                </tr>
-              )}
-              {(campaigns ?? []).map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{c.court_name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {new Date(c.slot_datetime).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-                    {' '}
-                    {new Date(c.slot_datetime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{(c as any).levels?.name ?? '—'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{c.players_joined}/{c.players_needed}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{c.click_count}</td>
-                  <td className="px-6 py-4">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[c.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                      {statusLabel[c.status] ?? c.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <a href={`/dashboard/pista-viva/${c.id}`} className="text-sm text-brand-600 hover:underline">
-                      Ver →
-                    </a>
-                  </td>
-                </tr>
-              ))}
+              <CampaignsList campaigns={campaigns ?? []} />
             </tbody>
           </table>
         </div>

@@ -22,6 +22,8 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
   const [selectedLevel, setSelectedLevel] = useState('')
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState<{ ok: boolean; waSent?: number; pushSent?: number; error?: string } | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -42,23 +44,27 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
       .then((d) => setLevels(d.levels ?? []))
   }, [params.id])
 
+  async function saveChanges() {
+    setSaving(true)
+    await fetch('/api/admin/pista-viva/campaigns', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: params.id, targetLevelId: selectedLevel || null }),
+    })
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
   async function handleSend() {
     setSending(true)
     setSendResult(null)
     try {
-      // Update target level if changed
       if (selectedLevel !== (campaign?.target_level_id ?? '')) {
-        await fetch(`/api/admin/pista-viva/campaigns`, {
-          method: 'POST',
+        await fetch('/api/admin/pista-viva/campaigns', {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            courtName: campaign.court_name,
-            resourceId: campaign.resource_id,
-            slotDatetime: campaign.slot_datetime,
-            durationMinutes: campaign.duration_minutes,
-            targetLevelId: selectedLevel || undefined,
-            playersNeeded: campaign.players_needed,
-          }),
+          body: JSON.stringify({ id: params.id, targetLevelId: selectedLevel || null }),
         })
       }
 
@@ -165,6 +171,16 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
                 <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={saveChanges}
+              disabled={saving}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+            >
+              {saving ? 'Guardando...' : saved ? '✓ Guardado' : 'Guardar cambios'}
+            </button>
           </div>
 
           {sendResult && !sendResult.ok && (

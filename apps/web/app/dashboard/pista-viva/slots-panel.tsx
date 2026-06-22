@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { PlaytomicResource } from '@/lib/playtomic'
 
 type Level = { id: string; name: string }
 
 export default function SlotsPanel({ clubId }: { clubId: string }) {
+  const router = useRouter()
   const [resources, setResources] = useState<PlaytomicResource[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -54,7 +56,7 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
       })
       if (res.ok) {
         setSent((prev) => new Set([...prev, key]))
-        window.location.href = '/dashboard/pista-viva'
+        router.refresh()
       }
     } finally {
       setCreating(null)

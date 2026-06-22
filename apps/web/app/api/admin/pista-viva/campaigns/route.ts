@@ -73,3 +73,68 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ campaign })
 }
+
+export async function PATCH(req: NextRequest) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdminClient()
+  const { data: caller } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
+  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const cookieStore = cookies()
+  const clubId = caller.role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id)
+    : caller.club_id
+  if (!clubId) return NextResponse.json({ error: 'Club no encontrado' }, { status: 400 })
+
+  const { id, targetLevelId, message, playersNeeded } = await req.json()
+  if (!id) return NextResponse.json({ error: 'id es obligatorio' }, { status: 400 })
+
+  const update: Record<string, any> = {}
+  if (targetLevelId !== undefined) update.target_level_id = targetLevelId || null
+  if (message !== undefined) update.message = message
+  if (playersNeeded !== undefined) update.players_needed = playersNeeded
+
+  const { error } = await admin
+    .from('pista_viva_campaigns')
+    .update(update)
+    .eq('id', id)
+    .eq('club_id', clubId)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
+
+export async function DELETE(req: NextRequest) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdminClient()
+  const { data: caller } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
+  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  const cookieStore = cookies()
+  const clubId = caller.role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id)
+    : caller.club_id
+  if (!clubId) return NextResponse.json({ error: 'Club no encontrado' }, { status: 400 })
+
+  const id = req.nextUrl.searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id es obligatorio' }, { status: 400 })
+
+  const { error } = await admin
+    .from('pista_viva_campaigns')
+    .delete()
+    .eq('id', id)
+    .eq('club_id', clubId)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}
