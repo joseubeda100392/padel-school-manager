@@ -50,6 +50,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const utcDate = new Date(campaign.slot_datetime)
   const startTime = utcDate.toLocaleString('sv-SE', { timeZone: 'Europe/Madrid' }).replace(' ', 'T')
 
+  const matchPayload = {
+    tenant_id: club.playtomic_tenant_id,
+    resource_id: campaign.resource_id,
+    start: startTime,
+    duration: campaign.duration_minutes,
+    sport_id: 'PADEL',
+  }
+  console.error('[pista-viva] createMatch payload:', JSON.stringify(matchPayload))
+
   let matchId: string, matchUrl: string
   try {
     const result = await ptClient.createMatch({
