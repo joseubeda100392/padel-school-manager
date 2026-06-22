@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import type { PlaytomicResource } from '@/lib/playtomic'
 
 const SESSION_KEY = 'pv_slots'
@@ -22,6 +23,7 @@ function loadFromSession(): PlaytomicResource[] {
 }
 
 export default function SlotsPanel({ clubId }: { clubId: string }) {
+  const router = useRouter()
   const [resources, setResources] = useState<PlaytomicResource[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -75,7 +77,9 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
         }),
       })
       if (res.ok) {
+        const data = await res.json()
         setSent((prev) => new Set([...prev, key]))
+        if (data?.campaign?.id) router.push(`/dashboard/pista-viva/${data.campaign.id}`)
       }
     } finally {
       setCreating(null)
