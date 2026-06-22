@@ -37,6 +37,7 @@ export type PlaytomicMatchStatus = {
 
 export class PlaytomicClient {
   private token: string | null = null
+  private userId: string | null = null
 
   async login(email: string, password: string): Promise<void> {
     const res = await fetch(`${CONSUMER_BASE}/v3/auth/login`, {
@@ -55,6 +56,7 @@ export class PlaytomicClient {
     const data = await res.json()
     if (!data.access_token) throw new Error('Playtomic login: no access_token')
     this.token = data.access_token
+    this.userId = data.user_id ?? null
   }
 
   async getAvailableSlots(
@@ -111,28 +113,81 @@ export class PlaytomicClient {
     durationMinutes: number
     playersNeeded?: number
   }): Promise<{ matchId: string; matchUrl: string }> {
-    if (!this.token) throw new Error('Not authenticated')
-    const res = await fetch(`${CONSUMER_BASE}/v1/matches`, {
+    if (!this.token || !this.userId) throw new Error('Not authenticated')
+    const numPlayers = opts.playersNeeded ?? 4
+
+    // Step 1: Create payment intent (Playtomic's booking flow)
+    const piRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.token}`,
-        'X-Requested-With': 'com.playtomic.web',
+        'X-Requested-With': 'com.playtomic.app',
       },
       body: JSON.stringify({
-        tenant_id: opts.tenantId,
-        resource_id: opts.resourceId,
-        start: opts.startTime,
-        duration: opts.durationMinutes,
-        sport_id: 'PADEL',
+        user_id: this.userId,
+        cart: {
+          requested_item: {
+            cart_item_type: 'CUSTOMER_MATCH',
+            cart_item_data: {
+              tenant_id: opts.tenantId,
+              resource_id: opts.resourceId,
+              start: opts.startTime,
+              duration: opts.durationMinutes,
+              sport_id: 'PADEL',
+              number_of_players: numPlayers,
+              supports_split_payment: true,
+              match_registrations: [{ user_id: this.userId, pay_now: true }],
+            },
+          },
+        },
       }),
     })
-    if (!res.ok) {
-      const err = await res.text()
-      throw new Error(`Playtomic createMatch failed ${res.status}: ${err}`)
+    if (!piRes.ok) {
+      const err = await piRes.text()
+      throw new Error(`Playtomic createMatch (payment_intent) failed ${piRes.status}: ${err}`)
     }
-    const data = await res.json()
-    const matchId: string = data.match_id ?? data.id ?? ''
+    const piData = await piRes.json()
+    const piId: string = piData.payment_intent_id ?? piData.id ?? ''
+    if (!piId) throw new Error('No payment_intent_id in Playtomic response')
+
+    // Step 2: Select payment method (pick first available, or WALLET)
+    const paymentMethods: any[] = piData.allowed_payment_methods ?? piData.payment_methods ?? []
+    const method = paymentMethods.find((m: any) => m.payment_method_type === 'WALLET')
+      ?? paymentMethods[0]
+    if (method) {
+      await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.token}`,
+          'X-Requested-With': 'com.playtomic.app',
+        },
+        body: JSON.stringify({ payment_method_type: method.payment_method_type }),
+      })
+    }
+
+    // Step 3: Confirm
+    const confirmRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}/confirmation`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'X-Requested-With': 'com.playtomic.app',
+      },
+    })
+    if (!confirmRes.ok) {
+      const err = await confirmRes.text()
+      throw new Error(`Playtomic confirm failed ${confirmRes.status}: ${err}`)
+    }
+    const confirmData = await confirmRes.json()
+
+    // Extract match ID from confirmation
+    const matchId: string =
+      confirmData.match_id ??
+      confirmData.id ??
+      confirmData.cart?.confirmed_item?.match_id ??
+      confirmData.cart?.confirmed_item?.id ??
+      piId
     const matchUrl = `https://playtomic.io/match/${matchId}`
     return { matchId, matchUrl }
   }
