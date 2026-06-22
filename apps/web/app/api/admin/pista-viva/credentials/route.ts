@@ -55,12 +55,12 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.json()
   const update: Record<string, string> = {}
-  if (body.playtomic_email !== undefined) update.playtomic_email = body.playtomic_email
-  if (body.playtomic_password !== undefined) update.playtomic_password = body.playtomic_password
-  if (body.playtomic_tenant_id !== undefined) update.playtomic_tenant_id = body.playtomic_tenant_id
-  if (body.playtomic_booking_url !== undefined) update.playtomic_booking_url = body.playtomic_booking_url
-  if (body.playtomic_client_id !== undefined) update.playtomic_client_id = body.playtomic_client_id
-  if (body.playtomic_client_secret !== undefined) update.playtomic_client_secret = body.playtomic_client_secret
+  if (body.playtomic_email) update.playtomic_email = body.playtomic_email
+  if (body.playtomic_password) update.playtomic_password = body.playtomic_password
+  if (body.playtomic_tenant_id) update.playtomic_tenant_id = body.playtomic_tenant_id
+  if (body.playtomic_booking_url) update.playtomic_booking_url = body.playtomic_booking_url
+  if (body.playtomic_client_id) update.playtomic_client_id = body.playtomic_client_id
+  if (body.playtomic_client_secret) update.playtomic_client_secret = body.playtomic_client_secret
 
   const { error } = await admin.from('clubs').update(update).eq('id', clubId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
