@@ -45,12 +45,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: `Login Playtomic falló con email "${club.playtomic_email}": ${e.message}` }, { status: 502 })
   }
 
+  // Playtomic espera hora local del venue sin timezone: "2026-06-22T11:00:00"
+  // slot_datetime está en UTC en DB → convertir a hora España (Europe/Madrid)
+  const utcDate = new Date(campaign.slot_datetime)
+  const startTime = utcDate.toLocaleString('sv-SE', { timeZone: 'Europe/Madrid' }).replace(' ', 'T')
+
   let matchId: string, matchUrl: string
   try {
     const result = await ptClient.createMatch({
       tenantId: club.playtomic_tenant_id,
       resourceId: campaign.resource_id,
-      startTime: campaign.slot_datetime,
+      startTime,
       durationMinutes: campaign.duration_minutes,
       playersNeeded: campaign.players_needed,
     })

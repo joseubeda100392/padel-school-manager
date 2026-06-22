@@ -125,9 +125,6 @@ export class PlaytomicClient {
         start: opts.startTime,
         duration: opts.durationMinutes,
         sport_id: 'PADEL',
-        type: 'REGULAR',
-        number_of_players: opts.playersNeeded ?? 4,
-        is_open: true,
       }),
     })
     if (!res.ok) {
