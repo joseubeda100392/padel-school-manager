@@ -145,6 +145,8 @@ export class PlaytomicClient {
     })
     if (!piRes.ok) {
       const err = await piRes.text()
+      console.error('[pista-viva] payment_intent payload:', JSON.stringify({ user_id: this.userId, tenant_id: opts.tenantId, resource_id: opts.resourceId, start: opts.startTime, duration: opts.durationMinutes }))
+      console.error('[pista-viva] payment_intent error:', err)
       throw new Error(`Playtomic createMatch (payment_intent) failed ${piRes.status}: ${err}`)
     }
     const piData = await piRes.json()
