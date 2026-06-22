@@ -7,10 +7,17 @@ const SESSION_KEY = 'pv_slots'
 
 type Level = { id: string; name: string }
 
+function filterFutureSlots(resources: PlaytomicResource[]): PlaytomicResource[] {
+  const now = new Date()
+  return resources
+    .map((r) => ({ ...r, slots: r.slots.filter((s) => new Date(s.start_time) > now) }))
+    .filter((r) => r.slots.length > 0)
+}
+
 function loadFromSession(): PlaytomicResource[] {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY)
-    return raw ? JSON.parse(raw) : []
+    return raw ? filterFutureSlots(JSON.parse(raw)) : []
   } catch { return [] }
 }
 
@@ -37,10 +44,10 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
       ])
       const slotsData = await slotsRes.json()
       if (!slotsRes.ok) { setError(slotsData.error ?? 'Error al consultar Playtomic'); return }
-      const res = slotsData.resources ?? []
+      const res = filterFutureSlots(slotsData.resources ?? [])
       setResources(res)
       try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(res)) } catch { /* ignore */ }
-      if (res.length === 0) setError('No hay pistas libres en las próximas 48h en Playtomic')
+      if (res.length === 0) setError('No hay pistas libres en las próximas 24h en Playtomic')
 
       if (levelsRes.ok) {
         const ld = await levelsRes.json()
