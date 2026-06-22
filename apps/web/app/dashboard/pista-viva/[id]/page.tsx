@@ -81,8 +81,19 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
   }
 
   function copyLink() {
-    const url = campaign?.playtomic_match_url ?? ''
-    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+    const url = attributionUrl
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+    } else {
+      const el = document.createElement('textarea')
+      el.value = url
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   if (!campaign) return <div className="p-8 text-center text-gray-400">Cargando...</div>
@@ -126,8 +137,8 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
         </div>
       </div>
 
-      {/* Link de atribución */}
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      {/* Link de atribución — solo visible una vez enviada */}
+      {campaign.status !== 'draft' && <div className="rounded-xl bg-white p-6 shadow-sm">
         <p className="mb-2 text-sm font-medium text-gray-700">Enlace de atribución</p>
         <div className="flex gap-2">
           <input
@@ -150,7 +161,7 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
             </a>
           </p>
         )}
-      </div>
+      </div>}
 
       {/* Enviar campaña (solo si draft) */}
       {campaign.status === 'draft' && (
