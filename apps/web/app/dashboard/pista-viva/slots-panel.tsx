@@ -1,9 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { PlaytomicResource } from '@/lib/playtomic'
 
+const SESSION_KEY = 'pv_slots'
+
 type Level = { id: string; name: string }
+
+function loadFromSession(): PlaytomicResource[] {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
 
 export default function SlotsPanel({ clubId }: { clubId: string }) {
   const [resources, setResources] = useState<PlaytomicResource[]>([])
@@ -12,6 +21,11 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
   const [levels, setLevels] = useState<Level[]>([])
   const [creating, setCreating] = useState<string | null>(null)
   const [sent, setSent] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const cached = loadFromSession()
+    if (cached.length > 0) setResources(cached)
+  }, [])
 
   async function fetchSlots() {
     setLoading(true)
@@ -25,6 +39,7 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
       if (!slotsRes.ok) { setError(slotsData.error ?? 'Error al consultar Playtomic'); return }
       const res = slotsData.resources ?? []
       setResources(res)
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(res)) } catch { /* ignore */ }
       if (res.length === 0) setError('No hay pistas libres en las próximas 48h en Playtomic')
 
       if (levelsRes.ok) {
