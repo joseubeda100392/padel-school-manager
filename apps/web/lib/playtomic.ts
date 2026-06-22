@@ -125,6 +125,7 @@ export class PlaytomicClient {
         'X-Requested-With': 'com.playtomic.app',
       },
       body: JSON.stringify({
+        allowed_payment_methods: ['STRIPE', 'WALLET'],
         user_id: this.userId,
         cart: {
           requested_item: {
