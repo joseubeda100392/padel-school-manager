@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
-import { getPlaytomicClient } from '@/lib/playtomic'
 import { sendWhatsAppBulk } from '@/lib/whatsapp'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -29,56 +28,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const { data: club } = await admin
     .from('clubs')
-    .select('name, playtomic_email, playtomic_password, playtomic_tenant_id')
+    .select('name, playtomic_tenant_id')
     .eq('id', campaign.club_id)
     .single()
 
-  if (!club?.playtomic_email || !club?.playtomic_password || !club?.playtomic_tenant_id) {
-    return NextResponse.json({ error: 'Credenciales Playtomic no configuradas' }, { status: 400 })
+  if (!club?.playtomic_tenant_id) {
+    return NextResponse.json({ error: 'Tenant ID de Playtomic no configurado' }, { status: 400 })
   }
 
-  // Crear partido abierto en Playtomic
-  const ptClient = getPlaytomicClient()
-  try {
-    await ptClient.login(club.playtomic_email, club.playtomic_password)
-  } catch (e: any) {
-    return NextResponse.json({ error: `Login Playtomic falló con email "${club.playtomic_email}": ${e.message}` }, { status: 502 })
-  }
+  // Construir deep link directo al slot en app.playtomic.com
+  // start debe estar en UTC (ya está así en slot_datetime de la DB)
+  const startUTC = new Date(campaign.slot_datetime).toISOString()
+  const matchUrl = `https://app.playtomic.com/payments?type=CUSTOMER_MATCH&tenant_id=${club.playtomic_tenant_id}&resource_id=${campaign.resource_id}&start=${encodeURIComponent(startUTC)}&duration=${campaign.duration_minutes}&sport_id=PADEL`
 
-  // Playtomic espera hora local del venue sin timezone: "2026-06-22T11:00:00"
-  // slot_datetime está en UTC en DB → convertir a hora España (Europe/Madrid)
-  const utcDate = new Date(campaign.slot_datetime)
-  const startTime = utcDate.toLocaleString('sv-SE', { timeZone: 'Europe/Madrid' }).replace(' ', 'T')
-
-  const matchPayload = {
-    tenant_id: club.playtomic_tenant_id,
-    resource_id: campaign.resource_id,
-    start: startTime,
-    duration: campaign.duration_minutes,
-    sport_id: 'PADEL',
-  }
-  console.error('[pista-viva] createMatch payload:', JSON.stringify(matchPayload))
-
-  let matchId: string, matchUrl: string
-  try {
-    const result = await ptClient.createMatch({
-      tenantId: club.playtomic_tenant_id,
-      resourceId: campaign.resource_id,
-      startTime,
-      durationMinutes: campaign.duration_minutes,
-      playersNeeded: campaign.players_needed,
-    })
-    matchId = result.matchId
-    matchUrl = result.matchUrl
-  } catch (e: any) {
-    return NextResponse.json({ error: `Crear partido Playtomic falló: ${e.message}` }, { status: 502 })
-  }
-
-  // Actualizar campaña con matchId
+  // Actualizar campaña con URL y marcar como enviada
   await admin
     .from('pista_viva_campaigns')
     .update({
-      playtomic_match_id: matchId,
       playtomic_match_url: matchUrl,
       status: 'sent',
       sent_at: new Date().toISOString(),
@@ -86,8 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .eq('id', params.id)
 
   // Obtener socios del nivel objetivo con teléfono
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://padelschoolmanager.com'
-  const attributionUrl = `${baseUrl}/pv/${params.id}`
+  const attributionUrl = matchUrl
 
   let usersQuery = admin
     .from('users')
@@ -104,7 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .eq('is_current', true)
     const ids = (levelUsers ?? []).map((u) => u.user_id)
     if (ids.length > 0) usersQuery = usersQuery.in('id', ids)
-    else return NextResponse.json({ ok: true, matchId, waSent: 0, pushSent: 0 })
+    else return NextResponse.json({ ok: true, matchUrl, waSent: 0, pushSent: 0 })
   }
 
   const { data: members } = await usersQuery
@@ -112,10 +77,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const slotDate = new Date(campaign.slot_datetime)
   const dateStr = slotDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })
   const timeStr = slotDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-  const faltan = campaign.players_needed - 1 // el club ocupa 1 plaza al crear
-
   const message = campaign.message ??
-    `🎾 Pista libre en ${club.name}\n📅 ${dateStr} a las ${timeStr} · ${campaign.court_name}\n👥 Faltan ${faltan} jugadores para cerrar el partido\n¡Apúntate antes de que se llene!\n👉 ${attributionUrl}`
+    `🎾 Pista libre en ${club.name}\n📅 ${dateStr} a las ${timeStr} · ${campaign.court_name}\n¡Reserva tu plaza antes de que se llene!\n👉 ${attributionUrl}`
 
   // WhatsApp a los que tienen opt-in
   const waNumbers = (members ?? [])
@@ -131,7 +94,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const pushBody = {
       to: pushTokens,
       title: `🎾 Pista libre en ${club.name}`,
-      body: `${dateStr} ${timeStr} · ${campaign.court_name} · Faltan ${faltan} jugadores`,
+      body: `${dateStr} ${timeStr} · ${campaign.court_name} · ¡Reserva ya!`,
       data: { url: attributionUrl },
     }
     const pushRes = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -142,5 +105,5 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (pushRes.ok) pushSent = pushTokens.length
   }
 
-  return NextResponse.json({ ok: true, matchId, matchUrl, waSent, pushSent })
+  return NextResponse.json({ ok: true, matchUrl, waSent, pushSent })
 }
