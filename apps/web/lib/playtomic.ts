@@ -183,13 +183,14 @@ export class PlaytomicClient {
       throw new Error(`Playtomic confirm failed ${confirmRes.status}: ${err}`)
     }
     const confirmData = await confirmRes.json()
+    console.error('[pista-viva] confirm response:', JSON.stringify(confirmData))
 
-    // Extract match ID from confirmation
     const matchId: string =
       confirmData.match_id ??
       confirmData.id ??
       confirmData.cart?.confirmed_item?.match_id ??
       confirmData.cart?.confirmed_item?.id ??
+      confirmData.cart?.cart_item?.match_id ??
       piId
     const matchUrl = `https://playtomic.io/match/${matchId}`
     return { matchId, matchUrl }
