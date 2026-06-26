@@ -19,6 +19,7 @@ const roleBadge: Record<string, string> = {
 interface Props {
   students: any[]
   levelMap: Record<string, any>
+  defaultTab?: string
 }
 
 const TABS = [
@@ -28,9 +29,9 @@ const TABS = [
   { value: 'admin', label: 'Admins' },
 ]
 
-export default function StudentsTable({ students, levelMap }: Props) {
+export default function StudentsTable({ students, levelMap, defaultTab = 'student' }: Props) {
   const [q, setQ] = useState('')
-  const [role, setRole] = useState('student')
+  const [role, setRole] = useState(defaultTab)
   const [status, setStatus] = useState('')
 
   const countByRole = useMemo(() => {

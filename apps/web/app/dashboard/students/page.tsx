@@ -5,7 +5,7 @@ import { getClubId, isSuperAdmin } from '@/lib/get-club'
 import StudentsTable from './students-table'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 
-export default async function StudentsPage() {
+export default async function StudentsPage({ searchParams }: { searchParams: { tab?: string } }) {
   const admin = getAdminClient()
   const [clubId, superAdmin] = await Promise.all([getClubId(), isSuperAdmin()])
 
@@ -57,7 +57,7 @@ export default async function StudentsPage() {
         </div>
       </div>
 
-      <StudentsTable students={students ?? []} levelMap={levelMap} />
+      <StudentsTable students={students ?? []} levelMap={levelMap} defaultTab={searchParams.tab ?? 'student'} />
     </div>
   )
 }
