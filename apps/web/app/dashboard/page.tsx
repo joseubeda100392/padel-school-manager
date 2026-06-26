@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
-import { Users, CalendarDays, CreditCard, BookOpen, Trophy, AlertTriangle, PackageX, UserX } from 'lucide-react'
+import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
@@ -72,11 +72,6 @@ export default async function DashboardPage() {
 
   const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance_60 ?? 0) + (b.balance_90 ?? 0), 0) ?? 0
 
-  // Alertas — info que normalmente requiere varios clics encontrar
-  const emptyBagCount = bagStats?.filter((b: any) => (b.balance_60 ?? 0) + (b.balance_90 ?? 0) === 0).length ?? 0
-  const lowBagCount = bagStats?.filter((b: any) => (b.balance_60 ?? 0) + (b.balance_90 ?? 0) === 1).length ?? 0
-  const noLevelCount = studentsRaw?.filter((s: any) => !s.current_level_id).length ?? 0
-
   const levelCountMap: Record<string, number> = {}
   for (const s of studentsRaw ?? []) {
     if (s.current_level_id) levelCountMap[s.current_level_id] = (levelCountMap[s.current_level_id] ?? 0) + 1
@@ -91,39 +86,6 @@ export default async function DashboardPage() {
     ...(features.enable_payments ? [{ label: 'Sin pagar este mes', value: (pendingCount as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500', text: 'text-yellow-500', href: '/dashboard/payments' }] : []),
     ...(features.enable_materials ? [{ label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', text: 'text-purple-500', href: '/dashboard/materials' }] : []),
   ]
-
-  const alerts = [
-    {
-      show: emptyBagCount > 0,
-      icon: PackageX,
-      label: `${emptyBagCount} ${emptyBagCount === 1 ? 'alumno' : 'alumnos'} con bolsa vacía`,
-      desc: 'No pueden asistir a clase',
-      href: '/dashboard/students',
-      severity: 'red',
-    },
-    {
-      show: lowBagCount > 0,
-      icon: AlertTriangle,
-      label: `${lowBagCount} ${lowBagCount === 1 ? 'alumno' : 'alumnos'} con solo 1 clase`,
-      desc: 'Bolsa a punto de agotarse',
-      href: '/dashboard/students',
-      severity: 'yellow',
-    },
-    {
-      show: noLevelCount > 0,
-      icon: UserX,
-      label: `${noLevelCount} ${noLevelCount === 1 ? 'alumno sin nivel' : 'alumnos sin nivel'}`,
-      desc: 'Perfil incompleto',
-      href: '/dashboard/students',
-      severity: 'blue',
-    },
-  ].filter(a => a.show)
-
-  const severityStyles: Record<string, { bg: string; icon: string; border: string }> = {
-    red:    { bg: 'bg-red-50',    icon: 'text-red-500',    border: 'border-red-100' },
-    yellow: { bg: 'bg-yellow-50', icon: 'text-yellow-500', border: 'border-yellow-100' },
-    blue:   { bg: 'bg-blue-50',   icon: 'text-blue-500',   border: 'border-blue-100' },
-  }
 
   return (
     <div className="space-y-8">
@@ -162,27 +124,6 @@ export default async function DashboardPage() {
           )
         })}
       </AnimatedStatsGrid>
-
-      {/* Alertas que necesitan atención */}
-      {alerts.length > 0 && (
-        <div>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Requieren atención</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {alerts.map((alert) => {
-              const s = severityStyles[alert.severity]
-              return (
-                <a key={alert.label} href={alert.href} className={`flex items-center gap-4 rounded-xl border ${s.border} ${s.bg} px-5 py-4 hover:shadow-sm transition-all`}>
-                  <alert.icon className={`h-5 w-5 shrink-0 ${s.icon}`} />
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">{alert.label}</p>
-                    <p className="text-xs text-gray-500">{alert.desc}</p>
-                  </div>
-                </a>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Sin pagar + Últimos alumnos */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
