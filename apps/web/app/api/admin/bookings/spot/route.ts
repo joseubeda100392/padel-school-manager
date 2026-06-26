@@ -26,6 +26,33 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
+  // Overlap check
+  const { data: newSched } = await admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single()
+  if (newSched) {
+    const { data: existing } = await admin
+      .from('bookings')
+      .select('schedule_id, schedules(start_time, end_time)')
+      .eq('student_id', studentId)
+      .eq('class_date', classDate)
+      .neq('status', 'cancelled')
+      .neq('schedule_id', scheduleId)
+
+    const nStart = new Date(newSched.start_time)
+    const nEnd = new Date(newSched.end_time)
+    const nStartMin = nStart.getUTCHours() * 60 + nStart.getUTCMinutes()
+    const nEndMin = nEnd.getUTCHours() * 60 + nEnd.getUTCMinutes()
+
+    for (const b of existing ?? []) {
+      const s = (b as any).schedules
+      if (!s) continue
+      const sStartMin = new Date(s.start_time).getUTCHours() * 60 + new Date(s.start_time).getUTCMinutes()
+      const sEndMin = new Date(s.end_time).getUTCHours() * 60 + new Date(s.end_time).getUTCMinutes()
+      if (sStartMin < nEndMin && sEndMin > nStartMin) {
+        return NextResponse.json({ error: 'Este alumno ya tiene una clase en ese horario' }, { status: 409 })
+      }
+    }
+  }
+
   const [{ data: inGroup }, { data: existingBooking }] = await Promise.all([
     admin
       .from('group_enrollments')
