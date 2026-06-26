@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
-  const [amount, setAmount] = useState(1)
+  const [amount, setAmount] = useState<number | ''>(1)
   const [durationType, setDurationType] = useState<'60' | '90'>('60')
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
@@ -17,13 +17,13 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
   const currentBalance = durationType === '60' ? balance60 : balance90
 
   async function adjust(sign: 1 | -1) {
-    const action = sign === 1 ? 'añadir' : 'descontar'
+    const n = Math.max(1, Math.min(100, Number(amount) || 1))
     const msg = sign === 1
-      ? `¿${action.charAt(0).toUpperCase() + action.slice(1)} ${amount} clase(s) de ${durationType} min a la bolsa?`
-      : `¿Descontar ${amount} clase(s) de ${durationType} min de la bolsa? Saldo actual: ${currentBalance}.`
+      ? `¿Añadir ${n} clase(s) de ${durationType} min a la bolsa?`
+      : `¿Descontar ${n} clase(s) de ${durationType} min de la bolsa? Saldo actual: ${currentBalance}.`
     if (!confirm(msg)) return
     setSaving(true)
-    const delta = amount * sign
+    const delta = n * sign
 
     const res = await fetch('/api/admin/students/bag-adjust', {
       method: 'POST',
@@ -58,7 +58,7 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
           min={1}
           max={100}
           value={amount}
-          onChange={(e) => setAmount(Math.max(1, Number(e.target.value)))}
+          onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
           className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         />
         <input
