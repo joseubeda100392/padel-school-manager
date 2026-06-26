@@ -98,6 +98,27 @@ export async function POST(req: NextRequest) {
         )
         scheduleType = (schedule as any).type ?? 'regular'
         schedulePriceCents = (schedule as any).price_cents ?? null
+
+        if (classDate) {
+          const { data: existingOnDate } = await admin
+            .from('bookings')
+            .select('schedule_id, schedules(start_time, end_time)')
+            .eq('student_id', user.id)
+            .eq('class_date', classDate)
+            .neq('status', 'cancelled')
+            .neq('schedule_id', scheduleId)
+          const nStartMin = new Date(schedule.start_time).getUTCHours() * 60 + new Date(schedule.start_time).getUTCMinutes()
+          const nEndMin = new Date(schedule.end_time).getUTCHours() * 60 + new Date(schedule.end_time).getUTCMinutes()
+          for (const b of existingOnDate ?? []) {
+            const s = (b as any).schedules
+            if (!s) continue
+            const sStartMin = new Date(s.start_time).getUTCHours() * 60 + new Date(s.start_time).getUTCMinutes()
+            const sEndMin = new Date(s.end_time).getUTCHours() * 60 + new Date(s.end_time).getUTCMinutes()
+            if (sStartMin < nEndMin && sEndMin > nStartMin) {
+              return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
+            }
+          }
+        }
       }
     }
     if (schedulePriceCents && schedulePriceCents > 0) {

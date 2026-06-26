@@ -21,6 +21,27 @@ export async function POST(req: NextRequest) {
 
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
 
+  // Overlap check
+  const { data: existingBookings } = await admin
+    .from('bookings')
+    .select('schedule_id, schedules(start_time, end_time)')
+    .eq('student_id', user.id)
+    .eq('class_date', date)
+    .neq('status', 'cancelled')
+    .neq('schedule_id', scheduleId)
+
+  const nStartMin = new Date(schedule.start_time).getUTCHours() * 60 + new Date(schedule.start_time).getUTCMinutes()
+  const nEndMin = new Date(schedule.end_time).getUTCHours() * 60 + new Date(schedule.end_time).getUTCMinutes()
+  for (const b of existingBookings ?? []) {
+    const s = (b as any).schedules
+    if (!s) continue
+    const sStartMin = new Date(s.start_time).getUTCHours() * 60 + new Date(s.start_time).getUTCMinutes()
+    const sEndMin = new Date(s.end_time).getUTCHours() * 60 + new Date(s.end_time).getUTCMinutes()
+    if (sStartMin < nEndMin && sEndMin > nStartMin) {
+      return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
+    }
+  }
+
   const [{ count: enrolledCount }, { count: spotBookingCount }] = await Promise.all([
     admin.from('group_enrollments').select('id', { count: 'exact', head: true }).eq('schedule_id', scheduleId).eq('status', 'active'),
     admin.from('bookings').select('id', { count: 'exact', head: true }).eq('schedule_id', scheduleId).eq('class_date', date).eq('status', 'confirmed'),
