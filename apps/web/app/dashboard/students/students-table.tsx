@@ -170,7 +170,9 @@ export default function StudentsTable({ students, levelMap }: Props) {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {level ? (
+                      {s.role !== 'student' ? (
+                        <span className="text-sm text-gray-300">—</span>
+                      ) : level ? (
                         <span className="rounded-full px-2.5 py-1 text-xs font-medium text-white" style={{ backgroundColor: level.color }}>
                           {level.name}
                         </span>
