@@ -15,6 +15,38 @@ export async function POST(req: NextRequest) {
   const { scheduleId } = body
 
   const admin = getAdminClient()
+
+  // Overlap check: prevent booking two classes at the same time on the same weekday
+  const { data: newSched } = await admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single()
+  if (newSched) {
+    const { data: existing } = await admin
+      .from('bookings')
+      .select('schedule_id, schedules(start_time, end_time)')
+      .eq('student_id', user.id)
+      .neq('status', 'cancelled')
+      .neq('schedule_id', scheduleId)
+
+    const nStart = new Date(newSched.start_time)
+    const nEnd = new Date(newSched.end_time)
+    const nDow = nStart.getUTCDay()
+    const nStartMin = nStart.getUTCHours() * 60 + nStart.getUTCMinutes()
+    const nEndMin = nEnd.getUTCHours() * 60 + nEnd.getUTCMinutes()
+
+    for (const b of existing ?? []) {
+      const s = (b as any).schedules
+      if (!s) continue
+      const sStart = new Date(s.start_time)
+      const sEnd = new Date(s.end_time)
+      if (sStart.getUTCDay() === nDow) {
+        const sStartMin = sStart.getUTCHours() * 60 + sStart.getUTCMinutes()
+        const sEndMin = sEnd.getUTCHours() * 60 + sEnd.getUTCMinutes()
+        if (sStartMin < nEndMin && sEndMin > nStartMin) {
+          return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
+        }
+      }
+    }
+  }
+
   const { data, error } = await admin.rpc('book_with_bag', {
     p_schedule_id: scheduleId,
     p_student_id: user.id,

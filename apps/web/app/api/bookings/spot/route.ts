@@ -31,6 +31,34 @@ export async function POST(req: NextRequest) {
 
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
 
+  // Overlap check
+  const { data: existingSpot } = await admin
+    .from('bookings')
+    .select('schedule_id, schedules(start_time, end_time)')
+    .eq('student_id', user.id)
+    .neq('status', 'cancelled')
+    .neq('schedule_id', scheduleId)
+
+  const nStart = new Date(schedule.start_time)
+  const nEnd = new Date(schedule.end_time)
+  const nDow = nStart.getUTCDay()
+  const nStartMin = nStart.getUTCHours() * 60 + nStart.getUTCMinutes()
+  const nEndMin = nEnd.getUTCHours() * 60 + nEnd.getUTCMinutes()
+
+  for (const b of existingSpot ?? []) {
+    const s = (b as any).schedules
+    if (!s) continue
+    const sStart = new Date(s.start_time)
+    const sEnd = new Date(s.end_time)
+    if (sStart.getUTCDay() === nDow) {
+      const sStartMin = sStart.getUTCHours() * 60 + sStart.getUTCMinutes()
+      const sEndMin = sEnd.getUTCHours() * 60 + sEnd.getUTCMinutes()
+      if (sStartMin < nEndMin && sEndMin > nStartMin) {
+        return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
+      }
+    }
+  }
+
   const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
   const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
 
