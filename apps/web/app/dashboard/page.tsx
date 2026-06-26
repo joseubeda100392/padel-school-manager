@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
-import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
+import { Users, CalendarDays, CreditCard, BookOpen, Trophy, Zap, MessageSquare, Bell, UserPlus, Settings } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
@@ -32,6 +32,7 @@ export default async function DashboardPage() {
 
   const now = new Date()
   const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
+  const todayLabel = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 
   const [
     { count: totalStudents, error: errStudents },
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
     { data: bagStats },
     { data: studentsRaw },
     { count: totalCoaches },
+    { data: club },
   ] = await Promise.all([
     filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
     filter(admin.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
@@ -59,13 +61,14 @@ export default async function DashboardPage() {
     filter(admin.from('class_bag').select('balance_60, balance_90')),
     filter(admin.from('users').select('current_level_id').eq('role', 'student').eq('is_active', true)),
     filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true)),
+    clubId ? admin.from('clubs').select('name').eq('id', clubId).single() : Promise.resolve({ data: null }),
   ])
 
   const stats = [
-    { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500', show: true },
-    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-brand-500', show: true },
-    { label: 'Sin pagar este mes', value: (pendingCount as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500', show: features.enable_payments },
-    { label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', show: features.enable_materials },
+    { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500', text: 'text-blue-500', href: '/dashboard/students?tab=student', show: true },
+    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-brand-500', text: 'text-brand-500', href: '/dashboard/schedule', show: true },
+    { label: 'Sin pagar este mes', value: (pendingCount as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500', text: 'text-yellow-500', href: '/dashboard/payments', show: features.enable_payments },
+    { label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', text: 'text-purple-500', href: '/dashboard/materials', show: features.enable_materials },
   ].filter(s => s.show)
 
   const totalRevenue = payments?.reduce((acc: number, p: any) => acc + p.amount, 0) ?? 0
@@ -82,6 +85,18 @@ export default async function DashboardPage() {
   }
   const levels = (levelsRaw ?? []).map((l: any) => ({ ...l, studentCount: levelCountMap[l.id] ?? 0 }))
 
+  const quickActions = [
+    { label: 'Nuevo alumno', desc: 'Registrar un alumno', icon: UserPlus, href: '/dashboard/students/new', color: 'text-blue-500', bg: 'bg-blue-50', show: true },
+    { label: 'Clases', desc: 'Ver el horario completo', icon: CalendarDays, href: '/dashboard/schedule', color: 'text-brand-500', bg: 'bg-brand-50', show: true },
+    { label: 'Pagos', desc: 'Gestionar mensualidades', icon: CreditCard, href: '/dashboard/payments', color: 'text-yellow-600', bg: 'bg-yellow-50', show: features.enable_payments },
+    { label: 'Niveles', desc: 'Gestionar niveles', icon: Trophy, href: '/dashboard/levels', color: 'text-green-600', bg: 'bg-green-50', show: true },
+    { label: 'Pista Viva', desc: 'Llenar pistas libres', icon: Zap, href: '/dashboard/pista-viva', color: 'text-orange-500', bg: 'bg-orange-50', show: features.enable_pista_viva },
+    { label: 'Materiales', desc: 'PDFs y contenido', icon: BookOpen, href: '/dashboard/materials', color: 'text-purple-500', bg: 'bg-purple-50', show: features.enable_materials },
+    { label: 'Chat soporte', desc: 'Mensajes de alumnos', icon: MessageSquare, href: '/dashboard/chat', color: 'text-pink-500', bg: 'bg-pink-50', show: features.enable_chat },
+    { label: 'Notificaciones', desc: 'Enviar avisos', icon: Bell, href: '/dashboard/notifications', color: 'text-indigo-500', bg: 'bg-indigo-50', show: true },
+    { label: 'Configuración', desc: 'Ajustes del club', icon: Settings, href: '/dashboard/settings', color: 'text-gray-500', bg: 'bg-gray-100', show: true },
+  ].filter(a => a.show)
+
   return (
     <div className="space-y-8">
       <DevError errors={[errStudents?.message, errRpc1?.message, errRpc2?.message, errRecent?.message, errRpc3?.message]} />
@@ -93,24 +108,53 @@ export default async function DashboardPage() {
           { table: 'payments' },
         ]}
       />
-      <div>
-        <h1 className="font-display text-2xl font-bold text-gray-900">Panel de Control</h1>
-        <p className="mt-1 text-sm text-gray-500">Resumen de la actividad de tu escuela de pádel</p>
+
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-gray-900">
+            {club?.name ?? 'Panel de Control'}
+          </h1>
+          <p className="mt-1 text-sm capitalize text-gray-400">{todayLabel}</p>
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* KPI Stats — cada card es un enlace a su sección */}
       <AnimatedStatsGrid>
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full">
+          <a key={stat.label} href={stat.href} className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full block hover:ring-2 hover:ring-brand-200 transition-all">
             <div className={`inline-flex rounded-xl p-2.5 ${stat.color} bg-opacity-10`}>
-              <stat.icon className={`h-5 w-5 ${stat.color.replace('bg-', 'text-')}`} />
+              <stat.icon className={`h-5 w-5 ${stat.text}`} />
             </div>
             <p className="mt-4 font-display text-3xl font-bold text-gray-900">{stat.value}</p>
-            <p className="mt-1 text-sm text-gray-500">{stat.label}</p>
-          </div>
+            <p className="mt-1 text-sm text-gray-500 group-hover:text-brand-500 transition-colors">{stat.label}</p>
+          </a>
         ))}
       </AnimatedStatsGrid>
 
+      {/* Acciones rápidas */}
+      <div>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Acciones rápidas</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {quickActions.map((action) => (
+            <a
+              key={action.href}
+              href={action.href}
+              className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 hover:ring-brand-200 hover:shadow-md transition-all group"
+            >
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${action.bg}`}>
+                <action.icon className={`h-4 w-4 ${action.color}`} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-800 group-hover:text-brand-600 truncate">{action.label}</p>
+                <p className="text-xs text-gray-400 truncate">{action.desc}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      {/* Contenido principal */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Sin pagar este mes */}
         {features.enable_payments && (
@@ -120,9 +164,7 @@ export default async function DashboardPage() {
                 <h2 className="font-semibold text-gray-900">Sin pagar — {currentMonthLabel}</h2>
                 <p className="text-xs text-gray-400">{unpaidList?.length ?? 0} mensualidades pendientes</p>
               </div>
-              <a href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">
-                Ver pagos →
-              </a>
+              <a href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver todos →</a>
             </div>
             {!unpaidList?.length ? (
               <div className="px-6 py-10 text-center">
@@ -131,7 +173,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <ul className="divide-y divide-gray-50">
-                {unpaidList.map((e: any) => {
+                {unpaidList.slice(0, 6).map((e: any) => {
                   const dow = e.start_time ? new Date(e.start_time).getDay() : null
                   const initials = (e.student_name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
                   return (
@@ -154,8 +196,9 @@ export default async function DashboardPage() {
 
         {/* Últimos alumnos */}
         <div className="rounded-xl bg-white shadow-sm">
-          <div className="border-b border-gray-100 px-6 py-4">
-            <h2 className="font-semibold text-gray-900">Últimos alumnos registrados</h2>
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <h2 className="font-semibold text-gray-900">Últimos alumnos</h2>
+            <a href="/dashboard/students/new" className="text-xs font-medium text-brand-500 hover:underline">+ Nuevo →</a>
           </div>
           {!recentStudents?.length ? (
             <div className="px-6 py-10 text-center">
@@ -190,50 +233,13 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Monitores</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{totalCoaches ?? 0}</p>
-        </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Ingresos totales</p>
-          <p className="mt-1 text-3xl font-bold text-brand-500">{formatCurrency(totalRevenue)}</p>
-        </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Clases en bolsa</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{totalBagClasses}</p>
-        </div>
-      </div>
-
+      {/* Gráficos */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Ingresos por tipo</h2>
-          {Object.keys(revenueByType).length === 0 ? (
-            <p className="text-sm text-gray-400">Sin datos de pagos aún.</p>
-          ) : (
-            <div className="space-y-3">
-              {Object.entries(revenueByType).map(([type, amount]) => {
-                const amt = amount as number
-                const pct = totalRevenue > 0 ? Math.round((amt / totalRevenue) * 100) : 0
-                return (
-                  <div key={type}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="text-gray-700">{typeLabel[type] ?? type}</span>
-                      <span className="font-medium text-gray-900">{formatCurrency(amt)}</span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                      <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Alumnos por nivel</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900">Alumnos por nivel</h2>
+            <a href="/dashboard/levels" className="text-xs font-medium text-brand-500 hover:underline">Gestionar →</a>
+          </div>
           {levels.length === 0 ? (
             <p className="text-sm text-gray-400">No hay niveles creados.</p>
           ) : (
@@ -258,6 +264,50 @@ export default async function DashboardPage() {
               })}
             </div>
           )}
+        </div>
+
+        <div className="rounded-xl bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900">Ingresos por tipo</h2>
+            <a href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver pagos →</a>
+          </div>
+          {Object.keys(revenueByType).length === 0 ? (
+            <p className="text-sm text-gray-400">Sin datos de pagos aún.</p>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(revenueByType).map(([type, amount]) => {
+                const amt = amount as number
+                const pct = totalRevenue > 0 ? Math.round((amt / totalRevenue) * 100) : 0
+                return (
+                  <div key={type}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="text-gray-700">{typeLabel[type] ?? type}</span>
+                      <span className="font-medium text-gray-900">{formatCurrency(amt)}</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stats secundarias */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <a href="/dashboard/students?tab=coach" className="rounded-xl bg-white p-5 shadow-sm hover:ring-2 hover:ring-brand-200 transition-all block">
+          <p className="text-sm text-gray-500">Monitores activos</p>
+          <p className="mt-1 text-3xl font-bold text-gray-900">{totalCoaches ?? 0}</p>
+        </a>
+        <a href="/dashboard/payments" className="rounded-xl bg-white p-5 shadow-sm hover:ring-2 hover:ring-brand-200 transition-all block">
+          <p className="text-sm text-gray-500">Ingresos totales</p>
+          <p className="mt-1 text-3xl font-bold text-brand-500">{formatCurrency(totalRevenue)}</p>
+        </a>
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Clases en bolsa</p>
+          <p className="mt-1 text-3xl font-bold text-gray-900">{totalBagClasses}</p>
         </div>
       </div>
     </div>
