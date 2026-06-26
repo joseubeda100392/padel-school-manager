@@ -17,6 +17,11 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
   const currentBalance = durationType === '60' ? balance60 : balance90
 
   async function adjust(sign: 1 | -1) {
+    const action = sign === 1 ? 'añadir' : 'descontar'
+    const msg = sign === 1
+      ? `¿${action.charAt(0).toUpperCase() + action.slice(1)} ${amount} clase(s) de ${durationType} min a la bolsa?`
+      : `¿Descontar ${amount} clase(s) de ${durationType} min de la bolsa? Saldo actual: ${currentBalance}.`
+    if (!confirm(msg)) return
     setSaving(true)
     const delta = amount * sign
 

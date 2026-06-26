@@ -146,6 +146,7 @@ export default function GroupEnrollment({
   }
 
   async function handleMarkPaid(id: string) {
+    if (!confirm('¿Registrar el pago en efectivo de este mes? Quedará registrado en el historial de pagos.')) return
     setLoadingId(id)
     setMarkPaidError(null)
     const res = await fetch(`/api/group-enrollments/${id}/mark-paid`, { method: 'POST' })

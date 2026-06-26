@@ -57,6 +57,7 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
   }
 
   async function handleSend() {
+    if (!confirm('¿Crear el partido en Playtomic y enviar WhatsApp + Push a los socios? Esta acción no se puede deshacer.')) return
     setSending(true)
     setSendResult(null)
     try {
