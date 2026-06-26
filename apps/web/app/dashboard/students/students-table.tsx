@@ -133,7 +133,7 @@ export default function StudentsTable({ students, levelMap }: Props) {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nombre</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Rol</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th>
+                {role === 'student' || role === '' ? <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th> : null}
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alta</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Baja</th>
@@ -142,7 +142,7 @@ export default function StudentsTable({ students, levelMap }: Props) {
             <tbody className="divide-y divide-gray-50">
               {!filtered.length && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={role === 'student' || role === '' ? 7 : 6} className="px-6 py-12 text-center text-gray-400">
                     {q || role || status ? 'Sin resultados para esa búsqueda.' : 'No hay usuarios aún.'}
                   </td>
                 </tr>
@@ -169,17 +169,19 @@ export default function StudentsTable({ students, levelMap }: Props) {
                         {roleLabel[s.role] ?? s.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      {s.role !== 'student' ? (
-                        <span className="text-sm text-gray-300">—</span>
-                      ) : level ? (
-                        <span className="rounded-full px-2.5 py-1 text-xs font-medium text-white" style={{ backgroundColor: level.color }}>
-                          {level.name}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-gray-400">Sin asignar</span>
-                      )}
-                    </td>
+                    {(role === 'student' || role === '') && (
+                      <td className="px-6 py-4">
+                        {s.role !== 'student' ? (
+                          <span className="text-sm text-gray-300">—</span>
+                        ) : level ? (
+                          <span className="rounded-full px-2.5 py-1 text-xs font-medium text-white" style={{ backgroundColor: level.color }}>
+                            {level.name}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">Sin asignar</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
                         {s.is_active ? 'Activo' : 'Inactivo'}
