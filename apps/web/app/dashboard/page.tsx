@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
-import { Users, CalendarDays, CreditCard, BookOpen, Trophy, Zap, MessageSquare, Bell, UserPlus, Settings } from 'lucide-react'
+import { Users, CalendarDays, CreditCard, BookOpen, Trophy, AlertTriangle, PackageX, UserX } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
@@ -64,13 +64,6 @@ export default async function DashboardPage() {
     clubId ? admin.from('clubs').select('name').eq('id', clubId).single() : Promise.resolve({ data: null }),
   ])
 
-  const stats = [
-    { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500', text: 'text-blue-500', href: '/dashboard/students?tab=student', show: true },
-    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-brand-500', text: 'text-brand-500', href: '/dashboard/schedule', show: true },
-    { label: 'Sin pagar este mes', value: (pendingCount as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500', text: 'text-yellow-500', href: '/dashboard/payments', show: features.enable_payments },
-    { label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', text: 'text-purple-500', href: '/dashboard/materials', show: features.enable_materials },
-  ].filter(s => s.show)
-
   const totalRevenue = payments?.reduce((acc: number, p: any) => acc + p.amount, 0) ?? 0
   const revenueByType = (payments ?? []).reduce((acc: Record<string, number>, p: any) => {
     acc[p.type] = (acc[p.type] ?? 0) + p.amount
@@ -79,84 +72,120 @@ export default async function DashboardPage() {
 
   const totalBagClasses = bagStats?.reduce((acc: number, b: any) => acc + (b.balance_60 ?? 0) + (b.balance_90 ?? 0), 0) ?? 0
 
+  // Alertas — info que normalmente requiere varios clics encontrar
+  const emptyBagCount = bagStats?.filter((b: any) => (b.balance_60 ?? 0) + (b.balance_90 ?? 0) === 0).length ?? 0
+  const lowBagCount = bagStats?.filter((b: any) => (b.balance_60 ?? 0) + (b.balance_90 ?? 0) === 1).length ?? 0
+  const noLevelCount = studentsRaw?.filter((s: any) => !s.current_level_id).length ?? 0
+
   const levelCountMap: Record<string, number> = {}
   for (const s of studentsRaw ?? []) {
     if (s.current_level_id) levelCountMap[s.current_level_id] = (levelCountMap[s.current_level_id] ?? 0) + 1
   }
   const levels = (levelsRaw ?? []).map((l: any) => ({ ...l, studentCount: levelCountMap[l.id] ?? 0 }))
 
-  const quickActions = [
-    { label: 'Nuevo alumno', desc: 'Registrar un alumno', icon: UserPlus, href: '/dashboard/students/new', color: 'text-blue-500', bg: 'bg-blue-50', show: true },
-    { label: 'Clases', desc: 'Ver el horario completo', icon: CalendarDays, href: '/dashboard/schedule', color: 'text-brand-500', bg: 'bg-brand-50', show: true },
-    { label: 'Pagos', desc: 'Gestionar mensualidades', icon: CreditCard, href: '/dashboard/payments', color: 'text-yellow-600', bg: 'bg-yellow-50', show: features.enable_payments },
-    { label: 'Niveles', desc: 'Gestionar niveles', icon: Trophy, href: '/dashboard/levels', color: 'text-green-600', bg: 'bg-green-50', show: true },
-    { label: 'Pista Viva', desc: 'Llenar pistas libres', icon: Zap, href: '/dashboard/pista-viva', color: 'text-orange-500', bg: 'bg-orange-50', show: features.enable_pista_viva },
-    { label: 'Materiales', desc: 'PDFs y contenido', icon: BookOpen, href: '/dashboard/materials', color: 'text-purple-500', bg: 'bg-purple-50', show: features.enable_materials },
-    { label: 'Chat soporte', desc: 'Mensajes de alumnos', icon: MessageSquare, href: '/dashboard/chat', color: 'text-pink-500', bg: 'bg-pink-50', show: features.enable_chat },
-    { label: 'Notificaciones', desc: 'Enviar avisos', icon: Bell, href: '/dashboard/notifications', color: 'text-indigo-500', bg: 'bg-indigo-50', show: true },
-    { label: 'Configuración', desc: 'Ajustes del club', icon: Settings, href: '/dashboard/settings', color: 'text-gray-500', bg: 'bg-gray-100', show: true },
+  const stats = [
+    { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500', text: 'text-blue-500', href: '/dashboard/students?tab=student' },
+    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-brand-500', text: 'text-brand-500', href: '/dashboard/schedule' },
+    { label: 'Monitores', value: totalCoaches ?? 0, icon: Users, color: 'bg-green-500', text: 'text-green-500', href: '/dashboard/students?tab=coach' },
+    { label: 'Clases en bolsa', value: totalBagClasses, icon: BookOpen, color: 'bg-indigo-500', text: 'text-indigo-500', href: null },
+    ...(features.enable_payments ? [{ label: 'Sin pagar este mes', value: (pendingCount as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500', text: 'text-yellow-500', href: '/dashboard/payments' }] : []),
+    ...(features.enable_materials ? [{ label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', text: 'text-purple-500', href: '/dashboard/materials' }] : []),
+  ]
+
+  const alerts = [
+    {
+      show: emptyBagCount > 0,
+      icon: PackageX,
+      label: `${emptyBagCount} ${emptyBagCount === 1 ? 'alumno' : 'alumnos'} con bolsa vacía`,
+      desc: 'No pueden asistir a clase',
+      href: '/dashboard/students',
+      severity: 'red',
+    },
+    {
+      show: lowBagCount > 0,
+      icon: AlertTriangle,
+      label: `${lowBagCount} ${lowBagCount === 1 ? 'alumno' : 'alumnos'} con solo 1 clase`,
+      desc: 'Bolsa a punto de agotarse',
+      href: '/dashboard/students',
+      severity: 'yellow',
+    },
+    {
+      show: noLevelCount > 0,
+      icon: UserX,
+      label: `${noLevelCount} ${noLevelCount === 1 ? 'alumno sin nivel' : 'alumnos sin nivel'}`,
+      desc: 'Perfil incompleto',
+      href: '/dashboard/students',
+      severity: 'blue',
+    },
   ].filter(a => a.show)
+
+  const severityStyles: Record<string, { bg: string; icon: string; border: string }> = {
+    red:    { bg: 'bg-red-50',    icon: 'text-red-500',    border: 'border-red-100' },
+    yellow: { bg: 'bg-yellow-50', icon: 'text-yellow-500', border: 'border-yellow-100' },
+    blue:   { bg: 'bg-blue-50',   icon: 'text-blue-500',   border: 'border-blue-100' },
+  }
 
   return (
     <div className="space-y-8">
       <DevError errors={[errStudents?.message, errRpc1?.message, errRpc2?.message, errRecent?.message, errRpc3?.message]} />
       <RealtimeRefresh
         channelName="admin-dashboard"
-        subs={[
-          { table: 'group_enrollments' },
-          { table: 'users' },
-          { table: 'payments' },
-        ]}
+        subs={[{ table: 'group_enrollments' }, { table: 'users' }, { table: 'payments' }]}
       />
 
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">
-            {club?.name ?? 'Panel de Control'}
-          </h1>
-          <p className="mt-1 text-sm capitalize text-gray-400">{todayLabel}</p>
-        </div>
+      <div>
+        <h1 className="font-display text-2xl font-bold text-gray-900">{club?.name ?? 'Panel de Control'}</h1>
+        <p className="mt-1 text-sm capitalize text-gray-400">{todayLabel}</p>
       </div>
 
-      {/* KPI Stats — cada card es un enlace a su sección */}
+      {/* Stats — toda la info clave arriba */}
       <AnimatedStatsGrid>
-        {stats.map((stat) => (
-          <a key={stat.label} href={stat.href} className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full block hover:ring-2 hover:ring-brand-200 transition-all">
-            <div className={`inline-flex rounded-xl p-2.5 ${stat.color} bg-opacity-10`}>
-              <stat.icon className={`h-5 w-5 ${stat.text}`} />
+        {stats.map((stat) => {
+          const inner = (
+            <>
+              <div className={`inline-flex rounded-xl p-2.5 ${stat.color} bg-opacity-10`}>
+                <stat.icon className={`h-5 w-5 ${stat.text}`} />
+              </div>
+              <p className="mt-4 font-display text-3xl font-bold text-gray-900">{stat.value}</p>
+              <p className={`mt-1 text-sm text-gray-500 ${stat.href ? 'group-hover:text-brand-500 transition-colors' : ''}`}>{stat.label}</p>
+            </>
+          )
+          return stat.href ? (
+            <a key={stat.label} href={stat.href} className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full block hover:ring-2 hover:ring-brand-200 transition-all">
+              {inner}
+            </a>
+          ) : (
+            <div key={stat.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full">
+              {inner}
             </div>
-            <p className="mt-4 font-display text-3xl font-bold text-gray-900">{stat.value}</p>
-            <p className="mt-1 text-sm text-gray-500 group-hover:text-brand-500 transition-colors">{stat.label}</p>
-          </a>
-        ))}
+          )
+        })}
       </AnimatedStatsGrid>
 
-      {/* Acciones rápidas */}
-      <div>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Acciones rápidas</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {quickActions.map((action) => (
-            <a
-              key={action.href}
-              href={action.href}
-              className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100 hover:ring-brand-200 hover:shadow-md transition-all group"
-            >
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${action.bg}`}>
-                <action.icon className={`h-4 w-4 ${action.color}`} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-800 group-hover:text-brand-600 truncate">{action.label}</p>
-                <p className="text-xs text-gray-400 truncate">{action.desc}</p>
-              </div>
-            </a>
-          ))}
+      {/* Alertas que necesitan atención */}
+      {alerts.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Requieren atención</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {alerts.map((alert) => {
+              const s = severityStyles[alert.severity]
+              return (
+                <a key={alert.label} href={alert.href} className={`flex items-center gap-4 rounded-xl border ${s.border} ${s.bg} px-5 py-4 hover:shadow-sm transition-all`}>
+                  <alert.icon className={`h-5 w-5 shrink-0 ${s.icon}`} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">{alert.label}</p>
+                    <p className="text-xs text-gray-500">{alert.desc}</p>
+                  </div>
+                </a>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Contenido principal */}
+      {/* Sin pagar + Últimos alumnos */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Sin pagar este mes */}
         {features.enable_payments && (
           <div className="rounded-xl bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
@@ -194,7 +223,6 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Últimos alumnos */}
         <div className="rounded-xl bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <h2 className="font-semibold text-gray-900">Últimos alumnos</h2>
@@ -203,9 +231,7 @@ export default async function DashboardPage() {
           {!recentStudents?.length ? (
             <div className="px-6 py-10 text-center">
               <p className="text-sm text-gray-400">Aún no hay alumnos.</p>
-              <a href="/dashboard/students/new" className="mt-1 inline-block text-sm font-medium text-brand-500 hover:underline">
-                Crear el primero
-              </a>
+              <a href="/dashboard/students/new" className="mt-1 inline-block text-sm font-medium text-brand-500 hover:underline">Crear el primero</a>
             </div>
           ) : (
             <ul className="divide-y divide-gray-50">
@@ -233,7 +259,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Gráficos */}
+      {/* Niveles + Ingresos */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -290,24 +316,12 @@ export default async function DashboardPage() {
                   </div>
                 )
               })}
+              <div className="mt-3 border-t border-gray-100 pt-3 flex items-center justify-between text-sm">
+                <span className="font-semibold text-gray-700">Total</span>
+                <span className="font-bold text-brand-500">{formatCurrency(totalRevenue)}</span>
+              </div>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Stats secundarias */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <a href="/dashboard/students?tab=coach" className="rounded-xl bg-white p-5 shadow-sm hover:ring-2 hover:ring-brand-200 transition-all block">
-          <p className="text-sm text-gray-500">Monitores activos</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{totalCoaches ?? 0}</p>
-        </a>
-        <a href="/dashboard/payments" className="rounded-xl bg-white p-5 shadow-sm hover:ring-2 hover:ring-brand-200 transition-all block">
-          <p className="text-sm text-gray-500">Ingresos totales</p>
-          <p className="mt-1 text-3xl font-bold text-brand-500">{formatCurrency(totalRevenue)}</p>
-        </a>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Clases en bolsa</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{totalBagClasses}</p>
         </div>
       </div>
     </div>
