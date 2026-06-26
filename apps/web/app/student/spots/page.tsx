@@ -162,10 +162,6 @@ export default async function StudentSpotsPage() {
     return nextDate
   }
 
-  console.error('[spots-debug] myLevelId:', myLevelId, 'myClubId:', myClubId)
-  console.error('[spots-debug] schedulesRaw count:', schedulesRaw?.length ?? 0)
-  console.error('[spots-debug] myScheduleIds:', [...myScheduleIds])
-
   const eligibleCapacity = (schedulesRaw ?? []).filter(s => {
     const enrollments = (s.enrollments ?? []) as any[]
     const active = enrollments.filter((e: any) => e.status === 'active')
@@ -173,16 +169,11 @@ export default async function StudentSpotsPage() {
     const levelId = (s.level as any)?.id ?? null
     const levelOk = !myLevelId || !levelId || levelId === myLevelId
     const classDate = getClassDate(s)
+    if (!classDate) return false
     const alreadyBooked = (mySpotBookings ?? []).some(
       b => b.schedule_id === s.id && b.class_date === classDate
     )
-    const passes = !alreadyIn && !!classDate && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
-    if (!passes) {
-      console.error(`[spots-debug] FILTERED OUT schedule ${s.id} (${(s as any).start_time}):`,
-        { alreadyIn, classDate, activeCount: active.length, maxStudents: s.max_students, levelOk, levelId, myLevelId, alreadyBooked }
-      )
-    }
-    return passes
+    return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
   })
 
   // Intensivos are handled in /student/intensivos — exclude them here

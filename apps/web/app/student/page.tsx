@@ -33,7 +33,9 @@ export default async function StudentHomePage() {
   const { data: userData } = await admin.from('users').select('name, current_level_id, club_id').eq('id', user.id).single()
   const clubId = (userData as any)?.club_id as string | undefined
 
-  const [features, { data: bag }, { data: enrollments }, { data: spots }] = await Promise.all([
+  const today = new Date().toISOString().split('T')[0]
+
+  const [features, { data: bag }, { data: enrollments }, { data: spots }, { data: capacitySchedules }] = await Promise.all([
     getClubFeatures(clubId),
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
@@ -42,8 +44,11 @@ export default async function StudentHomePage() {
       .eq('student_id', user.id)
       .eq('status', 'active'),
     clubId
-      ? admin.from('schedule_exclusions').select('id, group_enrollment:group_enrollments!group_enrollment_id(schedule:schedules!schedule_id(club_id))').eq('publish_spot', true).gte('excluded_date', new Date().toISOString().split('T')[0])
-      : admin.from('schedule_exclusions').select('id').eq('publish_spot', true).gte('excluded_date', new Date().toISOString().split('T')[0]),
+      ? admin.from('schedule_exclusions').select('id, group_enrollment:group_enrollments!group_enrollment_id(schedule:schedules!schedule_id(club_id))').eq('publish_spot', true).gte('excluded_date', today)
+      : admin.from('schedule_exclusions').select('id').eq('publish_spot', true).gte('excluded_date', today),
+    clubId
+      ? admin.from('schedules').select('id, max_students, type, recurrence_end_date, level:levels(id), enrollments:group_enrollments(student_id, status)').eq('club_id', clubId).neq('type', 'intensivo')
+      : Promise.resolve({ data: [] }),
   ])
 
   const myLevelId = (userData as any)?.current_level_id ?? null
@@ -60,9 +65,23 @@ export default async function StudentHomePage() {
     .sort((a: any, b: any) => a.nextDate.getTime() - b.nextDate.getTime())[0]
 
   const level = levelData
-  const spotsCount = clubId
+
+  const absenceCount = clubId
     ? (spots ?? []).filter((s: any) => (s.group_enrollment as any)?.schedule?.club_id === clubId).length
     : spots?.length ?? 0
+
+  const myEnrolledScheduleIds = new Set(activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean))
+  const capacityCount = (capacitySchedules ?? []).filter((s: any) => {
+    const allEnrollments = (s.enrollments ?? []) as any[]
+    const active = allEnrollments.filter((e: any) => e.status === 'active')
+    const alreadyIn = active.some((e: any) => e.student_id === user.id) || myEnrolledScheduleIds.has(s.id)
+    const levelId = (s.level as any)?.id ?? null
+    const levelOk = !myLevelId || !levelId || levelId === myLevelId
+    if (s.recurrence_end_date && s.recurrence_end_date < today) return false
+    return !alreadyIn && active.length < s.max_students && levelOk
+  }).length
+
+  const spotsCount = absenceCount + capacityCount
 
   return (
     <div className="max-w-2xl">
