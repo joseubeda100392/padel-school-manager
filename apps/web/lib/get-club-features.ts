@@ -38,5 +38,9 @@ export const getClubFeatures = cache(async (clubId: string | null | undefined): 
   if (!clubId) return DEFAULT_FEATURES
   const admin = getAdminClient()
   const { data } = await admin.from('clubs').select('features').eq('id', clubId).single()
-  return { ...DEFAULT_FEATURES, ...(data?.features ?? {}) }
+  const merged = { ...DEFAULT_FEATURES, ...(data?.features ?? {}) }
+  return {
+    ...merged,
+    terms_pdf_url: typeof merged.terms_pdf_url === 'string' ? merged.terms_pdf_url : '',
+  }
 })

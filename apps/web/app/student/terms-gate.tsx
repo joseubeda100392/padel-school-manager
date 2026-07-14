@@ -44,7 +44,7 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
             Antes de acceder a la aplicación debes leer y aceptar las condiciones de uso del club.
           </p>
 
-          {pdfUrl && pdfUrl.startsWith('http') ? (
+          {typeof pdfUrl === 'string' && pdfUrl.startsWith('http') ? (
             <div className="mb-6">
               <button
                 type="button"
