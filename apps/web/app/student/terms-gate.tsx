@@ -16,13 +16,19 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
     if (!accepted) return
     setLoading(true)
     setError('')
-    const res = await fetch('/api/student/accept-terms', { method: 'POST' })
-    setLoading(false)
-    if (!res.ok) {
-      setError('Error al guardar la aceptación. Inténtalo de nuevo.')
-      return
+    try {
+      const res = await fetch('/api/student/accept-terms', { method: 'POST' })
+      const body = await res.json().catch(() => ({}))
+      setLoading(false)
+      if (!res.ok) {
+        setError(`Error ${res.status}: ${body?.error ?? JSON.stringify(body)}`)
+        return
+      }
+      window.location.href = '/student'
+    } catch (e: unknown) {
+      setLoading(false)
+      setError(`Excepción: ${e instanceof Error ? e.message : String(e)}`)
     }
-    window.location.href = '/student'
   }
 
   return (
