@@ -123,6 +123,7 @@ export class PlaytomicClient {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.token}`,
         'X-Requested-With': 'com.playtomic.app',
+        'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
       },
       body: JSON.stringify({
         allowed_payment_methods: ['WALLET'],
