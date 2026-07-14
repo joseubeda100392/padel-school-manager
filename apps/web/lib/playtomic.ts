@@ -137,7 +137,6 @@ export class PlaytomicClient {
               duration: opts.durationMinutes,
               sport_id: 'PADEL',
               number_of_players: numPlayers,
-              match_registrations: [{ user_id: this.userId, pay_now: true }],
             },
           },
         },
