@@ -129,16 +129,14 @@ export class PlaytomicClient {
         allowed_payment_methods: ['WALLET'],
         user_id: this.userId,
         cart: {
-          requested_item: {
-            cart_item_type: 'CUSTOMER_MATCH',
-            cart_item_data: {
-              tenant_id: opts.tenantId,
-              resource_id: opts.resourceId,
-              start: opts.startTime,
-              duration: opts.durationMinutes,
-              sport_id: 'PADEL',
-              number_of_players: numPlayers,
-            },
+          cart_item_type: 'CUSTOMER_MATCH',
+          cart_item_data: {
+            tenant_id: opts.tenantId,
+            resource_id: opts.resourceId,
+            start: opts.startTime,
+            duration: opts.durationMinutes,
+            sport_id: 'PADEL',
+            number_of_players: numPlayers,
           },
         },
       }),
