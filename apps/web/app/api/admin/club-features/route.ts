@@ -40,9 +40,14 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json()
   const allowed = Object.keys(DEFAULT_FEATURES)
-  const features: Record<string, boolean> = {}
+  const features: Record<string, unknown> = {}
   for (const key of allowed) {
-    if (key in body) features[key] = Boolean(body[key])
+    if (!(key in body)) continue
+    if (key === 'terms_pdf_url') {
+      features[key] = typeof body[key] === 'string' ? body[key] : ''
+    } else {
+      features[key] = Boolean(body[key])
+    }
   }
 
   const { data: existing } = await admin.from('clubs').select('features').eq('id', caller.club_id).single()
