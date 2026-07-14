@@ -41,13 +41,21 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
           </p>
 
           {pdfUrl ? (
-            <iframe
-              src={pdfUrl}
-              className="mb-6 h-96 w-full rounded-xl border border-gray-200"
-              title="Condiciones de uso"
-            />
+            <a
+              href={pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-6 flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 transition-colors hover:bg-gray-100"
+            >
+              <span className="text-3xl">📄</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Leer las condiciones de uso</p>
+                <p className="text-xs text-gray-400">Se abre en una nueva pestaña</p>
+              </div>
+              <span className="ml-auto text-gray-400">↗</span>
+            </a>
           ) : (
-            <div className="mb-6 flex h-40 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50">
+            <div className="mb-6 flex h-28 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50">
               <p className="text-sm text-gray-400">El club no ha subido aún el documento de condiciones.</p>
             </div>
           )}
