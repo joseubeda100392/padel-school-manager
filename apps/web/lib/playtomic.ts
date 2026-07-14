@@ -125,7 +125,7 @@ export class PlaytomicClient {
         'X-Requested-With': 'com.playtomic.app',
       },
       body: JSON.stringify({
-        allowed_payment_methods: ['STRIPE', 'WALLET'],
+        allowed_payment_methods: ['WALLET'],
         user_id: this.userId,
         cart: {
           requested_item: {
@@ -137,7 +137,6 @@ export class PlaytomicClient {
               duration: opts.durationMinutes,
               sport_id: 'PADEL',
               number_of_players: numPlayers,
-              supports_split_payment: true,
               match_registrations: [{ user_id: this.userId, pay_now: true }],
             },
           },
