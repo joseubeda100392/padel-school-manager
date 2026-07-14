@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 type Props = {
   pdfUrl: string
@@ -9,7 +8,6 @@ type Props = {
 }
 
 export function TermsGate({ pdfUrl, clubName }: Props) {
-  const router = useRouter()
   const [accepted, setAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -24,7 +22,7 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
       setError('Error al guardar la aceptación. Inténtalo de nuevo.')
       return
     }
-    router.refresh()
+    window.location.href = '/student'
   }
 
   return (

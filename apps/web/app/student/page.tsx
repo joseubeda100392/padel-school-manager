@@ -25,7 +25,6 @@ function isPaidThisMonth(paidUntil: string | null) {
 }
 
 export default async function StudentHomePage() {
-  try {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -209,13 +208,4 @@ export default async function StudentHomePage() {
       )}
     </div>
   )
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? `${e.message}\n\n${e.stack ?? ''}` : String(e)
-    return (
-      <div className="p-8">
-        <h1 className="text-lg font-bold text-red-700 mb-2">Error en StudentHomePage (DEBUG)</h1>
-        <pre className="text-xs bg-red-50 p-4 rounded overflow-auto text-red-800 whitespace-pre-wrap">{msg}</pre>
-      </div>
-    )
-  }
 }
