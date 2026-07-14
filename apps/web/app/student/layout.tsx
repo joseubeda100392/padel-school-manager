@@ -13,7 +13,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const admin = getAdminClient()
   const { data: userData } = await admin
     .from('users')
-    .select('name, club_id, clubs(name), terms_accepted_at')
+    .select('name, club_id, clubs(name)')
     .eq('id', user.id)
     .single()
   const clubId = (userData as any)?.club_id as string | undefined
@@ -26,7 +26,21 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   const clubName = (userData as any)?.clubs?.name ?? 'Tu Club'
 
-  if (features.enable_terms && !(userData as any)?.terms_accepted_at) {
+  let termsAcceptedAt: string | null = null
+  if (features.enable_terms) {
+    try {
+      const { data: termsRow } = await admin
+        .from('users')
+        .select('terms_accepted_at')
+        .eq('id', user.id)
+        .single()
+      termsAcceptedAt = (termsRow as any)?.terms_accepted_at ?? null
+    } catch {
+      // column may not exist yet — migration pending, skip gate
+    }
+  }
+
+  if (features.enable_terms && !termsAcceptedAt) {
     return <TermsGate pdfUrl={features.terms_pdf_url} clubName={clubName} />
   }
 
