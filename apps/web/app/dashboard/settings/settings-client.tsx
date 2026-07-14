@@ -104,7 +104,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       }
       if (featRes?.ok) {
         const json = await featRes.json().catch(() => null)
-        if (json?.features) setFeatures(prev => ({ ...prev, ...json.features }))
+        if (json?.features) setFeatures(prev => ({
+          ...prev,
+          ...json.features,
+          terms_pdf_url: typeof json.features.terms_pdf_url === 'string' ? json.features.terms_pdf_url : '',
+        }))
       }
       if (holRes?.ok) {
         const json = await holRes.json().catch(() => null)
@@ -659,7 +663,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">URL del documento PDF</label>
                 <input
                   type="url"
-                  value={features.terms_pdf_url}
+                  value={typeof features.terms_pdf_url === 'string' ? features.terms_pdf_url : ''}
                   onChange={(e) => setFeatures(prev => ({ ...prev, terms_pdf_url: e.target.value }))}
                   placeholder="https://..."
                   className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
