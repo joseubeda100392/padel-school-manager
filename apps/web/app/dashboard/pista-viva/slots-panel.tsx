@@ -142,9 +142,9 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
                       } disabled:opacity-60`}
                     >
                       {isSent ? '✓ ' : ''}
-                      {date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}
+                      {date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', timeZone: 'Europe/Madrid' })}
                       {' '}
-                      {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}
                       {' · '}{slot.duration}min
                     </button>
                   )

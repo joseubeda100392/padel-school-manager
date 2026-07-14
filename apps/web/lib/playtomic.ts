@@ -97,7 +97,7 @@ export class PlaytomicClient {
       }
       const resource = byResource.get(id)!
       for (const s of (entry.slots ?? [])) {
-        const start_time = date && s.start_time ? `${date}T${s.start_time}` : ''
+        const start_time = date && s.start_time ? `${date}T${s.start_time}Z` : ''
         const priceRaw = s.price ?? 0
         const price = typeof priceRaw === 'string' ? parseFloat(priceRaw) : priceRaw
         resource.slots.push({ start_time, duration: s.duration ?? 90, price })
