@@ -8,8 +8,10 @@ import { getClubFeatures } from '@/lib/get-club-features'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-function getNextOccurrence(startTime: string): Date {
+function getNextOccurrence(startTime: string): Date | null {
+  if (!startTime) return null
   const base = new Date(startTime)
+  if (isNaN(base.getTime())) return null
   const now = new Date()
   const next = new Date(now)
   next.setHours(base.getHours(), base.getMinutes(), 0, 0)
@@ -62,9 +64,12 @@ export default async function StudentHomePage() {
   const activeEnrollments = enrollments ?? []
   const pendingEnrollments = activeEnrollments.filter((e: any) => !isPaidThisMonth(e.paid_until))
 
-  const nextClass = activeEnrollments
-    .map((e: any) => ({ ...e, nextDate: getNextOccurrence((e.schedule as any)?.start_time ?? '') }))
-    .sort((a: any, b: any) => a.nextDate.getTime() - b.nextDate.getTime())[0]
+  const nextClass = (activeEnrollments as any[])
+    .flatMap((e: any) => {
+      const nextDate = getNextOccurrence((e.schedule as any)?.start_time ?? '')
+      return nextDate ? [{ ...e, nextDate }] : []
+    })
+    .sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime())[0]
 
   const level = levelData
 
@@ -77,6 +82,8 @@ export default async function StudentHomePage() {
   const myEnrolledScheduleIds = new Set(activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean))
 
   function getClassDateHome(s: any): string | null {
+    if (!s.start_time) return null
+    if (isNaN(new Date(s.start_time).getTime())) return null
     if (s.recurrence === 'none') {
       const d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
       return d < today ? null : d
