@@ -687,7 +687,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                   <span className="text-2xl">📄</span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-green-700">PDF subido correctamente</p>
-                    <p className="truncate text-xs text-gray-400">{features.terms_pdf_url}</p>
+                    <p className="truncate text-xs text-gray-400">{features.terms_pdf_url.split('/').pop()?.split('?')[0]}</p>
                   </div>
                   <a href={features.terms_pdf_url} target="_blank" rel="noopener noreferrer"
                     className="shrink-0 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100">
