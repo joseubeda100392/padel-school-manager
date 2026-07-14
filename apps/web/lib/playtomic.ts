@@ -126,17 +126,21 @@ export class PlaytomicClient {
         'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
       },
       body: JSON.stringify({
-        allowed_payment_methods: ['WALLET'],
+        allowed_payment_method_types: ['MERCHANT_WALLET', 'CREDIT_CARD', 'OFFER'],
         user_id: this.userId,
         cart: {
-          cart_item_type: 'CUSTOMER_MATCH',
-          cart_item_data: {
-            tenant_id: opts.tenantId,
-            resource_id: opts.resourceId,
-            start: opts.startTime,
-            duration: opts.durationMinutes,
-            sport_id: 'PADEL',
-            number_of_players: numPlayers,
+          requested_item: {
+            cart_item_type: 'CUSTOMER_MATCH',
+            cart_item_voucher_id: null,
+            cart_item_data: {
+              supports_split_payment: true,
+              number_of_players: numPlayers,
+              tenant_id: opts.tenantId,
+              resource_id: opts.resourceId,
+              start: opts.startTime,
+              duration: opts.durationMinutes,
+              match_registrations: [{ user_id: this.userId, pay_now: true }],
+            },
           },
         },
       }),
@@ -151,9 +155,9 @@ export class PlaytomicClient {
     const piId: string = piData.payment_intent_id ?? piData.id ?? ''
     if (!piId) throw new Error('No payment_intent_id in Playtomic response')
 
-    // Step 2: Select payment method (pick first available, or WALLET)
-    const paymentMethods: any[] = piData.allowed_payment_methods ?? piData.payment_methods ?? []
-    const method = paymentMethods.find((m: any) => m.payment_method_type === 'WALLET')
+    // Step 2: Select payment method — prefer MERCHANT_WALLET (club's wallet)
+    const paymentMethods: any[] = piData.available_payment_methods ?? []
+    const method = paymentMethods.find((m: any) => m.payment_method_type === 'MERCHANT_WALLET')
       ?? paymentMethods[0]
     if (method) {
       await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
@@ -163,7 +167,7 @@ export class PlaytomicClient {
           Authorization: `Bearer ${this.token}`,
           'X-Requested-With': 'com.playtomic.app',
         },
-        body: JSON.stringify({ payment_method_type: method.payment_method_type }),
+        body: JSON.stringify({ selected_payment_method: method.payment_method_type }),
       })
     }
 
