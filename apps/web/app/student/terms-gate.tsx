@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 type Props = {
   pdfUrl: string
@@ -11,6 +12,14 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
   const [accepted, setAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  async function handleLogout() {
+    setLoggingOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
 
   async function handleAccept() {
     if (!accepted) return
@@ -95,6 +104,14 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
             className="mt-6 w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? 'Guardando...' : 'Aceptar y continuar'}
+          </button>
+
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="mt-3 w-full py-2 text-sm text-gray-400 hover:text-gray-600 disabled:opacity-40"
+          >
+            {loggingOut ? 'Cerrando sesión...' : 'No acepto — cerrar sesión'}
           </button>
         </div>
       </div>
