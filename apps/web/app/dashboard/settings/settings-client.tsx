@@ -44,6 +44,8 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [profile, setProfile] = useState<{ id: string; name: string; email: string; avatar_url?: string } | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const termsFileRef = useRef<HTMLInputElement>(null)
+  const [uploadingTerms, setUploadingTerms] = useState(false)
 
   const [features, setFeatures] = useState({
     enable_60min: true, enable_90min: true, enable_payments: true,
@@ -306,6 +308,24 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       const j = await res.json().catch(() => ({}))
       setFeaturesError(j.error ?? 'Error al guardar')
     }
+  }
+
+  async function handleTermsPdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingTerms(true)
+    const supabase = createClient()
+    const path = `terms/${clubId ?? 'global'}/${Date.now()}.pdf`
+    const { error: upErr } = await supabase.storage.from('materials').upload(path, file, { upsert: true, contentType: 'application/pdf' })
+    if (upErr) { toast.error('Error al subir el PDF: ' + upErr.message); setUploadingTerms(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('materials').getPublicUrl(path)
+    const updatedFeatures = { ...features, terms_pdf_url: publicUrl }
+    setFeatures(updatedFeatures)
+    const res = await fetch('/api/admin/club-features', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedFeatures) })
+    setUploadingTerms(false)
+    if (termsFileRef.current) termsFileRef.current.value = ''
+    if (res.ok) toast.success('PDF subido y guardado')
+    else toast.error('PDF subido pero no se guardó la URL')
   }
 
   if (loading) return <div className="text-gray-400">Cargando...</div>
@@ -658,19 +678,27 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
           {features.enable_terms && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <h2 className="mb-1 font-semibold text-gray-900">Condiciones de uso — PDF</h2>
-              <p className="mb-5 text-xs text-gray-400">URL del PDF que verán los alumnos antes de aceptar. Puede ser un enlace de Supabase Storage o cualquier URL pública.</p>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">URL del documento PDF</label>
-                <input
-                  type="url"
-                  value={typeof features.terms_pdf_url === 'string' ? features.terms_pdf_url : ''}
-                  onChange={(e) => setFeatures(prev => ({ ...prev, terms_pdf_url: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-                />
-              </div>
-              <button onClick={saveFeatures} disabled={featuresSaving} className="mt-4 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-                {featuresSaving ? 'Guardando...' : 'Guardar PDF'}
+              <p className="mb-5 text-xs text-gray-400">Sube el documento PDF con las condiciones. Los alumnos lo verán antes de poder acceder a la app.</p>
+
+              <input ref={termsFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleTermsPdfUpload} />
+
+              {typeof features.terms_pdf_url === 'string' && features.terms_pdf_url ? (
+                <div className="mb-4 space-y-3">
+                  <iframe src={features.terms_pdf_url} className="h-64 w-full rounded-xl border border-gray-200" title="Vista previa condiciones" />
+                  <p className="truncate text-xs text-gray-400">{features.terms_pdf_url}</p>
+                </div>
+              ) : (
+                <div className="mb-4 flex h-28 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50">
+                  <p className="text-sm text-gray-400">Sin PDF subido aún</p>
+                </div>
+              )}
+
+              <button
+                onClick={() => termsFileRef.current?.click()}
+                disabled={uploadingTerms}
+                className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+              >
+                {uploadingTerms ? 'Subiendo...' : typeof features.terms_pdf_url === 'string' && features.terms_pdf_url ? 'Cambiar PDF' : '+ Subir PDF'}
               </button>
             </div>
           )}
