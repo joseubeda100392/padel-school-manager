@@ -27,6 +27,20 @@ function isPaidThisMonth(paidUntil: string | null) {
 }
 
 export default async function StudentHomePage() {
+  try {
+    return await renderStudentHome()
+  } catch (err: unknown) {
+    return (
+      <div className="p-8 font-mono text-sm text-red-600 whitespace-pre-wrap">
+        <strong>[DEBUG PAGE — excepción]</strong>{'\n'}
+        {String(err)}{'\n'}
+        {err instanceof Error ? err.stack : ''}
+      </div>
+    )
+  }
+}
+
+async function renderStudentHome() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -216,3 +230,4 @@ export default async function StudentHomePage() {
     </div>
   )
 }
+
