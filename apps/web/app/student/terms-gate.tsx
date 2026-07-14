@@ -40,20 +40,29 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
             Antes de acceder a la aplicación debes leer y aceptar las condiciones de uso del club.
           </p>
 
-          {pdfUrl ? (
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mb-6 flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 transition-colors hover:bg-gray-100"
-            >
-              <span className="text-3xl">📄</span>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Leer las condiciones de uso</p>
-                <p className="text-xs text-gray-400">Se abre en una nueva pestaña</p>
-              </div>
-              <span className="ml-auto text-gray-400">↗</span>
-            </a>
+          {pdfUrl && pdfUrl.startsWith('http') ? (
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => { window.open(pdfUrl, '_blank') }}
+                className="flex w-full items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-100"
+              >
+                <span className="text-3xl">📄</span>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Leer las condiciones de uso</p>
+                  <p className="text-xs text-gray-400">Se abre en una nueva pestaña</p>
+                </div>
+                <span className="ml-auto text-gray-400">↗</span>
+              </button>
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 block text-center text-xs text-brand-500 underline"
+              >
+                Si no se abre, pulsa aquí
+              </a>
+            </div>
           ) : (
             <div className="mb-6 flex h-28 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50">
               <p className="text-sm text-gray-400">El club no ha subido aún el documento de condiciones.</p>
