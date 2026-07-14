@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { StudentShell } from '@/components/layout/student-shell'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { TermsGate } from './terms-gate'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -10,7 +11,11 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: userData } = await admin.from('users').select('name, club_id, clubs(name)').eq('id', user.id).single()
+  const { data: userData } = await admin
+    .from('users')
+    .select('name, club_id, clubs(name), terms_accepted_at')
+    .eq('id', user.id)
+    .single()
   const clubId = (userData as any)?.club_id as string | undefined
 
   const [{ data: bag }, { count: unreadCount }, features] = await Promise.all([
@@ -19,7 +24,11 @@ export default async function StudentLayout({ children }: { children: React.Reac
     getClubFeatures(clubId),
   ])
 
-  const clubName = (userData as any)?.clubs?.name ?? undefined
+  const clubName = (userData as any)?.clubs?.name ?? 'Tu Club'
+
+  if (features.enable_terms && !(userData as any)?.terms_accepted_at) {
+    return <TermsGate pdfUrl={features.terms_pdf_url} clubName={clubName} />
+  }
 
   return (
     <StudentShell

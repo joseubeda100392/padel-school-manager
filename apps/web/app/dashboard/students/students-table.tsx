@@ -138,12 +138,13 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alta</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Baja</th>
+                {role === 'student' ? <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Cond.</th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {!filtered.length && (
                 <tr>
-                  <td colSpan={role === 'student' ? 7 : 6} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={role === 'student' ? 8 : 6} className="px-6 py-12 text-center text-gray-400">
                     {q || role || status ? 'Sin resultados para esa búsqueda.' : 'No hay usuarios aún.'}
                   </td>
                 </tr>
@@ -190,6 +191,15 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">{formatDate(s.start_date ?? s.created_at)}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{s.end_date ? formatDate(s.end_date) : '—'}</td>
+                    {(role === 'student') && (
+                      <td className="px-6 py-4 text-sm">
+                        {s.terms_accepted_at ? (
+                          <span className="text-green-600" title={formatDate(s.terms_accepted_at)}>✓</span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 )
               })}

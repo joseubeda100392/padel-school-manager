@@ -51,6 +51,8 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     enable_materials: true, enable_objectives: true,
     enable_tournaments: true, enable_intensivos: true,
     enable_pista_viva: false,
+    enable_terms: false,
+    terms_pdf_url: '',
   })
   const [featuresSaving, setFeaturesSaving] = useState(false)
   const [featuresSaved, setFeaturesSaved] = useState(false)
@@ -626,7 +628,8 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 { key: 'enable_objectives', label: 'Objetivos y progreso', desc: 'Checklists de progreso asignados por el monitor' },
                 { key: 'enable_tournaments', label: 'Torneos', desc: 'Gestión de torneos e inscripciones de alumnos' },
                 { key: 'enable_intensivos', label: 'Semanas intensivas', desc: 'Clases intensivas de pago único por semana' },
-              ] as { key: keyof typeof features; label: string; desc: string }[]).map(({ key, label, desc }) => (
+                { key: 'enable_terms', label: 'Condiciones de uso', desc: 'Los alumnos deben aceptar las condiciones antes de acceder a la app' },
+              ] as { key: keyof typeof features; label: string; desc: string }[]).filter(f => f.key !== 'terms_pdf_url').map(({ key, label, desc }) => (
                 <div key={key} className="flex items-center justify-between gap-4 rounded-lg px-3 py-3 hover:bg-gray-50">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900">{label}</p>
@@ -647,6 +650,26 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
               {featuresSaving ? 'Guardando...' : featuresSaved ? '¡Guardado!' : 'Guardar módulos'}
             </button>
           </div>
+
+          {features.enable_terms && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="mb-1 font-semibold text-gray-900">Condiciones de uso — PDF</h2>
+              <p className="mb-5 text-xs text-gray-400">URL del PDF que verán los alumnos antes de aceptar. Puede ser un enlace de Supabase Storage o cualquier URL pública.</p>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">URL del documento PDF</label>
+                <input
+                  type="url"
+                  value={features.terms_pdf_url}
+                  onChange={(e) => setFeatures(prev => ({ ...prev, terms_pdf_url: e.target.value }))}
+                  placeholder="https://..."
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+                />
+              </div>
+              <button onClick={saveFeatures} disabled={featuresSaving} className="mt-4 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
+                {featuresSaving ? 'Guardando...' : 'Guardar PDF'}
+              </button>
+            </div>
+          )}
 
         </div>
       )}
