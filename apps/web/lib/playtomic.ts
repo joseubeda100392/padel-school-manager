@@ -170,8 +170,8 @@ export class PlaytomicClient {
         },
         body: JSON.stringify({ selected_payment_method: method.payment_method_id }),
       })
-      const patchBody = await patchRes.text()
-      console.error('[pista-viva] PATCH status:', patchRes.status, patchBody.substring(0, 300))
+      const patchData = await patchRes.json().catch(() => ({}))
+      console.error('[pista-viva] PATCH status:', patchRes.status, 'intent_status:', patchData.status, 'selected_id:', patchData.selected_payment_method_id)
     } else {
       console.error('[pista-viva] no payment method found, skipping PATCH')
     }
