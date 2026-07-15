@@ -127,7 +127,7 @@ export class PlaytomicClient {
         'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
       },
       body: JSON.stringify({
-        allowed_payment_method_types: ['OFFER', 'CASH', 'MERCHANT_WALLET', 'DIRECT', 'SWISH', 'IDEAL', 'BANCONTACT', 'PAYTRAIL', 'CREDIT_CARD', 'QUICK_PAY'],
+        allowed_payment_method_types: ['OFFER', 'CASH', 'DIRECT', 'SWISH', 'IDEAL', 'BANCONTACT', 'PAYTRAIL', 'CREDIT_CARD', 'QUICK_PAY'],
         user_id: this.userId,
         cart: {
           requested_item: {
@@ -185,7 +185,7 @@ export class PlaytomicClient {
           matchId: 'dry-run',
           matchUrl: 'dry-run',
           dryRun: true,
-          preview: { price_total: pd.price, reg_price: reg?.price, split_parts: pd.cart?.item?.cart_item_data?.split_payment_parts, method_id: pd.selected_payment_method_id },
+          preview: { price_total: pd.price, reg_price: reg?.price, split_parts: pd.cart?.item?.cart_item_data?.split_payment_parts, method_id: pd.selected_payment_method_id, pi_status: piData.status, available_methods: piData.available_payment_methods?.map((m: any) => m.method_type) },
         }
       }
     }
