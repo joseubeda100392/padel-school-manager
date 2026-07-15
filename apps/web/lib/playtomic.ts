@@ -134,8 +134,6 @@ export class PlaytomicClient {
             cart_item_voucher_id: null,
             cart_item_data: {
               supports_split_payment: true,
-              match_payment_plan_type: 'SPLIT',
-              split_payment_parts: numPlayers,
               number_of_players: numPlayers,
               tenant_id: opts.tenantId,
               resource_id: opts.resourceId,
@@ -172,7 +170,7 @@ export class PlaytomicClient {
           'X-Requested-With': 'com.playtomic.app',
           'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
         },
-        body: JSON.stringify({ selected_payment_method_id: fullId }),
+        body: JSON.stringify({ selected_payment_method_id: fullId, match_payment_plan_type: 'SPLIT' }),
       })
     }
 
