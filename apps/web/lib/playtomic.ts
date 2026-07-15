@@ -168,7 +168,7 @@ export class PlaytomicClient {
           Authorization: `Bearer ${this.token}`,
           'X-Requested-With': 'com.playtomic.app',
         },
-        body: JSON.stringify({ selected_payment_method: method.payment_method_id }),
+        body: JSON.stringify({ selected_payment_method: method.method_type }),
       })
       const patchData = await patchRes.json().catch(() => ({}))
       console.error('[pista-viva] PATCH status:', patchRes.status, 'intent_status:', patchData.status, 'selected_id:', patchData.selected_payment_method_id)
