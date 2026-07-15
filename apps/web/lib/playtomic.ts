@@ -217,7 +217,7 @@ export class PlaytomicClient {
       confirmData.cart?.confirmed_item?.id ??
       confirmData.cart?.cart_item?.match_id ??
       piId
-    const matchUrl = `https://playtomic.io/match/${matchId}`
+    const matchUrl = `https://app.playtomic.com/matches/${matchId}`
     return { matchId, matchUrl }
   }
 
