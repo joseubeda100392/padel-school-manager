@@ -139,7 +139,7 @@ export class PlaytomicClient {
               resource_id: opts.resourceId,
               start: opts.startTime,
               duration: opts.durationMinutes,
-              match_registrations: [{ user_id: this.userId, pay_now: false }],
+              match_registrations: [{ user_id: this.userId, pay_now: true }],
             },
           },
         },
@@ -164,16 +164,17 @@ export class PlaytomicClient {
       const method = paymentMethods.find((m: any) => m.method_type === 'MERCHANT_WALLET')
         ?? paymentMethods[0]
       if (method) {
-        // Probar las variantes más posibles del campo
-        const patchBody: any = { selected_payment_method: method.payment_method_id }
+        // padel-cli usa com.playtomic.web y Chrome UA — no la app móvil
+        const patchBody: any = { selected_payment_method: 'MERCHANT_WALLET' }
         console.error('[pista-viva] PATCH body:', JSON.stringify(patchBody))
         const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.token}`,
-            'X-Requested-With': 'com.playtomic.app',
-            'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
+            'X-Requested-With': 'com.playtomic.web',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
           },
           body: JSON.stringify(patchBody),
         })
