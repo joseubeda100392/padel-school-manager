@@ -159,9 +159,8 @@ export class PlaytomicClient {
     // Probando QUICK_PAY primero: crea match abierto donde cada jugador paga su parte
     // Si QUICK_PAY no disponible, fallback a MERCHANT_WALLET
     const availableMethods: any[] = piData.available_payment_methods ?? []
-    const quickPayMethod = availableMethods.find((m: any) => m.method_type === 'QUICK_PAY')
     const walletMethod = availableMethods.find((m: any) => m.method_type === 'MERCHANT_WALLET')
-    const bestMethod = quickPayMethod ?? walletMethod ?? availableMethods[0] ?? null
+    const bestMethod = walletMethod ?? availableMethods[0] ?? null
     console.error('[pista-viva] available_methods:', availableMethods.map((m: any) => m.method_type), '| selected:', bestMethod?.method_type)
 
     if (bestMethod && piData.status === 'REQUIRES_PAYMENT_METHOD') {
