@@ -171,7 +171,10 @@ export class PlaytomicClient {
           'X-Requested-With': 'com.playtomic.app',
           'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
         },
-        body: JSON.stringify({ selected_payment_method_id: fullId, selected_payment_plan: 'SPLIT' }),
+        body: JSON.stringify({
+          selected_payment_method_id: fullId,
+          cart: { requested_item: { cart_item_data: { split_payment_parts: numPlayers } } },
+        }),
       })
       const pd = await patchRes.json().catch(() => ({}))
       const reg = pd.cart?.item?.cart_item_data?.match_registrations?.[0]
