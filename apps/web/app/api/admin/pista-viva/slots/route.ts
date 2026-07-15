@@ -33,14 +33,27 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date()
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
   const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
-  const startMin = now.toISOString().replace('Z', '').split('.')[0]
-  const startMax = in48h.toISOString().replace('Z', '').split('.')[0]
+  const fmt = (d: Date) => d.toISOString().replace('Z', '').split('.')[0]
 
   const client = getPlaytomicClient()
   try {
-    const resources = await client.getAvailableSlots(club.playtomic_tenant_id, startMin, startMax)
-    return NextResponse.json({ resources })
+    // Playtomic limita a 25h por llamada — dos llamadas para cubrir 48h
+    const [first, second] = await Promise.all([
+      client.getAvailableSlots(club.playtomic_tenant_id, fmt(now), fmt(in24h)),
+      client.getAvailableSlots(club.playtomic_tenant_id, fmt(in24h), fmt(in48h)),
+    ])
+
+    // Merge: same resource_id → merge slots, new resource_id → append
+    const byId = new Map(first.map((r) => [r.resource_id, { ...r, slots: [...r.slots] }]))
+    for (const r of second) {
+      const existing = byId.get(r.resource_id)
+      if (existing) existing.slots.push(...r.slots)
+      else byId.set(r.resource_id, r)
+    }
+
+    return NextResponse.json({ resources: Array.from(byId.values()) })
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? 'Error al consultar Playtomic', resources: [] }, { status: 502 })
   }
