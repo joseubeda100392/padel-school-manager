@@ -217,6 +217,25 @@ export class PlaytomicClient {
       confirmData.cart?.confirmed_item?.id ??
       confirmData.cart?.cart_item?.match_id ??
       piId
+
+    // Step 4: Make match visible (created as HIDDEN by default)
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.token}`,
+      'X-Requested-With': 'com.playtomic.app',
+      'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
+    }
+    for (const visibility of ['PUBLIC', 'VISIBLE']) {
+      const visRes = await fetch(`${CONSUMER_BASE}/v1/matches/${matchId}`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ visibility }),
+      })
+      const visBody = await visRes.text()
+      console.error(`[pista-viva] PATCH visibility=${visibility} → ${visRes.status}: ${visBody.slice(0, 200)}`)
+      if (visRes.ok) break
+    }
+
     const matchUrl = `https://app.playtomic.com/matches/${matchId}`
     return { matchId, matchUrl }
   }
