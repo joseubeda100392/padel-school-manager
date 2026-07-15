@@ -164,9 +164,8 @@ export class PlaytomicClient {
       const method = paymentMethods.find((m: any) => m.method_type === 'MERCHANT_WALLET')
         ?? paymentMethods[0]
       if (method) {
-        // padel-cli envía {"selected_payment_method": <code>} donde code = payment_method_id completo
+        // Probar las variantes más posibles del campo
         const patchBody: any = { selected_payment_method: method.payment_method_id }
-        if (method.data) patchBody.payment_method_data = method.data
         console.error('[pista-viva] PATCH body:', JSON.stringify(patchBody))
         const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
           method: 'PATCH',
@@ -174,11 +173,23 @@ export class PlaytomicClient {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${this.token}`,
             'X-Requested-With': 'com.playtomic.app',
+            'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
           },
           body: JSON.stringify(patchBody),
         })
         const patchData = await patchRes.json().catch(() => ({}))
-        console.error('[pista-viva] PATCH status:', patchRes.status, 'intent_status:', patchData.status, 'selected_id:', patchData.selected_payment_method_id)
+        // Log completo para ver qué campos cambian
+        console.error('[pista-viva] PATCH full response:', JSON.stringify(patchData))
+
+        // GET el intent para ver si el estado cambió server-side
+        const getRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            'X-Requested-With': 'com.playtomic.app',
+          },
+        })
+        const getData = await getRes.json().catch(() => ({}))
+        console.error('[pista-viva] GET after PATCH — status:', getData.status, 'selected_id:', getData.selected_payment_method_id)
       } else {
         console.error('[pista-viva] no payment method found, skipping PATCH')
       }
@@ -186,13 +197,18 @@ export class PlaytomicClient {
       console.error('[pista-viva] skipping PATCH — intent already in status:', intentStatus)
     }
 
-    // Step 3: Confirm
+    // Step 3: Confirm (con body por si acaso)
+    const confirmBody = { payment_method_id: piData.available_payment_methods?.[0]?.payment_method_id }
+    console.error('[pista-viva] confirm body:', JSON.stringify(confirmBody))
     const confirmRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}/confirmation`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.token}`,
         'X-Requested-With': 'com.playtomic.app',
+        'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
       },
+      body: JSON.stringify(confirmBody),
     })
     if (!confirmRes.ok) {
       const err = await confirmRes.text()
