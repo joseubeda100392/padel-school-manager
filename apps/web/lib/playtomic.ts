@@ -208,6 +208,7 @@ export class PlaytomicClient {
       throw new Error(`Playtomic confirm failed ${confirmRes.status}: ${err}`)
     }
     const confirmData = await confirmRes.json()
+    console.error('[pista-viva] confirm response:', JSON.stringify(confirmData))
 
     const matchId: string =
       confirmData.match_id ??
