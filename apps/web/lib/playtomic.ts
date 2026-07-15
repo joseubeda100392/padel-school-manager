@@ -164,8 +164,8 @@ export class PlaytomicClient {
       const method = paymentMethods.find((m: any) => m.method_type === 'MERCHANT_WALLET')
         ?? paymentMethods[0]
       if (method) {
-        // Intentar con el payment_method_id completo (ej: "MERCHANT_WALLET-amw:...")
-        const patchBody: any = { payment_method_id: method.payment_method_id }
+        // Usar el mismo nombre de campo que devuelve la respuesta: selected_payment_method_id
+        const patchBody: any = { selected_payment_method_id: method.payment_method_id }
         if (method.data) patchBody.payment_method_data = method.data
         console.error('[pista-viva] PATCH body:', JSON.stringify(patchBody))
         const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
