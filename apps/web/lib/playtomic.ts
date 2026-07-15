@@ -134,7 +134,8 @@ export class PlaytomicClient {
             cart_item_voucher_id: null,
             cart_item_data: {
               supports_split_payment: true,
-              payment_plan: 'SPLIT',
+              match_payment_plan_type: 'SPLIT',
+              split_payment_parts: numPlayers,
               number_of_players: numPlayers,
               tenant_id: opts.tenantId,
               resource_id: opts.resourceId,
