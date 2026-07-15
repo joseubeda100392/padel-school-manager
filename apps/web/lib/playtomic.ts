@@ -116,16 +116,52 @@ export class PlaytomicClient {
   }): Promise<{ matchId: string; matchUrl: string; dryRun?: true; preview?: object }> {
     if (!this.token || !this.userId) throw new Error('Not authenticated')
     const numPlayers = opts.playersNeeded ?? 4
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.token}`,
+      'X-Requested-With': 'com.playtomic.app',
+      'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
+    }
 
-    // Step 1: Create payment intent (Playtomic's booking flow)
+    // Intento 1: endpoint v2 directo para SPLIT (sin payment_intent flow)
+    const v2Body = {
+      user_id: this.userId,
+      tenant_id: opts.tenantId,
+      resource_id: opts.resourceId,
+      start: opts.startTime,
+      duration: opts.durationMinutes,
+      number_of_players: numPlayers,
+      supports_split_payment: true,
+      match_registrations: [{ user_id: this.userId, pay_now: false }],
+    }
+    const v2Res = await fetch(`${CONSUMER_BASE}/v2/matches/cart_items/customer_matches`, {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify(v2Body),
+    })
+    const v2Body2 = await v2Res.text()
+    console.error(`[pista-viva] v2 direct → ${v2Res.status}: ${v2Body2.slice(0, 300)}`)
+
+    if (opts.dryRun) {
+      let parsed: any = null
+      try { parsed = JSON.parse(v2Body2) } catch {}
+      return { matchId: 'dry-run', matchUrl: 'dry-run', dryRun: true, preview: { v2_status: v2Res.status, v2_body: parsed ?? v2Body2.slice(0, 500) } }
+    }
+
+    if (v2Res.ok) {
+      let v2Data: any = {}
+      try { v2Data = JSON.parse(v2Body2) } catch {}
+      const matchId: string = v2Data.match_id ?? v2Data.id ?? ''
+      if (matchId) {
+        await this.publishMatch(matchId)
+        return { matchId, matchUrl: `https://app.playtomic.com/matches/${matchId}` }
+      }
+    }
+
+    // Fallback: payment_intent flow con MERCHANT_WALLET (SINGLE_PAYER)
     const piRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.token}`,
-        'X-Requested-With': 'com.playtomic.app',
-        'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
-      },
+      headers: authHeaders,
       body: JSON.stringify({
         allowed_payment_method_types: ['OFFER', 'CASH', 'MERCHANT_WALLET', 'DIRECT', 'SWISH', 'IDEAL', 'BANCONTACT', 'PAYTRAIL', 'CREDIT_CARD', 'QUICK_PAY'],
         user_id: this.userId,
@@ -140,7 +176,7 @@ export class PlaytomicClient {
               resource_id: opts.resourceId,
               start: opts.startTime,
               duration: opts.durationMinutes,
-              match_registrations: [{ user_id: this.userId, pay_now: false }],
+              match_registrations: [{ user_id: this.userId, pay_now: true }],
             },
           },
         },
