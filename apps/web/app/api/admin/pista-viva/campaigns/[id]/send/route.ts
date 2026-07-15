@@ -45,9 +45,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: `Login Playtomic falló: ${e.message}` }, { status: 502 })
   }
 
-  // slot_datetime está en UTC en DB → Playtomic espera hora local Spain sin timezone
+  // slot_datetime en UTC → enviamos UTC directamente (Playtomic availability usa UTC)
   const utcDate = new Date(campaign.slot_datetime)
-  const startTime = utcDate.toLocaleString('sv-SE', { timeZone: 'Europe/Madrid' }).replace(' ', 'T')
+  const startTime = utcDate.toISOString().split('.')[0].replace('Z', '')
 
   let matchId: string
   let matchUrl: string
