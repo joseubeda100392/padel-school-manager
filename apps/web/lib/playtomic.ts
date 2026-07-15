@@ -152,6 +152,7 @@ export class PlaytomicClient {
       throw new Error(`Playtomic createMatch (payment_intent) failed ${piRes.status}: ${err}`)
     }
     const piData = await piRes.json()
+    console.error('[pista-viva] pi:', JSON.stringify({ status: piData.status, price: piData.price, split_payment_parts: piData.cart?.item?.cart_item_data?.split_payment_parts, match_payment_plan_type: piData.cart?.item?.cart_item_data?.match_payment_plan_type, registrations: piData.cart?.item?.cart_item_data?.match_registrations }))
     const piId: string = piData.payment_intent_id ?? piData.id ?? ''
     if (!piId) throw new Error('No payment_intent_id in Playtomic response')
 
