@@ -165,9 +165,8 @@ export class PlaytomicClient {
     console.error('[pista-viva] pi status:', piData.status, 'selected_payment_method_id:', piData.selected_payment_method_id)
 
     if (bestMethod && piData.status === 'REQUIRES_PAYMENT_METHOD') {
-      const selectedType: string = bestMethod.method_type ?? bestMethod.type ?? 'MERCHANT_WALLET'
-      const patchBody: any = { selected_payment_method: selectedType }
-      if (bestMethod.data) patchBody.payment_method_data = bestMethod.data
+      const fullId: string = bestMethod.payment_method_id ?? bestMethod.method_type ?? 'MERCHANT_WALLET'
+      const patchBody: any = { selected_payment_method_id: fullId }
       console.error('[pista-viva] PATCH body:', JSON.stringify(patchBody))
       const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
         method: 'PATCH',
