@@ -147,28 +147,21 @@ export class PlaytomicClient {
     })
     if (!piRes.ok) {
       const err = await piRes.text()
-      console.error('[pista-viva] payment_intent payload:', JSON.stringify({ user_id: this.userId, tenant_id: opts.tenantId, resource_id: opts.resourceId, start: opts.startTime, duration: opts.durationMinutes }))
-      console.error('[pista-viva] payment_intent error:', err)
       throw new Error(`Playtomic createMatch (payment_intent) failed ${piRes.status}: ${err}`)
     }
     const piData = await piRes.json()
-    console.error('[pista-viva] payment_intent response:', JSON.stringify(piData))
     const piId: string = piData.payment_intent_id ?? piData.id ?? ''
     if (!piId) throw new Error('No payment_intent_id in Playtomic response')
 
-    // Step 2: Seleccionar método de pago via PATCH (CASH suele funcionar, MERCHANT_WALLET no siempre)
+    // Step 2: Seleccionar método de pago via PATCH
+    // El campo correcto es selected_payment_method_id con el payment_method_id completo del método
     const availableMethods: any[] = piData.available_payment_methods ?? []
     const walletMethod = availableMethods.find((m: any) => m.method_type === 'MERCHANT_WALLET')
-    const cashMethod = availableMethods.find((m: any) => m.method_type === 'CASH')
-    const bestMethod = walletMethod ?? cashMethod ?? availableMethods[0] ?? null
-    console.error('[pista-viva] available_payment_methods:', JSON.stringify(availableMethods))
-    console.error('[pista-viva] pi status:', piData.status, 'selected_payment_method_id:', piData.selected_payment_method_id)
+    const bestMethod = walletMethod ?? availableMethods[0] ?? null
 
     if (bestMethod && piData.status === 'REQUIRES_PAYMENT_METHOD') {
-      const fullId: string = bestMethod.payment_method_id ?? bestMethod.method_type ?? 'MERCHANT_WALLET'
-      const patchBody: any = { selected_payment_method_id: fullId }
-      console.error('[pista-viva] PATCH body:', JSON.stringify(patchBody))
-      const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
+      const fullId: string = bestMethod.payment_method_id ?? bestMethod.method_type
+      await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -176,18 +169,11 @@ export class PlaytomicClient {
           'X-Requested-With': 'com.playtomic.app',
           'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
         },
-        body: JSON.stringify(patchBody),
+        body: JSON.stringify({ selected_payment_method_id: fullId }),
       })
-      const patchData = await patchRes.json().catch(() => ({}))
-      console.error('[pista-viva] PATCH status:', patchRes.status, 'selected_payment_method_id after:', patchData.selected_payment_method_id, 'pi status after:', patchData.status)
     }
 
     // Step 3: Confirm
-    const confirmBody: any = bestMethod
-      ? { selected_payment_method: bestMethod.method_type ?? bestMethod.type ?? 'MERCHANT_WALLET' }
-      : {}
-    if (bestMethod?.data) confirmBody.payment_method_data = bestMethod.data
-    console.error('[pista-viva] confirm body:', JSON.stringify(confirmBody))
     const confirmRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}/confirmation`, {
       method: 'POST',
       headers: {
@@ -196,15 +182,13 @@ export class PlaytomicClient {
         'X-Requested-With': 'com.playtomic.app',
         'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
       },
-      body: JSON.stringify(confirmBody),
+      body: JSON.stringify({}),
     })
     if (!confirmRes.ok) {
       const err = await confirmRes.text()
-      console.error('[pista-viva] confirm FAILED', confirmRes.status, err)
       throw new Error(`Playtomic confirm failed ${confirmRes.status}: ${err}`)
     }
     const confirmData = await confirmRes.json()
-    console.error('[pista-viva] confirm response:', JSON.stringify(confirmData))
 
     const matchId: string =
       confirmData.match_id ??
