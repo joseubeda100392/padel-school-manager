@@ -73,7 +73,10 @@ export class PlaytomicClient {
       duration: String(duration),
     })
     const res = await fetch(`${CONSUMER_BASE}/v1/availability?${params}`, {
-      headers: { 'X-Requested-With': 'com.playtomic.web' },
+      headers: {
+        'X-Requested-With': 'com.playtomic.web',
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+      },
     })
     if (!res.ok) {
       const text = await res.text().catch(() => '')
