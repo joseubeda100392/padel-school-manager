@@ -28,22 +28,10 @@ export async function POST(req: NextRequest, { params }: { params: { matchId: st
   const ptClient = getPlaytomicClient()
   await ptClient.login(club.playtomic_email, club.playtomic_password)
 
-  const results: Record<string, unknown> = {}
-  for (const visibility of ['PUBLIC', 'VISIBLE']) {
-    const res = await fetch(`https://api.playtomic.io/v1/matches/${params.matchId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${(ptClient as any).token}`,
-        'X-Requested-With': 'com.playtomic.app',
-        'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
-      },
-      body: JSON.stringify({ visibility }),
-    })
-    const body = await res.text()
-    results[visibility] = { status: res.status, body: body.slice(0, 500) }
-    if (res.ok) break
+  try {
+    await ptClient.publishMatch(params.matchId)
+    return NextResponse.json({ ok: true, matchId: params.matchId })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 502 })
   }
-
-  return NextResponse.json({ matchId: params.matchId, results })
 }

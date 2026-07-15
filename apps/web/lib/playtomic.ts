@@ -219,25 +219,30 @@ export class PlaytomicClient {
       piId
 
     // Step 4: Make match visible (created as HIDDEN by default)
-    const authHeaders = {
+    await this.publishMatch(matchId)
+
+    const matchUrl = `https://app.playtomic.com/matches/${matchId}`
+    return { matchId, matchUrl }
+  }
+
+  async publishMatch(matchId: string): Promise<void> {
+    if (!this.token) throw new Error('Not authenticated')
+    const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${this.token}`,
       'X-Requested-With': 'com.playtomic.app',
       'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
     }
     for (const visibility of ['PUBLIC', 'VISIBLE']) {
-      const visRes = await fetch(`${CONSUMER_BASE}/v1/matches/${matchId}`, {
+      const res = await fetch(`${CONSUMER_BASE}/v1/matches/${matchId}`, {
         method: 'PATCH',
-        headers: authHeaders,
+        headers,
         body: JSON.stringify({ visibility }),
       })
-      const visBody = await visRes.text()
-      console.error(`[pista-viva] PATCH visibility=${visibility} → ${visRes.status}: ${visBody.slice(0, 200)}`)
-      if (visRes.ok) break
+      const body = await res.text()
+      console.error(`[pista-viva] publishMatch visibility=${visibility} → ${res.status}: ${body.slice(0, 200)}`)
+      if (res.ok) return
     }
-
-    const matchUrl = `https://app.playtomic.com/matches/${matchId}`
-    return { matchId, matchUrl }
   }
 
   async getMatchStatus(matchId: string): Promise<PlaytomicMatchStatus> {
