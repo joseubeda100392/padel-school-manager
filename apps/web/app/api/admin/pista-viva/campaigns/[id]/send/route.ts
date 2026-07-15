@@ -49,10 +49,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const utcDate = new Date(campaign.slot_datetime)
   const startTime = utcDate.toISOString().split('.')[0].replace('Z', '')
 
+  const dryRun = req.nextUrl.searchParams.get('dry_run') === '1'
   let matchId: string
   let matchUrl: string
   try {
-    const dryRun = req.nextUrl.searchParams.get('dry_run') === '1'
     const result = await ptClient.createMatch({
       tenantId: club.playtomic_tenant_id,
       resourceId: campaign.resource_id,
@@ -61,6 +61,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       playersNeeded: campaign.players_needed,
       dryRun,
     })
+    if (result.dryRun) {
+      return NextResponse.json({ dryRun: true, preview: result.preview })
+    }
     matchId = result.matchId
     matchUrl = result.matchUrl
   } catch (e: any) {
