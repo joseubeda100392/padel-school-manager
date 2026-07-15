@@ -33,9 +33,9 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date()
-  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+  const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
   const startMin = now.toISOString().replace('Z', '').split('.')[0]
-  const startMax = in24h.toISOString().replace('Z', '').split('.')[0]
+  const startMax = in48h.toISOString().replace('Z', '').split('.')[0]
 
   const client = getPlaytomicClient()
   try {
