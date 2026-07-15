@@ -139,7 +139,7 @@ export class PlaytomicClient {
               resource_id: opts.resourceId,
               start: opts.startTime,
               duration: opts.durationMinutes,
-              match_registrations: [{ user_id: this.userId, pay_now: true }],
+              match_registrations: [{ user_id: this.userId, pay_now: false }],
             },
           },
         },
