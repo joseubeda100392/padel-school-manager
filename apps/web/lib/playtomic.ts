@@ -140,7 +140,7 @@ export class PlaytomicClient {
               resource_id: opts.resourceId,
               start: opts.startTime,
               duration: opts.durationMinutes,
-              match_registrations: [{ user_id: this.userId, pay_now: true }],
+              match_registrations: [{ user_id: this.userId, pay_now: false }],
             },
           },
         },
@@ -187,8 +187,17 @@ export class PlaytomicClient {
           matchId: 'dry-run',
           matchUrl: 'dry-run',
           dryRun: true,
-          preview: { price_total: pd.price, reg_price: reg?.price, split_parts: pd.cart?.item?.cart_item_data?.split_payment_parts, method_id: pd.selected_payment_method_id, pi_status: piData.status, available_methods: piData.available_payment_methods?.map((m: any) => m.method_type) },
+          preview: { price_total: pd.price, reg_price: reg?.price, split_parts: pd.cart?.item?.cart_item_data?.split_payment_parts, method_id: pd.selected_payment_method_id, pi_status_before_patch: piData.status, pi_status_after_patch: pd.status, available_methods: piData.available_payment_methods?.map((m: any) => m.method_type) },
         }
+      }
+    }
+
+    if (opts.dryRun) {
+      return {
+        matchId: 'dry-run',
+        matchUrl: 'dry-run',
+        dryRun: true,
+        preview: { pi_status: piData.status, available_methods: piData.available_payment_methods?.map((m: any) => m.method_type), note: 'no payment method selected' },
       }
     }
 
