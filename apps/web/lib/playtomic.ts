@@ -126,7 +126,7 @@ export class PlaytomicClient {
         'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
       },
       body: JSON.stringify({
-        allowed_payment_method_types: ['MERCHANT_WALLET', 'CREDIT_CARD', 'OFFER'],
+        allowed_payment_method_types: ['MERCHANT_WALLET'],
         user_id: this.userId,
         cart: {
           requested_item: {
@@ -156,27 +156,34 @@ export class PlaytomicClient {
     const piId: string = piData.payment_intent_id ?? piData.id ?? ''
     if (!piId) throw new Error('No payment_intent_id in Playtomic response')
 
-    // Step 2: Select payment method — usar payment_method_id completo
-    const paymentMethods: any[] = piData.available_payment_methods ?? []
-    const method = paymentMethods.find((m: any) => m.method_type === 'MERCHANT_WALLET')
-      ?? paymentMethods[0]
-    if (method) {
-      const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.token}`,
-          'X-Requested-With': 'com.playtomic.app',
-        },
-        body: JSON.stringify({
-          selected_payment_method: method.method_type,
-          payment_method_data: method.data ?? undefined,
-        }),
-      })
-      const patchData = await patchRes.json().catch(() => ({}))
-      console.error('[pista-viva] PATCH status:', patchRes.status, 'intent_status:', patchData.status, 'selected_id:', patchData.selected_payment_method_id)
+    // Step 2: Select payment method (solo si REQUIRES_PAYMENT_METHOD)
+    const intentStatus: string = piData.status ?? ''
+    console.error('[pista-viva] intent status after creation:', intentStatus)
+    if (intentStatus === 'REQUIRES_PAYMENT_METHOD') {
+      const paymentMethods: any[] = piData.available_payment_methods ?? []
+      const method = paymentMethods.find((m: any) => m.method_type === 'MERCHANT_WALLET')
+        ?? paymentMethods[0]
+      if (method) {
+        // Intentar con el payment_method_id completo (ej: "MERCHANT_WALLET-amw:...")
+        const patchBody: any = { payment_method_id: method.payment_method_id }
+        if (method.data) patchBody.payment_method_data = method.data
+        console.error('[pista-viva] PATCH body:', JSON.stringify(patchBody))
+        const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.token}`,
+            'X-Requested-With': 'com.playtomic.app',
+          },
+          body: JSON.stringify(patchBody),
+        })
+        const patchData = await patchRes.json().catch(() => ({}))
+        console.error('[pista-viva] PATCH status:', patchRes.status, 'intent_status:', patchData.status, 'selected_id:', patchData.selected_payment_method_id)
+      } else {
+        console.error('[pista-viva] no payment method found, skipping PATCH')
+      }
     } else {
-      console.error('[pista-viva] no payment method found, skipping PATCH')
+      console.error('[pista-viva] skipping PATCH — intent already in status:', intentStatus)
     }
 
     // Step 3: Confirm
