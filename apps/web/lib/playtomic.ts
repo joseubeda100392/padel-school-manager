@@ -127,7 +127,7 @@ export class PlaytomicClient {
         'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
       },
       body: JSON.stringify({
-        allowed_payment_method_types: ['OFFER', 'CASH', 'DIRECT', 'SWISH', 'IDEAL', 'BANCONTACT', 'PAYTRAIL', 'CREDIT_CARD', 'QUICK_PAY'],
+        allowed_payment_method_types: ['OFFER', 'CASH', 'MERCHANT_WALLET', 'DIRECT', 'SWISH', 'IDEAL', 'BANCONTACT', 'PAYTRAIL', 'CREDIT_CARD', 'QUICK_PAY'],
         user_id: this.userId,
         cart: {
           requested_item: {
@@ -156,10 +156,13 @@ export class PlaytomicClient {
     if (!piId) throw new Error('No payment_intent_id in Playtomic response')
 
     // Step 2: Seleccionar método de pago via PATCH
-    // El campo correcto es selected_payment_method_id con el payment_method_id completo del método
+    // Probando QUICK_PAY primero: crea match abierto donde cada jugador paga su parte
+    // Si QUICK_PAY no disponible, fallback a MERCHANT_WALLET
     const availableMethods: any[] = piData.available_payment_methods ?? []
+    const quickPayMethod = availableMethods.find((m: any) => m.method_type === 'QUICK_PAY')
     const walletMethod = availableMethods.find((m: any) => m.method_type === 'MERCHANT_WALLET')
-    const bestMethod = walletMethod ?? availableMethods[0] ?? null
+    const bestMethod = quickPayMethod ?? walletMethod ?? availableMethods[0] ?? null
+    console.error('[pista-viva] available_methods:', availableMethods.map((m: any) => m.method_type), '| selected:', bestMethod?.method_type)
 
     if (bestMethod && piData.status === 'REQUIRES_PAYMENT_METHOD') {
       const fullId: string = bestMethod.payment_method_id ?? bestMethod.method_type
