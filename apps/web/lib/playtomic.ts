@@ -162,7 +162,7 @@ export class PlaytomicClient {
 
     if (bestMethod && piData.status === 'REQUIRES_PAYMENT_METHOD') {
       const fullId: string = bestMethod.payment_method_id ?? bestMethod.method_type
-      await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
+      const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -172,6 +172,9 @@ export class PlaytomicClient {
         },
         body: JSON.stringify({ selected_payment_method_id: fullId, match_payment_plan_type: 'SPLIT' }),
       })
+      const pd = await patchRes.json().catch(() => ({}))
+      const reg = pd.cart?.item?.cart_item_data?.match_registrations?.[0]
+      console.error('[pista-viva] PATCH → price_total:', pd.price, '| reg_price:', reg?.price, '| split_parts:', pd.cart?.item?.cart_item_data?.split_payment_parts, '| method_id:', pd.selected_payment_method_id)
     }
 
     // Step 3: Confirm
