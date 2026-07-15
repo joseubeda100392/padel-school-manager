@@ -112,7 +112,8 @@ export class PlaytomicClient {
     startTime: string
     durationMinutes: number
     playersNeeded?: number
-  }): Promise<{ matchId: string; matchUrl: string }> {
+    dryRun?: boolean
+  }): Promise<{ matchId: string; matchUrl: string; dryRun?: true; preview?: object }> {
     if (!this.token || !this.userId) throw new Error('Not authenticated')
     const numPlayers = opts.playersNeeded ?? 4
 
@@ -175,6 +176,15 @@ export class PlaytomicClient {
       const pd = await patchRes.json().catch(() => ({}))
       const reg = pd.cart?.item?.cart_item_data?.match_registrations?.[0]
       console.error('[pista-viva] PATCH → price_total:', pd.price, '| reg_price:', reg?.price, '| split_parts:', pd.cart?.item?.cart_item_data?.split_payment_parts, '| method_id:', pd.selected_payment_method_id)
+
+      if (opts.dryRun) {
+        return {
+          matchId: 'dry-run',
+          matchUrl: 'dry-run',
+          dryRun: true,
+          preview: { price_total: pd.price, reg_price: reg?.price, split_parts: pd.cart?.item?.cart_item_data?.split_payment_parts, method_id: pd.selected_payment_method_id },
+        }
+      }
     }
 
     // Step 3: Confirm

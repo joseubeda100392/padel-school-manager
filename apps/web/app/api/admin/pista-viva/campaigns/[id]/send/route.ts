@@ -52,12 +52,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   let matchId: string
   let matchUrl: string
   try {
+    const dryRun = req.nextUrl.searchParams.get('dry_run') === '1'
     const result = await ptClient.createMatch({
       tenantId: club.playtomic_tenant_id,
       resourceId: campaign.resource_id,
       startTime,
       durationMinutes: campaign.duration_minutes,
       playersNeeded: campaign.players_needed,
+      dryRun,
     })
     matchId = result.matchId
     matchUrl = result.matchUrl
