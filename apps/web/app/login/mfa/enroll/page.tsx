@@ -25,7 +25,7 @@ export default function MfaEnrollPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.auth.mfa.enroll({ factorType: 'totp', issuer: 'Padel School Manager' }).then(({ data, error }) => {
+    supabase.auth.mfa.enroll({ factorType: 'totp', issuer: 'ePadel School' }).then(({ data, error }) => {
       if (error || !data) return
       setFactorId(data.id)
       setUri(data.totp.uri)

@@ -61,7 +61,7 @@ export function CoachShell({ children, userName, clubName, features }: {
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-white">{userName ?? 'Monitor'}</p>
-            <p className="truncate text-xs text-court-300">{clubName ?? 'Padel School'}</p>
+            <p className="truncate text-xs text-court-300">{clubName ?? 'ePadel School'}</p>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-1 text-court-300 hover:bg-court-800 md:hidden">
             <X className="h-4 w-4" />

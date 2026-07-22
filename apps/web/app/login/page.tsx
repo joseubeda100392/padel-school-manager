@@ -89,7 +89,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative text-xs text-court-400">
-          © 2026 Padel School Manager
+          © 2026 ePadel School
         </div>
       </div>
 

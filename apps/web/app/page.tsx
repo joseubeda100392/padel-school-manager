@@ -9,7 +9,7 @@ export default function HomePage() {
             <span className="text-lg font-bold">P</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Padel School Manager</h1>
+            <h1 className="text-xl font-bold text-gray-900">ePadel School</h1>
             <p className="text-sm text-gray-500">Panel de Administración</p>
           </div>
         </div>

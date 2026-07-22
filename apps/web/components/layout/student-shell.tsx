@@ -82,7 +82,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-white">{userName ?? 'Alumno'}</p>
-            <p className="truncate text-xs text-court-300">{clubName ?? 'Padel School'}</p>
+            <p className="truncate text-xs text-court-300">{clubName ?? 'ePadel School'}</p>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="rounded-lg p-1 text-court-300 hover:bg-court-800 md:hidden">
             <X className="h-4 w-4" />
@@ -145,7 +145,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-blue-500">
               <span className="text-xs font-bold text-white">P</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{clubName ?? 'Padel School'}</span>
+            <span className="text-sm font-semibold text-gray-900">{clubName ?? 'ePadel School'}</span>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/student/notifications" className="relative rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">

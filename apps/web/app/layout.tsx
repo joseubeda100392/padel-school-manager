@@ -16,7 +16,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Padel School Manager — Panel Admin',
+  title: 'ePadel School — Panel Admin',
   description: 'Panel de gestión para escuelas de pádel',
 }
 
