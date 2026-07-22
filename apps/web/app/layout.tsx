@@ -18,6 +18,7 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: 'ePadel School — Panel Admin',
   description: 'Panel de gestión para escuelas de pádel',
+  robots: { index: false, follow: false },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
