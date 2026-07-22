@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   title: 'ePadel School — Panel Admin',
   description: 'Panel de gestión para escuelas de pádel',
   robots: { index: false, follow: false },
+  verification: { google: 'd855c92217cfc88d' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
