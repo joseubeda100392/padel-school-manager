@@ -9,7 +9,7 @@ Ecosistema digital para escuelas de pádel compuesto por:
 - `apps/web`: Aplicación web Next.js 14 (App Router) para alumnos, monitores y admins — deploy en Railway
 - `packages/db`: Prisma schema y cliente compartido (PostgreSQL/Supabase)
 - `packages/types`: Tipos TypeScript compartidos entre apps
-- `packages/stripe`: Lógica de pagos Stripe compartida
+- `packages/stripe`: DEAD CODE — no se usa. Los pagos van con Redsys (`lib/redsys.ts`)
 
 ## Stack
 - Mobile: React Native + Expo SDK 51 + NativeWind (iOS y Android)
@@ -17,7 +17,7 @@ Ecosistema digital para escuelas de pádel compuesto por:
 - DB: PostgreSQL (Supabase) + Prisma ORM
 - Auth: Supabase Auth (JWT con claims de rol)
 - Realtime/Chat: Supabase Realtime
-- Pagos: Stripe (subscripciones + PaymentIntent para clases sueltas)
+- Pagos: Redsys (TPV virtual — `lib/redsys.ts`, `app/api/payments/`). Stripe NO se usa.
 - Storage: Supabase Storage (PDFs, avatares)
 - Push: Expo Push Notifications + FCM
 - Deploy Web/Backend: Railway

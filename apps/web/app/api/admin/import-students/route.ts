@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
       const userId = authData.user.id
 
-      await adminSupabase.from('users').insert({
+      const { error: userInsertErr } = await adminSupabase.from('users').insert({
         id: userId,
         email,
         name,
@@ -80,10 +80,21 @@ export async function POST(req: NextRequest) {
         current_level_id: levelId,
       })
 
-      await adminSupabase.from('class_bag').upsert(
+      if (userInsertErr) {
+        await adminSupabase.auth.admin.deleteUser(userId)
+        results.push({ email, name, status: 'error', error: `Error al crear perfil: ${userInsertErr.message}` })
+        continue
+      }
+
+      const { error: bagErr } = await adminSupabase.from('class_bag').upsert(
         { user_id: userId, club_id: clubId, balance_60: 0, balance_90: 0 },
         { onConflict: 'user_id' }
       )
+
+      if (bagErr) {
+        results.push({ email, name, status: 'ok', password, warning: 'Bolsa de clases no creada' })
+        continue
+      }
 
       results.push({ email, name, status: 'ok', password })
     } catch (e: any) {

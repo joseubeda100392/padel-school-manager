@@ -24,6 +24,9 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  // AVISO: user_metadata puede ser modificado por el usuario (no es fuente fiable de rol).
+  // Este middleware solo controla redirecciones de navegación — NO es el control de acceso real.
+  // La seguridad real está en las API routes (verifican rol desde la tabla users en DB).
   const role = user?.user_metadata?.role as string | undefined
   const path = request.nextUrl.pathname
 

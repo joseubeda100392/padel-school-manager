@@ -19,6 +19,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'userId y delta requeridos' }, { status: 400 })
   }
 
+  if (caller.role !== 'super_admin') {
+    const { data: targetUser } = await admin.from('users').select('club_id').eq('id', userId).single()
+    if (!targetUser || targetUser.club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
+  }
+
   const { data: bag, error: bagErr } = await admin
     .from('class_bag')
     .select('id, balance_60, balance_90')
