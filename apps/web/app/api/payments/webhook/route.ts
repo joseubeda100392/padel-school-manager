@@ -102,34 +102,14 @@ export async function POST(req: NextRequest) {
   } else if (payment.type === 'class_pack') {
     const classesToAdd = meta.classes_per_pack ?? 10
     const packType: '60' | '90' = meta.pack_type === '90' ? '90' : '60'
-    const balanceField = packType === '90' ? 'balance_90' : 'balance_60'
 
-    await adminSupabase
-      .from('class_bag')
-      .upsert({ user_id: payment.user_id, balance_60: 0, balance_90: 0 }, { onConflict: 'user_id', ignoreDuplicates: true })
-
-    const { data: bag } = await adminSupabase
-      .from('class_bag')
-      .select('id, balance_60, balance_90')
-      .eq('user_id', payment.user_id)
-      .single()
-
-    if (bag) {
-      const currentVal = bag[balanceField] as number
-      await adminSupabase
-        .from('class_bag')
-        .update({ [balanceField]: currentVal + classesToAdd, updated_at: new Date().toISOString() })
-        .eq('id', bag.id)
-
-      await adminSupabase.from('bag_transactions').insert({
-        user_id: payment.user_id,
-        class_bag_id: bag.id,
-        delta: classesToAdd,
-        type: 'credit',
-        reason: `Compra de bono — ${classesToAdd} clases`,
-        class_duration: packType,
-      })
-    }
+    await adminSupabase.rpc('credit_class_bag', {
+      p_user_id: payment.user_id,
+      p_club_id: payment.club_id ?? null,
+      p_delta: classesToAdd,
+      p_pack_type: packType,
+      p_reason: `Compra de bono — ${classesToAdd} clases`,
+    })
 
   } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
     const now = new Date()
