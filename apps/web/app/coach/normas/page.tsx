@@ -23,23 +23,22 @@ export default async function CoachNormasPage() {
       </div>
 
       {pdfUrl ? (
-        <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-            <p className="text-sm font-medium text-gray-700">Documento de condiciones</p>
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-            >
-              Abrir en nueva pestaña
-            </a>
+        <div className="rounded-xl bg-white p-8 shadow-sm text-center space-y-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
+            <span className="text-3xl">📄</span>
           </div>
-          <iframe
-            src={pdfUrl}
-            className="h-[70vh] w-full border-0"
-            title="Condiciones de uso"
-          />
+          <div>
+            <p className="font-semibold text-gray-900">Condiciones de uso</p>
+            <p className="mt-1 text-sm text-gray-500">Pulsa el botón para ver el documento</p>
+          </div>
+          <a
+            href={pdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600"
+          >
+            Ver PDF
+          </a>
         </div>
       ) : (
         <div className="rounded-xl bg-gray-50 p-8 text-center">
