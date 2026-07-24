@@ -84,20 +84,13 @@ export function NormasClient({ clubId }: { clubId: string | null }) {
                 <p className="truncate text-xs text-gray-400">{pdfUrl.split('/').pop()?.split('?')[0]}</p>
               </div>
               <a
-                href={pdfUrl}
+                href="/api/pdf/normas"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="shrink-0 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
               >
                 Ver PDF
               </a>
-            </div>
-            <div className="mb-4 overflow-hidden rounded-xl border border-gray-100">
-              <iframe
-                src={pdfUrl}
-                className="h-64 w-full border-0"
-                title="Vista previa condiciones"
-              />
             </div>
           </>
         ) : (
