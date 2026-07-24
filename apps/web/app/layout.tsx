@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Sora, DM_Sans } from 'next/font/google'
 import { Toaster } from 'sonner'
+import { SwipeGuard } from '@/components/swipe-guard'
 import './globals.css'
 
 const sora = Sora({
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${sora.variable} ${dmSans.variable} font-sans antialiased`}>
+        <SwipeGuard />
         {children}
         <Toaster richColors position="top-right" />
       </body>
