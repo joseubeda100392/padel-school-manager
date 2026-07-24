@@ -7,9 +7,13 @@ const LAST_ROUTE_KEY = 'sg_last_route'
 function isInsideHScrollContainer(el: Element | null): boolean {
   while (el && el !== document.documentElement) {
     const style = window.getComputedStyle(el)
+    // CSS spec: setting overflow-x:auto promotes overflow-y:visible → auto,
+    // so we cannot rely on overflowY being 'visible'. We only check overflowX
+    // and whether there is actual horizontal overflow content.
+    // <main overflow-auto> won't match because the table wrapper clips its own
+    // overflow, so main.scrollWidth ≈ main.clientWidth.
     if (
       (style.overflowX === 'scroll' || style.overflowX === 'auto') &&
-      (style.overflowY === 'visible' || style.overflowY === 'hidden') &&
       el.scrollWidth > el.clientWidth + 1
     ) {
       return true
