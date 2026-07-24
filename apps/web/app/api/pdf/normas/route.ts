@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -13,8 +14,13 @@ export async function GET() {
   if (!user) return new Response('Unauthorized', { status: 401 })
 
   const admin = getAdminClient()
-  const { data: profile } = await admin.from('users').select('club_id').eq('id', user.id).single()
-  const clubId = (profile as any)?.club_id ?? null
+  const { data: profile } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
+  if (!profile) return new Response('Unauthorized', { status: 401 })
+
+  const cookieStore = cookies()
+  const clubId = profile.role === 'super_admin'
+    ? (cookieStore.get('sa_active_club')?.value ?? profile.club_id)
+    : profile.club_id
 
   const features = await getClubFeatures(clubId)
   const pdfUrl = features.terms_pdf_url
