@@ -81,7 +81,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [newHoliday, setNewHoliday] = useState('')
   const [holidaysSaving, setHolidaysSaving] = useState(false)
 
-  const [activeTab, setActiveTab] = useState<'perfil' | 'pistas' | 'precios' | 'modulos' | 'pagos' | 'playtomic'>('perfil')
+  const [activeTab, setActiveTab] = useState<'perfil' | 'pistas' | 'modulos' | 'pagos' | 'playtomic'>('perfil')
 
   useEffect(() => {
     const supabase = createClient()
@@ -334,11 +334,10 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
 
   const initials = (profile?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
 
-  type Tab = 'perfil' | 'pistas' | 'precios' | 'modulos' | 'pagos' | 'playtomic'
+  type Tab = 'perfil' | 'pistas' | 'modulos' | 'pagos' | 'playtomic'
   const tabs: { id: Tab; label: string }[] = [
     { id: 'perfil', label: 'Perfil' },
     { id: 'pistas', label: 'Pistas' },
-    { id: 'precios', label: 'Precios' },
     { id: 'modulos', label: 'Módulos' },
     { id: 'pagos', label: 'Pagos' },
     ...(features.enable_pista_viva ? [{ id: 'playtomic' as Tab, label: '⚡ Playtomic' }] : []),
@@ -520,119 +519,6 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
             </button>
           </div>
           {courtError && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">Error: {courtError}</p>}
-        </div>
-      )}
-
-      {/* Tab: Precios */}
-      {activeTab === 'precios' && (
-        <div className="space-y-5">
-          {features.enable_payments && (features.enable_60min || features.enable_90min) && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-4 font-semibold text-gray-900">Precios de clase suelta</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {features.enable_60min && (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase 1 hora (€)</label>
-                    <div className="relative">
-                      <input type="number" min={0} step={0.5} value={config.pay_per_class_price_60 / 100}
-                        onChange={(e) => setConfig({ ...config, pay_per_class_price_60: Math.round(Number(e.target.value) * 100) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                      <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                    </div>
-                  </div>
-                )}
-                {features.enable_90min && (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase 1h 30 min (€)</label>
-                    <div className="relative">
-                      <input type="number" min={0} step={0.5} value={config.pay_per_class_price_90 / 100}
-                        onChange={(e) => setConfig({ ...config, pay_per_class_price_90: Math.round(Number(e.target.value) * 100) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                      <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {features.enable_bag && (features.enable_60min || features.enable_90min) && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-4 font-semibold text-gray-900">Bonos de clases</h2>
-              {features.enable_60min && (
-                <>
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">Bono 1 hora</p>
-                  <div className="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
-                      <input type="number" min={1} value={config.classes_per_pack_60}
-                        onChange={(e) => setConfig({ ...config, classes_per_pack_60: Number(e.target.value) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
-                      <div className="relative">
-                        <input type="number" min={0} step={0.5} value={config.pack_price_60 / 100}
-                          onChange={(e) => setConfig({ ...config, pack_price_60: Math.round(Number(e.target.value) * 100) })}
-                          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                        <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mb-5 text-xs text-gray-400">
-                    Precio por clase: {config.classes_per_pack_60 > 0 ? ((config.pack_price_60 / config.classes_per_pack_60) / 100).toFixed(2) : '0.00'} €
-                  </p>
-                </>
-              )}
-              {features.enable_90min && (
-                <>
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">Bono 1h 30min</p>
-                  <div className="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
-                      <input type="number" min={1} value={config.classes_per_pack_90}
-                        onChange={(e) => setConfig({ ...config, classes_per_pack_90: Number(e.target.value) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
-                      <div className="relative">
-                        <input type="number" min={0} step={0.5} value={config.pack_price_90 / 100}
-                          onChange={(e) => setConfig({ ...config, pack_price_90: Math.round(Number(e.target.value) * 100) })}
-                          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                        <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Precio por clase: {config.classes_per_pack_90 > 0 ? ((config.pack_price_90 / config.classes_per_pack_90) / 100).toFixed(2) : '0.00'} €
-                  </p>
-                </>
-              )}
-            </div>
-          )}
-
-          {features.enable_bag && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Política de cancelación</h2>
-              <p className="mb-4 text-xs text-gray-400">Si el alumno cancela con menos de X horas de antelación, el crédito <strong>no</strong> se devuelve.</p>
-              <div className="flex items-center gap-3">
-                <input type="number" min={0} max={168} value={config.cancellation_hours}
-                  onChange={(e) => setConfig({ ...config, cancellation_hours: Number(e.target.value) })}
-                  className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-                <span className="text-sm text-gray-500">horas antes del inicio de la clase</span>
-              </div>
-            </div>
-          )}
-
-          {!features.enable_payments && !features.enable_bag && (
-            <p className="text-sm text-gray-400">Activa los módulos de pagos o bolsa de clases en la pestaña Módulos para configurar precios.</p>
-          )}
-
-          {saveError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">Error: {saveError}</p>}
-          <button onClick={saveConfig} disabled={saving} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-            {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar precios'}
-          </button>
         </div>
       )}
 
