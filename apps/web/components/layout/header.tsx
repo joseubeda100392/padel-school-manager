@@ -10,7 +10,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/login')
+    window.location.replace('/login')
     router.refresh()
   }
 

@@ -30,13 +30,13 @@ export default function LoginPage() {
       const { data: factorsData } = await supabase.auth.mfa.listFactors()
       const verifiedTotp = (factorsData?.totp ?? []).filter(f => f.status === 'verified')
       if (verifiedTotp.length > 0) {
-        window.location.href = '/login/mfa'
+        window.location.replace('/login/mfa')
         return
       }
       // Sin MFA configurado → acceso directo al dashboard
     }
 
-    window.location.href = role === 'student' ? '/student' : role === 'coach' ? '/coach' : '/dashboard'
+    window.location.replace(role === 'student' ? '/student' : role === 'coach' ? '/coach' : '/dashboard')
   }
 
   return (

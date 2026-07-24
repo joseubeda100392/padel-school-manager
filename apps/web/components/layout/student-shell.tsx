@@ -53,7 +53,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/login')
+    window.location.replace('/login')
     router.refresh()
   }
 

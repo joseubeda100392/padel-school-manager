@@ -34,7 +34,7 @@ export function CoachShell({ children, userName, clubName, features }: {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push('/login')
+    window.location.replace('/login')
     router.refresh()
   }
 
