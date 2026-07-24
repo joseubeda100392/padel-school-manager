@@ -1,6 +1,6 @@
 {
   "name": "ePadel School",
-  "short_name": "ePadel",
+  "short_name": "ePadel School",
   "description": "Tu escuela de pádel en tu bolsillo",
   "start_url": "/",
   "display": "standalone",
