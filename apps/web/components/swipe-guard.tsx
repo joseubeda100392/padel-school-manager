@@ -16,90 +16,23 @@ function isInsideHScrollContainer(el: Element | null): boolean {
   return false
 }
 
-// Reads env(safe-area-inset-*) via a probe element and stores the results
-// as both an inline CSS variable on <html> AND as a <style> tag — two
-// independent persistence mechanisms in case Next.js clears one of them.
-// Also re-runs on every navigation to recover from any brief env()=0 window.
-function updateDebug(label: string) {
-  let dbg = document.getElementById('__sat_dbg__')
-  if (!dbg) {
-    dbg = document.createElement('div')
-    dbg.id = '__sat_dbg__'
-    dbg.style.cssText = [
-      'position:fixed',
-      'bottom:90px',
-      'left:0',
-      'right:0',
-      'background:rgba(0,0,0,0.88)',
-      'color:#0f0',
-      'padding:4px 8px',
-      'font-size:10px',
-      'z-index:99999',
-      'font-family:monospace',
-      'pointer-events:none',
-      'line-height:1.5',
-      'white-space:pre',
-    ].join(';')
-    document.body.appendChild(dbg)
-  }
-
-  const header = document.querySelector<HTMLElement>('header')
-  const main   = document.querySelector<HTMLElement>('main')
-  const nav    = document.querySelector<HTMLElement>('nav')
-  const hRect  = header?.getBoundingClientRect()
-  const nRect  = nav?.getBoundingClientRect()
-  const hCS    = header ? getComputedStyle(header) : null
-
-  const lines = [
-    `[${label}]`,
-    `header.top=${hRect ? Math.round(hRect.top) : '?'}  h=${hRect ? Math.round(hRect.height) : '?'}`,
-    `header.pt=${hCS ? hCS.paddingTop : '?'}  --sat=${getComputedStyle(document.documentElement).getPropertyValue('--sat') || 'unset'}`,
-    `nav.bottom=${nRect ? Math.round(nRect.bottom) : '?'}  vvp h=${window.visualViewport?.height ?? '?'}`,
-    `main.scrollTop=${main?.scrollTop ?? '?'}  body.top=${Math.round(document.body.getBoundingClientRect().top)}`,
-    `inner h=${window.innerHeight}  vvp offsetTop=${window.visualViewport?.offsetTop ?? '?'}`,
-  ]
-  dbg.textContent = lines.join('\n')
-}
-
-function lockSafeAreas(label = 'init') {
+// Measures env(safe-area-inset-*) and stores as CSS variables on <html>.
+// Needed for pt-safe / pb-safe utilities to work in PWA mode.
+function lockSafeAreas() {
   const probe = document.createElement('div')
-  probe.style.cssText = [
-    'position:fixed',
-    'top:0',
-    'left:0',
-    'width:1px',
-    'height:1px',
-    'visibility:hidden',
-    'pointer-events:none',
-    'padding-top:env(safe-area-inset-top,0px)',
-    'padding-bottom:env(safe-area-inset-bottom,0px)',
-  ].join(';')
+  probe.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);'
   document.body.appendChild(probe)
   const cs = getComputedStyle(probe)
   const sat = cs.paddingTop || '0px'
   const sab = cs.paddingBottom || '0px'
   document.body.removeChild(probe)
-
   document.documentElement.style.setProperty('--sat', sat)
   document.documentElement.style.setProperty('--sab', sab)
-
-  let tag = document.getElementById('__sat__') as HTMLStyleElement | null
-  if (!tag) {
-    tag = document.createElement('style')
-    tag.id = '__sat__'
-    document.head.appendChild(tag)
-  }
-  tag.textContent = `:root{--sat:${sat};--sab:${sab}}`
-
-  updateDebug(label)
 }
 
 export function SwipeGuard() {
   useEffect(() => {
-    lockSafeAreas('mount')
-
-    // Poll every 400ms so values update regardless of what triggered the change
-    const poll = setInterval(() => updateDebug('live'), 400)
+    lockSafeAreas()
 
     let startX = 0, startY = 0, decided = false, blocking = false
 
@@ -114,9 +47,7 @@ export function SwipeGuard() {
     history.pushState = (...args: Parameters<typeof history.pushState>) => {
       history.replaceState(...args)
       saveRoute()
-      // Capture state immediately after replaceState and again after paint
-      updateDebug('nav-sync')
-      requestAnimationFrame(() => lockSafeAreas('nav-raf'))
+      requestAnimationFrame(lockSafeAreas)
     }
 
     function onTouchStart(e: TouchEvent) {
@@ -154,7 +85,6 @@ export function SwipeGuard() {
     window.addEventListener('popstate', onPopState)
 
     return () => {
-      clearInterval(poll)
       history.pushState = origPushState
       document.removeEventListener('touchstart', onTouchStart)
       document.removeEventListener('touchmove', onTouchMove)
