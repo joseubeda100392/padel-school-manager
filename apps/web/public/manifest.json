@@ -2,7 +2,7 @@
   "name": "ePadel School",
   "short_name": "ePadel",
   "description": "Tu escuela de pádel en tu bolsillo",
-  "start_url": "/student",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0d1526",
   "theme_color": "#00c49a",
