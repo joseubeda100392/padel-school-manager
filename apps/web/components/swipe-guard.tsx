@@ -33,18 +33,24 @@ export function SwipeGuard() {
       }
     }
 
+    // Layer 1 (primary): Flatten the history stack.
+    // All Next.js client-side navigations become replaceState instead of pushState.
+    // The history stack stays at depth 1, so iOS WKWebView's back/forward gesture
+    // finds no in-app entries to navigate to — it either exits the PWA or is a no-op.
+    // This is the only reliable fix because iOS can capture edge gestures before JS fires.
     const origPushState = history.pushState.bind(history)
     history.pushState = (...args: Parameters<typeof history.pushState>) => {
-      origPushState(...args)
+      history.replaceState(...args)
       saveRoute()
     }
 
+    // Layer 2 (secondary): block touch gestures at the screen edge.
+    // Sometimes iOS fires touchstart before committing to the gesture — catch those cases.
     function onTouchStart(e: TouchEvent) {
       startX = e.touches[0].clientX
       startY = e.touches[0].clientY
       decided = false
       blocking = false
-      // Always block at the edge immediately — no DOM walk, no race with iOS UIKit
       const screenW = document.documentElement.clientWidth
       if (startX < 30 || startX > screenW - 30) {
         e.preventDefault()
@@ -61,12 +67,13 @@ export function SwipeGuard() {
       const absDx = Math.abs(e.touches[0].clientX - startX)
       const absDy = Math.abs(e.touches[0].clientY - startY)
       if (absDx < 5 && absDy < 5) return
-      // Decide once: horizontal swipe outside a scroll container → block
       decided = true
       blocking = absDx > absDy && !isInsideHScrollContainer(e.target as Element)
       if (blocking) e.preventDefault()
     }
 
+    // Layer 3 (fallback): if any popstate lands on /login, redirect back.
+    // Handles old accumulated history entries from before this fix.
     function onPopState() {
       if (window.location.pathname.startsWith('/login')) {
         try {
