@@ -27,7 +27,7 @@ function updateDebug(label: string) {
     dbg.id = '__sat_dbg__'
     dbg.style.cssText = [
       'position:fixed',
-      'top:0',
+      'bottom:90px',
       'left:0',
       'right:0',
       'background:rgba(0,0,0,0.88)',
