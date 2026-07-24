@@ -20,7 +20,46 @@ function isInsideHScrollContainer(el: Element | null): boolean {
 // as both an inline CSS variable on <html> AND as a <style> tag — two
 // independent persistence mechanisms in case Next.js clears one of them.
 // Also re-runs on every navigation to recover from any brief env()=0 window.
-function lockSafeAreas() {
+function updateDebug(label: string) {
+  let dbg = document.getElementById('__sat_dbg__')
+  if (!dbg) {
+    dbg = document.createElement('div')
+    dbg.id = '__sat_dbg__'
+    dbg.style.cssText = [
+      'position:fixed',
+      'top:0',
+      'left:0',
+      'right:0',
+      'background:rgba(0,0,0,0.88)',
+      'color:#0f0',
+      'padding:4px 8px',
+      'font-size:10px',
+      'z-index:99999',
+      'font-family:monospace',
+      'pointer-events:none',
+      'line-height:1.5',
+      'white-space:pre',
+    ].join(';')
+    document.body.appendChild(dbg)
+  }
+
+  const header = document.querySelector<HTMLElement>('header')
+  const main   = document.querySelector<HTMLElement>('main')
+  const hRect  = header?.getBoundingClientRect()
+
+  const lines = [
+    `[${label}]`,
+    `header.top=${hRect ? Math.round(hRect.top) : '?'}  header.h=${hRect ? Math.round(hRect.height) : '?'}`,
+    `main.scrollTop=${main?.scrollTop ?? '?'}`,
+    `window.scrollY=${window.scrollY}`,
+    `body.scrollTop=${document.body.scrollTop}`,
+    `inner h=${window.innerHeight}  vvp h=${window.visualViewport?.height ?? '?'}`,
+    `vvp offsetTop=${window.visualViewport?.offsetTop ?? '?'}`,
+  ]
+  dbg.textContent = lines.join('\n')
+}
+
+function lockSafeAreas(label = 'init') {
   const probe = document.createElement('div')
   probe.style.cssText = [
     'position:fixed',
@@ -39,11 +78,9 @@ function lockSafeAreas() {
   const sab = cs.paddingBottom || '0px'
   document.body.removeChild(probe)
 
-  // Primary: inline style on <html>
   document.documentElement.style.setProperty('--sat', sat)
   document.documentElement.style.setProperty('--sab', sab)
 
-  // Secondary: <style> tag fallback (survives if React clears inline styles)
   let tag = document.getElementById('__sat__') as HTMLStyleElement | null
   if (!tag) {
     tag = document.createElement('style')
@@ -52,39 +89,12 @@ function lockSafeAreas() {
   }
   tag.textContent = `:root{--sat:${sat};--sab:${sab}}`
 
-  // Temporary debug overlay — remove once the bug is confirmed fixed
-  let dbg = document.getElementById('__sat_dbg__')
-  if (!dbg) {
-    dbg = document.createElement('div')
-    dbg.id = '__sat_dbg__'
-    dbg.style.cssText = [
-      'position:fixed',
-      'bottom:68px',
-      'right:4px',
-      'background:rgba(0,0,0,0.85)',
-      'color:#0f0',
-      'padding:3px 6px',
-      'font-size:9px',
-      'z-index:99999',
-      'border-radius:3px',
-      'font-family:monospace',
-      'pointer-events:none',
-      'line-height:1.4',
-    ].join(';')
-    document.body.appendChild(dbg)
-  }
-  const vpMeta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')?.content ?? '?'
-  const hasViewportFit = vpMeta.includes('viewport-fit')
-  dbg.innerHTML = [
-    `top: ${sat}`,
-    `bot: ${sab}`,
-    `viewport-fit: ${hasViewportFit ? '<span style="color:#0f0">✓</span>' : '<span style="color:#f00">✗</span>'}`,
-  ].join('<br>')
+  updateDebug(label)
 }
 
 export function SwipeGuard() {
   useEffect(() => {
-    lockSafeAreas()
+    lockSafeAreas('mount')
 
     let startX = 0, startY = 0, decided = false, blocking = false
 
@@ -99,8 +109,9 @@ export function SwipeGuard() {
     history.pushState = (...args: Parameters<typeof history.pushState>) => {
       history.replaceState(...args)
       saveRoute()
-      // Re-lock safe areas after Next.js navigation in case env() briefly returned 0
-      requestAnimationFrame(lockSafeAreas)
+      // Capture state immediately after replaceState and again after paint
+      updateDebug('nav-sync')
+      requestAnimationFrame(() => lockSafeAreas('nav-raf'))
     }
 
     function onTouchStart(e: TouchEvent) {
