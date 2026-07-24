@@ -9,6 +9,7 @@ import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
+import { InstallBanner } from '@/components/install-banner'
 import type { ClubFeatures } from '@/lib/get-club-features'
 
 const allNavItems = [
@@ -122,6 +123,7 @@ export function CoachShell({ children, userName, clubName, features }: {
 
         <main className="flex-1 overflow-auto p-4 pb-24 md:p-8 md:pb-8">{children}</main>
         <PushNotificationProvider />
+        <InstallBanner />
 
         <nav className="fixed bottom-0 left-0 right-0 z-10 flex border-t border-gray-100 bg-white shadow-[0_-1px_4px_rgba(0,0,0,0.06)] md:hidden">
           {navItems.map(({ href, label, icon: Icon, exact }) => {

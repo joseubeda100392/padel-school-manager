@@ -5,6 +5,7 @@ import { motion } from 'motion/react'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
+import { InstallBanner } from '@/components/install-banner'
 import type { ClubFeatures } from '@/lib/get-club-features'
 
 interface DashboardShellProps {
@@ -38,6 +39,7 @@ export function DashboardShell({ children, clubName, role, userName, features, s
       {/* Contenido */}
       <div className="flex flex-1 flex-col min-w-0">
         <Header onMenuClick={() => setSidebarOpen(true)} />
+        <InstallBanner />
         <main className="flex-1 overflow-auto p-4 md:p-8">
           <motion.div
             key={pathname}
