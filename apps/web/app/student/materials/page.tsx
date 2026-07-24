@@ -78,7 +78,7 @@ export default async function StudentMaterialsPage() {
               </div>
               {m.file_url && (
                 <a
-                  href={m.file_url}
+                  href={`/api/pdf/material/${m.id}`}
                   target="_blank"
                   rel="noreferrer"
                   className="shrink-0 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600"

@@ -72,7 +72,7 @@ export default async function CoachMaterialsPage() {
                 <p className="text-xs text-gray-400">{formatDate(m.created_at)}</p>
                 {m.file_url && (
                   <a
-                    href={m.file_url}
+                    href={`/api/pdf/material/${m.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"

@@ -32,7 +32,7 @@ export default async function CoachNormasPage() {
             <p className="mt-1 text-sm text-gray-500">Pulsa el botón para ver el documento</p>
           </div>
           <a
-            href={pdfUrl}
+            href="/api/pdf/normas"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-600"
