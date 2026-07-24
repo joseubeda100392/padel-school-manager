@@ -45,16 +45,18 @@ function updateDebug(label: string) {
 
   const header = document.querySelector<HTMLElement>('header')
   const main   = document.querySelector<HTMLElement>('main')
+  const nav    = document.querySelector<HTMLElement>('nav')
   const hRect  = header?.getBoundingClientRect()
+  const nRect  = nav?.getBoundingClientRect()
+  const hCS    = header ? getComputedStyle(header) : null
 
   const lines = [
     `[${label}]`,
-    `header.top=${hRect ? Math.round(hRect.top) : '?'}  header.h=${hRect ? Math.round(hRect.height) : '?'}`,
-    `main.scrollTop=${main?.scrollTop ?? '?'}`,
-    `window.scrollY=${window.scrollY}`,
-    `body.scrollTop=${document.body.scrollTop}`,
-    `inner h=${window.innerHeight}  vvp h=${window.visualViewport?.height ?? '?'}`,
-    `vvp offsetTop=${window.visualViewport?.offsetTop ?? '?'}`,
+    `header.top=${hRect ? Math.round(hRect.top) : '?'}  h=${hRect ? Math.round(hRect.height) : '?'}`,
+    `header.pt=${hCS ? hCS.paddingTop : '?'}  --sat=${getComputedStyle(document.documentElement).getPropertyValue('--sat') || 'unset'}`,
+    `nav.bottom=${nRect ? Math.round(nRect.bottom) : '?'}  vvp h=${window.visualViewport?.height ?? '?'}`,
+    `main.scrollTop=${main?.scrollTop ?? '?'}  body.top=${Math.round(document.body.getBoundingClientRect().top)}`,
+    `inner h=${window.innerHeight}  vvp offsetTop=${window.visualViewport?.offsetTop ?? '?'}`,
   ]
   dbg.textContent = lines.join('\n')
 }
@@ -95,6 +97,9 @@ function lockSafeAreas(label = 'init') {
 export function SwipeGuard() {
   useEffect(() => {
     lockSafeAreas('mount')
+
+    // Poll every 400ms so values update regardless of what triggered the change
+    const poll = setInterval(() => updateDebug('live'), 400)
 
     let startX = 0, startY = 0, decided = false, blocking = false
 
@@ -149,6 +154,7 @@ export function SwipeGuard() {
     window.addEventListener('popstate', onPopState)
 
     return () => {
+      clearInterval(poll)
       history.pushState = origPushState
       document.removeEventListener('touchstart', onTouchStart)
       document.removeEventListener('touchmove', onTouchMove)
