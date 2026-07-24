@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from './sidebar'
@@ -20,6 +20,11 @@ interface DashboardShellProps {
 export function DashboardShell({ children, clubName, role, userName, features, saActiveClub }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const mainRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0)
+  }, [pathname])
 
   return (
     <div className="flex min-h-screen bg-court-50">
@@ -40,7 +45,7 @@ export function DashboardShell({ children, clubName, role, userName, features, s
       <div className="flex flex-1 flex-col min-w-0">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <InstallBanner />
-        <main className="flex-1 overflow-auto p-4 md:p-8">
+        <main ref={mainRef} className="flex-1 overflow-auto p-4 md:p-8">
           <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 8 }}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useSpring, useTransform } from 'motion/react'
@@ -49,7 +49,14 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
   const supabase = createClient()
+
+  // Reset scroll on every navigation — <main overflow-auto> has its own scroll
+  // context that Next.js doesn't reset (it only resets window.scrollTo).
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0)
+  }, [pathname])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -169,7 +176,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 pb-nav-safe md:p-8 md:pb-8">{children}</main>
+        <main ref={mainRef} className="flex-1 overflow-auto p-4 pb-nav-safe md:p-8 md:pb-8">{children}</main>
         <PushNotificationProvider />
         <InstallBanner />
 

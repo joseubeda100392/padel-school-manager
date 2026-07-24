@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -30,7 +30,12 @@ export function CoachShell({ children, userName, clubName, features }: {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
   const supabase = createClient()
+
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0)
+  }, [pathname])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -123,7 +128,7 @@ export function CoachShell({ children, userName, clubName, features }: {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 pb-nav-safe md:p-8 md:pb-8">{children}</main>
+        <main ref={mainRef} className="flex-1 overflow-auto p-4 pb-nav-safe md:p-8 md:pb-8">{children}</main>
         <PushNotificationProvider />
         <InstallBanner />
 
