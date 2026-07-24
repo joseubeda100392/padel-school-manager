@@ -27,6 +27,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   const { data: threads, error: errThreads } = await threadsQuery
 
   const activeThreadId = searchParams.thread ?? threads?.[0]?.id ?? null
+  const mobileShowChat = !!searchParams.thread
 
   let messages: any[] = []
   let activeThread: any = null
@@ -45,9 +46,9 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   return (
     <div className="flex flex-col gap-2">
       <DevError errors={[errThreads?.message]} />
-    <div className="flex h-[calc(100vh-9rem)] gap-0 overflow-hidden rounded-xl bg-white shadow-sm">
-      {/* Thread list */}
-      <aside className="flex w-72 flex-shrink-0 flex-col border-r border-gray-100">
+    <div className="flex h-[calc(100dvh-9rem)] gap-0 overflow-hidden rounded-xl bg-white shadow-sm">
+      {/* Thread list — full width on mobile when no thread selected, sidebar on md+ */}
+      <aside className={`flex flex-col border-r border-gray-100 flex-shrink-0 ${mobileShowChat ? 'hidden md:flex md:w-72' : 'w-full md:w-72'}`}>
         <div className="border-b border-gray-100 p-4">
           <h1 className="font-semibold text-gray-900">Chat soporte</h1>
           <p className="text-xs text-gray-400">{threads?.length ?? 0} conversaciones</p>
@@ -78,8 +79,16 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
         </div>
       </aside>
 
-      {/* Chat window */}
-      <div className="flex flex-1 flex-col">
+      {/* Chat panel — hidden on mobile until a thread is explicitly selected */}
+      <div className={`flex-col flex-1 min-w-0 ${mobileShowChat ? 'flex' : 'hidden md:flex'}`}>
+        {mobileShowChat && (
+          <a
+            href="/dashboard/chat"
+            className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50 md:hidden"
+          >
+            ← Conversaciones
+          </a>
+        )}
         {activeThread ? (
           <ChatWindow
             thread={activeThread}
