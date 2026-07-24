@@ -4,9 +4,6 @@ import { useEffect } from 'react'
 
 const LAST_ROUTE_KEY = 'sg_last_route'
 
-// Detects dedicated horizontal scroll wrappers (overflow-x-auto divs with tables).
-// Excludes elements with overflow-y: auto/scroll (like <main overflow-auto>)
-// which are vertical scrollers and should not allow horizontal nav gestures.
 function isInsideHScrollContainer(el: Element | null): boolean {
   while (el && el !== document.documentElement) {
     const style = window.getComputedStyle(el)
@@ -26,6 +23,8 @@ export function SwipeGuard() {
   useEffect(() => {
     let startX = 0
     let startY = 0
+    let decided = false
+    let blocking = false
 
     function saveRoute() {
       const path = window.location.pathname
@@ -43,19 +42,29 @@ export function SwipeGuard() {
     function onTouchStart(e: TouchEvent) {
       startX = e.touches[0].clientX
       startY = e.touches[0].clientY
+      decided = false
+      blocking = false
+      // Always block at the edge immediately — no DOM walk, no race with iOS UIKit
       const screenW = document.documentElement.clientWidth
-      const isEdge = startX < 20 || startX > screenW - 20
-      if (isEdge && !isInsideHScrollContainer(e.target as Element)) {
+      if (startX < 30 || startX > screenW - 30) {
         e.preventDefault()
+        decided = true
+        blocking = true
       }
     }
 
     function onTouchMove(e: TouchEvent) {
+      if (decided) {
+        if (blocking) e.preventDefault()
+        return
+      }
       const absDx = Math.abs(e.touches[0].clientX - startX)
       const absDy = Math.abs(e.touches[0].clientY - startY)
-      if (absDx > absDy && absDx > 5 && !isInsideHScrollContainer(e.target as Element)) {
-        e.preventDefault()
-      }
+      if (absDx < 5 && absDy < 5) return
+      // Decide once: horizontal swipe outside a scroll container → block
+      decided = true
+      blocking = absDx > absDy && !isInsideHScrollContainer(e.target as Element)
+      if (blocking) e.preventDefault()
     }
 
     function onPopState() {
