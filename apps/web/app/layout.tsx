@@ -1,8 +1,14 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Sora, DM_Sans } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { SwipeGuard } from '@/components/swipe-guard'
 import './globals.css'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+}
 
 const sora = Sora({
   subsets: ['latin'],

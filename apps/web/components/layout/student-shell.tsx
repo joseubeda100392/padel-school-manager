@@ -79,7 +79,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
         'md:static md:translate-x-0 md:z-auto',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
-        <div className="flex items-center gap-3 border-b border-court-700 px-4 py-[18px]">
+        <div className="flex items-center gap-3 border-b border-court-700 px-4 pb-[18px]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 18px)' }}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-blue-500">
             <span className="text-sm font-bold text-white">{initials}</span>
           </div>
@@ -140,38 +140,41 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
       </aside>
 
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex h-14 items-center justify-between border-b border-gray-100 bg-white px-4 shadow-sm md:hidden">
-          <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100">
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-blue-500">
-              <span className="text-xs font-bold text-white">P</span>
+        <header className="border-b border-gray-100 bg-white shadow-sm pt-safe md:hidden">
+          <div className="flex h-14 items-center justify-between px-4">
+            <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100">
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-blue-500">
+                <span className="text-xs font-bold text-white">P</span>
+              </div>
+              <span className="text-sm font-semibold text-gray-900">{clubName ?? 'ePadel School'}</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{clubName ?? 'ePadel School'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/student/notifications" className="relative rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {unreadCount > 9 ? '9+' : unreadCount}
+            <div className="flex items-center gap-2">
+              <Link href="/student/notifications" className="relative rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+              {showBag && bagBalance !== undefined && (
+                <span className="rounded-full bg-brand-500 px-2.5 py-0.5 text-xs font-semibold text-white">
+                  {bagBalance} clase{bagBalance !== 1 ? 's' : ''}
                 </span>
               )}
-            </Link>
-            {showBag && bagBalance !== undefined && (
-              <span className="rounded-full bg-brand-500 px-2.5 py-0.5 text-xs font-semibold text-white">
-                {bagBalance} clase{bagBalance !== 1 ? 's' : ''}
-              </span>
-            )}
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 pb-24 md:p-8 md:pb-8">{children}</main>
+        <main className="flex-1 overflow-auto p-4 pb-nav-safe md:p-8 md:pb-8">{children}</main>
         <PushNotificationProvider />
         <InstallBanner />
 
-        <nav className="fixed bottom-0 left-0 right-0 z-10 flex border-t border-gray-100 bg-white shadow-[0_-1px_4px_rgba(0,0,0,0.06)] md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-100 bg-white shadow-[0_-1px_4px_rgba(0,0,0,0.06)] md:hidden">
+          <div className="flex pb-safe">
           {navItems.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href)
             return (
@@ -185,6 +188,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
               </Link>
             )
           })}
+          </div>
         </nav>
       </div>
     </div>
