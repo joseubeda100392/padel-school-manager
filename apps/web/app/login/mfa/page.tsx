@@ -16,7 +16,7 @@ export default function MfaPage() {
     supabase.auth.mfa.listFactors().then(({ data }) => {
       const verified = (data?.totp ?? []).filter(f => f.status === 'verified')
       if (verified.length > 0) setFactorId(verified[0].id)
-      else window.location.href = '/login/mfa/enroll'
+      else window.location.replace = '/login/mfa/enroll'
     })
     inputRef.current?.focus()
   }, [])
@@ -47,7 +47,7 @@ export default function MfaPage() {
       return
     }
 
-    window.location.href = '/dashboard'
+    window.location.replace = '/dashboard'
   }
 
   async function handleRecovery(e: React.FormEvent) {
@@ -68,7 +68,7 @@ export default function MfaPage() {
       return
     }
 
-    window.location.href = '/login/mfa/enroll'
+    window.location.replace = '/login/mfa/enroll'
   }
 
   return (

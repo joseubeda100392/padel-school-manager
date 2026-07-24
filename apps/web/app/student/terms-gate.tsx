@@ -18,7 +18,7 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
     setLoggingOut(true)
     const supabase = createClient()
     await supabase.auth.signOut()
-    window.location.href = '/login'
+    window.location.replace('/login')
   }
 
   async function handleAccept() {
@@ -33,7 +33,7 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
         setError(`Error ${res.status}: ${body?.error ?? JSON.stringify(body)}`)
         return
       }
-      window.location.href = '/student'
+      window.location.replace('/student')
     } catch (e: unknown) {
       setLoading(false)
       setError(`Excepción: ${e instanceof Error ? e.message : String(e)}`)

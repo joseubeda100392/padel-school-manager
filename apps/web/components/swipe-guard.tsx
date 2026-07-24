@@ -24,12 +24,22 @@ export function SwipeGuard() {
       }
     }
 
+    // Fallback: if a back/forward swipe lands on /login despite gesture prevention,
+    // push forward immediately so the user stays in the app
+    function onPopState() {
+      if (window.location.pathname.startsWith('/login')) {
+        window.history.go(1)
+      }
+    }
+
     document.addEventListener('touchstart', onTouchStart, { passive: true })
     document.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('popstate', onPopState)
 
     return () => {
       document.removeEventListener('touchstart', onTouchStart)
       document.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('popstate', onPopState)
     }
   }, [])
 
