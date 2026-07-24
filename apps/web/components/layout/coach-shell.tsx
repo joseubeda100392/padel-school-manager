@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, BookOpen, MessageCircle, LogOut, Menu, X } from 'lucide-react'
+import { Home, Calendar, BookOpen, MessageCircle, LogOut, Menu, X, Receipt, ScrollText } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
@@ -15,6 +15,8 @@ const allNavItems = [
   { href: '/coach', label: 'Inicio', icon: Home, exact: true, feature: null },
   { href: '/coach/classes', label: 'Mis Clases', icon: Calendar, exact: false, feature: null },
   { href: '/coach/materials', label: 'Material', icon: BookOpen, exact: false, feature: 'enable_materials' },
+  { href: '/coach/tarifas', label: 'Tarifas', icon: Receipt, exact: false, feature: null },
+  { href: '/coach/normas', label: 'Normas', icon: ScrollText, exact: false, feature: null },
   { href: '/coach/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
 ]
 

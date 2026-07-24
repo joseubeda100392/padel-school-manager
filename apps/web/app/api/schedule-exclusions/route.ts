@@ -79,29 +79,55 @@ export async function POST(req: NextRequest) {
   }
 
   let newBagBalance: number | null = null
+  let recoveryCapReached = false
   if (enrollment?.student_id && enrollment?.schedule_id) {
-    const { data: sched } = await admin.from('schedules').select('start_time, end_time').eq('id', enrollment.schedule_id).single()
+    const { data: sched } = await admin.from('schedules').select('start_time, end_time, club_id').eq('id', enrollment.schedule_id).single()
     const durationMin = sched ? Math.round((new Date(sched.end_time).getTime() - new Date(sched.start_time).getTime()) / 60000) : 60
     const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
 
-    const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', enrollment.student_id).single()
+    const clubId = (sched as any)?.club_id ?? null
+    let maxRecovery = 0
+    if (clubId) {
+      try {
+        const { data: clubCfg } = await admin.from('clubs').select('config').eq('id', clubId).single()
+        maxRecovery = (clubCfg as any)?.config?.max_recovery_classes ?? 0
+      } catch { /* sin límite */ }
+    }
+
+    const { data: bag } = await admin.from('class_bag')
+      .select('id, balance_60, balance_90, recovery_balance_60, recovery_balance_90')
+      .eq('user_id', enrollment.student_id).single()
+
     if (bag) {
-      const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
-      const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
-      newBagBalance = newBal60 + newBal90
-      await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
-      await admin.from('bag_transactions').insert({
-        user_id: enrollment.student_id,
-        class_bag_id: bag.id,
-        delta: 1,
-        type: 'credit',
-        reason: `Falta registrada ${excluded_date}`,
-        class_duration: durationType,
-      })
+      const totalRecovery = (bag.recovery_balance_60 ?? 0) + (bag.recovery_balance_90 ?? 0)
+      if (maxRecovery > 0 && totalRecovery >= maxRecovery) {
+        recoveryCapReached = true
+      } else {
+        const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
+        const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
+        const newRec60 = durationType === '60' ? (bag.recovery_balance_60 ?? 0) + 1 : (bag.recovery_balance_60 ?? 0)
+        const newRec90 = durationType === '90' ? (bag.recovery_balance_90 ?? 0) + 1 : (bag.recovery_balance_90 ?? 0)
+        newBagBalance = newBal60 + newBal90
+        await admin.from('class_bag').update({
+          balance_60: newBal60,
+          balance_90: newBal90,
+          recovery_balance_60: newRec60,
+          recovery_balance_90: newRec90,
+          updated_at: new Date().toISOString(),
+        }).eq('id', bag.id)
+        await admin.from('bag_transactions').insert({
+          user_id: enrollment.student_id,
+          class_bag_id: bag.id,
+          delta: 1,
+          type: 'credit',
+          reason: `Falta registrada ${excluded_date}`,
+          class_duration: durationType,
+        })
+      }
     }
   }
 
-  return NextResponse.json({ data, newBagBalance })
+  return NextResponse.json({ data, newBagBalance, recoveryCapReached })
 }
 
 export async function PATCH(req: NextRequest) {

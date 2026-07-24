@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       title: string
       body: string
       url?: string
-      target: 'all' | 'level' | 'payment_pending'
+      target: 'all' | 'level' | 'payment_pending' | 'bag_pending'
       levelId?: string
     } = await req.json()
 
@@ -78,13 +78,25 @@ export async function POST(req: NextRequest) {
         ...((withOld ?? []).map((e: any) => e.student_id)),
       ]
       userIds = [...new Set(allIds)]
+
+    } else if (target === 'bag_pending') {
+      let q = admin
+        .from('class_bag')
+        .select('user_id')
+        .or('balance_60.gt.0,balance_90.gt.0')
+
+      if (clubId) q = q.eq('club_id', clubId)
+      const { data } = await q
+      userIds = (data ?? []).map((b: any) => b.user_id)
     }
 
     if (!userIds.length) {
       return NextResponse.json({ ok: true, sent: 0, message: 'No hay destinatarios' })
     }
 
-    const notifType = target === 'payment_pending' ? 'payment_reminder' : 'admin_message'
+    const notifType = target === 'payment_pending' ? 'payment_reminder'
+      : target === 'bag_pending' ? 'bag_reminder'
+      : 'admin_message'
     await sendPushToUsers(userIds, { title, body, url: url || '/student' }, notifType)
 
     return NextResponse.json({ ok: true, sent: userIds.length })

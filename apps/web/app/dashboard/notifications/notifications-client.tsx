@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-type Target = 'all' | 'level' | 'payment_pending'
+type Target = 'all' | 'level' | 'payment_pending' | 'bag_pending'
 
 export function NotificationsClient({ enablePayments }: { enablePayments: boolean }) {
   const defaultTarget: Target = 'all'
@@ -20,14 +20,18 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
     })
   }, [])
 
+  const isAutoTarget = target === 'payment_pending' || target === 'bag_pending'
+
   async function handleSend() {
-    if (target !== 'payment_pending' && (!title.trim() || !body.trim())) return
+    if (!isAutoTarget && (!title.trim() || !body.trim())) return
     setSending(true)
     setResult(null)
 
     const payload =
       target === 'payment_pending'
         ? { title: '💳 Cuota pendiente de pago', body: 'Tienes una cuota mensual sin pagar. Entra en la app para regularizarla.', target, url: '/student/schedule' }
+        : target === 'bag_pending'
+        ? { title: '🎾 Tienes clases disponibles', body: 'Tienes clases en tu bolsa sin usar. ¡Apúntate a tu próxima clase!', target, url: '/student/schedule' }
         : { title: title.trim(), body: body.trim(), target, levelId: levelId || undefined, url: '/student' }
 
     try {
@@ -39,7 +43,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
       let json: any = {}
       try { json = await res.json() } catch { /* respuesta no-JSON */ }
       setResult(res.ok ? { ok: true, sent: json.sent ?? 0 } : { ok: false, error: json.error ?? `Error ${res.status}` })
-      if (res.ok && target !== 'payment_pending') {
+      if (res.ok && !isAutoTarget) {
         setTitle('')
         setBody('')
       }
@@ -54,6 +58,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
     { value: 'all' as Target, label: 'Todos los alumnos' },
     { value: 'level' as Target, label: 'Por nivel' },
     ...(enablePayments ? [{ value: 'payment_pending' as Target, label: 'Cuota pendiente' }] : []),
+    { value: 'bag_pending' as Target, label: 'Clases en bolsa' },
   ]
 
   return (
@@ -63,25 +68,43 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
         <p className="text-sm text-gray-500">Envía mensajes a los alumnos que hayan activado las notificaciones</p>
       </div>
 
-      {/* Acción rápida: recordatorio de pago */}
-      {enablePayments && (
-        <div className="rounded-xl bg-orange-50 border border-orange-200 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* Acciones rápidas */}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        {enablePayments && (
+          <div className="flex-1 rounded-xl bg-orange-50 border border-orange-200 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-orange-800">Recordatorio de cuota</p>
+                <p className="mt-0.5 text-xs text-orange-700">
+                  Alumnos con cuota mensual sin pagar.
+                </p>
+              </div>
+              <button
+                onClick={() => { setTarget('payment_pending'); setTitle(''); setBody('') }}
+                className="shrink-0 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600"
+              >
+                Seleccionar
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="flex-1 rounded-xl bg-teal-50 border border-teal-200 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="font-semibold text-orange-800">Recordatorio de cuota</p>
-              <p className="mt-1 text-sm text-orange-700">
-                Envía un push a todos los alumnos con cuota mensual sin pagar.
+              <p className="font-semibold text-teal-800">Clases en bolsa</p>
+              <p className="mt-0.5 text-xs text-teal-700">
+                Alumnos con clases disponibles sin usar.
               </p>
             </div>
             <button
-              onClick={() => { setTarget('payment_pending'); setTitle(''); setBody('') }}
-              className="shrink-0 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-60"
+              onClick={() => { setTarget('bag_pending'); setTitle(''); setBody('') }}
+              className="shrink-0 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
             >
               Seleccionar
             </button>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Formulario */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -130,6 +153,12 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
               <p className="mt-1">💳 Cuota pendiente de pago</p>
               <p className="text-xs text-gray-500">Tienes una cuota mensual sin pagar. Entra en la app para regularizarla.</p>
             </div>
+          ) : target === 'bag_pending' ? (
+            <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              <p className="font-medium">Mensaje automático:</p>
+              <p className="mt-1">🎾 Tienes clases disponibles</p>
+              <p className="text-xs text-gray-500">Tienes clases en tu bolsa sin usar. ¡Apúntate a tu próxima clase!</p>
+            </div>
           ) : (
             <>
               <div>
@@ -168,7 +197,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
 
           <button
             onClick={handleSend}
-            disabled={sending || (target !== 'payment_pending' && (!title.trim() || !body.trim())) || (target === 'level' && !levelId)}
+            disabled={sending || (!isAutoTarget && (!title.trim() || !body.trim())) || (target === 'level' && !levelId)}
             className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
             {sending ? 'Enviando...' : '🔔 Enviar notificación'}

@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useSpring, useTransform } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame } from 'lucide-react'
+import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, ScrollText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
+import { InstallBanner } from '@/components/install-banner'
 import type { ClubFeatures } from '@/lib/get-club-features'
 
 function AnimatedNumber({ target }: { target: number }) {
@@ -31,6 +32,8 @@ const allNavItems = [
   { href: '/student/tournaments', label: 'Torneos', icon: Medal, exact: false, feature: 'enable_tournaments' },
   { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false, feature: 'enable_bag' },
   { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false, feature: 'enable_materials' },
+  { href: '/student/tarifas', label: 'Tarifas', icon: Receipt, exact: false, feature: null },
+  { href: '/student/normas', label: 'Normas', icon: ScrollText, exact: false, feature: null },
   { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false, feature: null },
   { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
 ]
@@ -166,6 +169,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
 
         <main className="flex-1 overflow-auto p-4 pb-24 md:p-8 md:pb-8">{children}</main>
         <PushNotificationProvider />
+        <InstallBanner />
 
         <nav className="fixed bottom-0 left-0 right-0 z-10 flex border-t border-gray-100 bg-white shadow-[0_-1px_4px_rgba(0,0,0,0.06)] md:hidden">
           {navItems.map(({ href, label, icon: Icon, exact }) => {

@@ -18,6 +18,8 @@ import {
   X,
   LogOut,
   Zap,
+  Receipt,
+  ScrollText,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -34,6 +36,8 @@ const baseNavItems = [
   { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard, feature: 'enable_payments' },
   { href: '/dashboard/chat', label: 'Chat Soporte', icon: MessageSquare, feature: 'enable_chat' },
   { href: '/dashboard/materials', label: 'Materiales', icon: BookOpen, feature: 'enable_materials' },
+  { href: '/dashboard/tarifas', label: 'Tarifas', icon: Receipt, feature: null },
+  { href: '/dashboard/normas', label: 'Normas', icon: ScrollText, feature: null },
   { href: '/dashboard/notifications', label: 'Notificaciones', icon: Bell, feature: null },
   { href: '/dashboard/settings', label: 'Configuración', icon: Settings, feature: null },
 ]

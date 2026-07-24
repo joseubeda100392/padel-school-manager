@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 
 interface Exclusion {
@@ -58,6 +59,9 @@ export default function ScheduleExclusions({ scheduleId, enrollments }: { schedu
     setForm({ enrollmentId: '', date: '', reason: '' })
     setOpen(false)
     load()
+    if (json.recoveryCapReached) {
+      toast.warning('Falta registrada. Límite de recuperaciones alcanzado — no se añade clase a la bolsa.')
+    }
   }
 
   async function handleDelete(id: string) {

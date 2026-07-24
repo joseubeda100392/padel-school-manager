@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   description: 'Panel de gestión para escuelas de pádel',
   robots: { index: false, follow: false },
   verification: { google: 'd855c92217cfc88d' },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ePadel School',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

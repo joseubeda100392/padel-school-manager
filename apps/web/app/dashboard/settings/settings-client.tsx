@@ -14,6 +14,7 @@ interface AppConfig {
   classes_per_pack_90: number
   school_name: string
   cancellation_hours: number
+  max_recovery_classes: number
 }
 
 const defaults: AppConfig = {
@@ -25,6 +26,7 @@ const defaults: AppConfig = {
   classes_per_pack_90: 10,
   school_name: 'Mi Escuela de Pádel',
   cancellation_hours: 24,
+  max_recovery_classes: 0,
 }
 
 export function SettingsClient({ clubId, userId }: { clubId: string | null; userId: string }) {
