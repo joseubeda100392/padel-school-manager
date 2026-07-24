@@ -22,6 +22,13 @@ export function InstallBanner() {
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent)
     setIsIos(ios)
 
+    const isMobile =
+      ios ||
+      /android/i.test(navigator.userAgent) ||
+      (navigator as any).userAgentData?.mobile === true
+
+    if (!isMobile) return
+
     if (ios) {
       setShow(true)
       return
