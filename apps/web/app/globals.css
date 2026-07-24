@@ -9,6 +9,5 @@
 
   html, body {
     overscroll-behavior-x: none;
-    touch-action: pan-y;
   }
 }
