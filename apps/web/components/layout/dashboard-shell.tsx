@@ -26,15 +26,18 @@ export function DashboardShell({ children, clubName, role, userName, features, s
     mainRef.current?.scrollTo(0, 0)
   }, [pathname])
 
+  useEffect(() => {
+    document.body.classList.toggle('overflow-hidden', sidebarOpen)
+    return () => document.body.classList.remove('overflow-hidden')
+  }, [sidebarOpen])
+
   return (
     <div className="flex min-h-dvh bg-court-50">
-      {/* Overlay móvil */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-20 bg-black/40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Overlay móvil — siempre en DOM para evitar flash de un frame */}
+      <div
+        className={`fixed inset-0 z-20 bg-black/40 md:hidden transition-opacity duration-200 ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setSidebarOpen(false)}
+      />
 
       {/* Sidebar */}
       <div className={`fixed top-0 left-0 z-30 h-dvh transition-transform duration-200 md:static md:h-auto md:translate-x-0 md:z-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>

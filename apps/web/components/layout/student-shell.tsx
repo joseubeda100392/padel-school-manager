@@ -58,6 +58,11 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
     mainRef.current?.scrollTo(0, 0)
   }, [pathname])
 
+  useEffect(() => {
+    document.body.classList.toggle('overflow-hidden', sidebarOpen)
+    return () => document.body.classList.remove('overflow-hidden')
+  }, [sidebarOpen])
+
   async function handleLogout() {
     await supabase.auth.signOut()
     window.location.replace('/login')
@@ -77,9 +82,10 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
 
   return (
     <div className="flex min-h-dvh bg-court-50">
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
+      <div
+        className={`fixed inset-0 z-20 bg-black/50 md:hidden transition-opacity duration-200 ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setSidebarOpen(false)}
+      />
 
       <aside className={cn(
         'fixed top-0 left-0 z-30 flex w-56 flex-col h-dvh bg-court-900 transition-transform duration-200',
