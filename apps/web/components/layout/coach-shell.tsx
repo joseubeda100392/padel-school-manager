@@ -58,7 +58,7 @@ export function CoachShell({ children, userName, clubName, features }: {
         'md:static md:translate-x-0 md:z-auto',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
-        <div className="flex items-center gap-3 border-b border-court-700 px-4 pb-[18px]" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 18px)' }}>
+        <div className="flex items-center gap-3 border-b border-court-700 px-4 pb-[18px]" style={{ paddingTop: 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 18px)' }}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600">
             <span className="text-sm font-bold text-white">{initials}</span>
           </div>
@@ -108,7 +108,7 @@ export function CoachShell({ children, userName, clubName, features }: {
       </aside>
 
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="border-b border-gray-100 bg-white shadow-sm md:hidden">
+        <header className="border-b border-gray-100 bg-white shadow-sm pt-safe md:hidden">
           <div className="flex h-14 items-center justify-between px-4">
             <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100">
               <Menu className="h-5 w-5" />

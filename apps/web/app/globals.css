@@ -11,23 +11,21 @@
     overscroll-behavior-x: none;
   }
 
-  /* Safe area top applied at body level — never touched by React, stable across navigations.
-     White background fills the notch/Dynamic Island zone matching the app headers. */
   body {
-    padding-top: env(safe-area-inset-top, 0px);
     background-color: white;
   }
 }
 
 @layer utilities {
+  /* --sat / --sab are set once by SwipeGuard (JS) and never change across navigations.
+     env() fallback handles the brief window before SwipeGuard mounts. */
   .pt-safe {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: var(--sat, env(safe-area-inset-top, 0px));
   }
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px));
   }
-  /* Bottom padding for main content: nav height + safe area, overridden by md:pb-8 on desktop */
   .pb-nav-safe {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(6rem + var(--sab, env(safe-area-inset-bottom, 0px)));
   }
 }

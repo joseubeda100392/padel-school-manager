@@ -25,6 +25,20 @@ function isInsideHScrollContainer(el: Element | null): boolean {
 
 export function SwipeGuard() {
   useEffect(() => {
+    // Measure safe area insets via JS and lock them as CSS custom properties.
+    // env(safe-area-inset-*) can re-evaluate to 0 during Next.js client navigations
+    // even with a static viewport meta tag. CSS variables set on documentElement
+    // are owned by JS and never touched by the framework — they persist forever.
+    const probe = document.createElement('div')
+    probe.style.cssText =
+      'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
+      'padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)'
+    document.documentElement.appendChild(probe)
+    const pc = getComputedStyle(probe)
+    document.documentElement.style.setProperty('--sat', pc.paddingTop || '0px')
+    document.documentElement.style.setProperty('--sab', pc.paddingBottom || '0px')
+    document.documentElement.removeChild(probe)
+
     let startX = 0
     let startY = 0
     let decided = false
