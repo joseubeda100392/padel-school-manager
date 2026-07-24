@@ -70,10 +70,12 @@ export function InstallBanner() {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">Instala la app</p>
           {isIos ? (
-            <p className="mt-0.5 text-xs text-court-300">
-              Pulsa <strong className="text-court-200">Compartir</strong> y luego{' '}
-              <strong className="text-court-200">Añadir a inicio</strong> en Safari.
-            </p>
+            <ol className="mt-1.5 space-y-1 text-xs text-court-300">
+              <li>1. Pulsa <strong className="text-court-200">···</strong> o el icono <strong className="text-court-200">□↑</strong> de Safari</li>
+              <li>2. Toca <strong className="text-court-200">Compartir</strong></li>
+              <li>3. Si no ves la opción, pulsa <strong className="text-court-200">Ver más</strong></li>
+              <li>4. Toca <strong className="text-court-200">Añadir a pantalla de inicio</strong></li>
+            </ol>
           ) : (
             <p className="mt-0.5 text-xs text-court-300">
               Accede más rápido desde la pantalla de inicio.
