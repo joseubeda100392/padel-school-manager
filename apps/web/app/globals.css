@@ -10,6 +10,13 @@
   html, body {
     overscroll-behavior-x: none;
   }
+
+  /* Safe area top applied at body level — never touched by React, stable across navigations.
+     White background fills the notch/Dynamic Island zone matching the app headers. */
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+    background-color: white;
+  }
 }
 
 @layer utilities {

@@ -108,7 +108,7 @@ export function CoachShell({ children, userName, clubName, features }: {
       </aside>
 
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="border-b border-gray-100 bg-white shadow-sm pt-safe md:hidden">
+        <header className="border-b border-gray-100 bg-white shadow-sm md:hidden">
           <div className="flex h-14 items-center justify-between px-4">
             <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100">
               <Menu className="h-5 w-5" />
