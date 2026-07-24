@@ -53,14 +53,14 @@ export function CoachShell({ children, userName, clubName, features }: {
   })
 
   return (
-    <div className="flex min-h-screen bg-court-50">
+    <div className="flex min-h-dvh bg-court-50">
       {sidebarOpen && (
         <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       <aside className={cn(
-        'fixed inset-y-0 left-0 z-30 flex w-56 flex-col bg-court-900 transition-transform duration-200',
-        'md:static md:translate-x-0 md:z-auto',
+        'fixed top-0 left-0 z-30 flex w-56 flex-col h-dvh bg-court-900 transition-transform duration-200',
+        'md:static md:h-auto md:translate-x-0 md:z-auto',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
         <div className="flex items-center gap-3 border-b border-court-700 px-4 pb-[18px]" style={{ paddingTop: 'calc(var(--sat, env(safe-area-inset-top, 0px)) + 18px)' }}>
