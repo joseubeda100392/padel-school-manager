@@ -8,46 +8,40 @@ export function SwipeGuard() {
   useEffect(() => {
     let startX = 0
     let startY = 0
-    let gestureDecided = false
-    let blockGesture = false
 
     function saveRoute() {
       const path = window.location.pathname
       if (!path.startsWith('/login')) {
-        // localStorage persists across PWA sessions (unlike sessionStorage)
         try { localStorage.setItem(LAST_ROUTE_KEY, path) } catch {}
       }
     }
 
-    // Track route on Next.js client navigation
     const origPushState = history.pushState.bind(history)
     history.pushState = (...args: Parameters<typeof history.pushState>) => {
       origPushState(...args)
       saveRoute()
     }
 
-    // passive: false on BOTH listeners — required for preventDefault to work on iOS
     function onTouchStart(e: TouchEvent) {
       startX = e.touches[0].clientX
       startY = e.touches[0].clientY
-      gestureDecided = false
-      blockGesture = false
+      // Call preventDefault HERE in touchstart so iOS UIKit never activates
+      // its edge pan gesture recognizer — this is the only reliable way
+      const screenW = document.documentElement.clientWidth
+      if (startX < 20 || startX > screenW - 20) {
+        e.preventDefault()
+      }
     }
 
     function onTouchMove(e: TouchEvent) {
-      if (gestureDecided) {
-        if (blockGesture) e.preventDefault()
-        return
-      }
       const absDx = Math.abs(e.touches[0].clientX - startX)
       const absDy = Math.abs(e.touches[0].clientY - startY)
-      if (absDx < 5 && absDy < 5) return // not enough movement yet
-      gestureDecided = true
-      blockGesture = absDx > absDy // horizontal → block
-      if (blockGesture) e.preventDefault()
+      if (absDx > absDy && absDx > 5) {
+        e.preventDefault()
+      }
     }
 
-    // Fallback: if navigation still reaches /login, redirect back
+    // Last resort: if iOS gesture still navigates to /login, redirect back
     function onPopState() {
       if (window.location.pathname.startsWith('/login')) {
         try {
