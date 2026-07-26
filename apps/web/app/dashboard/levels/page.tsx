@@ -1,22 +1,22 @@
 ﻿export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { LevelCard } from '@/components/levels/level-card'
 import { DevError } from '@/components/dev-error'
 
 export default async function LevelsPage() {
-  const supabase = createClient()
+  const admin = getAdminClient()
   const clubId = await getClubId()
 
   const buildQuery = (query: any) => clubId ? query.eq('club_id', clubId) : query
 
   const { data: levels, error: errLevels } = await buildQuery(
-    supabase.from('levels').select('*')
+    admin.from('levels').select('*')
   ).order('order', { ascending: true })
 
   const { data: counts } = await buildQuery(
-    supabase
+    admin
       .from('users')
       .select('current_level_id')
       .eq('role', 'student')

@@ -21,10 +21,11 @@ const planBadge: Record<string, string> = {
 export default async function ClubsPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (user?.user_metadata?.role !== 'super_admin') redirect('/dashboard')
+  if (!user) redirect('/login')
 
   const admin = getAdminClient()
+  const { data: dbUser } = await admin.from('users').select('role').eq('id', user.id).single()
+  if (dbUser?.role !== 'super_admin') redirect('/dashboard')
 
   const [{ data: clubs }, { data: userCounts }] = await Promise.all([
     admin.from('clubs').select('id, name, slug, plan, is_active, created_at').order('created_at', { ascending: false }),

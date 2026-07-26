@@ -20,7 +20,7 @@ export default async function CoachMaterialsPage() {
   const features = await getClubFeatures(profile?.club_id)
   if (!features.enable_materials) redirect('/coach')
 
-  const query = supabase
+  const query = getAdminClient()
     .from('materials')
     .select('*, material_levels(level:levels(name, color))')
     .eq('is_published', true)

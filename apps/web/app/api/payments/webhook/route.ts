@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     .eq('redsys_order_id', order)
     .single()
 
-  if (!payment) return NextResponse.json({ error: 'Pago no encontrado' }, { status: 404 })
+  if (!payment) return NextResponse.json({ error: 'Solicitud inválida' }, { status: 400 })
 
   // Resolver la clave secreta del club (fallback a env var global)
   let secretKey = process.env.REDSYS_SECRET_KEY ?? ''
