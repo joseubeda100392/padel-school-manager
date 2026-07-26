@@ -89,12 +89,12 @@ export default function OGImage() {
             style={{
               display: 'flex',
               alignItems: 'center',
+              alignSelf: 'flex-start',
               background: 'rgba(5,220,168,0.12)',
               border: '1px solid rgba(5,220,168,0.3)',
               borderRadius: 999,
               padding: '8px 20px',
               marginBottom: 32,
-              width: 'fit-content',
             }}
           >
             <span style={{ color: '#05dca8', fontSize: 18, fontWeight: 600, letterSpacing: 1 }}>

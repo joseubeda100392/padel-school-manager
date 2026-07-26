@@ -23,6 +23,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://epadelschool.app'),
   title: 'ePadel School — Panel Admin',
   description: 'La plataforma digital para gestionar tu escuela de pádel. Clases, alumnos, reservas y pagos en un solo lugar.',
   robots: { index: false, follow: false },
