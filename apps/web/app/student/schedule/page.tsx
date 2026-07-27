@@ -72,6 +72,31 @@ export default async function StudentSchedulePage() {
   const { data: userRow } = await getAdminClient().from('users').select('club_id').eq('id', user.id).single()
   const clubId = (userRow as any)?.club_id ?? null
 
+  // Map enrollmentId → scheduleId to check if published spots are taken
+  const enrollmentToScheduleId: Record<string, string> = {}
+  for (const e of enrollments ?? []) {
+    const s = e.schedule as any
+    if (s?.id) enrollmentToScheduleId[e.id] = s.id
+  }
+
+  const publishedExcls = (exclusionsRaw ?? []).filter(x => x.publish_spot)
+  const takenKey = (scheduleId: string, date: string) => `${scheduleId}::${date}`
+  const takenSpotKeys = new Set<string>()
+
+  if (publishedExcls.length > 0) {
+    const scheduleIds = [...new Set(publishedExcls.map(x => enrollmentToScheduleId[x.group_enrollment_id]).filter(Boolean))]
+    const dates = [...new Set(publishedExcls.map(x => x.excluded_date))]
+    const { data: takenBookings } = await getAdminClient()
+      .from('bookings')
+      .select('schedule_id, class_date')
+      .in('schedule_id', scheduleIds)
+      .in('class_date', dates)
+      .neq('status', 'cancelled')
+    for (const b of takenBookings ?? []) {
+      takenSpotKeys.add(takenKey(b.schedule_id, b.class_date))
+    }
+  }
+
   const [{ data: clubRow }, { data: spotBookings }] = await Promise.all([
     clubId
       ? getAdminClient().from('clubs').select('config').eq('id', clubId).single()
@@ -99,9 +124,15 @@ export default async function StudentSchedulePage() {
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
     const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours)
+    const scheduleId = enrollmentToScheduleId[e.id]
     const myExclusions = (exclusionsRaw ?? [])
       .filter(x => x.group_enrollment_id === e.id)
-      .map(x => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))
+      .map(x => ({
+        id: x.id,
+        excluded_date: x.excluded_date,
+        publish_spot: x.publish_spot,
+        spotTaken: scheduleId ? takenSpotKeys.has(takenKey(scheduleId, x.excluded_date)) : false,
+      }))
 
     return {
       enrollmentId: e.id,
@@ -127,7 +158,7 @@ export default async function StudentSchedulePage() {
         channelName={`student-schedule-${user.id}`}
         subs={[
           { table: 'schedule_exclusions' },
-          { table: 'bookings', filter: `student_id=eq.${user.id}` },
+          { table: 'bookings' },
           { table: 'group_enrollments', filter: `student_id=eq.${user.id}` },
         ]}
       />

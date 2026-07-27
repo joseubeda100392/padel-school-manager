@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
@@ -25,7 +25,7 @@ interface ScheduleItem {
     courtName: string
     level: { name: string; color: string } | null
   }
-  exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
+  exclusions: { id: string; excluded_date: string; publish_spot: boolean; spotTaken?: boolean }[]
 }
 
 export function StudentScheduleClient({ item, cancellationHours, enablePayments = true }: { item: ScheduleItem; cancellationHours: number; enablePayments?: boolean }) {
@@ -36,6 +36,13 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
   const [error, setError] = useState('')
   const [canceling, setCanceling] = useState<string | null>(null)
   const [cancelError, setCancelError] = useState('')
+  const [spotTakenIds, setSpotTakenIds] = useState(
+    () => new Set(item.exclusions.filter(x => x.spotTaken).map(x => x.id))
+  )
+
+  useEffect(() => {
+    setSpotTakenIds(new Set(item.exclusions.filter(x => x.spotTaken).map(x => x.id)))
+  }, [item.exclusions])
 
   async function handleRegistrar(occ: Occurrence) {
     if (!occ.canRegister) return
@@ -175,7 +182,7 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
                 <span key={x.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600">
                   {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                   {x.publish_spot && <span className="text-brand-500">● Plaza libre</span>}
-                  {isFuture && (
+                  {isFuture && !spotTakenIds.has(x.id) && (
                     <button
                       onClick={() => handleCancelarFalta(x.id)}
                       disabled={canceling === x.id}
