@@ -34,6 +34,8 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
   const [showPicker, setShowPicker] = useState(false)
   const [registering, setRegistering] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [canceling, setCanceling] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState('')
 
   async function handleRegistrar(occ: Occurrence) {
     if (!occ.canRegister) return
@@ -56,6 +58,26 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
     setRegistering(null)
   }
 
+  async function handleCancelarFalta(exclusionId: string) {
+    if (!confirm('¿Cancelar esta falta? Se descontará 1 clase de tu bolsa.')) return
+    setCanceling(exclusionId)
+    setCancelError('')
+    const res = await fetch('/api/schedule-exclusions/student', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exclusionId }),
+    })
+    const json = await res.json()
+    if (res.ok) {
+      setExclusions(prev => prev.filter(x => x.id !== exclusionId))
+      router.refresh()
+    } else {
+      setCancelError(json.error ?? 'Error al cancelar la falta')
+    }
+    setCanceling(null)
+  }
+
+  const todayStr = new Date().toISOString().split('T')[0]
   const registeredDates = new Set(exclusions.map(x => x.excluded_date))
   const hasAnyAvailable = item.upcomingOccurrences.some(o => o.canRegister && !registeredDates.has(o.dateStr))
 
@@ -147,13 +169,27 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
         <div className="border-t border-gray-100 px-5 py-3">
           <p className="mb-2 text-xs font-medium text-gray-500">Faltas registradas (próximas)</p>
           <div className="flex flex-wrap gap-2">
-            {exclusions.map(x => (
-              <span key={x.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600">
-                {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                {x.publish_spot && <span className="text-brand-500">● Plaza libre</span>}
-              </span>
-            ))}
+            {exclusions.map(x => {
+              const isFuture = x.excluded_date >= todayStr
+              return (
+                <span key={x.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600">
+                  {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                  {x.publish_spot && <span className="text-brand-500">● Plaza libre</span>}
+                  {isFuture && (
+                    <button
+                      onClick={() => handleCancelarFalta(x.id)}
+                      disabled={canceling === x.id}
+                      title="Cancelar falta"
+                      className="ml-0.5 text-gray-400 hover:text-red-500 disabled:opacity-40"
+                    >
+                      {canceling === x.id ? '…' : '×'}
+                    </button>
+                  )}
+                </span>
+              )
+            })}
           </div>
+          {cancelError && <p className="mt-2 text-xs text-red-600">{cancelError}</p>}
         </div>
       )}
     </div>

@@ -128,3 +128,101 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ data, publishedSpot: true, excludedDate: dateStr })
 }
+
+export async function DELETE(req: NextRequest) {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { exclusionId } = await req.json()
+  if (!exclusionId) return NextResponse.json({ error: 'Parámetros requeridos' }, { status: 400 })
+
+  const admin = getAdminClient()
+
+  const { data: exclusion } = await admin
+    .from('schedule_exclusions')
+    .select('id, excluded_date, group_enrollment_id')
+    .eq('id', exclusionId)
+    .single()
+
+  if (!exclusion) return NextResponse.json({ error: 'Falta no encontrada' }, { status: 404 })
+
+  const { data: enrollment } = await admin
+    .from('group_enrollments')
+    .select('student_id, schedule_id')
+    .eq('id', exclusion.group_enrollment_id)
+    .single()
+
+  if (!enrollment || enrollment.student_id !== user.id) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
+  // Verificar que la clase no ha pasado
+  const { data: schedule } = await admin
+    .from('schedules')
+    .select('start_time, end_time')
+    .eq('id', enrollment.schedule_id)
+    .single()
+
+  if (schedule) {
+    const base = new Date(schedule.start_time)
+    const classDt = new Date(exclusion.excluded_date + 'T12:00:00')
+    classDt.setHours(base.getHours(), base.getMinutes(), 0, 0)
+    if (classDt.getTime() < Date.now()) {
+      return NextResponse.json({ error: 'La clase ya ha pasado' }, { status: 400 })
+    }
+  }
+
+  // Verificar que nadie ha reservado el hueco
+  const { data: bookings } = await admin
+    .from('bookings')
+    .select('id')
+    .eq('schedule_id', enrollment.schedule_id)
+    .eq('class_date', exclusion.excluded_date)
+    .neq('status', 'cancelled')
+    .limit(1)
+
+  if (bookings && bookings.length > 0) {
+    return NextResponse.json({ error: 'Alguien ya ha reservado tu plaza, no puedes cancelar la falta' }, { status: 409 })
+  }
+
+  await admin.from('schedule_exclusions').delete().eq('id', exclusionId)
+
+  // Revertir el crédito de bolsa
+  const { data: originalTx } = await admin
+    .from('bag_transactions')
+    .select('class_duration')
+    .eq('user_id', user.id)
+    .eq('type', 'credit')
+    .like('reason', `Falta registrada ${exclusion.excluded_date}%`)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  let durationType: '60' | '90' = '60'
+  if (originalTx?.class_duration === '90') {
+    durationType = '90'
+  } else if (!originalTx && schedule) {
+    const durationMin = Math.round(
+      (new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000
+    )
+    durationType = durationMin >= 80 ? '90' : '60'
+  }
+
+  const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', user.id).single()
+  if (bag) {
+    const newBal60 = durationType === '60' ? Math.max(0, bag.balance_60 - 1) : bag.balance_60
+    const newBal90 = durationType === '90' ? Math.max(0, bag.balance_90 - 1) : bag.balance_90
+    await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
+    await admin.from('bag_transactions').insert({
+      user_id: user.id,
+      class_bag_id: bag.id,
+      delta: -1,
+      type: 'debit',
+      reason: 'Falta cancelada por alumno',
+      class_duration: durationType,
+    })
+  }
+
+  return NextResponse.json({ ok: true })
+}
