@@ -6,10 +6,15 @@ import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import CoachWeeklyCalendar from './coach-weekly-calendar'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-export default async function CoachClassesPage() {
+export default async function CoachClassesPage({
+  searchParams,
+}: {
+  searchParams: { view?: string }
+}) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -22,7 +27,6 @@ export default async function CoachClassesPage() {
     .eq('coach_id', user.id)
     .eq('is_active', true)
 
-  // Count group enrollments per schedule
   const ids = (schedules ?? []).map((s: any) => s.id)
   const { data: enrollments } = ids.length
     ? await admin
@@ -37,18 +41,23 @@ export default async function CoachClassesPage() {
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
   }
 
-  // Group by day of week
+  const view = searchParams.view === 'week' ? 'week' : 'list'
+
   const byDay: Record<number, any[]> = {}
   for (const s of schedules ?? []) {
     const dow = getDayOfWeek(s.start_time)
     if (!byDay[dow]) byDay[dow] = []
     byDay[dow].push(s)
   }
-
   const orderedDays = [1, 2, 3, 4, 5, 6, 0].filter(d => byDay[d])
 
+  const schedulesWithCount = (schedules ?? []).map((s: any) => ({
+    ...s,
+    enrolled: countBySchedule[s.id] ?? 0,
+  }))
+
   return (
-    <div className="max-w-2xl">
+    <div>
       <RealtimeRefresh
         channelName={`coach-classes-${user.id}`}
         subs={[
@@ -56,17 +65,35 @@ export default async function CoachClassesPage() {
           { table: 'schedule_exclusions' },
         ]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>
-        <p className="text-sm text-gray-500">{schedules?.length ?? 0} clases asignadas</p>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>
+          <p className="text-sm text-gray-500">{schedules?.length ?? 0} clases asignadas</p>
+        </div>
+        <div className="flex gap-2">
+          <a
+            href="/coach/classes?view=list"
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${view === 'list' ? 'border-brand-500 bg-brand-50 text-brand-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          >
+            Lista
+          </a>
+          <a
+            href="/coach/classes?view=week"
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${view === 'week' ? 'border-brand-500 bg-brand-50 text-brand-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          >
+            Calendario
+          </a>
+        </div>
       </div>
 
-      {orderedDays.length === 0 ? (
+      {view === 'week' ? (
+        <CoachWeeklyCalendar schedules={schedulesWithCount} />
+      ) : orderedDays.length === 0 ? (
         <div className="rounded-xl bg-white p-10 text-center shadow-sm">
           <p className="text-gray-400">No tienes clases asignadas.</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="max-w-2xl space-y-6">
           {orderedDays.map(dow => (
             <div key={dow}>
               <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">{DAYS[dow]}</h2>

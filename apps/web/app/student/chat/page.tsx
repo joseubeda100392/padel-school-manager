@@ -96,7 +96,7 @@ export default async function StudentChatPage({
     : 'Administración'
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-10rem)] max-w-3xl overflow-hidden rounded-xl bg-white shadow-sm md:h-[calc(100vh-8rem)]">
+    <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-xl bg-white shadow-sm md:h-[calc(100vh-8rem)]">
       {/* Sidebar siempre visible */}
       <aside className="flex w-44 shrink-0 flex-col border-r border-gray-100 sm:w-52">
         <div className="border-b border-gray-100 px-3 py-3">
