@@ -19,25 +19,38 @@ interface Result {
   error?: string
 }
 
+function detectDelimiter(firstLine: string): string {
+  const semicolons = (firstLine.match(/;/g) ?? []).length
+  const commas = (firstLine.match(/,/g) ?? []).length
+  const tabs = (firstLine.match(/\t/g) ?? []).length
+  if (semicolons >= commas && semicolons >= tabs && semicolons > 0) return ';'
+  if (tabs >= commas && tabs > 0) return '\t'
+  return ','
+}
+
 function parseCSV(text: string): string[][] {
+  const clean = text.startsWith('﻿') ? text.slice(1) : text
+  const firstLine = clean.split(/\r?\n/)[0]
+  const delim = detectDelimiter(firstLine)
+
   const rows: string[][] = []
   let currentRow: string[] = []
   let currentField = ''
   let inQuotes = false
 
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i]
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean[i]
     if (ch === '"') {
-      if (inQuotes && text[i + 1] === '"') {
+      if (inQuotes && clean[i + 1] === '"') {
         currentField += '"'
         i++
       } else {
         inQuotes = !inQuotes
       }
-    } else if (ch === ',' && !inQuotes) {
+    } else if (ch === delim && !inQuotes) {
       currentRow.push(currentField)
       currentField = ''
-    } else if (ch === '\r' && text[i + 1] === '\n' && !inQuotes) {
+    } else if (ch === '\r' && clean[i + 1] === '\n' && !inQuotes) {
       i++
       currentRow.push(currentField)
       rows.push(currentRow)

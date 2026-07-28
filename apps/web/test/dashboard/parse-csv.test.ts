@@ -1,20 +1,33 @@
 import { describe, it, expect } from 'vitest'
 
-// Inline the parser to test it in isolation (same implementation as import page)
+// Mirrors implementation in apps/web/app/dashboard/students/import/page.tsx
+function detectDelimiter(firstLine: string): string {
+  const semicolons = (firstLine.match(/;/g) ?? []).length
+  const commas = (firstLine.match(/,/g) ?? []).length
+  const tabs = (firstLine.match(/\t/g) ?? []).length
+  if (semicolons >= commas && semicolons >= tabs && semicolons > 0) return ';'
+  if (tabs >= commas && tabs > 0) return '\t'
+  return ','
+}
+
 function parseCSV(text: string): string[][] {
+  const clean = text.startsWith('﻿') ? text.slice(1) : text
+  const firstLine = clean.split(/\r?\n/)[0]
+  const delim = detectDelimiter(firstLine)
+
   const rows: string[][] = []
   let currentRow: string[] = []
   let currentField = ''
   let inQuotes = false
 
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i]
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean[i]
     if (ch === '"') {
-      if (inQuotes && text[i + 1] === '"') { currentField += '"'; i++ }
+      if (inQuotes && clean[i + 1] === '"') { currentField += '"'; i++ }
       else inQuotes = !inQuotes
-    } else if (ch === ',' && !inQuotes) {
+    } else if (ch === delim && !inQuotes) {
       currentRow.push(currentField); currentField = ''
-    } else if (ch === '\r' && text[i + 1] === '\n' && !inQuotes) {
+    } else if (ch === '\r' && clean[i + 1] === '\n' && !inQuotes) {
       i++; currentRow.push(currentField); rows.push(currentRow); currentRow = []; currentField = ''
     } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
       currentRow.push(currentField); rows.push(currentRow); currentRow = []; currentField = ''
@@ -70,5 +83,29 @@ describe('parseCSV', () => {
     const csv = 'nombre,email,telefono,nivel,password\nAna,ana@test.com,612345678,Iniciación,clave123'
     const result = parseCSV(csv)
     expect(result[1]).toEqual(['Ana', 'ana@test.com', '612345678', 'Iniciación', 'clave123'])
+  })
+
+  it('auto-detects semicolon delimiter (Spanish Excel export)', () => {
+    const csv = 'nombre;email;telefono;nivel;password\nAna;ana@test.com;612345678;Iniciación;clave123'
+    const result = parseCSV(csv)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual(['nombre', 'email', 'telefono', 'nivel', 'password'])
+    expect(result[1]).toEqual(['Ana', 'ana@test.com', '612345678', 'Iniciación', 'clave123'])
+  })
+
+  it('strips UTF-8 BOM added by Excel', () => {
+    const csv = '﻿nombre,email\nAna,ana@test.com'
+    const result = parseCSV(csv)
+    expect(result[0][0]).toBe('nombre')
+    expect(result[1]).toEqual(['Ana', 'ana@test.com'])
+  })
+
+  it('handles semicolons with CRLF (Spanish Excel typical export)', () => {
+    const csv = 'nombre;email;telefono\r\nAdrian Carpintero;carpingeta24@gmail.com;+34 658552865\r\nADRIAN GARCIA;hachese@gmail.com;670022149\r\n'
+    const result = parseCSV(csv)
+    expect(result).toHaveLength(3)
+    expect(result[1][0]).toBe('Adrian Carpintero')
+    expect(result[1][1]).toBe('carpingeta24@gmail.com')
+    expect(result[2][0]).toBe('ADRIAN GARCIA')
   })
 })
