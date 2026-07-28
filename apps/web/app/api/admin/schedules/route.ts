@@ -175,6 +175,17 @@ export async function DELETE(req: NextRequest) {
     await admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollmentIds)
   }
 
+  const { data: bookings } = await admin
+    .from('bookings')
+    .select('id')
+    .eq('schedule_id', scheduleId)
+
+  if (bookings && bookings.length > 0) {
+    const bookingIds = bookings.map((b: any) => b.id)
+    await admin.from('bag_transactions').delete().in('booking_id', bookingIds)
+    await admin.from('payments').delete().in('booking_id', bookingIds)
+  }
+
   await admin.from('group_enrollments').delete().eq('schedule_id', scheduleId)
   await admin.from('bookings').delete().eq('schedule_id', scheduleId)
 
