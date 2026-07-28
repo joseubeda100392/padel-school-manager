@@ -59,6 +59,7 @@ export async function DELETE(
   await admin.from('group_enrollments').delete().eq('student_id', userId)
   await admin.from('notifications').delete().eq('user_id', userId)
   await admin.from('chat_messages').delete().eq('sender_id', userId)
+  await admin.from('student_checklists').delete().eq('student_id', userId)
   await admin.from('users').delete().eq('id', userId)
 
   const { error: authErr } = await admin.auth.admin.deleteUser(userId)
