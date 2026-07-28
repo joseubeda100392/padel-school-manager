@@ -1,8 +1,8 @@
 # CLAUDE.md — Padel School Manager
 
-## ⚠️ REGLA CRÍTICA: NO TOCAR apps/mobile
-`apps/mobile` está DESCARTADA. No se usa. No modificar, no mencionar, no sugerir nada relacionado con React Native/Expo.
-Todo el trabajo va en `apps/web` únicamente.
+## ⚠️ REGLA CRÍTICA: NO TOCAR apps/mobile (en stand-by)
+`apps/mobile` está EN PAUSA, no descartada — se retomará si se decide sacar una app móvil real en el futuro. Por ahora no se modifica, no se trabaja en ella, no se sugiere nada relacionado con React Native/Expo salvo que se pida explícitamente reactivarla.
+Todo el trabajo activo va en `apps/web` únicamente.
 
 ## Descripción del Proyecto
 Ecosistema digital para escuelas de pádel compuesto por:
@@ -12,17 +12,19 @@ Ecosistema digital para escuelas de pádel compuesto por:
 - `packages/stripe`: DEAD CODE — no se usa. Los pagos van con Redsys (`lib/redsys.ts`)
 
 ## Stack
-- Mobile: React Native + Expo SDK 51 + NativeWind (iOS y Android)
-- Web: Next.js 14 (App Router) + Tailwind CSS + shadcn/ui → Railway
+- Web (activo): Next.js 14 (App Router) + Tailwind CSS + shadcn/ui → Railway
 - DB: PostgreSQL (Supabase) + Prisma ORM
 - Auth: Supabase Auth (JWT con claims de rol)
 - Realtime/Chat: Supabase Realtime
-- Pagos: Redsys (TPV virtual — `lib/redsys.ts`, `app/api/payments/`). Stripe NO se usa.
+- Pagos: Redsys (TPV virtual — `lib/redsys.ts`, `app/api/payments/`). Stripe eliminado por completo.
 - Storage: Supabase Storage (PDFs, avatares)
 - Push: Expo Push Notifications + FCM
 - Deploy Web/Backend: Railway
-- Deploy Mobile: Expo EAS Build
 - Monorepo: Turborepo + pnpm workspaces
+
+**En pausa (retomar solo si se decide sacar app móvil real):**
+- Mobile: React Native + Expo SDK 51 + NativeWind (iOS y Android)
+- Deploy Mobile: Expo EAS Build
 
 ## Estrategia de Modelos (Eficiencia de Tokens)
 
@@ -43,7 +45,7 @@ Una frase por actualización. Código sin comentarios obvios.
 ### Uso automático (sin que el usuario lo pida)
 | Skill | Se invoca cuando... |
 |---|---|
-| `/security-review` | Se toca auth, RLS, Stripe, API routes, o permisos |
+| `/security-review` | Se toca auth, RLS, Redsys, API routes, o permisos |
 | `/simplify` | Se implementa una feature compleja (>50 líneas nuevas) |
 | `/review` | Antes de hacer push de cambios críticos |
 | `/deploy-check` | Antes de cada `git push` a Railway |
@@ -82,17 +84,18 @@ Una frase por actualización. Código sin comentarios obvios.
 ## Variables de Entorno
 Variables en `.env.local` (nunca en git). Ver `.env.example` para la lista completa.
 
-Críticas:
+Críticas (apps/web, activo):
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PUBLISHABLE_KEY`
-- `EXPO_PUBLIC_SUPABASE_URL`
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 - `RAILWAY_TOKEN`
 - `DATABASE_URL`
+
+Solo relevantes si se reactiva apps/mobile (actualmente en pausa):
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+
+Stripe: eliminadas del proyecto — `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`/`STRIPE_PUBLISHABLE_KEY` no se usan, Stripe está completamente muerto. Solo queda un campo `stripe_payment_intent_id` en `payments` para etiquetar pagos históricos antiguos (ver `payments-table.tsx:38`).
 
 ## Roles de Usuario
 - `student`: reservas, bolsa de clases, PDFs de su nivel, chat soporte
@@ -103,7 +106,7 @@ Críticas:
 
 ### F1: Bolsa de Clases + Pay-per-class
 - Alumnos tienen saldo de clases (`class_bag.balance`)
-- Huecos libres (no-shows) pueden cubrirse con bolsa o pago único vía Stripe PaymentIntent
+- Huecos libres (no-shows) pueden cubrirse con bolsa o pago único vía Redsys
 - Admin configura precio de clase suelta
 
 ### F2: Gestión de Niveles
@@ -149,7 +152,7 @@ Ante cualquier bug que no sea obvio en el código:
 4. Para bugs de Next.js server: añadir `console.error` o renderizar el error en pantalla, deployar, leer el error, luego arreglar.
 
 ## Flujos Críticos (No Modificar Sin /security-review)
-1. **Webhook Stripe** → `/supabase/functions/stripe-webhook` → actualiza `payments` y `class_bag`
+1. **Webhook Redsys** → `app/api/payments/webhook/route.ts` → actualiza `payments` y `class_bag`
 2. **Supabase RLS** activo en todas las tablas — revisar políticas antes de cambios de schema
 3. **Realtime chat** → tabla `chat_messages` con RLS por `thread_id`
 4. **Auth middleware** → verificar `role` en JWT claims antes de cualquier operación admin
