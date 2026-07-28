@@ -31,9 +31,12 @@ export async function POST(req: NextRequest) {
   const { data: club } = await adminSupabase.from('clubs').select('id').eq('id', clubId).single()
   if (!club) return NextResponse.json({ error: 'Club no válido' }, { status: 400 })
 
-  const { data: levels } = await adminSupabase.from('levels').select('id, name').eq('club_id', clubId)
+  const { data: levels } = await adminSupabase.from('levels').select('id, name, description').eq('club_id', clubId)
   const levelByName: Record<string, string> = {}
-  ;(levels ?? []).forEach((l: any) => { levelByName[l.name.toLowerCase().trim()] = l.id })
+  ;(levels ?? []).forEach((l: any) => {
+    levelByName[l.name.toLowerCase().trim()] = l.id
+    if (l.description) levelByName[l.description.toLowerCase().trim()] = l.id
+  })
 
   const { rows }: { rows: { nombre: string; email: string; telefono?: string; nivel?: string; password?: string }[] } = await req.json()
 
