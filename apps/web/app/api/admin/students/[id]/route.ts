@@ -19,14 +19,14 @@ export async function DELETE(
 
   const userId = params.id
 
-  if (caller.role !== 'super_admin' && caller.club_id) {
+  if (caller.role !== 'super_admin') {
     const { data: target } = await admin
       .from('users')
       .select('club_id')
       .eq('id', userId)
       .single()
 
-    if (!target || target.club_id !== caller.club_id) {
+    if (!target || !caller.club_id || target.club_id !== caller.club_id) {
       return NextResponse.json({ error: 'Sin permisos para eliminar este usuario' }, { status: 403 })
     }
   }

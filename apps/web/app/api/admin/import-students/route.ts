@@ -40,6 +40,13 @@ export async function POST(req: NextRequest) {
 
   const { rows }: { rows: { nombre: string; email: string; telefono?: string; nivel?: string; password?: string }[] } = await req.json()
 
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return NextResponse.json({ error: 'rows requerido' }, { status: 400 })
+  }
+  if (rows.length > 500) {
+    return NextResponse.json({ error: 'Máximo 500 alumnos por importación' }, { status: 400 })
+  }
+
   const results = []
 
   for (const row of rows) {

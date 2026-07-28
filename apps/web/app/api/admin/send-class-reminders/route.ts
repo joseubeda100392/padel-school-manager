@@ -5,7 +5,8 @@ import { formatTime } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-cron-secret')
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  const expectedSecret = process.env.CRON_SECRET
+  if (!expectedSecret || secret !== expectedSecret) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

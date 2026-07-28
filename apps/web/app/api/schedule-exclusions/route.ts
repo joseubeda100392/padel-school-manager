@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
@@ -56,7 +58,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const { group_enrollment_id, excluded_date, reason, publish_spot } = await req.json()
+  const { data: postBody, error: badPost } = await parseBody(req, z.object({
+    group_enrollment_id: z.string().uuid(),
+    excluded_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    reason: z.string().max(500).optional(),
+    publish_spot: z.boolean().optional(),
+  }))
+  if (badPost) return badPost
+  const { group_enrollment_id, excluded_date, reason, publish_spot } = postBody
 
   const { data: enrollment } = await admin
     .from('group_enrollments')

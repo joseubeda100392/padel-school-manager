@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -14,8 +16,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const { scheduleId, date, creditBags = true } = await req.json()
-  if (!scheduleId || !date) return NextResponse.json({ error: 'scheduleId y date requeridos' }, { status: 400 })
+  const { data: body, error: badRequest } = await parseBody(req, z.object({
+    scheduleId: z.string().uuid(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    creditBags: z.boolean().optional(),
+  }))
+  if (badRequest) return badRequest
+  const { scheduleId, date, creditBags = true } = body
 
   const { data: schedule } = await admin.from('schedules').select('start_time, end_time, club_id').eq('id', scheduleId).single()
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })

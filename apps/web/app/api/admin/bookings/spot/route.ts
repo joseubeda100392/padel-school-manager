@@ -25,15 +25,15 @@ export async function POST(req: NextRequest) {
   if (badRequest) return badRequest
   const { scheduleId, studentId, classDate, clubId } = body
 
-  if (caller.role !== 'super_admin' && caller.club_id) {
+  if (caller.role !== 'super_admin') {
     const [{ data: scheduleCheck }, { data: studentCheck }] = await Promise.all([
       admin.from('schedules').select('club_id').eq('id', scheduleId).single(),
       admin.from('users').select('club_id').eq('id', studentId).single(),
     ])
-    if (!scheduleCheck || (scheduleCheck as any).club_id !== caller.club_id) {
+    if (!scheduleCheck || !caller.club_id || (scheduleCheck as any).club_id !== caller.club_id) {
       return NextResponse.json({ error: 'Sin permisos para esta clase' }, { status: 403 })
     }
-    if (!studentCheck || (studentCheck as any).club_id !== caller.club_id) {
+    if (!studentCheck || !caller.club_id || (studentCheck as any).club_id !== caller.club_id) {
       return NextResponse.json({ error: 'Sin permisos para este alumno' }, { status: 403 })
     }
   }

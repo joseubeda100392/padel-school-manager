@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
@@ -21,10 +23,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const { title, body, filterLevelId } = await req.json()
-  if (!title?.trim() || !body?.trim()) {
-    return NextResponse.json({ error: 'Título y mensaje son obligatorios' }, { status: 400 })
-  }
+  const { data: notifBody, error: badRequest } = await parseBody(req, z.object({
+    title: z.string().min(1).max(200),
+    body: z.string().min(1).max(1000),
+    filterLevelId: z.string().uuid().optional(),
+  }))
+  if (badRequest) return badRequest
+  const { title, body, filterLevelId } = notifBody
 
   const cookieStore = cookies()
   const clubId = caller.role === 'super_admin'

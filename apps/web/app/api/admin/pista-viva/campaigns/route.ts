@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
@@ -48,10 +50,17 @@ export async function POST(req: NextRequest) {
     : caller.club_id
   if (!clubId) return NextResponse.json({ error: 'Club no encontrado' }, { status: 400 })
 
-  const { courtName, resourceId, slotDatetime, durationMinutes = 90, targetLevelId, message, playersNeeded = 4 } = await req.json()
-  if (!courtName || !resourceId || !slotDatetime) {
-    return NextResponse.json({ error: 'courtName, resourceId y slotDatetime son obligatorios' }, { status: 400 })
-  }
+  const { data: postBody, error: badPost } = await parseBody(req, z.object({
+    courtName: z.string().min(1).max(200),
+    resourceId: z.string().min(1),
+    slotDatetime: z.string().min(1),
+    durationMinutes: z.number().int().positive().optional(),
+    targetLevelId: z.string().uuid().nullable().optional(),
+    message: z.string().max(2000).nullable().optional(),
+    playersNeeded: z.number().int().min(1).max(10).optional(),
+  }))
+  if (badPost) return badPost
+  const { courtName, resourceId, slotDatetime, durationMinutes = 90, targetLevelId, message, playersNeeded = 4 } = postBody
 
   const { data: campaign, error } = await admin
     .from('pista_viva_campaigns')
@@ -91,8 +100,14 @@ export async function PATCH(req: NextRequest) {
     : caller.club_id
   if (!clubId) return NextResponse.json({ error: 'Club no encontrado' }, { status: 400 })
 
-  const { id, targetLevelId, message, playersNeeded } = await req.json()
-  if (!id) return NextResponse.json({ error: 'id es obligatorio' }, { status: 400 })
+  const { data: patchBody, error: badPatch } = await parseBody(req, z.object({
+    id: z.string().uuid(),
+    targetLevelId: z.string().uuid().nullable().optional(),
+    message: z.string().max(2000).nullable().optional(),
+    playersNeeded: z.number().int().min(1).max(10).optional(),
+  }))
+  if (badPatch) return badPatch
+  const { id, targetLevelId, message, playersNeeded } = patchBody
 
   const update: Record<string, any> = {}
   if (targetLevelId !== undefined) update.target_level_id = targetLevelId || null

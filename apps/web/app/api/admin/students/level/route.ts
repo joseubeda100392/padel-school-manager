@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -14,12 +16,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const { userId, levelId } = await req.json()
-  if (!userId) return NextResponse.json({ error: 'userId requerido' }, { status: 400 })
+  const { data: body, error: badRequest } = await parseBody(req, z.object({
+    userId: z.string().uuid(),
+    levelId: z.string().uuid().nullable().optional(),
+  }))
+  if (badRequest) return badRequest
+  const { userId, levelId } = body
 
-  if (caller.role !== 'super_admin' && caller.club_id) {
+  if (caller.role !== 'super_admin') {
     const { data: target } = await admin.from('users').select('club_id').eq('id', userId).single()
-    if (!target || target.club_id !== caller.club_id) {
+    if (!target || !caller.club_id || target.club_id !== caller.club_id) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
   }

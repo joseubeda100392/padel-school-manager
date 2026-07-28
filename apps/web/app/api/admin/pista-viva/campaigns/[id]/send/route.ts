@@ -23,6 +23,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .single()
 
   if (!campaign) return NextResponse.json({ error: 'Campaña no encontrada' }, { status: 404 })
+  if (caller.role !== 'super_admin' && campaign.club_id !== caller.club_id) {
+    return NextResponse.json({ error: 'Sin permisos para esta campaña' }, { status: 403 })
+  }
   if (campaign.status !== 'draft') {
     return NextResponse.json({ error: 'Solo se pueden enviar campañas en estado draft' }, { status: 400 })
   }

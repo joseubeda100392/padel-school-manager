@@ -15,6 +15,17 @@ export async function POST(req: NextRequest, { params }: { params: { matchId: st
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
+  if (caller.role !== 'super_admin') {
+    const { data: matchCampaign } = await admin
+      .from('pista_viva_campaigns')
+      .select('club_id')
+      .eq('playtomic_match_id', params.matchId)
+      .single()
+    if (!matchCampaign || !caller.club_id || matchCampaign.club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos para este partido' }, { status: 403 })
+    }
+  }
+
   const { data: club } = await admin
     .from('clubs')
     .select('playtomic_email, playtomic_password')
