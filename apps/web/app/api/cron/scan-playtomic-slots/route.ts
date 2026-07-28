@@ -1,10 +1,16 @@
 export const dynamic = 'force-dynamic'
+import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getPlaytomicClient } from '@/lib/playtomic'
 
 export async function POST(req: NextRequest) {
-  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET ?? ''
+  const authHeader = req.headers.get('authorization') ?? ''
+  const expected = `Bearer ${cronSecret}`
+  const authBuf = Buffer.from(authHeader)
+  const expBuf = Buffer.from(expected)
+  if (!cronSecret || authBuf.length !== expBuf.length || !timingSafeEqual(authBuf, expBuf)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 

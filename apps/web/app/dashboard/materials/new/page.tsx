@@ -19,14 +19,16 @@ export default function NewMaterialPage() {
   const [clubId, setClubId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
-      const { data: userData } = await supabase.from('users').select('club_id').eq('id', user.id).single()
+      const { data: userData } = await supabase.from('users').select('club_id, role').eq('id', user.id).single()
       const cid = userData?.club_id ?? null
       setClubId(cid)
+      setUserRole((userData as any)?.role ?? null)
       const query = supabase.from('levels').select('id, name, color').order('order')
       const { data } = await (cid ? query.eq('club_id', cid) : query)
       if (data) setLevels(data)
@@ -50,6 +52,26 @@ export default function NewMaterialPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setError('No autenticado'); setUploading(false); return }
+
+    if (!['admin', 'super_admin', 'coach'].includes(userRole ?? '')) {
+      setError('Sin permisos para subir materiales')
+      setUploading(false)
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('El archivo no puede superar los 10 MB')
+      setUploading(false)
+      return
+    }
+
+    const firstBytes = await file.slice(0, 5).arrayBuffer()
+    const magic = new Uint8Array(firstBytes)
+    if (magic[0] !== 0x25 || magic[1] !== 0x50 || magic[2] !== 0x44 || magic[3] !== 0x46) {
+      setError('Solo se permiten archivos PDF válidos')
+      setUploading(false)
+      return
+    }
 
     const ext = file.name.split('.').pop()
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`

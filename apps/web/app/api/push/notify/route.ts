@@ -3,8 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(req, 'push-notify', { limit: 5, windowMs: 10 * 60 * 1000 })
+  if (rl) return rl
+
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()

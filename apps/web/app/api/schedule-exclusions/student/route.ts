@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     created_by: user.id,
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al registrar la falta' }, { status: 500 })
 
   const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
   const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'

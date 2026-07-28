@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   if (dbError) {
     await admin.auth.admin.deleteUser(authData.user.id)
-    return NextResponse.json({ error: dbError.message }, { status: 400 })
+    return NextResponse.json({ error: 'Error al registrar el usuario en la base de datos' }, { status: 400 })
   }
 
   if (role === 'student') {
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     if (bagErr) {
       await admin.from('users').delete().eq('id', authData.user.id)
       await admin.auth.admin.deleteUser(authData.user.id)
-      return NextResponse.json({ error: `Error al crear la bolsa de clases: ${bagErr.message}` }, { status: 500 })
+      return NextResponse.json({ error: 'Error al crear la bolsa de clases' }, { status: 500 })
     }
   }
 

@@ -5,8 +5,12 @@ import { parseBody } from '@/lib/validate'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(req, 'send-notification', { limit: 3, windowMs: 10 * 60 * 1000 })
+  if (rl) return rl
+
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

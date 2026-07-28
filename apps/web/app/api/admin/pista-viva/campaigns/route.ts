@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     .select('id')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al crear la campaña' }, { status: 500 })
   return NextResponse.json({ campaign })
 }
 
@@ -120,7 +120,7 @@ export async function PATCH(req: NextRequest) {
     .eq('id', id)
     .eq('club_id', clubId)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar la campaña' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
@@ -150,6 +150,6 @@ export async function DELETE(req: NextRequest) {
     .eq('id', id)
     .eq('club_id', clubId)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al eliminar la campaña' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

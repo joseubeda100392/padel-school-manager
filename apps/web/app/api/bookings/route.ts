@@ -90,6 +90,18 @@ export async function DELETE(req: NextRequest) {
 
   if (!booking) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 })
 
+  // Coaches can only cancel bookings for classes they teach
+  if (callerProfile?.role === 'coach') {
+    const { data: scheduleOwner } = await admin
+      .from('schedules')
+      .select('coach_id')
+      .eq('id', booking.schedule_id)
+      .single()
+    if (!scheduleOwner || scheduleOwner.coach_id !== user.id) {
+      return NextResponse.json({ error: 'Solo puedes cancelar reservas de tus propias clases' }, { status: 403 })
+    }
+  }
+
   const studentId = booking.student_id ?? user.id
 
   // Leer la tx original ANTES de borrar bag_transactions (necesario para durationType del reembolso)

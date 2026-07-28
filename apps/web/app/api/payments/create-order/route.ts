@@ -10,6 +10,7 @@ import {
   generateSignature,
   getRedsysUrl,
 } from '@/lib/redsys'
+import { rateLimit } from '@/lib/rate-limit'
 
 type PaymentType = 'single_class' | 'class_pack' | 'fixed_group_month' | 'tournament' | 'intensivo_group'
 
@@ -19,6 +20,9 @@ export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const rl = rateLimit(req, `create-order:${user.id}`, { limit: 10, windowMs: 5 * 60 * 1000 })
+  if (rl) return rl
 
   const admin = getAdminClient()
 

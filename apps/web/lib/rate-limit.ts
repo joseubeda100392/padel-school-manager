@@ -22,7 +22,15 @@ export function rateLimit(
   const now = Date.now()
   const bucketKey = `${key}:${clientIp(req)}`
 
-  if (buckets.size > MAX_BUCKETS) buckets.clear()
+  if (buckets.size >= MAX_BUCKETS) {
+    const toEvict = Math.ceil(MAX_BUCKETS * 0.2)
+    const iter = buckets.keys()
+    for (let i = 0; i < toEvict; i++) {
+      const { value, done } = iter.next()
+      if (done) break
+      buckets.delete(value)
+    }
+  }
 
   const hits = (buckets.get(bucketKey) ?? []).filter((t) => now - t < windowMs)
   if (hits.length >= limit) {

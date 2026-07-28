@@ -47,6 +47,11 @@ export default function ImportStudentsPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (file.size > 2 * 1024 * 1024) {
+      setError('El archivo es demasiado grande (máximo 2 MB)')
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {

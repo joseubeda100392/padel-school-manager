@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { formatTime } from '@/lib/utils'
+import { sanitizeDbError } from '@/lib/sanitize-error'
 
 async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, scheduleId: string, excludedDate: string) {
   try {
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
     created_by: user.id,
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitizeDbError(error) }, { status: 500 })
 
   if (publish_spot && enrollment?.schedule_id) {
     await notifySpotAvailable(admin, enrollment.schedule_id, excluded_date)
@@ -176,7 +177,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { error } = await admin.from('schedule_exclusions').update({ publish_spot }).eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitizeDbError(error) }, { status: 500 })
 
   // Si se está publicando (era false y ahora true), notificar
   if (publish_spot && !exclusionBefore?.publish_spot && exclusionBefore?.group_enrollment_id) {
@@ -223,7 +224,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   const { error: delErr } = await admin.from('schedule_exclusions').delete().eq('id', id)
-  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 })
+  if (delErr) return NextResponse.json({ error: sanitizeDbError(delErr) }, { status: 500 })
 
   if (exclusion?.group_enrollment_id) {
     const { data: enrollment } = await admin

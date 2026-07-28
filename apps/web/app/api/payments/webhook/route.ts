@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       })
       if (bookingErr) {
         console.error('[webhook] single_class booking failed:', bookingErr.message)
-        return NextResponse.json({ error: 'booking_failed', detail: bookingErr.message }, { status: 500 })
+        return NextResponse.json({ error: 'booking_failed' }, { status: 500 })
       }
     }
 
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     })
     if (rpcErr) {
       console.error('[webhook] class_pack credit_class_bag failed:', rpcErr.message)
-      return NextResponse.json({ error: 'credit_failed', detail: rpcErr.message }, { status: 500 })
+      return NextResponse.json({ error: 'credit_failed' }, { status: 500 })
     }
 
   } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
       .eq('student_id', payment.user_id)
     if (enrollErr) {
       console.error('[webhook] fixed_group_month enrollment update failed:', enrollErr.message)
-      return NextResponse.json({ error: 'enrollment_update_failed', detail: enrollErr.message }, { status: 500 })
+      return NextResponse.json({ error: 'enrollment_update_failed' }, { status: 500 })
     }
 
   } else if (payment.type === 'tournament' && meta.tournament_id) {
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
       })
       if (regErr) {
         console.error('[webhook] tournament registration failed:', regErr.message)
-        return NextResponse.json({ error: 'registration_failed', detail: regErr.message }, { status: 500 })
+        return NextResponse.json({ error: 'registration_failed' }, { status: 500 })
       }
     }
 
@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
       .eq('id', meta.mandate_id)
     if (mandateErr) {
       console.error('[webhook] mandate_init mandate update failed:', mandateErr.message)
-      return NextResponse.json({ error: 'mandate_update_failed', detail: mandateErr.message }, { status: 500 })
+      return NextResponse.json({ error: 'mandate_update_failed' }, { status: 500 })
     }
 
     // Marcar inscripciones activas del alumno como pagadas hasta fin de mes
@@ -228,7 +228,7 @@ export async function POST(req: NextRequest) {
         })
         if (iBookingErr) {
           console.error('[webhook] intensivo_group booking failed:', iBookingErr.message)
-          return NextResponse.json({ error: 'intensivo_booking_failed', detail: iBookingErr.message }, { status: 500 })
+          return NextResponse.json({ error: 'intensivo_booking_failed' }, { status: 500 })
         }
       }
     }
