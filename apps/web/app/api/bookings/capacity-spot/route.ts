@@ -98,10 +98,15 @@ export async function POST(req: NextRequest) {
   const newBal60 = useBalance90 ? bag.balance_60 : bag.balance_60 - 1
   const newBal90 = useBalance90 ? bag.balance_90 - 1 : bag.balance_90
 
-  await admin
+  const { error: bagErr } = await admin
     .from('class_bag')
     .update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() })
     .eq('id', bag.id)
+
+  if (bagErr) {
+    await admin.from('bookings').delete().eq('id', booking.id)
+    return NextResponse.json({ error: 'Error al descontar la bolsa' }, { status: 500 })
+  }
 
   const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
 

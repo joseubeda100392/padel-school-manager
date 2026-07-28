@@ -186,7 +186,8 @@ export async function DELETE(req: NextRequest) {
     .eq('id', id)
     .single()
 
-  await admin.from('schedule_exclusions').delete().eq('id', id)
+  const { error: delErr } = await admin.from('schedule_exclusions').delete().eq('id', id)
+  if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 })
 
   if (exclusion?.group_enrollment_id) {
     const { data: enrollment } = await admin
