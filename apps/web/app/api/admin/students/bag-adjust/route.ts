@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
 
   if (delta60 !== undefined && delta60 !== 0) {
-    await admin.from('bag_transactions').insert({
+    const { error: tx60Err } = await admin.from('bag_transactions').insert({
       user_id: userId,
       class_bag_id: bag.id,
       delta: delta60,
@@ -53,10 +53,11 @@ export async function POST(req: NextRequest) {
       reason: reason?.trim() || (delta60 > 0 ? 'Recarga manual' : 'Descuento manual'),
       class_duration: '60',
     })
+    if (tx60Err) console.error('[bag-adjust] tx60 insert failed:', tx60Err.message)
   }
 
   if (delta90 !== undefined && delta90 !== 0) {
-    await admin.from('bag_transactions').insert({
+    const { error: tx90Err } = await admin.from('bag_transactions').insert({
       user_id: userId,
       class_bag_id: bag.id,
       delta: delta90,
@@ -64,6 +65,7 @@ export async function POST(req: NextRequest) {
       reason: reason?.trim() || (delta90 > 0 ? 'Recarga manual' : 'Descuento manual'),
       class_duration: '90',
     })
+    if (tx90Err) console.error('[bag-adjust] tx90 insert failed:', tx90Err.message)
   }
 
   return NextResponse.json({ ok: true })

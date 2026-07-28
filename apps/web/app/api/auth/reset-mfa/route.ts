@@ -38,9 +38,14 @@ export async function POST(req: NextRequest) {
 
   // SDK v2 does not export admin MFA types; cast until they land
   const { data: factorsData } = await (admin.auth.admin.mfa as any).listFactors({ userId })
+  const failedFactors: string[] = []
   for (const factor of factorsData?.factors ?? []) {
     // SDK v2 does not export admin MFA types; cast until they land
-    await (admin.auth.admin.mfa as any).deleteFactor({ userId, id: factor.id })
+    const { error: factorErr } = await (admin.auth.admin.mfa as any).deleteFactor({ userId, id: factor.id })
+    if (factorErr) failedFactors.push(factor.id)
+  }
+  if (failedFactors.length > 0) {
+    return NextResponse.json({ error: `No se pudieron borrar los factores: ${failedFactors.join(', ')}` }, { status: 500 })
   }
 
   await admin.from('admin_recovery_codes').delete().eq('user_id', userId)

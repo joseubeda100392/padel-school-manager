@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const orderId = generateOrderId()
 
     // Registrar el pago como pending antes de llamar a Redsys
-    const { data: payment } = await admin.from('payments').insert({
+    const { data: payment, error: payInsertErr } = await admin.from('payments').insert({
       user_id: mandate.user_id,
       club_id: mandate.club_id,
       amount: mandate.amount_cents,
@@ -51,15 +51,28 @@ export async function POST(req: NextRequest) {
       metadata: { mandate_id: mandate.id },
     }).select('id').single()
 
-    const { success, responseCode } = await chargeMit({
-      secretKey,
-      merchantCode,
-      terminal,
-      env,
-      identifier: mandate.redsys_identifier!,
-      amountCents: mandate.amount_cents,
-      orderId,
-    })
+    if (payInsertErr || !payment) {
+      console.error('[charge-mandates] payment insert failed for mandate', mandate.id, payInsertErr?.message)
+      results.push({ mandateId: mandate.id, success: false, code: 'INSERT_ERROR' })
+      continue
+    }
+
+    let chargeResult: { success: boolean; responseCode: string }
+    try {
+      chargeResult = await chargeMit({
+        secretKey,
+        merchantCode,
+        terminal,
+        env,
+        identifier: mandate.redsys_identifier!,
+        amountCents: mandate.amount_cents,
+        orderId,
+      })
+    } catch (err) {
+      console.error('[charge-mandates] chargeMit threw for mandate', mandate.id, err)
+      chargeResult = { success: false, responseCode: 'EXCEPTION' }
+    }
+    const { success, responseCode } = chargeResult
 
     const nextChargeAt = getNextChargeDate(mandate)
     const now = new Date().toISOString()

@@ -126,8 +126,12 @@ export async function DELETE(req: NextRequest) {
     if (bag) {
       const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
       const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
-      await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
-      await admin.from('bag_transactions').insert({
+      const { error: bagUpdateErr } = await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
+      if (bagUpdateErr) {
+        console.error('[bookings] refund bag update failed:', bagUpdateErr.message)
+        return NextResponse.json({ error: 'Error al devolver crédito a la bolsa' }, { status: 500 })
+      }
+      const { error: txErr } = await admin.from('bag_transactions').insert({
         user_id: studentId,
         class_bag_id: bag.id,
         delta: 1,
@@ -136,6 +140,7 @@ export async function DELETE(req: NextRequest) {
         booking_id: booking.id,
         class_duration: durationType,
       })
+      if (txErr) console.error('[bookings] refund transaction insert failed:', txErr.message)
       return NextResponse.json({ ok: true, newBalance: newBal60 + newBal90 })
     }
   }

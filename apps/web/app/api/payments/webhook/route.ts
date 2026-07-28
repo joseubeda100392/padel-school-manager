@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await existingQuery.maybeSingle()
 
     if (!existing) {
-      await adminSupabase.from('bookings').insert({
+      const { error: bookingErr } = await adminSupabase.from('bookings').insert({
         schedule_id: meta.schedule_id,
         student_id: payment.user_id,
         status: 'confirmed',
@@ -97,28 +97,40 @@ export async function POST(req: NextRequest) {
         club_id: payment.club_id ?? null,
         class_date: meta.class_date ?? null,
       })
+      if (bookingErr) {
+        console.error('[webhook] single_class booking failed:', bookingErr.message)
+        return NextResponse.json({ error: 'booking_failed', detail: bookingErr.message }, { status: 500 })
+      }
     }
 
   } else if (payment.type === 'class_pack') {
     const classesToAdd = meta.classes_per_pack ?? 10
     const packType: '60' | '90' = meta.pack_type === '90' ? '90' : '60'
 
-    await adminSupabase.rpc('credit_class_bag', {
+    const { error: rpcErr } = await adminSupabase.rpc('credit_class_bag', {
       p_user_id: payment.user_id,
       p_club_id: payment.club_id ?? null,
       p_delta: classesToAdd,
       p_pack_type: packType,
       p_reason: `Compra de bono — ${classesToAdd} clases`,
     })
+    if (rpcErr) {
+      console.error('[webhook] class_pack credit_class_bag failed:', rpcErr.message)
+      return NextResponse.json({ error: 'credit_failed', detail: rpcErr.message }, { status: 500 })
+    }
 
   } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
     const now = new Date()
     const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
-    await adminSupabase
+    const { error: enrollErr } = await adminSupabase
       .from('group_enrollments')
       .update({ paid_until: paidUntil })
       .eq('id', meta.enrollment_id)
       .eq('student_id', payment.user_id)
+    if (enrollErr) {
+      console.error('[webhook] fixed_group_month enrollment update failed:', enrollErr.message)
+      return NextResponse.json({ error: 'enrollment_update_failed', detail: enrollErr.message }, { status: 500 })
+    }
 
   } else if (payment.type === 'tournament' && meta.tournament_id) {
     const { data: existing } = await adminSupabase
@@ -149,7 +161,7 @@ export async function POST(req: NextRequest) {
     const now = new Date()
     const nextCharge = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth)
     const nextChargeAt = nextCharge.toISOString().split('T')[0]
-    await adminSupabase
+    const { error: mandateErr } = await adminSupabase
       .from('payment_mandates')
       .update({
         ...(identifier ? { redsys_identifier: identifier } : {}),
@@ -159,15 +171,22 @@ export async function POST(req: NextRequest) {
         updated_at: now.toISOString(),
       })
       .eq('id', meta.mandate_id)
+    if (mandateErr) {
+      console.error('[webhook] mandate_init mandate update failed:', mandateErr.message)
+      return NextResponse.json({ error: 'mandate_update_failed', detail: mandateErr.message }, { status: 500 })
+    }
 
     // Marcar inscripciones activas del alumno como pagadas hasta fin de mes
     const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
-    await adminSupabase
+    const { error: mandEnrolErr } = await adminSupabase
       .from('group_enrollments')
       .update({ paid_until: paidUntil })
       .eq('student_id', payment.user_id)
       .eq('club_id', payment.club_id)
       .eq('status', 'active')
+    if (mandEnrolErr) {
+      console.error('[webhook] mandate_init enrollment update failed:', mandEnrolErr.message)
+    }
 
   } else if (payment.type === 'intensivo_group' && meta.intensivo_group_id) {
     const { data: schedules } = await adminSupabase
@@ -188,7 +207,7 @@ export async function POST(req: NextRequest) {
         .neq('status', 'cancelled')
         .maybeSingle()
       if (!existing) {
-        await adminSupabase.from('bookings').insert({
+        const { error: iBookingErr } = await adminSupabase.from('bookings').insert({
           schedule_id: s.id,
           student_id: payment.user_id,
           status: 'confirmed',
@@ -196,6 +215,10 @@ export async function POST(req: NextRequest) {
           club_id: payment.club_id ?? null,
           class_date: classDates[i] ?? null,
         })
+        if (iBookingErr) {
+          console.error('[webhook] intensivo_group booking failed:', iBookingErr.message)
+          return NextResponse.json({ error: 'intensivo_booking_failed', detail: iBookingErr.message }, { status: 500 })
+        }
       }
     }
   }

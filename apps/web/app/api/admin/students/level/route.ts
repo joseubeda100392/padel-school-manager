@@ -32,11 +32,12 @@ export async function POST(req: NextRequest) {
   if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
 
   if (levelId) {
-    await admin.from('user_levels').insert({
+    const { error: levelErr } = await admin.from('user_levels').insert({
       user_id: userId,
       level_id: levelId,
       assigned_by: user.id,
     })
+    if (levelErr) console.error('[students/level] user_levels insert failed:', levelErr.message)
   }
 
   return NextResponse.json({ ok: true })

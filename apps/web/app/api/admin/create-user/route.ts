@@ -73,20 +73,26 @@ export async function POST(req: NextRequest) {
   }
 
   if (role === 'student') {
-    await admin.from('class_bag').upsert({
+    const { error: bagErr } = await admin.from('class_bag').upsert({
       user_id: authData.user.id,
       club_id: clubId,
       balance_60: 0,
       balance_90: 0,
     }, { onConflict: 'user_id' })
+    if (bagErr) {
+      await admin.from('users').delete().eq('id', authData.user.id)
+      await admin.auth.admin.deleteUser(authData.user.id)
+      return NextResponse.json({ error: `Error al crear la bolsa de clases: ${bagErr.message}` }, { status: 500 })
+    }
   }
 
   if (levelId) {
-    await admin.from('user_levels').insert({
+    const { error: levelErr } = await admin.from('user_levels').insert({
       user_id: authData.user.id,
       level_id: levelId,
       assigned_by: user.id,
     })
+    if (levelErr) console.error('[create-user] user_levels insert failed:', levelErr.message)
   }
 
   return NextResponse.json({ data: { id: authData.user.id } })

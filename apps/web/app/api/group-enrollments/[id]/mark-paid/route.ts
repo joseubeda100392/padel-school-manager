@@ -31,7 +31,8 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const clubId = enrollment.club_id ?? adminUser.club_id
 
-  await admin.from('group_enrollments').update({ paid_until: paidUntil }).eq('id', params.id)
+  const { error: enrollErr } = await admin.from('group_enrollments').update({ paid_until: paidUntil }).eq('id', params.id)
+  if (enrollErr) return NextResponse.json({ error: enrollErr.message }, { status: 500 })
 
   const { error: paymentError } = await admin.from('payments').insert({
     user_id: enrollment.student_id,

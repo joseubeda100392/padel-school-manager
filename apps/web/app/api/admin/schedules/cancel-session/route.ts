@@ -65,8 +65,12 @@ export async function POST(req: NextRequest) {
       if (!bag) continue
       const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
       const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
-      await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
-      await admin.from('bag_transactions').insert({
+      const { error: bagErr } = await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
+      if (bagErr) {
+        console.error('[cancel-session] bag update failed for student', e.student_id, bagErr.message)
+        continue
+      }
+      const { error: txErr } = await admin.from('bag_transactions').insert({
         user_id: e.student_id,
         class_bag_id: bag.id,
         delta: 1,
@@ -74,6 +78,7 @@ export async function POST(req: NextRequest) {
         reason: `Clase cancelada ${date}`,
         class_duration: durationType,
       })
+      if (txErr) console.error('[cancel-session] bag_transactions insert failed for student', e.student_id, txErr.message)
       credited++
     }
   }
