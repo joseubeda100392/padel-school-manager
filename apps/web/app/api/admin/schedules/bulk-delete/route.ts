@@ -35,26 +35,41 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { data: enrollments } = await admin.from('group_enrollments').select('id').in('schedule_id', scheduleIds)
-  if (enrollments && enrollments.length > 0) {
-    const { error: exclErr } = await admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollments.map((e: any) => e.id))
-    if (exclErr) return NextResponse.json({ error: 'Error al borrar exclusiones' }, { status: 500 })
-  }
-  const { error: enrollErr } = await admin.from('group_enrollments').delete().in('schedule_id', scheduleIds)
-  if (enrollErr) return NextResponse.json({ error: 'Error al borrar inscripciones' }, { status: 500 })
+  // Step 1: get dependent IDs in parallel
+  const [enrollmentsRes, bookingsRes] = await Promise.all([
+    admin.from('group_enrollments').select('id').in('schedule_id', scheduleIds),
+    admin.from('bookings').select('id').in('schedule_id', scheduleIds),
+  ])
+  const enrollmentIds = (enrollmentsRes.data ?? []).map((e: any) => e.id)
+  const bookingIds = (bookingsRes.data ?? []).map((b: any) => b.id)
 
-  const { data: bookings } = await admin.from('bookings').select('id').in('schedule_id', scheduleIds)
-  if (bookings && bookings.length > 0) {
-    const bookingIds = bookings.map((b: any) => b.id)
-    const { error: txErr } = await admin.from('bag_transactions').delete().in('booking_id', bookingIds)
-    if (txErr) return NextResponse.json({ error: 'Error al borrar transacciones' }, { status: 500 })
-    const { error: payErr } = await admin.from('payments').delete().in('booking_id', bookingIds)
-    if (payErr) return NextResponse.json({ error: 'Error al borrar pagos' }, { status: 500 })
-  }
-  const { error: bookErr } = await admin.from('bookings').delete().in('schedule_id', scheduleIds)
-  if (bookErr) return NextResponse.json({ error: 'Error al borrar reservas' }, { status: 500 })
-  await admin.from('makeups').update({ original_schedule_id: null }).in('original_schedule_id', scheduleIds)
-  await admin.from('makeups').update({ makeup_schedule_id: null }).in('makeup_schedule_id', scheduleIds)
+  // Step 2: delete leaf rows in parallel
+  const [exclRes, txRes, payRes] = await Promise.all([
+    enrollmentIds.length > 0
+      ? admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollmentIds)
+      : Promise.resolve({ error: null as null }),
+    bookingIds.length > 0
+      ? admin.from('bag_transactions').delete().in('booking_id', bookingIds)
+      : Promise.resolve({ error: null as null }),
+    bookingIds.length > 0
+      ? admin.from('payments').delete().in('booking_id', bookingIds)
+      : Promise.resolve({ error: null as null }),
+  ])
+  if (exclRes.error) return NextResponse.json({ error: 'Error al borrar exclusiones' }, { status: 500 })
+  if (txRes.error) return NextResponse.json({ error: 'Error al borrar transacciones' }, { status: 500 })
+  if (payRes.error) return NextResponse.json({ error: 'Error al borrar pagos' }, { status: 500 })
+
+  // Step 3: delete FK rows + null makeups in parallel
+  const [enrollRes, bookRes] = await Promise.all([
+    admin.from('group_enrollments').delete().in('schedule_id', scheduleIds),
+    admin.from('bookings').delete().in('schedule_id', scheduleIds),
+    admin.from('makeups').update({ original_schedule_id: null }).in('original_schedule_id', scheduleIds),
+    admin.from('makeups').update({ makeup_schedule_id: null }).in('makeup_schedule_id', scheduleIds),
+  ])
+  if (enrollRes.error) return NextResponse.json({ error: 'Error al borrar inscripciones' }, { status: 500 })
+  if (bookRes.error) return NextResponse.json({ error: 'Error al borrar reservas' }, { status: 500 })
+
+  // Step 4: delete schedules
   const { error: schedErr } = await admin.from('schedules').delete().in('id', scheduleIds)
   if (schedErr) return NextResponse.json({ error: 'Error al borrar horarios' }, { status: 500 })
 

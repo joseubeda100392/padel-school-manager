@@ -44,12 +44,12 @@ export async function POST(req: NextRequest) {
     let userIds: string[] = []
 
     if (target === 'all') {
-      const q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
+      let q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true).limit(10000)
       const { data } = await (clubId ? q.eq('club_id', clubId) : q)
       userIds = (data ?? []).map((u: any) => u.id)
 
     } else if (target === 'level' && levelId) {
-      const q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true).eq('current_level_id', levelId)
+      let q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true).eq('current_level_id', levelId).limit(10000)
       const { data } = await (clubId ? q.eq('club_id', clubId) : q)
       userIds = (data ?? []).map((u: any) => u.id)
 
@@ -57,37 +57,24 @@ export async function POST(req: NextRequest) {
       const now = new Date()
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
 
-      let qNull = admin
+      let q = admin
         .from('group_enrollments')
         .select('student_id')
         .eq('status', 'active')
-        .is('paid_until', null)
+        .or(`paid_until.is.null,paid_until.lt.${endOfMonth}`)
+        .limit(10000)
 
-      let qOld = admin
-        .from('group_enrollments')
-        .select('student_id')
-        .eq('status', 'active')
-        .lt('paid_until', endOfMonth)
+      if (clubId) q = q.eq('club_id', clubId)
 
-      if (clubId) {
-        qNull = qNull.eq('club_id', clubId)
-        qOld = qOld.eq('club_id', clubId)
-      }
-
-      const { data: withNull } = await qNull
-      const { data: withOld } = await qOld
-
-      const allIds = [
-        ...((withNull ?? []).map((e: any) => e.student_id)),
-        ...((withOld ?? []).map((e: any) => e.student_id)),
-      ]
-      userIds = [...new Set(allIds)]
+      const { data } = await q
+      userIds = [...new Set((data ?? []).map((e: any) => e.student_id))]
 
     } else if (target === 'bag_pending') {
       let q = admin
         .from('class_bag')
         .select('user_id')
         .or('balance_60.gt.0,balance_90.gt.0')
+        .limit(10000)
 
       if (clubId) q = q.eq('club_id', clubId)
       const { data } = await q

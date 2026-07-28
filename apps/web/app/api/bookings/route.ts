@@ -17,14 +17,15 @@ export async function POST(req: NextRequest) {
   const admin = getAdminClient()
 
   // Overlap check: prevent booking two classes at the same time on the same weekday
-  const { data: newSched } = await admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single()
-  if (newSched) {
-    const { data: existing } = await admin
-      .from('bookings')
+  const [{ data: newSched }, { data: existing }] = await Promise.all([
+    admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single(),
+    admin.from('bookings')
       .select('schedule_id, schedules(start_time, end_time)')
       .eq('student_id', user.id)
       .neq('status', 'cancelled')
-      .neq('schedule_id', scheduleId)
+      .neq('schedule_id', scheduleId),
+  ])
+  if (newSched) {
 
     const nStart = new Date(newSched.start_time)
     const nEnd = new Date(newSched.end_time)
@@ -117,8 +118,10 @@ export async function DELETE(req: NextRequest) {
   }
 
   // Borrar referencias antes de borrar la reserva (FK RESTRICT)
-  await admin.from('bag_transactions').delete().eq('booking_id', booking.id)
-  await admin.from('payments').delete().eq('booking_id', booking.id)
+  await Promise.all([
+    admin.from('bag_transactions').delete().eq('booking_id', booking.id),
+    admin.from('payments').delete().eq('booking_id', booking.id),
+  ])
 
   const { error: deleteErr } = await admin.from('bookings').delete().eq('id', booking.id)
   if (deleteErr) return NextResponse.json({ error: 'Error al cancelar la reserva' }, { status: 500 })

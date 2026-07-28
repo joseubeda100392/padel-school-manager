@@ -188,33 +188,36 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
-  const { data: enrollments } = await admin
-    .from('group_enrollments')
-    .select('id')
-    .eq('schedule_id', scheduleId)
+  // Step 1: get dependent IDs in parallel
+  const [enrollmentsRes, bookingsRes] = await Promise.all([
+    admin.from('group_enrollments').select('id').eq('schedule_id', scheduleId),
+    admin.from('bookings').select('id').eq('schedule_id', scheduleId),
+  ])
+  const enrollmentIds = (enrollmentsRes.data ?? []).map((e: any) => e.id)
+  const bookingIds = (bookingsRes.data ?? []).map((b: any) => b.id)
 
-  if (enrollments && enrollments.length > 0) {
-    const enrollmentIds = enrollments.map((e: any) => e.id)
-    await admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollmentIds)
-  }
+  // Step 2: delete leaf rows in parallel
+  await Promise.all([
+    enrollmentIds.length > 0
+      ? admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollmentIds)
+      : Promise.resolve(),
+    bookingIds.length > 0
+      ? admin.from('bag_transactions').delete().in('booking_id', bookingIds)
+      : Promise.resolve(),
+    bookingIds.length > 0
+      ? admin.from('payments').delete().in('booking_id', bookingIds)
+      : Promise.resolve(),
+  ])
 
-  const { data: bookings } = await admin
-    .from('bookings')
-    .select('id')
-    .eq('schedule_id', scheduleId)
+  // Step 3: delete FK rows + null makeups in parallel
+  await Promise.all([
+    admin.from('group_enrollments').delete().eq('schedule_id', scheduleId),
+    admin.from('bookings').delete().eq('schedule_id', scheduleId),
+    admin.from('makeups').update({ original_schedule_id: null }).eq('original_schedule_id', scheduleId),
+    admin.from('makeups').update({ makeup_schedule_id: null }).eq('makeup_schedule_id', scheduleId),
+  ])
 
-  if (bookings && bookings.length > 0) {
-    const bookingIds = bookings.map((b: any) => b.id)
-    await admin.from('bag_transactions').delete().in('booking_id', bookingIds)
-    await admin.from('payments').delete().in('booking_id', bookingIds)
-  }
-
-  await admin.from('group_enrollments').delete().eq('schedule_id', scheduleId)
-  await admin.from('bookings').delete().eq('schedule_id', scheduleId)
-  // Nullear makeups que referencian este schedule (FK nullable)
-  await admin.from('makeups').update({ original_schedule_id: null }).eq('original_schedule_id', scheduleId)
-  await admin.from('makeups').update({ makeup_schedule_id: null }).eq('makeup_schedule_id', scheduleId)
-
+  // Step 4: delete schedule
   const { error: deleteErr } = await admin.from('schedules').delete().eq('id', scheduleId)
   if (deleteErr) return NextResponse.json({ error: 'Error al eliminar el horario' }, { status: 500 })
 

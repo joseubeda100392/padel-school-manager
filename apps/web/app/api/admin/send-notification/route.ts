@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
     .select('id, push_token')
     .eq('role', 'student')
     .not('push_token', 'is', null)
+    .limit(10000)
 
   if (clubId) query = query.eq('club_id', clubId)
   if (filterLevelId) query = query.eq('current_level_id', filterLevelId)
@@ -59,16 +60,16 @@ export async function POST(req: NextRequest) {
     sound: 'default',
   }))
 
-  let sent = 0
-  for (let i = 0; i < messages.length; i += 100) {
-    const batch = messages.slice(i, i + 100)
-    await fetch('https://exp.host/--/api/v2/push/send', {
+  const batches: (typeof messages)[] = []
+  for (let i = 0; i < messages.length; i += 100) batches.push(messages.slice(i, i + 100))
+  await Promise.all(batches.map(batch =>
+    fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(batch),
     })
-    sent += batch.length
-  }
+  ))
+  const sent = tokens.length
 
   await admin.from('push_campaigns').insert({
     club_id: clubId,

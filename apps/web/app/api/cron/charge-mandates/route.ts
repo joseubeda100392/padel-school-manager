@@ -29,14 +29,17 @@ export async function POST(req: NextRequest) {
 
   if (!mandates?.length) return NextResponse.json({ ok: true, charged: 0 })
 
+  const uniqueClubIds = [...new Set(mandates.map(m => m.club_id))]
+  const { data: clubsData } = await admin
+    .from('clubs')
+    .select('id, redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env')
+    .in('id', uniqueClubIds)
+  const clubMap = Object.fromEntries((clubsData ?? []).map((c: any) => [c.id, c]))
+
   const results: { mandateId: string; success: boolean; code: string }[] = []
 
   for (const mandate of mandates) {
-    const { data: club } = await admin
-      .from('clubs')
-      .select('redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env')
-      .eq('id', mandate.club_id)
-      .single()
+    const club = clubMap[mandate.club_id]
 
     const merchantCode = club?.redsys_merchant_code ?? process.env.REDSYS_MERCHANT_CODE ?? ''
     const secretKey = club?.redsys_secret_key ?? process.env.REDSYS_SECRET_KEY ?? ''

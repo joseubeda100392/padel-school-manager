@@ -26,13 +26,6 @@ export async function DELETE(
     }
   }
 
-  // Bloquear borrado si es monitor con clases activas
-  const { data: coachActiveSchedules } = await admin
-    .from('schedules').select('id').eq('coach_id', userId).eq('is_active', true).limit(1)
-  if (coachActiveSchedules && coachActiveSchedules.length > 0) {
-    return NextResponse.json({ error: 'Este monitor tiene clases asignadas. Reasígnalas antes de eliminarlo.' }, { status: 409 })
-  }
-
   // --- Paso 1: nullear FKs nullable + obtener IDs necesarios (todo en paralelo) ---
   const [, , , , , , , , , , enrollmentsRes, studentBookingsRes, bagRes, schedulesRes, checklistsRes] =
     await Promise.all([

@@ -30,6 +30,20 @@ export async function POST(req: NextRequest) {
 
   if (!campaigns?.length) return NextResponse.json({ ok: true, checked: 0 })
 
+  const targetLevelIds = [...new Set(campaigns.filter((c: any) => c.target_level_id).map((c: any) => c.target_level_id as string))]
+  const levelUserMap: Record<string, string[]> = {}
+  if (targetLevelIds.length > 0) {
+    const { data: levelUsers } = await admin
+      .from('user_levels')
+      .select('user_id, level_id')
+      .in('level_id', targetLevelIds)
+      .eq('is_current', true)
+    for (const lu of levelUsers ?? []) {
+      if (!levelUserMap[(lu as any).level_id]) levelUserMap[(lu as any).level_id] = []
+      levelUserMap[(lu as any).level_id].push((lu as any).user_id)
+    }
+  }
+
   const client = getPlaytomicClient()
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://padelschoolmanager.com'
   let checked = 0
@@ -72,12 +86,7 @@ export async function POST(req: NextRequest) {
         .eq('role', 'student')
 
       if (campaign.target_level_id) {
-        const { data: levelUsers } = await admin
-          .from('user_levels')
-          .select('user_id')
-          .eq('level_id', campaign.target_level_id)
-          .eq('is_current', true)
-        const ids = (levelUsers ?? []).map((u) => u.user_id)
+        const ids = levelUserMap[campaign.target_level_id] ?? []
         if (ids.length > 0) membersQuery = membersQuery.in('id', ids)
       }
 

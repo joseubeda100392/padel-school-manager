@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     .select('id, start_time, end_time, court:courts(name)')
     .eq('is_active', true)
     .in('recurrence', ['weekly', 'biweekly'])
+    .limit(2000)
 
   const tomorrowSchedules = (schedules ?? []).filter(
     (s: any) => new Date(s.start_time).getDay() === tomorrowDow
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
     .select('schedule_id, student:users!bookings_student_id_fkey(push_token, name)')
     .in('schedule_id', scheduleIds)
     .eq('status', 'confirmed')
+    .limit(5000)
 
   const messages: any[] = []
   ;(bookings ?? []).forEach((b: any) => {
@@ -53,15 +55,16 @@ export async function POST(req: NextRequest) {
     })
   })
 
-  let sent = 0
-  for (let i = 0; i < messages.length; i += 100) {
-    await fetch('https://exp.host/--/api/v2/push/send', {
+  const batches: any[][] = []
+  for (let i = 0; i < messages.length; i += 100) batches.push(messages.slice(i, i + 100))
+  await Promise.all(batches.map(batch =>
+    fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(messages.slice(i, i + 100)),
+      body: JSON.stringify(batch),
     })
-    sent += messages.slice(i, i + 100).length
-  }
+  ))
+  const sent = messages.length
 
   return NextResponse.json({ ok: true, sent })
 }

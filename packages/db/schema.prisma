@@ -94,6 +94,8 @@ model User {
   notifications    Notification[]
   coachSchedules   Schedule[]       @relation("CoachSchedules")
 
+  @@index([clubId, role])
+  @@index([clubId, isActive])
   @@map("users")
 }
 
@@ -187,6 +189,8 @@ model Schedule {
   coach    User      @relation("CoachSchedules", fields: [coachId], references: [id])
   bookings Booking[]
 
+  @@index([clubId, isActive])
+  @@index([coachId])
   @@map("schedules")
 }
 
@@ -227,6 +231,8 @@ model Booking {
   payment         Payment?
 
   @@unique([scheduleId, studentId])
+  @@index([studentId, status])
+  @@index([clubId, status])
   @@map("bookings")
 }
 
@@ -360,6 +366,7 @@ model ChatMessage {
   thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   sender User       @relation("SentMessages", fields: [senderId], references: [id])
 
+  @@index([threadId])
   @@map("chat_messages")
 }
 
@@ -429,5 +436,6 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("notifications")
 }
