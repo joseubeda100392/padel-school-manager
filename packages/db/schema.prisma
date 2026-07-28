@@ -235,10 +235,14 @@ model Booking {
 // ─────────────────────────────────────────────
 
 model ClassBag {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  balance   Int      @default(0)
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  balance             Int      @default(0)
+  balance60           Int      @default(0) @map("balance_60")
+  balance90           Int      @default(0) @map("balance_90")
+  recoveryBalance60   Int      @default(0) @map("recovery_balance_60")
+  recoveryBalance90   Int      @default(0) @map("recovery_balance_90")
+  updatedAt           DateTime @updatedAt
 
   // Multi-tenant
   clubId    String?

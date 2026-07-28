@@ -2,12 +2,18 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { generateOrderId, chargeMit } from '@/lib/redsys'
+import { timingSafeEqual } from 'crypto'
+
+const MAX_AMOUNT_CENTS = 99_999
 
 // Llamar cada día a las 08:00 desde Railway cron o similar
 // Cobra a todos los mandatos activos cuyo next_charge_at es hoy o anterior
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const authHeader = req.headers.get('authorization') ?? ''
+  const expected = `Bearer ${process.env.CRON_SECRET ?? ''}`
+  const isValid = authHeader.length === expected.length &&
+    timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
+  if (!isValid) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
@@ -36,6 +42,12 @@ export async function POST(req: NextRequest) {
     const secretKey = club?.redsys_secret_key ?? process.env.REDSYS_SECRET_KEY ?? ''
     const terminal = club?.redsys_merchant_terminal ?? process.env.REDSYS_MERCHANT_TERMINAL ?? '001'
     const env = club?.redsys_env ?? null
+
+    if (mandate.amount_cents > MAX_AMOUNT_CENTS) {
+      console.error('[charge-mandates] amount_cents excede cap para mandate', mandate.id, mandate.amount_cents)
+      results.push({ mandateId: mandate.id, success: false, code: 'AMOUNT_EXCEEDS_CAP' })
+      continue
+    }
 
     const orderId = generateOrderId()
 

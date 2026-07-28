@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     .eq('redsys_order_id', order)
     .single()
 
-  if (!payment) return NextResponse.json({ error: 'Solicitud inválida' }, { status: 400 })
+  if (!payment) return NextResponse.json({ error: 'Solicitud no válida' }, { status: 400 })
 
   // Resolver la clave secreta del club (fallback a env var global)
   let secretKey = process.env.REDSYS_SECRET_KEY ?? ''
@@ -44,7 +44,14 @@ export async function POST(req: NextRequest) {
   // Verificar firma con la clave del club
   const valid = verifySignature(secretKey, order, merchantParameters, signature)
   if (!valid) {
-    return NextResponse.json({ error: 'Firma inválida' }, { status: 400 })
+    return NextResponse.json({ error: 'Solicitud no válida' }, { status: 400 })
+  }
+
+  // Validar que el importe del IPN coincide con el registrado en BD
+  const responseAmount = response.Ds_Amount ?? (response as any).DS_AMOUNT
+  if (responseAmount !== undefined && String(payment.amount) !== String(responseAmount)) {
+    console.error('[webhook] amount mismatch: expected', payment.amount, 'got', responseAmount)
+    return NextResponse.json({ error: 'Solicitud no válida' }, { status: 400 })
   }
 
   const success = isPaymentSuccessful(responseCode)
@@ -152,6 +159,10 @@ export async function POST(req: NextRequest) {
 
   } else if (payment.type === 'mandate_init' && meta.mandate_id) {
     const identifier = response.Ds_Merchant_Identifier ?? response.DS_MERCHANT_IDENTIFIER ?? response.Ds_Identifier ?? null
+    if (!identifier) {
+      console.error('[webhook] mandate_init: Redsys no devolvió Ds_Merchant_Identifier para mandate', meta.mandate_id)
+      return NextResponse.json({ error: 'mandate_identifier_missing' }, { status: 500 })
+    }
     const { data: mandate } = await adminSupabase
       .from('payment_mandates')
       .select('day_of_month')

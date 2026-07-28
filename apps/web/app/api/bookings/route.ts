@@ -90,6 +90,20 @@ export async function DELETE(req: NextRequest) {
 
   if (!booking) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 })
 
+  const studentId = booking.student_id ?? user.id
+
+  // Leer la tx original ANTES de borrar bag_transactions (necesario para durationType del reembolso)
+  let originalTx: { class_duration: string | null } | null = null
+  if (refundBag && booking.source === 'bag') {
+    const { data: tx } = await admin
+      .from('bag_transactions')
+      .select('class_duration')
+      .eq('booking_id', booking.id)
+      .eq('type', 'debit')
+      .maybeSingle()
+    originalTx = tx
+  }
+
   // Borrar referencias antes de borrar la reserva (FK RESTRICT)
   await admin.from('bag_transactions').delete().eq('booking_id', booking.id)
   await admin.from('payments').delete().eq('booking_id', booking.id)
@@ -97,18 +111,10 @@ export async function DELETE(req: NextRequest) {
   const { error: deleteErr } = await admin.from('bookings').delete().eq('id', booking.id)
   if (deleteErr) return NextResponse.json({ error: 'Error al cancelar la reserva' }, { status: 500 })
 
-  const studentId = booking.student_id ?? user.id
-
   if (refundBag && (booking.source === 'bag' || booking.source === 'pay_per_class')) {
     let durationType: '60' | '90' = '60'
 
     if (booking.source === 'bag') {
-      const { data: originalTx } = await admin
-        .from('bag_transactions')
-        .select('class_duration')
-        .eq('booking_id', booking.id)
-        .eq('type', 'debit')
-        .maybeSingle()
       durationType = originalTx?.class_duration === '90' ? '90' : '60'
     } else {
       const { data: sched } = await admin
@@ -131,13 +137,13 @@ export async function DELETE(req: NextRequest) {
         console.error('[bookings] refund bag update failed:', bagUpdateErr.message)
         return NextResponse.json({ error: 'Error al devolver crédito a la bolsa' }, { status: 500 })
       }
+      // booking_id omitido: el booking fue eliminado antes de esta inserción
       const { error: txErr } = await admin.from('bag_transactions').insert({
         user_id: studentId,
         class_bag_id: bag.id,
         delta: 1,
         type: 'credit',
         reason: 'Cancelación de clase',
-        booking_id: booking.id,
         class_duration: durationType,
       })
       if (txErr) console.error('[bookings] refund transaction insert failed:', txErr.message)

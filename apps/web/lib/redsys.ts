@@ -1,4 +1,4 @@
-import { createHmac, createCipheriv, timingSafeEqual } from 'crypto'
+import { createHmac, createCipheriv, timingSafeEqual, randomBytes } from 'crypto'
 
 const REDSYS_URL_TEST = 'https://sis-t.redsys.es:25443/sis/realizarPago'
 const REDSYS_URL_PROD = 'https://sis.redsys.es/sis/realizarPago'
@@ -39,7 +39,7 @@ export function verifySignature(secretKey: string, order: string, params: string
 export function generateOrderId(): string {
   // Redsys: 4-12 chars alfanuméricos, debe empezar por 4 dígitos
   const ts = Date.now().toString().slice(-8)
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
+  const rand = randomBytes(2).toString('hex').toUpperCase()
   return (ts + rand).slice(0, 12)
 }
 
