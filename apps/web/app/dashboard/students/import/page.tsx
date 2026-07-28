@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Row {
   nombre: string
@@ -96,6 +97,7 @@ export default function ImportStudentsPage() {
   const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
 
   const BATCH_SIZE = 50
 
@@ -327,9 +329,12 @@ export default function ImportStudentsPage() {
               >
                 ↓ Descargar resultado CSV
               </button>
-              <a href="/dashboard/students" className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
+              <button
+                onClick={() => { router.refresh(); router.push('/dashboard/students') }}
+                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+              >
                 Ver alumnos
-              </a>
+              </button>
             </div>
           </div>
           <div className="overflow-x-auto">
