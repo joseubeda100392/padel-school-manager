@@ -62,7 +62,7 @@ export async function DELETE(
   await admin.from('users').delete().eq('id', userId)
 
   const { error: authErr } = await admin.auth.admin.deleteUser(userId)
-  if (authErr) {
+  if (authErr && !authErr.message.toLowerCase().includes('not found')) {
     return NextResponse.json({ error: `Error eliminando cuenta Auth: ${authErr.message}` }, { status: 500 })
   }
 
