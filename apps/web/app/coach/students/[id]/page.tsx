@@ -24,7 +24,7 @@ export default async function CoachStudentPage({ params }: { params: { id: strin
   const scheduleIds = (coachSchedules ?? []).map((s: any) => s.id)
 
   const [{ data: student }, { data: checklists }, { data: enrollment }] = await Promise.all([
-    admin.from('users').select('id, name, email, current_level_id').eq('id', params.id).single(),
+    admin.from('users').select('id, name, email, current_level_id').eq('id', params.id).eq('club_id', coach.club_id).single(),
     admin
       .from('student_checklists')
       .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at, completed_by_id)')

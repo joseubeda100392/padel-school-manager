@@ -32,7 +32,7 @@ export async function DELETE(
   }
 
   // Bloquear borrado si el usuario es monitor con clases asignadas (coach_id NOT NULL en schedules)
-  const { data: coachSchedules } = await admin.from('schedules').select('id').eq('coach_id', userId).limit(1)
+  const { data: coachSchedules } = await admin.from('schedules').select('id').eq('coach_id', userId).eq('is_active', true).limit(1)
   if (coachSchedules && coachSchedules.length > 0) {
     return NextResponse.json({ error: 'Este monitor tiene clases asignadas. Reasígnalas antes de eliminarlo.' }, { status: 409 })
   }
