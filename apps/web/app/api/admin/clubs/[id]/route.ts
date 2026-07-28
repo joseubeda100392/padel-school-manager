@@ -52,6 +52,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       await admin.from('payments').delete().in('booking_id', bookingIds)
     }
     await admin.from('bookings').delete().in('schedule_id', scheduleIds)
+    await admin.from('makeups').update({ original_schedule_id: null }).in('original_schedule_id', scheduleIds)
+    await admin.from('makeups').update({ makeup_schedule_id: null }).in('makeup_schedule_id', scheduleIds)
     await admin.from('schedules').delete().in('id', scheduleIds)
   }
 
@@ -63,6 +65,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (threadIds.length) {
     await admin.from('chat_messages').delete().in('thread_id', threadIds)
     await admin.from('chat_threads').delete().in('id', threadIds)
+  }
+
+  // Nullear FKs de pista_viva y makeups antes de borrar users/levels
+  await admin.from('pista_viva_campaigns').update({ target_level_id: null }).eq('club_id', clubId)
+  if (userIds.length) {
+    await admin.from('pista_viva_campaigns').update({ created_by: null }).in('created_by', userIds)
+    await admin.from('pista_viva_clicks').update({ user_id: null }).in('user_id', userIds)
+    await admin.from('makeups').update({ created_by: null }).in('created_by', userIds)
+    await admin.from('schedule_exclusions').update({ created_by: null }).in('created_by', userIds)
   }
 
   if (userIds.length) {

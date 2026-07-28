@@ -44,6 +44,8 @@ export async function POST(req: NextRequest) {
     await admin.from('payments').delete().in('booking_id', bookingIds)
   }
   await admin.from('bookings').delete().in('schedule_id', scheduleIds)
+  await admin.from('makeups').update({ original_schedule_id: null }).in('original_schedule_id', scheduleIds)
+  await admin.from('makeups').update({ makeup_schedule_id: null }).in('makeup_schedule_id', scheduleIds)
   await admin.from('schedules').delete().in('id', scheduleIds)
 
   return NextResponse.json({ ok: true })

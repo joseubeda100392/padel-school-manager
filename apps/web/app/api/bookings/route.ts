@@ -86,6 +86,10 @@ export async function DELETE(req: NextRequest) {
 
   if (!booking) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 })
 
+  // Borrar referencias antes de borrar la reserva (FK RESTRICT)
+  await admin.from('bag_transactions').delete().eq('booking_id', booking.id)
+  await admin.from('payments').delete().eq('booking_id', booking.id)
+
   const { error: deleteErr } = await admin.from('bookings').delete().eq('id', booking.id)
   if (deleteErr) return NextResponse.json({ error: 'Error al cancelar la reserva' }, { status: 500 })
 

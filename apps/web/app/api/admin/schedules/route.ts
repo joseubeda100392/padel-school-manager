@@ -188,6 +188,9 @@ export async function DELETE(req: NextRequest) {
 
   await admin.from('group_enrollments').delete().eq('schedule_id', scheduleId)
   await admin.from('bookings').delete().eq('schedule_id', scheduleId)
+  // Nullear makeups que referencian este schedule (FK nullable)
+  await admin.from('makeups').update({ original_schedule_id: null }).eq('original_schedule_id', scheduleId)
+  await admin.from('makeups').update({ makeup_schedule_id: null }).eq('makeup_schedule_id', scheduleId)
 
   const { error: deleteErr } = await admin.from('schedules').delete().eq('id', scheduleId)
   if (deleteErr) return NextResponse.json({ error: deleteErr.message }, { status: 500 })

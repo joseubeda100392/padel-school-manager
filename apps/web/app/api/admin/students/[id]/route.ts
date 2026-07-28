@@ -31,9 +31,20 @@ export async function DELETE(
     }
   }
 
-  // Nullear referencias de coach antes de borrar el usuario
-  await admin.from('schedules').update({ coach_id: null }).eq('coach_id', userId)
+  // Bloquear borrado si el usuario es monitor con clases asignadas (coach_id NOT NULL en schedules)
+  const { data: coachSchedules } = await admin.from('schedules').select('id').eq('coach_id', userId).limit(1)
+  if (coachSchedules && coachSchedules.length > 0) {
+    return NextResponse.json({ error: 'Este monitor tiene clases asignadas. Reasígnalas antes de eliminarlo.' }, { status: 409 })
+  }
+
+  // Nullear recipient_id en chat_threads donde este usuario es receptor
   await admin.from('chat_threads').update({ recipient_id: null }).eq('recipient_id', userId)
+  // Nullear created_by en schedule_exclusions y makeups (FK nullable)
+  await admin.from('schedule_exclusions').update({ created_by: null }).eq('created_by', userId)
+  await admin.from('makeups').update({ created_by: null }).eq('created_by', userId)
+  // Nullear pista_viva
+  await admin.from('pista_viva_campaigns').update({ created_by: null }).eq('created_by', userId)
+  await admin.from('pista_viva_clicks').update({ user_id: null }).eq('user_id', userId)
 
   await admin.from('user_levels').delete().eq('user_id', userId)
 
