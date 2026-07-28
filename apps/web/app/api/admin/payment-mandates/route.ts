@@ -55,6 +55,13 @@ export async function POST(req: NextRequest) {
   const { userId, amountCents, dayOfMonth = 1 } = await req.json()
   if (!userId || !amountCents) return NextResponse.json({ error: 'userId y amountCents requeridos' }, { status: 400 })
 
+  if (caller.role !== 'super_admin') {
+    const { data: targetUser } = await admin.from('users').select('club_id').eq('id', userId).single()
+    if (!targetUser || targetUser.club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
+  }
+
   const cookieStore = cookies()
   let clubId = caller.role === 'super_admin'
     ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id)

@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
   const { error: authError } = await admin.auth.admin.updateUserById(userId, { email: newEmail })
   if (authError) return NextResponse.json({ error: authError.message }, { status: 400 })
 
-  await admin.from('users').update({ email: newEmail }).eq('id', userId)
+  const { error: dbError } = await admin.from('users').update({ email: newEmail }).eq('id', userId)
+  if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

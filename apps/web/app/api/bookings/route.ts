@@ -71,14 +71,18 @@ export async function DELETE(req: NextRequest) {
   const { bookingId, scheduleId, refundBag } = delBody
   const admin = getAdminClient()
 
-  const { data: callerProfile } = await admin.from('users').select('role').eq('id', user.id).single()
+  const { data: callerProfile } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   const isAdmin = ['admin', 'super_admin', 'coach'].includes(callerProfile?.role ?? '')
 
   // Admins can cancel any booking; students only their own
-  let bookingQuery = admin.from('bookings').select('id, source, schedule_id, student_id').neq('status', 'cancelled')
+  let bookingQuery = admin.from('bookings').select('id, source, schedule_id, student_id, club_id').neq('status', 'cancelled')
   if (bookingId) {
     bookingQuery = bookingQuery.eq('id', bookingId)
-    if (!isAdmin) bookingQuery = bookingQuery.eq('student_id', user.id)
+    if (!isAdmin) {
+      bookingQuery = bookingQuery.eq('student_id', user.id)
+    } else if (callerProfile?.role !== 'super_admin' && callerProfile?.club_id) {
+      bookingQuery = bookingQuery.eq('club_id', callerProfile.club_id)
+    }
   } else {
     bookingQuery = bookingQuery.eq('schedule_id', scheduleId).eq('student_id', user.id)
   }

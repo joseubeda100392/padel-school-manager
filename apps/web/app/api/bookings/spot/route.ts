@@ -15,9 +15,10 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
-  const [{ data: exclusion }, { data: schedule }, { data: inGroup }] = await Promise.all([
+  const [{ data: userProfile }, { data: exclusion }, { data: schedule }, { data: inGroup }] = await Promise.all([
+    admin.from('users').select('club_id').eq('id', user.id).single(),
     admin.from('schedule_exclusions').select('id, publish_spot, excluded_date').eq('id', exclusionId).single(),
-    admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time, club_id').eq('id', scheduleId).single(),
     admin.from('group_enrollments').select('id').eq('schedule_id', scheduleId).eq('student_id', user.id).eq('status', 'active').maybeSingle(),
   ])
 
@@ -30,6 +31,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
+
+  if ((userProfile as any)?.club_id && (schedule as any).club_id !== (userProfile as any).club_id) {
+    return NextResponse.json({ error: 'Sin acceso a este hueco' }, { status: 403 })
+  }
 
   // Overlap check
   const { data: existingSpot } = await admin

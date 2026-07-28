@@ -2,7 +2,6 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Booking {
   id: string
@@ -23,9 +22,14 @@ export default function AttendanceForm({ bookings: initial, scheduleId }: { book
 
   async function markStatus(bookingId: string, status: 'confirmed' | 'no_show') {
     setSaving(bookingId)
-    const supabase = createClient()
-    await supabase.from('bookings').update({ status }).eq('id', bookingId)
-    setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, status } : b))
+    const res = await fetch('/api/bookings/attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId, status }),
+    })
+    if (res.ok) {
+      setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, status } : b))
+    }
     setSaving(null)
   }
 

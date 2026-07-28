@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
   const { data: schedule } = await admin.from('schedules').select('start_time, end_time, club_id').eq('id', scheduleId).single()
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
 
+  if (caller.role !== 'super_admin' && (schedule as any).club_id !== caller.club_id) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
   const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
   const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
 

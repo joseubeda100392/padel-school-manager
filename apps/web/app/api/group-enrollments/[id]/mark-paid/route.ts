@@ -22,6 +22,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   if (!enrollment) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
 
+  if (adminUser.role !== 'super_admin' && enrollment.club_id && enrollment.club_id !== adminUser.club_id) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
   const now = new Date()
   const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
 

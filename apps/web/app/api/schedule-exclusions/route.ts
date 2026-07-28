@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdminClient()
-  const { data: adminUser } = await admin.from('users').select('role').eq('id', user.id).single()
+  const { data: adminUser } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
@@ -63,6 +63,13 @@ export async function POST(req: NextRequest) {
     .select('student_id, schedule_id')
     .eq('id', group_enrollment_id)
     .single()
+
+  if (adminUser.role !== 'super_admin' && enrollment?.schedule_id) {
+    const { data: scheduleCheck } = await admin.from('schedules').select('club_id').eq('id', enrollment.schedule_id).single()
+    if (!scheduleCheck || (scheduleCheck as any).club_id !== adminUser.club_id) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
+  }
 
   const { data, error } = await admin.from('schedule_exclusions').insert({
     group_enrollment_id,
@@ -136,7 +143,7 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdminClient()
-  const { data: adminUser } = await admin.from('users').select('role').eq('id', user.id).single()
+  const { data: adminUser } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
@@ -148,6 +155,16 @@ export async function PATCH(req: NextRequest) {
     .select('excluded_date, group_enrollment_id, publish_spot')
     .eq('id', id)
     .single()
+
+  if (adminUser.role !== 'super_admin' && exclusionBefore?.group_enrollment_id) {
+    const { data: ge } = await admin.from('group_enrollments').select('schedule_id').eq('id', exclusionBefore.group_enrollment_id).single()
+    if (ge?.schedule_id) {
+      const { data: sched } = await admin.from('schedules').select('club_id').eq('id', ge.schedule_id).single()
+      if (!sched || (sched as any).club_id !== adminUser.club_id) {
+        return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+      }
+    }
+  }
 
   const { error } = await admin.from('schedule_exclusions').update({ publish_spot }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -173,7 +190,7 @@ export async function DELETE(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = getAdminClient()
-  const { data: adminUser } = await admin.from('users').select('role').eq('id', user.id).single()
+  const { data: adminUser } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
@@ -185,6 +202,16 @@ export async function DELETE(req: NextRequest) {
     .select('group_enrollment_id, excluded_date')
     .eq('id', id)
     .single()
+
+  if (adminUser.role !== 'super_admin' && exclusion?.group_enrollment_id) {
+    const { data: ge } = await admin.from('group_enrollments').select('schedule_id').eq('id', exclusion.group_enrollment_id).single()
+    if (ge?.schedule_id) {
+      const { data: sched } = await admin.from('schedules').select('club_id').eq('id', ge.schedule_id).single()
+      if (!sched || (sched as any).club_id !== adminUser.club_id) {
+        return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+      }
+    }
+  }
 
   const { error: delErr } = await admin.from('schedule_exclusions').delete().eq('id', id)
   if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 })

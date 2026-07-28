@@ -1,4 +1,4 @@
-import { createHmac, createCipheriv } from 'crypto'
+import { createHmac, createCipheriv, timingSafeEqual } from 'crypto'
 
 const REDSYS_URL_TEST = 'https://sis-t.redsys.es:25443/sis/realizarPago'
 const REDSYS_URL_PROD = 'https://sis.redsys.es/sis/realizarPago'
@@ -30,7 +30,10 @@ export function buildMerchantParameters(data: Record<string, string>): string {
 export function verifySignature(secretKey: string, order: string, params: string, received: string): boolean {
   const expected = generateSignature(secretKey, order, params)
   const normalize = (s: string) => s.replace(/-/g, '+').replace(/_/g, '/')
-  return normalize(expected) === normalize(received)
+  const expectedBuf = Buffer.from(normalize(expected))
+  const receivedBuf = Buffer.from(normalize(received))
+  if (expectedBuf.length !== receivedBuf.length) return false
+  return timingSafeEqual(expectedBuf, receivedBuf)
 }
 
 export function generateOrderId(): string {

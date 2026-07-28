@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-  const { data: caller } = await supabase.from('users').select('role').eq('id', user.id).single()
+  const admin = getAdminClient()
+  const { data: caller } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!caller || !['admin', 'coach', 'super_admin'].includes(caller.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
@@ -24,7 +25,19 @@ export async function POST(req: NextRequest) {
   if (badRequest) return badRequest
   const { scheduleId, studentId, classDate, clubId } = body
 
-  const admin = getAdminClient()
+  if (caller.role !== 'super_admin' && caller.club_id) {
+    const [{ data: scheduleCheck }, { data: studentCheck }] = await Promise.all([
+      admin.from('schedules').select('club_id').eq('id', scheduleId).single(),
+      admin.from('users').select('club_id').eq('id', studentId).single(),
+    ])
+    if (!scheduleCheck || (scheduleCheck as any).club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos para esta clase' }, { status: 403 })
+    }
+    if (!studentCheck || (studentCheck as any).club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos para este alumno' }, { status: 403 })
+    }
+  }
+  const effectiveClubId = caller.role === 'super_admin' ? (clubId ?? caller.club_id) : caller.club_id
 
   // Overlap check
   const { data: newSched } = await admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single()
@@ -102,7 +115,7 @@ export async function POST(req: NextRequest) {
       status: 'confirmed',
       source: 'admin',
       class_date: classDate,
-      club_id: clubId ?? null,
+      club_id: effectiveClubId ?? null,
     })
     .select('id')
     .single()

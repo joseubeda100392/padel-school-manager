@@ -26,8 +26,8 @@ export async function POST(req: NextRequest) {
   }
 
   const [{ data: schedule }, { data: student }, { data: existingEnrollments }, { data: studentSchedules }] = await Promise.all([
-    admin.from('schedules').select('level_id, start_time, end_time').eq('id', scheduleId).single(),
-    admin.from('users').select('current_level_id').eq('id', studentId).single(),
+    admin.from('schedules').select('level_id, start_time, end_time, club_id').eq('id', scheduleId).single(),
+    admin.from('users').select('current_level_id, club_id').eq('id', studentId).single(),
     admin.from('group_enrollments')
       .select('student:users!group_enrollments_student_id_fkey(current_level_id)')
       .eq('schedule_id', scheduleId)
@@ -38,6 +38,15 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
       .neq('schedule_id', scheduleId),
   ])
+
+  if (adminUser.role !== 'super_admin') {
+    if (!schedule || (schedule as any).club_id !== adminUser.club_id) {
+      return NextResponse.json({ error: 'Sin permisos: clase no pertenece a tu club' }, { status: 403 })
+    }
+    if (!student || (student as any).club_id !== adminUser.club_id) {
+      return NextResponse.json({ error: 'Sin permisos: alumno no pertenece a tu club' }, { status: 403 })
+    }
+  }
 
   // level_id on schedule takes priority; if absent, infer from already-enrolled students
   const enrolledLevels = [...new Set(

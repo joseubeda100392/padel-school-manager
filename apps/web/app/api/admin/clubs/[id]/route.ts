@@ -6,12 +6,15 @@ import { getAdminClient } from '@/lib/supabase/admin'
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.user_metadata?.role !== 'super_admin') {
+  if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const admin = getAdminClient()
+  const { data: callerProfile } = await admin.from('users').select('role').eq('id', user.id).single()
+  if (!callerProfile || callerProfile.role !== 'super_admin') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
   const clubId = params.id
-  const admin = getAdminClient()
 
   const { data: club } = await admin.from('clubs').select('id').eq('id', clubId).single()
   if (!club) return NextResponse.json({ error: 'Club no encontrado' }, { status: 404 })

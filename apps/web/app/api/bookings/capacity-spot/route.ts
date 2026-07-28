@@ -13,13 +13,16 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
-  const { data: schedule } = await admin
-    .from('schedules')
-    .select('id, max_students, start_time, end_time')
-    .eq('id', scheduleId)
-    .single()
+  const [{ data: userProfile }, { data: schedule }] = await Promise.all([
+    admin.from('users').select('club_id').eq('id', user.id).single(),
+    admin.from('schedules').select('id, max_students, start_time, end_time, club_id').eq('id', scheduleId).single(),
+  ])
 
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
+
+  if ((userProfile as any)?.club_id && (schedule as any).club_id !== (userProfile as any).club_id) {
+    return NextResponse.json({ error: 'Sin acceso a esta clase' }, { status: 403 })
+  }
 
   // Overlap check
   const { data: existingBookings } = await admin

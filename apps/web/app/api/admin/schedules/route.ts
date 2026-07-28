@@ -76,6 +76,19 @@ export async function POST(req: NextRequest) {
     ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id ?? null)
     : caller.club_id
 
+  if (caller.role !== 'super_admin' && effectiveClubId) {
+    const [{ data: courtRow }, { data: coachRow }] = await Promise.all([
+      admin.from('courts').select('club_id').eq('id', body.court_id).single(),
+      admin.from('users').select('club_id').eq('id', body.coach_id).single(),
+    ])
+    if (!courtRow || (courtRow as any).club_id !== effectiveClubId) {
+      return NextResponse.json({ error: 'La pista no pertenece a tu club' }, { status: 403 })
+    }
+    if (!coachRow || (coachRow as any).club_id !== effectiveClubId) {
+      return NextResponse.json({ error: 'El monitor no pertenece a tu club' }, { status: 403 })
+    }
+  }
+
   const { data, error } = await admin.from('schedules').insert({
     court_id: body.court_id,
     coach_id: body.coach_id,
@@ -116,6 +129,16 @@ export async function PATCH(req: NextRequest) {
     const { data: existing } = await admin.from('schedules').select('club_id').eq('id', body.id).single()
     if (!existing || existing.club_id !== caller.club_id) {
       return NextResponse.json({ error: 'Sin permisos para editar este horario' }, { status: 403 })
+    }
+    const [{ data: courtRow }, { data: coachRow }] = await Promise.all([
+      admin.from('courts').select('club_id').eq('id', body.court_id).single(),
+      admin.from('users').select('club_id').eq('id', body.coach_id).single(),
+    ])
+    if (!courtRow || (courtRow as any).club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'La pista no pertenece a tu club' }, { status: 403 })
+    }
+    if (!coachRow || (coachRow as any).club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'El monitor no pertenece a tu club' }, { status: 403 })
     }
   }
 

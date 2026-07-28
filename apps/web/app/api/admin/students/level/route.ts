@@ -17,6 +17,13 @@ export async function POST(req: NextRequest) {
   const { userId, levelId } = await req.json()
   if (!userId) return NextResponse.json({ error: 'userId requerido' }, { status: 400 })
 
+  if (caller.role !== 'super_admin' && caller.club_id) {
+    const { data: target } = await admin.from('users').select('club_id').eq('id', userId).single()
+    if (!target || target.club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
+  }
+
   const { error: updateErr } = await admin
     .from('users')
     .update({ current_level_id: levelId || null })
