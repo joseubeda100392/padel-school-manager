@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useSpring, useTransform } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, ScrollText } from 'lucide-react'
+import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
@@ -33,7 +33,6 @@ const allNavItems = [
   { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false, feature: 'enable_bag' },
   { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false, feature: 'enable_materials' },
   { href: '/student/tarifas', label: 'Tarifas', icon: Receipt, exact: false, feature: null },
-  { href: '/student/normas', label: 'Normas', icon: ScrollText, exact: false, feature: null },
   { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false, feature: null },
   { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
 ]

@@ -1,18 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { getClubFeatures } from '@/lib/get-club-features'
-import { formatCurrency } from '@/lib/utils'
-
-const DEFAULT_CFG = {
-  pay_per_class_price_60: 1200,
-  pay_per_class_price_90: 1500,
-  pack_price_60: 9000,
-  classes_per_pack_60: 10,
-  pack_price_90: 12000,
-  classes_per_pack_90: 10,
-  cancellation_hours: 24,
-}
 
 export default async function CoachTarifasPage() {
   const supabase = createClient()
@@ -23,102 +11,60 @@ export default async function CoachTarifasPage() {
   const { data: profile } = await admin.from('users').select('club_id').eq('id', user.id).single()
   const clubId = profile?.club_id ?? null
 
-  const [features, { data: clubRow }] = await Promise.all([
-    getClubFeatures(clubId),
-    clubId
-      ? admin.from('clubs').select('config').eq('id', clubId).single()
-      : { data: null },
-  ])
+  const { data: featRow } = clubId
+    ? await admin.from('clubs').select('club_features').eq('id', clubId).single()
+    : { data: null }
 
-  const cfg = { ...DEFAULT_CFG, ...((clubRow as any)?.config ?? {}) }
-
-  const hasPrices = features.enable_payments && (features.enable_60min || features.enable_90min)
-  const hasPacks = features.enable_bag && (features.enable_60min || features.enable_90min)
+  const features = (featRow as any)?.club_features ?? {}
+  const docs = [
+    { key: 'tarifas_pdf_url', label: 'Tarifas', description: 'Precios de clases y bonos', apiPath: '/api/pdf/tarifas' },
+    { key: 'calendario_pdf_url', label: 'Calendario', description: 'Calendario de la temporada', apiPath: '/api/pdf/calendario' },
+    { key: 'terms_pdf_url', label: 'Normas', description: 'Normas y condiciones de uso', apiPath: '/api/pdf/normas' },
+  ]
 
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tarifas</h1>
-        <p className="text-sm text-gray-500">Precios actuales de clases y bonos</p>
+        <h1 className="text-2xl font-bold text-gray-900">Tarifas y documentos</h1>
+        <p className="text-sm text-gray-500">Documentos del club disponibles para consultar</p>
       </div>
 
-      {hasPrices && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Clase suelta</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {features.enable_60min && (
-              <div className="rounded-lg border border-gray-100 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">1 hora</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
-                  {formatCurrency(cfg.pay_per_class_price_60)}
-                </p>
-                <p className="text-xs text-gray-400">por clase</p>
+      <div className="space-y-4">
+        {docs.map(doc => {
+          const hasUrl = typeof features[doc.key] === 'string' && !!features[doc.key]
+          return (
+            <div key={doc.key} className="rounded-xl bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-semibold text-gray-900">{doc.label}</h2>
+                  <p className="mt-0.5 text-xs text-gray-400">{doc.description}</p>
+                </div>
+                {hasUrl && (
+                  <a
+                    href={doc.apiPath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                  >
+                    Ver PDF
+                  </a>
+                )}
               </div>
-            )}
-            {features.enable_90min && (
-              <div className="rounded-lg border border-gray-100 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">1h 30min</p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
-                  {formatCurrency(cfg.pay_per_class_price_90)}
-                </p>
-                <p className="text-xs text-gray-400">por clase</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {hasPacks && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Bonos de clases</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {features.enable_60min && (
-              <div className="rounded-lg border border-brand-100 bg-brand-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-brand-400">Bono 1 hora</p>
-                <p className="mt-1 text-2xl font-bold text-brand-700">
-                  {formatCurrency(cfg.pack_price_60)}
-                </p>
-                <p className="text-sm text-brand-600">
-                  {cfg.classes_per_pack_60} clases incluidas
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {formatCurrency(Math.round(cfg.pack_price_60 / cfg.classes_per_pack_60))} / clase
-                </p>
-              </div>
-            )}
-            {features.enable_90min && (
-              <div className="rounded-lg border border-brand-100 bg-brand-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-brand-400">Bono 1h 30min</p>
-                <p className="mt-1 text-2xl font-bold text-brand-700">
-                  {formatCurrency(cfg.pack_price_90)}
-                </p>
-                <p className="text-sm text-brand-600">
-                  {cfg.classes_per_pack_90} clases incluidas
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {formatCurrency(Math.round(cfg.pack_price_90 / cfg.classes_per_pack_90))} / clase
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {features.enable_bag && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-1 font-semibold text-gray-900">Política de cancelación</h2>
-          <p className="text-sm text-gray-600">
-            Si el alumno cancela con menos de{' '}
-            <strong>{cfg.cancellation_hours} horas</strong> de antelación, el crédito de clase <strong>no</strong> se devuelve a la bolsa.
-          </p>
-        </div>
-      )}
-
-      {!hasPrices && !hasPacks && (
-        <div className="rounded-xl bg-gray-50 p-8 text-center">
-          <p className="text-sm text-gray-400">No hay tarifas configuradas actualmente.</p>
-        </div>
-      )}
+              {!hasUrl && (
+                <div className="mt-4 flex h-16 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                  <p className="text-sm text-gray-400">No disponible todavía</p>
+                </div>
+              )}
+              {hasUrl && (
+                <div className="mt-4 flex items-center gap-3 rounded-lg border border-green-100 bg-green-50 px-4 py-3">
+                  <span className="text-xl">📄</span>
+                  <p className="text-sm font-medium text-green-700">PDF disponible</p>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
