@@ -33,12 +33,28 @@ export async function DELETE(
 
   await admin.from('user_levels').delete().eq('user_id', userId)
 
+  // Borrar exclusiones antes de enrollments
+  const { data: enrollments } = await admin.from('group_enrollments').select('id').eq('student_id', userId)
+  if (enrollments && enrollments.length > 0) {
+    const enrollmentIds = enrollments.map((e: any) => e.id)
+    await admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollmentIds)
+  }
+
+  // Borrar bag_transactions y payments antes de bookings
+  const { data: studentBookings } = await admin.from('bookings').select('id').eq('student_id', userId)
+  if (studentBookings && studentBookings.length > 0) {
+    const bookingIds = studentBookings.map((b: any) => b.id)
+    await admin.from('bag_transactions').delete().in('booking_id', bookingIds)
+    await admin.from('payments').delete().in('booking_id', bookingIds)
+  }
+
   const { data: bag } = await admin.from('class_bag').select('id').eq('user_id', userId).maybeSingle()
   if (bag) {
     await admin.from('bag_transactions').delete().eq('class_bag_id', bag.id)
     await admin.from('class_bag').delete().eq('user_id', userId)
   }
 
+  await admin.from('payments').delete().eq('user_id', userId)
   await admin.from('bookings').delete().eq('student_id', userId)
   await admin.from('group_enrollments').delete().eq('student_id', userId)
   await admin.from('notifications').delete().eq('user_id', userId)

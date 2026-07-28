@@ -49,6 +49,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     }
   }
 
+  await admin.from('schedule_exclusions').delete().eq('group_enrollment_id', params.id)
   await admin.from('group_enrollments').delete().eq('id', params.id)
   return NextResponse.json({ ok: true })
 }
