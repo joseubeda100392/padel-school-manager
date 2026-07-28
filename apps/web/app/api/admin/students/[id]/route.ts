@@ -31,9 +31,14 @@ export async function DELETE(
     }
   }
 
-  // Bloquear borrado si el usuario es monitor con clases asignadas (coach_id NOT NULL en schedules)
-  const { data: coachSchedules } = await admin.from('schedules').select('id').eq('coach_id', userId).eq('is_active', true).limit(1)
-  if (coachSchedules && coachSchedules.length > 0) {
+  // Bloquear borrado si el usuario es monitor con clases activas que tienen alumnos
+  const { data: coachActiveSchedules } = await admin
+    .from('schedules')
+    .select('id')
+    .eq('coach_id', userId)
+    .eq('is_active', true)
+    .limit(1)
+  if (coachActiveSchedules && coachActiveSchedules.length > 0) {
     return NextResponse.json({ error: 'Este monitor tiene clases asignadas. Reasígnalas antes de eliminarlo.' }, { status: 409 })
   }
 
@@ -48,8 +53,39 @@ export async function DELETE(
   await admin.from('student_checklists').update({ coach_id: null }).eq('coach_id', userId)
   await admin.from('student_checklists').update({ completed_by_id: null }).eq('completed_by_id', userId)
   await admin.from('checklist_items').update({ completed_by_id: null }).eq('completed_by_id', userId)
-  // Nullear coach_id en schedules inactivos (activos bloqueados arriba)
-  await admin.from('schedules').update({ coach_id: null }).eq('coach_id', userId)
+
+  // --- Borrar horarios del monitor en cascada ---
+  // coach_id es NOT NULL en schedules, no se puede nullear — hay que borrar los horarios
+  const { data: mySchedules } = await admin.from('schedules').select('id').eq('coach_id', userId)
+  if (mySchedules && mySchedules.length > 0) {
+    const scheduleIds = mySchedules.map((s: any) => s.id)
+
+    // Limpiar enrollments (y sus exclusiones) ligados a estos horarios
+    const { data: schedEnrollments } = await admin
+      .from('group_enrollments')
+      .select('id')
+      .in('schedule_id', scheduleIds)
+    if (schedEnrollments && schedEnrollments.length > 0) {
+      const enrollIds = schedEnrollments.map((e: any) => e.id)
+      await admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollIds)
+      await admin.from('group_enrollments').delete().in('id', enrollIds)
+    }
+
+    // Limpiar bookings (y sus transacciones/pagos) ligados a estos horarios
+    const { data: schedBookings } = await admin
+      .from('bookings')
+      .select('id')
+      .in('schedule_id', scheduleIds)
+    if (schedBookings && schedBookings.length > 0) {
+      const bookingIds = schedBookings.map((b: any) => b.id)
+      await admin.from('bag_transactions').delete().in('booking_id', bookingIds)
+      await admin.from('payments').delete().in('booking_id', bookingIds)
+      await admin.from('bookings').delete().in('id', bookingIds)
+    }
+
+    await admin.from('schedule_exclusions').delete().in('schedule_id', scheduleIds)
+    await admin.from('schedules').delete().in('id', scheduleIds)
+  }
 
   // --- Borrar filas dependientes ---
   await admin.from('user_levels').delete().eq('user_id', userId)
