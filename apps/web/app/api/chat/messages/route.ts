@@ -16,11 +16,16 @@ export async function POST(req: NextRequest) {
   const admin = getAdminClient()
 
   const { data: callerRole } = await admin.from('users').select('role').eq('id', user.id).single()
-  const isAdmin = callerRole?.role === 'admin' || callerRole?.role === 'super_admin'
+  const role = callerRole?.role ?? ''
+  const isAdmin = role === 'admin' || role === 'super_admin'
+  const isCoach = role === 'coach'
 
   if (!isAdmin) {
-    const { data: thread } = await admin.from('chat_threads').select('user_id').eq('id', thread_id).single()
-    if (!thread || thread.user_id !== user.id) {
+    const { data: thread } = await admin.from('chat_threads').select('user_id, recipient_id').eq('id', thread_id).single()
+    if (!thread) return NextResponse.json({ error: 'Sin acceso a este hilo' }, { status: 403 })
+    const isOwner = thread.user_id === user.id
+    const isRecipient = isCoach && thread.recipient_id === user.id
+    if (!isOwner && !isRecipient) {
       return NextResponse.json({ error: 'Sin acceso a este hilo' }, { status: 403 })
     }
   }
@@ -47,11 +52,16 @@ export async function GET(req: NextRequest) {
   const admin = getAdminClient()
 
   const { data: callerRole } = await admin.from('users').select('role').eq('id', user.id).single()
-  const isAdmin = callerRole?.role === 'admin' || callerRole?.role === 'super_admin'
+  const role = callerRole?.role ?? ''
+  const isAdmin = role === 'admin' || role === 'super_admin'
+  const isCoach = role === 'coach'
 
   if (!isAdmin) {
-    const { data: thread } = await admin.from('chat_threads').select('user_id').eq('id', thread_id).single()
-    if (!thread || thread.user_id !== user.id) {
+    const { data: thread } = await admin.from('chat_threads').select('user_id, recipient_id').eq('id', thread_id).single()
+    if (!thread) return NextResponse.json({ error: 'Sin acceso a este hilo' }, { status: 403 })
+    const isOwner = thread.user_id === user.id
+    const isRecipient = isCoach && thread.recipient_id === user.id
+    if (!isOwner && !isRecipient) {
       return NextResponse.json({ error: 'Sin acceso a este hilo' }, { status: 403 })
     }
   }
