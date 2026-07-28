@@ -35,8 +35,11 @@ export default function ImportStudentsPage() {
   const [rows, setRows] = useState<Row[]>([])
   const [results, setResults] = useState<Result[] | null>(null)
   const [importing, setImporting] = useState(false)
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const BATCH_SIZE = 50
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     setError('')
@@ -86,19 +89,34 @@ export default function ImportStudentsPage() {
   async function handleImport() {
     setImporting(true)
     setError('')
+    setProgress({ done: 0, total: rows.length })
+
+    const allResults: Result[] = []
+    const batches: Row[][] = []
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      batches.push(rows.slice(i, i + BATCH_SIZE))
+    }
+
     try {
-      const res = await fetch('/api/admin/import-students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows }),
-      })
-      const json = await res.json()
-      if (!res.ok) { setError(json.error ?? 'Error al importar'); setImporting(false); return }
-      setResults(json.results)
-      setRows([])
-      if (fileRef.current) fileRef.current.value = ''
+      for (const batch of batches) {
+        const res = await fetch('/api/admin/import-students', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rows: batch }),
+        })
+        const json = await res.json()
+        if (!res.ok) { setError(json.error ?? 'Error al importar'); break }
+        allResults.push(...json.results)
+        setProgress(p => ({ ...p, done: p.done + batch.length }))
+      }
     } catch {
       setError('No se pudo conectar con el servidor.')
+    }
+
+    if (allResults.length > 0) {
+      setResults(allResults)
+      setRows([])
+      if (fileRef.current) fileRef.current.value = ''
     }
     setImporting(false)
   }
@@ -183,13 +201,23 @@ export default function ImportStudentsPage() {
               <h2 className="font-semibold text-gray-900">3. Confirma los datos</h2>
               <p className="text-sm text-gray-500">{rows.length} alumnos listos para importar</p>
             </div>
-            <button
-              onClick={handleImport}
-              disabled={importing}
-              className="w-full rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 sm:w-auto"
-            >
-              {importing ? 'Importando...' : `Importar ${rows.length} alumnos`}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                onClick={handleImport}
+                disabled={importing}
+                className="w-full rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 sm:w-auto"
+              >
+                {importing ? `Importando... ${progress.done}/${progress.total}` : `Importar ${rows.length} alumnos`}
+              </button>
+              {importing && (
+                <div className="h-1.5 w-48 overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-1.5 rounded-full bg-brand-500 transition-all"
+                    style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[500px] text-sm">
