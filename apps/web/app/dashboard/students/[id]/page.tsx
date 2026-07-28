@@ -197,17 +197,20 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         }} />
       </div>
 
-      <div className="mb-6">
-        <StudentEnrollments initialEnrollments={(enrollments ?? []).map((e: any) => ({
-          id: e.id,
-          monthly_price: e.monthly_price,
-          paid_until: e.paid_until,
-          start_date: e.start_date,
-          end_date: e.end_date,
-          schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
-        }))} />
-      </div>
+      {student.role === 'student' && (
+        <div className="mb-6">
+          <StudentEnrollments initialEnrollments={(enrollments ?? []).map((e: any) => ({
+            id: e.id,
+            monthly_price: e.monthly_price,
+            paid_until: e.paid_until,
+            start_date: e.start_date,
+            end_date: e.end_date,
+            schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
+          }))} />
+        </div>
+      )}
 
+      {student.role === 'student' && (
       <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Nivel de juego</h2>
@@ -263,8 +266,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           </div>
         )}
       </div>
+      )}
 
-      {makeups && makeups.length > 0 && (
+      {student.role === 'student' && makeups && makeups.length > 0 && (
         <div className="mb-6">
           <StudentMakeups initialMakeups={(makeups ?? []).map((m: any) => ({
             id: m.id,
@@ -283,7 +287,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {features.enable_payments && (
+      {features.enable_payments && student.role === 'student' && (
         <div className="mb-6 rounded-xl bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <h2 className="font-semibold text-gray-900">Historial de pagos</h2>
@@ -326,16 +330,18 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-semibold text-gray-900">Notificaciones del alumno</h2>
-        {(!studentNotifications || studentNotifications.length === 0) ? (
-          <p className="text-sm text-gray-400">Sin notificaciones.</p>
-        ) : (
-          <NotificationList initial={studentNotifications as any} targetUserId={params.id} />
-        )}
-      </div>
+      {student.role === 'student' && (
+        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="mb-4 font-semibold text-gray-900">Notificaciones del alumno</h2>
+          {(!studentNotifications || studentNotifications.length === 0) ? (
+            <p className="text-sm text-gray-400">Sin notificaciones.</p>
+          ) : (
+            <NotificationList initial={studentNotifications as any} targetUserId={params.id} />
+          )}
+        </div>
+      )}
 
-      {levelHistory && levelHistory.length > 0 && (
+      {student.role === 'student' && levelHistory && levelHistory.length > 0 && (
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Historial de niveles</h2>
           <ul className="space-y-3">
@@ -355,7 +361,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {features.enable_objectives && <StudentObjectives
+      {features.enable_objectives && student.role === 'student' && <StudentObjectives
         studentId={params.id}
         initialChecklists={(checklists ?? []).map((c: any) => ({
           id: c.id,

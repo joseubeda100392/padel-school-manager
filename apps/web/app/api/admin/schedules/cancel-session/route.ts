@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   if (!toProcess.length) return NextResponse.json({ ok: true, credited: 0 })
 
-  await admin.from('schedule_exclusions').insert(
+  const { error: insertErr } = await admin.from('schedule_exclusions').insert(
     toProcess.map(e => ({
       group_enrollment_id: e.id,
       excluded_date: date,
@@ -51,6 +51,8 @@ export async function POST(req: NextRequest) {
       created_by: user.id,
     }))
   )
+
+  if (insertErr) return NextResponse.json({ error: `Error al registrar la cancelación: ${insertErr.message}` }, { status: 500 })
 
   let credited = 0
   if (creditBags) {
