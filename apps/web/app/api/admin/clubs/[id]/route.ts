@@ -73,7 +73,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   // Borrar usuarios de Supabase Auth
   for (const uid of userIds) {
-    await admin.auth.admin.deleteUser(uid)
+    const { error } = await admin.auth.admin.deleteUser(uid)
+    if (error && !error.message.toLowerCase().includes('not found')) {
+      console.error(`Auth delete failed for ${uid}:`, error.message)
+    }
   }
 
   await admin.from('clubs').delete().eq('id', clubId)
