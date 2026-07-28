@@ -72,8 +72,9 @@ export function StudentEditForm({ student }: Props) {
     if (res.ok) {
       window.location.href = '/dashboard/students'
     } else {
-      const json = await res.json()
-      setError(json.error ?? 'Error al eliminar usuario')
+      const json = await res.json().catch(() => ({}))
+      const msg = json.error ?? 'Error al eliminar usuario'
+      alert(`Error: ${msg}`)
       setDeleting(false)
     }
   }
@@ -155,7 +156,7 @@ export function StudentEditForm({ student }: Props) {
         {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
       </div>
 
-      <div className="mt-6 border-t border-gray-100 pt-4">
+      <div className="mt-6 border-t border-gray-100 pt-4 space-y-2">
         <button onClick={handleDelete} disabled={deleting}
           className="w-full rounded-lg bg-red-50 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-60">
           {deleting ? 'Eliminando...' : 'Eliminar usuario'}
