@@ -45,6 +45,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   }
 
   if (scheduleIds.length) {
+    const { data: scheduleBookings } = await admin.from('bookings').select('id').in('schedule_id', scheduleIds)
+    if (scheduleBookings && scheduleBookings.length > 0) {
+      const bookingIds = scheduleBookings.map((b: any) => b.id)
+      await admin.from('bag_transactions').delete().in('booking_id', bookingIds)
+      await admin.from('payments').delete().in('booking_id', bookingIds)
+    }
     await admin.from('bookings').delete().in('schedule_id', scheduleIds)
     await admin.from('schedules').delete().in('id', scheduleIds)
   }
@@ -60,6 +66,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   }
 
   if (userIds.length) {
+    const { data: userChecklists } = await admin.from('student_checklists').select('id').in('student_id', userIds)
+    if (userChecklists && userChecklists.length > 0) {
+      await admin.from('checklist_items').delete().in('checklist_id', userChecklists.map((c: any) => c.id))
+    }
+    await admin.from('student_checklists').delete().in('student_id', userIds)
     await admin.from('bag_transactions').delete().in('user_id', userIds)
     await admin.from('user_levels').delete().in('user_id', userIds)
   }

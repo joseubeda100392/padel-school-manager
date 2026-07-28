@@ -31,7 +31,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const { data: enrollments } = await admin.from('group_enrollments').select('id').in('schedule_id', scheduleIds)
+  if (enrollments && enrollments.length > 0) {
+    await admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollments.map((e: any) => e.id))
+  }
   await admin.from('group_enrollments').delete().in('schedule_id', scheduleIds)
+
+  const { data: bookings } = await admin.from('bookings').select('id').in('schedule_id', scheduleIds)
+  if (bookings && bookings.length > 0) {
+    const bookingIds = bookings.map((b: any) => b.id)
+    await admin.from('bag_transactions').delete().in('booking_id', bookingIds)
+    await admin.from('payments').delete().in('booking_id', bookingIds)
+  }
   await admin.from('bookings').delete().in('schedule_id', scheduleIds)
   await admin.from('schedules').delete().in('id', scheduleIds)
 

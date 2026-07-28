@@ -59,6 +59,10 @@ export async function DELETE(
   await admin.from('group_enrollments').delete().eq('student_id', userId)
   await admin.from('notifications').delete().eq('user_id', userId)
   await admin.from('chat_messages').delete().eq('sender_id', userId)
+  const { data: checklists } = await admin.from('student_checklists').select('id').eq('student_id', userId)
+  if (checklists && checklists.length > 0) {
+    await admin.from('checklist_items').delete().in('checklist_id', checklists.map((c: any) => c.id))
+  }
   await admin.from('student_checklists').delete().eq('student_id', userId)
   await admin.from('users').delete().eq('id', userId)
 
