@@ -31,6 +31,10 @@ export async function DELETE(
     }
   }
 
+  // Nullear referencias de coach antes de borrar el usuario
+  await admin.from('schedules').update({ coach_id: null }).eq('coach_id', userId)
+  await admin.from('chat_threads').update({ recipient_id: null }).eq('recipient_id', userId)
+
   await admin.from('user_levels').delete().eq('user_id', userId)
 
   // Borrar exclusiones antes de enrollments
