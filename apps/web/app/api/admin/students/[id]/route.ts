@@ -37,16 +37,27 @@ export async function DELETE(
     return NextResponse.json({ error: 'Este monitor tiene clases asignadas. Reasígnalas antes de eliminarlo.' }, { status: 409 })
   }
 
-  // Nullear recipient_id en chat_threads donde este usuario es receptor
+  // --- Nullear FKs nullable ---
   await admin.from('chat_threads').update({ recipient_id: null }).eq('recipient_id', userId)
-  // Nullear created_by en schedule_exclusions y makeups (FK nullable)
   await admin.from('schedule_exclusions').update({ created_by: null }).eq('created_by', userId)
   await admin.from('makeups').update({ created_by: null }).eq('created_by', userId)
-  // Nullear pista_viva
   await admin.from('pista_viva_campaigns').update({ created_by: null }).eq('created_by', userId)
   await admin.from('pista_viva_clicks').update({ user_id: null }).eq('user_id', userId)
+  await admin.from('group_enrollments').update({ enrolled_by: null }).eq('enrolled_by', userId)
+  await admin.from('push_campaigns').update({ sent_by: null }).eq('sent_by', userId)
+  await admin.from('student_checklists').update({ coach_id: null }).eq('coach_id', userId)
+  await admin.from('student_checklists').update({ completed_by_id: null }).eq('completed_by_id', userId)
+  await admin.from('checklist_items').update({ completed_by_id: null }).eq('completed_by_id', userId)
+  // Nullear coach_id en schedules inactivos (activos bloqueados arriba)
+  await admin.from('schedules').update({ coach_id: null }).eq('coach_id', userId)
 
+  // --- Borrar filas dependientes ---
   await admin.from('user_levels').delete().eq('user_id', userId)
+  await admin.from('push_subscriptions').delete().eq('user_id', userId)
+  await admin.from('admin_recovery_codes').delete().eq('user_id', userId)
+  await admin.from('tournament_registrations').delete().eq('student_id', userId)
+  await admin.from('payment_mandates').delete().eq('user_id', userId)
+  await admin.from('makeups').delete().eq('student_id', userId)
 
   // Borrar exclusiones antes de enrollments
   const { data: enrollments } = await admin.from('group_enrollments').select('id').eq('student_id', userId)
@@ -69,6 +80,7 @@ export async function DELETE(
     await admin.from('class_bag').delete().eq('user_id', userId)
   }
 
+  await admin.from('bag_transactions').delete().eq('user_id', userId)
   await admin.from('payments').delete().eq('user_id', userId)
   await admin.from('bookings').delete().eq('student_id', userId)
   await admin.from('group_enrollments').delete().eq('student_id', userId)
@@ -81,8 +93,6 @@ export async function DELETE(
     await admin.from('checklist_items').delete().in('checklist_id', checklists.map((c: any) => c.id))
   }
   await admin.from('student_checklists').delete().eq('student_id', userId)
-  // Nullear coach_id en schedules inactivos (activos ya bloqueados arriba)
-  await admin.from('schedules').update({ coach_id: null }).eq('coach_id', userId)
   const { error: deleteErr } = await admin.from('users').delete().eq('id', userId)
   if (deleteErr) return NextResponse.json({ error: deleteErr.message }, { status: 500 })
 
