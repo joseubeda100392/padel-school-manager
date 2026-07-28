@@ -71,6 +71,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       await admin.from('checklist_items').delete().in('checklist_id', userChecklists.map((c: any) => c.id))
     }
     await admin.from('student_checklists').delete().in('student_id', userIds)
+    await admin.from('chat_messages').delete().in('sender_id', userIds)
+    await admin.from('chat_threads').delete().in('user_id', userIds)
+    await admin.from('materials').delete().in('uploaded_by', userIds)
     await admin.from('bag_transactions').delete().in('user_id', userIds)
     await admin.from('user_levels').delete().in('user_id', userIds)
   }
