@@ -81,7 +81,10 @@ export async function DELETE(
     await admin.from('checklist_items').delete().in('checklist_id', checklists.map((c: any) => c.id))
   }
   await admin.from('student_checklists').delete().eq('student_id', userId)
-  await admin.from('users').delete().eq('id', userId)
+  // Nullear coach_id en schedules inactivos (activos ya bloqueados arriba)
+  await admin.from('schedules').update({ coach_id: null }).eq('coach_id', userId)
+  const { error: deleteErr } = await admin.from('users').delete().eq('id', userId)
+  if (deleteErr) return NextResponse.json({ error: deleteErr.message }, { status: 500 })
 
   const { error: authErr } = await admin.auth.admin.deleteUser(userId)
   if (authErr && !authErr.message.toLowerCase().includes('not found')) {
