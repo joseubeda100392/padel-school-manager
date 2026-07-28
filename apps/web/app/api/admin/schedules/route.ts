@@ -165,9 +165,21 @@ export async function DELETE(req: NextRequest) {
     }
   }
 
+  const { data: enrollments } = await admin
+    .from('group_enrollments')
+    .select('id')
+    .eq('schedule_id', scheduleId)
+
+  if (enrollments && enrollments.length > 0) {
+    const enrollmentIds = enrollments.map((e: any) => e.id)
+    await admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollmentIds)
+  }
+
   await admin.from('group_enrollments').delete().eq('schedule_id', scheduleId)
   await admin.from('bookings').delete().eq('schedule_id', scheduleId)
-  await admin.from('schedules').delete().eq('id', scheduleId)
+
+  const { error: deleteErr } = await admin.from('schedules').delete().eq('id', scheduleId)
+  if (deleteErr) return NextResponse.json({ error: deleteErr.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

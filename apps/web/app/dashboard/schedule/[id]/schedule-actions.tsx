@@ -11,11 +11,17 @@ export function ScheduleActions({ scheduleId, nextDate }: { scheduleId: string; 
   async function handleDelete() {
     if (!confirm('¿Eliminar esta clase? Se eliminarán también todas las reservas asociadas.')) return
     setDeleting(true)
-    await fetch('/api/admin/schedules', {
+    const res = await fetch('/api/admin/schedules', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ scheduleId }),
     })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert(`Error al eliminar: ${json.error ?? res.statusText}`)
+      setDeleting(false)
+      return
+    }
     window.location.href = '/dashboard/schedule'
   }
 
