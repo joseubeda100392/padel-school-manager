@@ -25,6 +25,13 @@ export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get('userId')
   if (!userId) return NextResponse.json({ error: 'userId requerido' }, { status: 400 })
 
+  if (caller.role !== 'super_admin') {
+    const { data: targetUser } = await admin.from('users').select('club_id').eq('id', userId).single()
+    if (!targetUser || targetUser.club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
+  }
+
   const { data: mandates } = await admin
     .from('payment_mandates')
     .select('id, amount_cents, day_of_month, status, last_charged_at, next_charge_at, created_at')

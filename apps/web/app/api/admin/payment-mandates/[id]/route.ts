@@ -14,6 +14,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
+  if (caller.role !== 'super_admin') {
+    const { data: mandate } = await admin.from('payment_mandates').select('club_id').eq('id', params.id).single()
+    if (!mandate || mandate.club_id !== caller.club_id) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    }
+  }
+
   const { status, amountCents, dayOfMonth } = await req.json()
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
