@@ -145,9 +145,6 @@ importers:
       '@padel/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@padel/stripe':
-        specifier: workspace:*
-        version: link:../../packages/stripe
       '@padel/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -193,9 +190,6 @@ importers:
       sonner:
         specifier: ^1.5.0
         version: 1.7.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      stripe:
-        specifier: ^16.0.0
-        version: 16.12.0
       tailwind-merge:
         specifier: ^2.4.0
         version: 2.6.1
@@ -7861,7 +7855,7 @@ snapshots:
       hermes-parser: 0.33.3
       invariant: 2.2.4
       nullthrows: 1.1.1
-      tinyglobby: 0.2.16
+      tinyglobby: 0.2.17
       yargs: 17.7.2
     optional: true
 

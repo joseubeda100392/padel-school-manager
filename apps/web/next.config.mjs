@@ -15,6 +15,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://*.supabase.co",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "object-src 'none'",
       "frame-ancestors 'none'",
       // /pay envía un form oculto al TPV de Redsys (test y producción)
       "form-action 'self' https://sis.redsys.es https://sis-t.redsys.es https://sis-t.redsys.es:25443",
@@ -24,7 +25,7 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
-  transpilePackages: ['@padel/db', '@padel/types', '@padel/stripe'],
+  transpilePackages: ['@padel/db', '@padel/types'],
   experimental: {
     staleTimes: {
       dynamic: 120,

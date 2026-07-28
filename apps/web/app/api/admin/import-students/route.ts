@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
+import { rateLimit } from '@/lib/rate-limit'
 
 function generatePassword() {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
@@ -11,6 +12,9 @@ function generatePassword() {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'admin-import-students', { limit: 10, windowMs: 60_000 })
+  if (limited) return limited
+
   const serverSupabase = createServerClient()
   const { data: { user } } = await serverSupabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })

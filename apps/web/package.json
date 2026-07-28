@@ -14,7 +14,6 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@padel/db": "workspace:*",
-    "@padel/stripe": "workspace:*",
     "@padel/types": "workspace:*",
     "@supabase/ssr": "^0.4.0",
     "@supabase/supabase-js": "^2.44.0",
@@ -30,7 +29,6 @@
     "react-qr-code": "^2.2.0",
     "recharts": "^2.12.0",
     "sonner": "^1.5.0",
-    "stripe": "^16.0.0",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
     "web-push": "^3.6.7",
