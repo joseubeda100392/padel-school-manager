@@ -63,7 +63,7 @@ export async function PUT(req: NextRequest) {
   if (body.playtomic_client_secret) update.playtomic_client_secret = body.playtomic_client_secret
 
   const { error } = await admin.from('clubs').update(update).eq('id', clubId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al guardar las credenciales' }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

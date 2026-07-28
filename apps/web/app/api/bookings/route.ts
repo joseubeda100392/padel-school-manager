@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     p_student_id: user.id,
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al procesar la reserva' }, { status: 500 })
   if (data?.error) return NextResponse.json({ error: data.error }, { status: 400 })
   return NextResponse.json({ ok: true, bookingId: data.booking_id, newBalance: data.new_balance })
 }

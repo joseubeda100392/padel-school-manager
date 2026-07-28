@@ -30,6 +30,6 @@ export async function POST(req: NextRequest) {
     .select('id, title, created_at')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Error al crear el checklist' }, { status: 400 })
   return NextResponse.json({ data })
 }

@@ -5,7 +5,9 @@ import { getClubFeatures } from '@/lib/get-club-features'
 
 function extractPath(url: string): string | null {
   const match = url.match(/\/object\/(?:public|sign)\/materials\/(.+)/)
-  return match ? match[1].split('?')[0] : null
+  if (match) return match[1].split('?')[0]
+  if (url && !url.startsWith('http')) return url
+  return null
 }
 
 export async function GET() {

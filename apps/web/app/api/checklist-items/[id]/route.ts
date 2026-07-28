@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     .select('id, completed_at, completed_by_id')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Error interno del servidor' }, { status: 400 })
   return NextResponse.json({ data })
 }
 
@@ -54,6 +54,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!verified) return NextResponse.json({ error: 'Sin acceso' }, { status: 403 })
 
   const { error } = await admin.from('checklist_items').delete().eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Error interno del servidor' }, { status: 400 })
   return NextResponse.json({ ok: true })
 }

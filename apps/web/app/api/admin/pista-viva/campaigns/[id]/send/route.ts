@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     await ptClient.login(club.playtomic_email, club.playtomic_password)
   } catch (e: any) {
-    return NextResponse.json({ error: `Login Playtomic falló: ${e.message}` }, { status: 502 })
+    return NextResponse.json({ error: 'Error al conectar con Playtomic. Verifica las credenciales.' }, { status: 502 })
   }
 
   // slot_datetime en UTC → enviamos UTC directamente (Playtomic availability usa UTC)
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     matchId = result.matchId
     matchUrl = result.matchUrl
   } catch (e: any) {
-    return NextResponse.json({ error: `Crear partido Playtomic falló: ${e.message}` }, { status: 502 })
+    return NextResponse.json({ error: 'Error al crear el partido en Playtomic' }, { status: 502 })
   }
 
   await admin

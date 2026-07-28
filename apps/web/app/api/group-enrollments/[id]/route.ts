@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     .update({ monthly_price: body.monthly_price })
     .eq('id', params.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar la inscripción' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 

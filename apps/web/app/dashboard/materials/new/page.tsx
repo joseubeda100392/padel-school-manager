@@ -81,19 +81,17 @@ export default function NewMaterialPage() {
       .upload(path, file, { contentType: file.type })
 
     if (uploadError) {
-      setError(`Error al subir: ${uploadError.message}`)
+      setError('Error al subir el archivo. Inténtalo de nuevo.')
       setUploading(false)
       return
     }
-
-    const { data: urlData } = supabase.storage.from('materials').getPublicUrl(path)
 
     const { data: material, error: insertError } = await supabase
       .from('materials')
       .insert({
         title: title.trim(),
         description: description.trim() || null,
-        file_url: urlData.publicUrl,
+        file_url: path,
         uploaded_by: user.id,
         is_published: isPublished,
         club_id: clubId,
@@ -102,7 +100,7 @@ export default function NewMaterialPage() {
       .single()
 
     if (insertError || !material) {
-      setError(`Error al guardar: ${insertError?.message}`)
+      setError('Error al guardar el material. Inténtalo de nuevo.')
       setUploading(false)
       return
     }

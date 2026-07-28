@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   try {
     await ptClient.login(club.playtomic_client_id, club.playtomic_client_secret)
   } catch (e: any) {
-    return NextResponse.json({ error: `Auth Playtomic API falló: ${e.message}` }, { status: 502 })
+    return NextResponse.json({ error: 'Error de autenticación con la API de Playtomic' }, { status: 502 })
   }
 
   // Traer todos los jugadores del venue
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   try {
     players = await ptClient.getVenuePlayers(club.playtomic_tenant_id)
   } catch (e: any) {
-    return NextResponse.json({ error: `Error obteniendo jugadores: ${e.message}` }, { status: 502 })
+    return NextResponse.json({ error: 'Error al obtener los jugadores de Playtomic' }, { status: 502 })
   }
 
   if (!players.length) {

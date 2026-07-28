@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     paid_until: null,
   }, { onConflict: 'schedule_id,student_id' }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Error al inscribir el alumno' }, { status: 400 })
 
   // Cancelar reservas puntuales futuras del alumno en esta clase (ya no las necesita)
   const today = new Date().toISOString().split('T')[0]

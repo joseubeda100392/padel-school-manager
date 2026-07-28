@@ -42,7 +42,7 @@ export async function GET() {
     .eq('club_id', caller.club_id ?? '')
     .order('tournament_date', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al obtener los torneos' }, { status: 500 })
   return NextResponse.json({ tournaments: data ?? [] })
 }
 
@@ -72,6 +72,6 @@ export async function POST(req: NextRequest) {
     .select('id')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al crear el torneo' }, { status: 500 })
   return NextResponse.json({ ok: true, id: data.id })
 }

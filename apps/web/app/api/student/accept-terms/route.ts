@@ -13,6 +13,6 @@ export async function POST() {
     .update({ terms_accepted_at: new Date().toISOString() })
     .eq('id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

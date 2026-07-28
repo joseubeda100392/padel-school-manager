@@ -1,7 +1,6 @@
-﻿'use client'
+'use client'
 
 import { useState, useRef } from 'react'
-import * as XLSX from 'xlsx'
 
 interface Row {
   nombre: string
@@ -16,19 +15,65 @@ interface Result {
   email: string
   status: 'ok' | 'error'
   password?: string
+  warning?: string
   error?: string
 }
 
+function parseCSV(text: string): string[][] {
+  const rows: string[][] = []
+  let currentRow: string[] = []
+  let currentField = ''
+  let inQuotes = false
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (ch === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        currentField += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (ch === ',' && !inQuotes) {
+      currentRow.push(currentField)
+      currentField = ''
+    } else if (ch === '\r' && text[i + 1] === '\n' && !inQuotes) {
+      i++
+      currentRow.push(currentField)
+      rows.push(currentRow)
+      currentRow = []
+      currentField = ''
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      currentRow.push(currentField)
+      rows.push(currentRow)
+      currentRow = []
+      currentField = ''
+    } else {
+      currentField += ch
+    }
+  }
+
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField)
+    rows.push(currentRow)
+  }
+
+  return rows.filter(r => r.some(f => f.trim()))
+}
+
 function downloadTemplate() {
-  const ws = XLSX.utils.aoa_to_sheet([
-    ['nombre', 'email', 'telefono', 'nivel', 'password'],
-    ['María García', 'maria@ejemplo.com', '612345678', 'Iniciación', ''],
-    ['Carlos López', 'carlos@ejemplo.com', '', 'Intermedio', 'MiClave123'],
-  ])
-  ws['!cols'] = [{ wch: 20 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }]
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Alumnos')
-  XLSX.writeFile(wb, 'plantilla_alumnos.xlsx')
+  const csv = [
+    'nombre,email,telefono,nivel,password',
+    'María García,maria@ejemplo.com,612345678,Iniciación,',
+    'Carlos López,carlos@ejemplo.com,,Intermedio,MiClave123',
+  ].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'plantilla_alumnos.csv'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function ImportStudentsPage() {
@@ -55,13 +100,12 @@ export default function ImportStudentsPage() {
     const reader = new FileReader()
     reader.onload = (ev) => {
       try {
-        const wb = XLSX.read(ev.target?.result, { type: 'binary' })
-        const ws = wb.Sheets[wb.SheetNames[0]]
-        const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+        const text = ev.target?.result as string
+        const raw = parseCSV(text)
 
         if (raw.length < 2) { setError('El archivo está vacío o no tiene datos.'); return }
 
-        const headers = (raw[0] as string[]).map((h) => String(h).toLowerCase().trim())
+        const headers = raw[0].map((h) => h.toLowerCase().trim())
         const iNombre = headers.indexOf('nombre')
         const iEmail = headers.indexOf('email')
         const iTelefono = headers.indexOf('telefono')
@@ -74,21 +118,21 @@ export default function ImportStudentsPage() {
         }
 
         const parsed: Row[] = raw.slice(1)
-          .filter((r) => r[iEmail]?.toString().trim())
+          .filter((r) => r[iEmail]?.trim())
           .map((r) => ({
-            nombre: String(r[iNombre] ?? '').trim(),
-            email: String(r[iEmail] ?? '').trim(),
-            telefono: iTelefono >= 0 ? String(r[iTelefono] ?? '').trim() : '',
-            nivel: iNivel >= 0 ? String(r[iNivel] ?? '').trim() : '',
-            password: iPassword >= 0 ? String(r[iPassword] ?? '').trim() : '',
+            nombre: (r[iNombre] ?? '').trim(),
+            email: (r[iEmail] ?? '').trim(),
+            telefono: iTelefono >= 0 ? (r[iTelefono] ?? '').trim() : '',
+            nivel: iNivel >= 0 ? (r[iNivel] ?? '').trim() : '',
+            password: iPassword >= 0 ? (r[iPassword] ?? '').trim() : '',
           }))
 
         setRows(parsed)
       } catch {
-        setError('No se pudo leer el archivo. Asegúrate de que es un Excel o CSV válido.')
+        setError('No se pudo leer el archivo. Asegúrate de que es un CSV válido.')
       }
     }
-    reader.readAsBinaryString(file)
+    reader.readAsText(file)
   }
 
   async function handleImport() {
@@ -128,19 +172,20 @@ export default function ImportStudentsPage() {
 
   function downloadResults() {
     if (!results) return
-    const ws = XLSX.utils.aoa_to_sheet([
-      ['Nombre', 'Email', 'Estado', 'Contraseña temporal', 'Error'],
-      ...results.map((r) => [
-        r.name ?? '', r.email,
-        r.status === 'ok' ? 'Creado' : 'Error',
-        r.password ?? '',
-        r.error ?? '',
-      ]),
-    ])
-    ws['!cols'] = [{ wch: 20 }, { wch: 25 }, { wch: 10 }, { wch: 18 }, { wch: 30 }]
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Resultado')
-    XLSX.writeFile(wb, 'resultado_importacion.xlsx')
+    const header = 'Nombre,Email,Estado,Contraseña temporal,Error'
+    const csvRows = results.map(r =>
+      [r.name ?? '', r.email, r.status === 'ok' ? 'Creado' : 'Error', r.password ?? '', r.error ?? '']
+        .map(v => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',')
+    )
+    const csv = [header, ...csvRows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'resultado_importacion.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const ok = results?.filter((r) => r.status === 'ok') ?? []
@@ -158,9 +203,9 @@ export default function ImportStudentsPage() {
       <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="font-semibold text-gray-900">1. Descarga la plantilla</h2>
+            <h2 className="font-semibold text-gray-900">1. Descarga la plantilla CSV</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Rellena el Excel con los datos de los alumnos. Las columnas <strong>nombre</strong> y <strong>email</strong> son obligatorias.
+              Rellena el CSV con los datos de los alumnos. Las columnas <strong>nombre</strong> y <strong>email</strong> son obligatorias.
               Si no pones contraseña, se genera una automáticamente.
             </p>
             <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-400">
@@ -175,22 +220,22 @@ export default function ImportStudentsPage() {
             onClick={downloadTemplate}
             className="shrink-0 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-100"
           >
-            ↓ Plantilla Excel
+            ↓ Plantilla CSV
           </button>
         </div>
       </div>
 
       {/* Paso 2: Subir fichero */}
       <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-3 font-semibold text-gray-900">2. Sube el fichero rellenado</h2>
+        <h2 className="mb-3 font-semibold text-gray-900">2. Sube el fichero CSV</h2>
         <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 px-6 py-10 transition hover:border-green-400 hover:bg-brand-50">
           <span className="text-3xl mb-2">📂</span>
           <span className="text-sm font-medium text-gray-700">Haz clic para seleccionar el archivo</span>
-          <span className="mt-1 text-xs text-gray-400">.xlsx, .xls o .csv</span>
+          <span className="mt-1 text-xs text-gray-400">.csv</span>
           <input
             ref={fileRef}
             type="file"
-            accept=".xlsx,.xls,.csv"
+            accept=".csv,text/csv"
             className="hidden"
             onChange={handleFile}
           />
@@ -267,7 +312,7 @@ export default function ImportStudentsPage() {
                 onClick={downloadResults}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
               >
-                ↓ Descargar resultado
+                ↓ Descargar resultado CSV
               </button>
               <a href="/dashboard/students" className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600">
                 Ver alumnos

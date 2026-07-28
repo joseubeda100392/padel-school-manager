@@ -48,20 +48,18 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
     const ext = file.name.split('.').pop()
     const path = `${clubId ?? 'global'}/${Date.now()}.${ext}`
     const { error: upErr } = await supabase.storage.from('materials').upload(path, file)
-    if (upErr) { setError(upErr.message); setUploading(false); return }
-
-    const { data: { publicUrl } } = supabase.storage.from('materials').getPublicUrl(path)
+    if (upErr) { setError('Error al subir el archivo. Inténtalo de nuevo.'); setUploading(false); return }
 
     const { error: dbErr } = await supabase.from('materials').insert({
       title: title.trim(),
-      file_url: publicUrl,
+      file_url: path,
       schedule_id: scheduleId,
       club_id: clubId,
       uploaded_by: user?.id,
       is_published: true,
     })
 
-    if (dbErr) { setError(dbErr.message); setUploading(false); return }
+    if (dbErr) { setError('Error al guardar el material. Inténtalo de nuevo.'); setUploading(false); return }
 
     setTitle('')
     setFile(null)
@@ -152,7 +150,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
                 <p className="text-xs text-gray-400">{new Date(m.created_at).toLocaleDateString('es-ES')}</p>
               </div>
               <div className="flex items-center gap-3">
-                <a href={m.file_url} target="_blank" rel="noreferrer"
+                <a href={`/api/pdf/material/${m.id}`} target="_blank" rel="noreferrer"
                   className="text-xs font-medium text-brand-500 hover:underline">
                   Ver
                 </a>

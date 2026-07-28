@@ -40,6 +40,6 @@ export async function POST(req: NextRequest) {
     .select('id, text, sort_order, completed_at, completed_by_id')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Error al añadir el ítem' }, { status: 400 })
   return NextResponse.json({ data })
 }

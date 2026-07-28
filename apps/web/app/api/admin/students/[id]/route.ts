@@ -94,11 +94,11 @@ export async function DELETE(
   }
   await admin.from('student_checklists').delete().eq('student_id', userId)
   const { error: deleteErr } = await admin.from('users').delete().eq('id', userId)
-  if (deleteErr) return NextResponse.json({ error: deleteErr.message }, { status: 500 })
+  if (deleteErr) return NextResponse.json({ error: 'Error al eliminar el usuario' }, { status: 500 })
 
   const { error: authErr } = await admin.auth.admin.deleteUser(userId)
   if (authErr && !authErr.message.toLowerCase().includes('not found')) {
-    return NextResponse.json({ error: `Error eliminando cuenta Auth: ${authErr.message}` }, { status: 500 })
+    return NextResponse.json({ error: 'Error al eliminar la cuenta de autenticación' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })

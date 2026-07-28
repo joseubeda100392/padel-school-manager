@@ -36,15 +36,13 @@ export function NormasClient({ clubId }: { clubId: string | null }) {
       .upload(path, file, { upsert: true, contentType: 'application/pdf' })
 
     if (upErr) {
-      toast.error('Error al subir el PDF: ' + upErr.message)
+      toast.error('Error al subir el PDF. Inténtalo de nuevo.')
       setUploading(false)
       return
     }
 
-    const { data: { publicUrl } } = supabase.storage.from('materials').getPublicUrl(path)
-
     const featRes = await fetch('/api/admin/club-features').then(r => r.json()).catch(() => ({}))
-    const updatedFeatures = { ...(featRes?.features ?? {}), terms_pdf_url: publicUrl, enable_terms: true }
+    const updatedFeatures = { ...(featRes?.features ?? {}), terms_pdf_url: path, enable_terms: true }
     const res = await fetch('/api/admin/club-features', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -55,7 +53,7 @@ export function NormasClient({ clubId }: { clubId: string | null }) {
     if (fileRef.current) fileRef.current.value = ''
 
     if (res.ok) {
-      setPdfUrl(publicUrl)
+      setPdfUrl(path)
       setEnabled(true)
       toast.success('PDF de condiciones actualizado')
     } else {

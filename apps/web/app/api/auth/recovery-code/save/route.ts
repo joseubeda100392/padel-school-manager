@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   )
 
   const { error: deleteError } = await admin.from('admin_recovery_codes').delete().eq('user_id', user.id)
-  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
+  if (deleteError) return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
 
   const rows = codes.map(code => ({
     user_id: user.id,
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   }))
 
   const { error } = await admin.from('admin_recovery_codes').insert(rows)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

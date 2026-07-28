@@ -23,6 +23,6 @@ export async function GET() {
   const query = admin.from('courts').select('id, name').eq('is_active', true).order('name')
   const { data, error } = await (clubId ? query.eq('club_id', clubId) : query)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al obtener las pistas' }, { status: 500 })
   return NextResponse.json({ courts: data ?? [] })
 }

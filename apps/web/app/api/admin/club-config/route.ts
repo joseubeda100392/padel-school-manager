@@ -68,6 +68,6 @@ export async function PATCH(req: NextRequest) {
   const merged = { ...DEFAULT_CONFIG, ...(existing?.config ?? {}), ...updates }
 
   const { error } = await admin.from('clubs').update({ config: merged }).eq('id', caller.club_id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar la configuración' }, { status: 400 })
   return NextResponse.json({ config: merged })
 }

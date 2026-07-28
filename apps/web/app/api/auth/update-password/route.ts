@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   // Admin API bypasses AAL2 requirement for users with MFA enrolled
   const { error } = await admin.auth.admin.updateUserById(user.id, { password })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar la contraseña' }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

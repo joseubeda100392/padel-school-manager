@@ -54,6 +54,6 @@ export async function PATCH(req: NextRequest) {
   const merged = { ...DEFAULT_FEATURES, ...(existing?.features ?? {}), ...features }
 
   const { error } = await admin.from('clubs').update({ features: merged }).eq('id', caller.club_id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar las funcionalidades' }, { status: 400 })
   return NextResponse.json({ features: merged })
 }

@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { error } = await admin.from('bookings').update({ status }).eq('id', bookingId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar la asistencia' }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

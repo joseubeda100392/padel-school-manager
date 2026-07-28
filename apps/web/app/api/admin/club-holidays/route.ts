@@ -44,6 +44,6 @@ export async function PATCH(req: NextRequest) {
   const merged = { ...(existing?.config ?? {}), holidays }
 
   const { error } = await admin.from('clubs').update({ config: merged }).eq('id', caller.club_id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar los festivos' }, { status: 400 })
   return NextResponse.json({ holidays })
 }

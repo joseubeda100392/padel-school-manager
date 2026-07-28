@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       if (authError) {
         const msg = authError.message.toLowerCase().includes('already')
           ? 'Email ya registrado'
-          : authError.message
+          : 'Error al crear la cuenta'
         results.push({ email, name, status: 'error', error: msg })
         continue
       }
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
       if (userInsertErr) {
         await adminSupabase.auth.admin.deleteUser(userId)
-        results.push({ email, name, status: 'error', error: `Error al crear perfil: ${userInsertErr.message}` })
+        results.push({ email, name, status: 'error', error: 'Error al crear el perfil del alumno' })
         continue
       }
 
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
 
       results.push({ email, name, status: 'ok', password })
     } catch (e: any) {
-      results.push({ email, name, status: 'error', error: e?.message ?? 'Error desconocido' })
+      results.push({ email, name, status: 'error', error: 'Error al importar el alumno' })
     }
   }
 

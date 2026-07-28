@@ -23,6 +23,6 @@ export async function GET() {
   const query = admin.from('levels').select('id,name,color').order('order')
   const { data: levels, error } = await (clubId ? query.eq('club_id', clubId) : query)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al obtener los niveles' }, { status: 500 })
   return NextResponse.json({ levels: levels ?? [] })
 }

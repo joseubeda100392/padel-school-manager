@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     }))
   )
 
-  if (insertErr) return NextResponse.json({ error: `Error al registrar la cancelación: ${insertErr.message}` }, { status: 500 })
+  if (insertErr) return NextResponse.json({ error: 'Error al registrar la cancelación' }, { status: 500 })
 
   let credited = 0
   if (creditBags) {

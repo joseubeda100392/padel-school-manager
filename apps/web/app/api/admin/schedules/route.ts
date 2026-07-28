@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     intensivo_group_id: body.intensivo_group_id ?? null,
   }).select('id').single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al crear el horario' }, { status: 500 })
   return NextResponse.json({ ok: true, id: data.id })
 }
 
@@ -163,7 +163,7 @@ export async function PATCH(req: NextRequest) {
     price_cents: body.price_cents ?? null,
   }).eq('id', body.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar el horario' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
@@ -216,7 +216,7 @@ export async function DELETE(req: NextRequest) {
   await admin.from('makeups').update({ makeup_schedule_id: null }).eq('makeup_schedule_id', scheduleId)
 
   const { error: deleteErr } = await admin.from('schedules').delete().eq('id', scheduleId)
-  if (deleteErr) return NextResponse.json({ error: deleteErr.message }, { status: 500 })
+  if (deleteErr) return NextResponse.json({ error: 'Error al eliminar el horario' }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

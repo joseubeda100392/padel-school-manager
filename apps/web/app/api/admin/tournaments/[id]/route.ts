@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (badRequest) return badRequest
 
   const { error } = await admin.from('tournaments').update(body).eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al actualizar el torneo' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
@@ -59,6 +59,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   await admin.from('tournament_registrations').delete().eq('tournament_id', params.id)
   const { error } = await admin.from('tournaments').delete().eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Error al eliminar el torneo' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
