@@ -33,6 +33,7 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
   const [q, setQ] = useState('')
   const [role, setRole] = useState(defaultTab)
   const [status, setStatus] = useState('')
+  const [levelFilter, setLevelFilter] = useState('')
 
   const countByRole = useMemo(() => {
     const counts: Record<string, number> = { '': students.length }
@@ -64,9 +65,14 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
       const matchQ = !q || (s.name ?? '').toLowerCase().includes(qLower) || (s.email ?? '').toLowerCase().includes(qLower)
       const matchRole = !role || s.role === role
       const matchStatus = status === '' || (status === 'active' ? s.is_active : !s.is_active)
-      return matchQ && matchRole && matchStatus
+      const matchLevel = !levelFilter || (
+        levelFilter === 'none'
+          ? !s.current_level_id
+          : s.current_level_id === levelFilter
+      )
+      return matchQ && matchRole && matchStatus && matchLevel
     })
-  }, [students, q, role, status])
+  }, [students, q, role, status, levelFilter])
 
   return (
     <>
@@ -106,9 +112,22 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
         </select>
-        {(q || role || status) && (
+        {(role === 'student' || role === '') && (
+          <select
+            value={levelFilter}
+            onChange={(e) => setLevelFilter(e.target.value)}
+            className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+          >
+            <option value="">Todos los niveles</option>
+            <option value="none">Sin asignar</option>
+            {Object.values(levelMap).map((l: any) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+        )}
+        {(q || role || status || levelFilter) && (
           <button
-            onClick={() => { setQ(''); setRole(''); setStatus('') }}
+            onClick={() => { setQ(''); setRole(''); setStatus(''); setLevelFilter('') }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
           >
             Limpiar
