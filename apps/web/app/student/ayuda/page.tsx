@@ -15,8 +15,10 @@ export default function AyudaPage() {
         <Steps items={[
           'Abre el enlace que te ha enviado el club.',
           'Introduce tu email y la contraseña que te han proporcionado.',
-          'La primera vez tendrás que leer y aceptar las condiciones de uso del club.',
+          'La primera vez tendrás que elegir una contraseña personal.',
+          'Lee y acepta las condiciones de uso del club.',
         ]} />
+        <Aviso>Si olvidaste tu contraseña, pulsa "¿Olvidaste tu contraseña?" en la pantalla de inicio. Recibirás un email para restablecerla. Revisa también la carpeta de spam.</Aviso>
       </Section>
 
       <Section title="El menú principal">
@@ -33,6 +35,8 @@ export default function AyudaPage() {
             ['Tarifas', 'Precios del club: bonos, clases sueltas e intensivos.'],
             ['Notificaciones', 'Avisos y mensajes del club.'],
             ['Chat soporte', 'Escríbenos directamente si tienes alguna duda.'],
+            ['Ayuda', 'Este manual de uso de la aplicación.'],
+            ['Mi perfil', 'Ver tus datos, tu nivel actual y cambiar tu contraseña.'],
           ].map(([label, desc]) => (
             <div key={label} className="flex gap-3 bg-white px-4 py-3">
               <span className="w-32 shrink-0 text-sm font-semibold text-gray-800">{label}</span>
@@ -48,7 +52,7 @@ export default function AyudaPage() {
           'Pulsa sobre la clase que no puedes asistir.',
           'Pulsa Cancelar asistencia y confirma.',
         ]} />
-        <Aviso>El club tiene un plazo mínimo de cancelación. Si avisas dentro de ese plazo, el crédito vuelve automáticamente a tu bolsa. Si avisas tarde o no avisas, el crédito no se recupera. Consulta el plazo exacto en la sección Tarifas.</Aviso>
+        <Aviso>El club tiene un plazo mínimo de cancelación. Si avisas dentro de ese plazo, el crédito vuelve automáticamente a tu bolsa. Si avisas tarde o no avisas, el crédito no se recupera. Pregunta a tu monitor o al club para conocer el plazo exacto.</Aviso>
       </Section>
 
       <Section title="Recuperar una clase perdida">
@@ -65,6 +69,12 @@ export default function AyudaPage() {
         <p className="mt-2">Si cancelas con suficiente antelación, el crédito se devuelve solo. Si tu saldo llega a 0, consulta con el club si puedes pagar una clase suelta.</p>
       </Section>
 
+      <Section title="Notificaciones">
+        <p>La aplicación puede enviarte avisos cuando hay un hueco libre en una clase o cuando el club te manda un mensaje directo.</p>
+        <p className="mt-2">La primera vez que entres, el navegador te preguntará si quieres recibir notificaciones. Pulsa <strong>Permitir</strong> — si las bloqueas no recibirás ningún aviso.</p>
+        <Aviso>Si las bloqueaste por error: ve a la configuración de tu navegador → Privacidad y seguridad → Notificaciones, busca la dirección de la app y cámbiala a "Permitir". En el móvil puedes hacerlo desde Ajustes → [nombre del navegador] → Notificaciones.</Aviso>
+      </Section>
+
       <Section title="Pagos">
         <p>Los pagos se realizan con tarjeta bancaria de forma segura. Tus datos bancarios nunca se almacenan en la aplicación.</p>
         <Steps items={[
@@ -79,7 +89,7 @@ export default function AyudaPage() {
         <div className="space-y-4">
           <FAQ
             q="¿Con cuánta antelación tengo que avisar si no puedo ir a una clase?"
-            a="El plazo mínimo lo establece el club y lo puedes consultar en la sección Tarifas. Si cancelas dentro del plazo, el crédito se devuelve. Si no, se pierde."
+            a="El plazo mínimo lo establece el club. Pregunta a tu monitor o al club para conocer el plazo exacto. Si cancelas dentro del plazo, el crédito se devuelve. Si no, se pierde."
           />
           <FAQ
             q="No recuerdo mi contraseña"
