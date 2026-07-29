@@ -53,18 +53,16 @@ export function PerfilClient({ name, email, levelName }: Props) {
         <div className="space-y-3">
           <div>
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Nombre</p>
-            <p className="mt-1 text-sm text-gray-800">{name}</p>
+            <p className="mt-1 text-sm text-gray-800">{name || <span className="text-gray-400 italic">Sin nombre</span>}</p>
           </div>
           <div>
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Email</p>
             <p className="mt-1 text-sm text-gray-800">{email}</p>
           </div>
-          {levelName && (
-            <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Nivel actual</p>
-              <p className="mt-1 text-sm text-gray-800">{levelName}</p>
-            </div>
-          )}
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Nivel actual</p>
+            <p className="mt-1 text-sm text-gray-800">{levelName || <span className="text-gray-400 italic">Sin nivel asignado</span>}</p>
+          </div>
         </div>
         <p className="text-xs text-gray-400">Para cambiar tu nombre o email contacta con el club.</p>
       </div>
