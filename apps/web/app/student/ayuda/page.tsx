@@ -35,7 +35,7 @@ export default function AyudaPage() {
             ['Tarifas', 'Precios del club: bonos, clases sueltas e intensivos.'],
             ['Notificaciones', 'Avisos y mensajes del club.'],
             ['Chat soporte', 'Escríbenos directamente si tienes alguna duda.'],
-            ['Ayuda', 'Este manual de uso de la aplicación.'],
+            ['Ayuda', 'Este manual y preguntas frecuentes.'],
             ['Mi perfil', 'Ver tus datos, tu nivel actual y cambiar tu contraseña.'],
           ].map(([label, desc]) => (
             <div key={label} className="flex gap-3 bg-white px-4 py-3">
@@ -44,6 +44,7 @@ export default function AyudaPage() {
             </div>
           ))}
         </div>
+        <p className="mt-3 text-xs text-gray-400">Si alguna opción no aparece en tu menú, es que el club no la usa.</p>
       </Section>
 
       <Section title="Cancelar una clase">
@@ -69,9 +70,15 @@ export default function AyudaPage() {
         <p className="mt-2">Si cancelas con suficiente antelación, el crédito se devuelve solo. Si tu saldo llega a 0, consulta con el club si puedes pagar una clase suelta.</p>
       </Section>
 
+      <Section title="Material didáctico">
+        <p>El club publica PDFs y ejercicios adaptados a tu nivel. Ve a la sección <strong>Material</strong> para verlos y descargarlos. A medida que subas de nivel tendrás acceso a nuevos contenidos.</p>
+        <Nota>Si no ves materiales, puede que el club aún no haya publicado contenido para tu nivel. Consúltalo con tu monitor.</Nota>
+      </Section>
+
       <Section title="Notificaciones">
-        <p>La aplicación puede enviarte avisos cuando hay un hueco libre en una clase o cuando el club te manda un mensaje directo.</p>
-        <p className="mt-2">La primera vez que entres, el navegador te preguntará si quieres recibir notificaciones. Pulsa <strong>Permitir</strong> — si las bloqueas no recibirás ningún aviso.</p>
+        <p>La aplicación te avisa cuando el club te envía un aviso directo o cuando hay un hueco libre disponible para recuperar una clase.</p>
+        <p className="mt-3 font-semibold text-gray-800 text-sm">Cómo activarlas</p>
+        <p className="mt-1">La primera vez que accedas, el navegador te preguntará si quieres recibir notificaciones. Pulsa <strong>Permitir</strong> — si las bloqueas no recibirás ningún aviso del club.</p>
         <Aviso>Si las bloqueaste por error: ve a la configuración de tu navegador → Privacidad y seguridad → Notificaciones, busca la dirección de la app y cámbiala a "Permitir". En el móvil puedes hacerlo desde Ajustes → [nombre del navegador] → Notificaciones.</Aviso>
       </Section>
 
@@ -83,6 +90,17 @@ export default function AyudaPage() {
           'Completa el pago con tarjeta.',
           'Los créditos se añaden automáticamente a tu bolsa.',
         ]} />
+      </Section>
+
+      <Section title="Chat de soporte">
+        <p>¿Tienes alguna duda? Escríbenos directamente desde la sección <strong>Chat soporte</strong>. Recibirás una notificación cuando el club te responda.</p>
+        <Nota>El chat es para consultas sobre la aplicación, horarios o pagos. Para temas técnicos de pádel, habla directamente con tu monitor en la pista.</Nota>
+      </Section>
+
+      <Section title="Privacidad y tus datos">
+        <p>El club trata tus datos personales (nombre, email, historial de clases y pagos) únicamente para gestionar tu inscripción y actividad. Tus datos nunca se ceden a terceros salvo para procesar pagos a través de Redsys.</p>
+        <p className="mt-2">Puedes consultar la política completa y ejercer tus derechos (acceso, rectificación, supresión) desde la sección <strong>Privacidad y datos</strong>, en la parte inferior del menú lateral.</p>
+        <Nota><strong>Solicitar baja:</strong> Si quieres darte de baja del club y que se eliminen tus datos, escríbenos por el Chat de soporte o accede a Privacidad y datos en el menú. Lo gestionamos en un máximo de 30 días.</Nota>
       </Section>
 
       <Section title="Preguntas frecuentes">
@@ -104,12 +122,16 @@ export default function AyudaPage() {
             a="Los créditos se actualizan automáticamente al completarse el pago. Si tras unos minutos no aparecen, contáctanos por el chat de soporte."
           />
           <FAQ
+            q="¿Puedo usar la aplicación desde el móvil?"
+            a="Sí. Funciona en cualquier navegador (Chrome, Safari, Firefox) y en cualquier dispositivo. Solo necesitas el enlace del club, no hay que instalar ninguna app."
+          />
+          <FAQ
             q="¿Puedo cambiarme a otro grupo o horario?"
             a="Los cambios de grupo los gestiona el club. Escríbenos por el chat de soporte y te ayudamos."
           />
           <FAQ
-            q="¿Cómo me doy de baja del club?"
-            a="Escríbenos por el chat de soporte o habla directamente con el club."
+            q="¿Mis datos están seguros?"
+            a="Sí. La aplicación cumple con el RGPD. Tus datos solo se usan para la gestión del club y nunca se ceden a terceros."
           />
         </div>
       </Section>
@@ -154,6 +176,14 @@ function Aviso({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
       <strong>Importante: </strong>{children}
+    </div>
+  )
+}
+
+function Nota({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+      {children}
     </div>
   )
 }
