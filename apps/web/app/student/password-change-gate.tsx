@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export function PasswordChangeGate({ clubName }: { clubName: string }) {
   const [password, setPassword] = useState('')
@@ -23,17 +24,18 @@ export function PasswordChangeGate({ clubName }: { clubName: string }) {
 
     setLoading(true)
     try {
-      const res = await fetch('/api/auth/update-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(body?.error ?? 'Error al actualizar la contraseña.')
+      // Usar el cliente del browser para mantener la sesión activa
+      const supabase = createClient()
+      const { error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError) {
+        setError('Error al actualizar la contraseña.')
         setLoading(false)
         return
       }
+
+      // Limpiar el flag en la BD
+      await fetch('/api/auth/clear-password-flag', { method: 'POST' })
+
       window.location.replace('/student')
     } catch {
       setError('Error de conexión. Inténtalo de nuevo.')
