@@ -36,10 +36,15 @@ export async function POST(req: NextRequest) {
   if (!club) return NextResponse.json({ error: 'Club no válido' }, { status: 400 })
 
   const { data: levels } = await adminSupabase.from('levels').select('id, name, description').eq('club_id', clubId)
+  const normalize = (s: string) => s.toLowerCase().trim().replace(/[\s\-_]+/g, '')
   const levelByName: Record<string, string> = {}
   ;(levels ?? []).forEach((l: any) => {
     levelByName[l.name.toLowerCase().trim()] = l.id
-    if (l.description) levelByName[l.description.toLowerCase().trim()] = l.id
+    levelByName[normalize(l.name)] = l.id
+    if (l.description) {
+      levelByName[l.description.toLowerCase().trim()] = l.id
+      levelByName[normalize(l.description)] = l.id
+    }
   })
 
   const { rows }: { rows: { nombre: string; email: string; telefono?: string; nivel?: string; password?: string }[] } = await req.json()
@@ -63,7 +68,9 @@ export async function POST(req: NextRequest) {
     }
 
     const password = row.password?.trim() || generatePassword()
-    const levelId = row.nivel ? (levelByName[row.nivel.toLowerCase().trim()] ?? null) : null
+    const levelId = row.nivel
+      ? (levelByName[row.nivel.toLowerCase().trim()] ?? levelByName[normalize(row.nivel)] ?? null)
+      : null
 
     try {
       const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
