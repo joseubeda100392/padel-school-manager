@@ -136,8 +136,8 @@ export default async function StudentHomePage() {
       />
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mi perfil</h1>
-        <p className="text-sm text-gray-500">Tu área personal</p>
+        <h1 className="text-2xl font-bold text-gray-900">Hola, {userName?.split(' ')[0] ?? user.user_metadata?.full_name?.split(' ')[0] ?? user.user_metadata?.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'alumno'} 👋</h1>
+        <p className="text-sm text-gray-500">Bienvenido a tu área personal</p>
       </div>
 
       {/* Datos personales */}
