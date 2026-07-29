@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useSpring, useTransform } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, HelpCircle } from 'lucide-react'
+import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, HelpCircle, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
@@ -36,6 +36,7 @@ const allNavItems = [
   { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false, feature: null },
   { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
   { href: '/student/ayuda', label: 'Ayuda', icon: HelpCircle, exact: false, feature: null },
+  { href: '/student/perfil', label: 'Mi perfil', icon: User, exact: false, feature: null },
 ]
 
 export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features }: {
@@ -143,7 +144,11 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
           })}
         </motion.nav>
 
-        <div className="border-t border-court-700 p-3">
+        <div className="border-t border-court-700 p-3 space-y-1">
+          <Link href="/student/privacidad"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-court-400 transition hover:bg-court-800 hover:text-white">
+            Privacidad y datos
+          </Link>
           <button onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-court-300 transition hover:bg-court-800 hover:text-white">
             <LogOut className="h-4 w-4" />
