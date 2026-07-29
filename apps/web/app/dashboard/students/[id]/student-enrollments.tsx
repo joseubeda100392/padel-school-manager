@@ -83,7 +83,8 @@ export function StudentEnrollments({ initialEnrollments }: { initialEnrollments:
                 <div className="flex items-center gap-1">
                   <input
                     type="number" min={0} step={0.5}
-                    onFocus={e => { const t = e.target; setTimeout(() => t.select(), 0) }}
+                    onFocus={e => e.target.select()}
+                    onMouseUp={e => e.preventDefault()}
                     value={editingPrice / 100}
                     onChange={(ev) => setEditingPrice(Math.round(Number(ev.target.value) * 100))}
                     className="w-24 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"

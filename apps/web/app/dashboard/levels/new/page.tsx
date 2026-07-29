@@ -67,7 +67,8 @@ export default function NewLevelPage() {
             type="number"
             min={1}
             value={order}
-            onFocus={e => { const t = e.target; setTimeout(() => t.select(), 0) }}
+            onFocus={e => e.target.select()}
+                    onMouseUp={e => e.preventDefault()}
             onChange={(e) => setOrder(Number(e.target.value))}
             className="w-32 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />

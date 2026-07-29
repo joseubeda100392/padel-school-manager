@@ -96,7 +96,8 @@ export default function NewTournamentPage() {
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Plazas máximas</label>
             <input
               type="number"
-              onFocus={e => { const t = e.target; setTimeout(() => t.select(), 0) }}
+              onFocus={e => e.target.select()}
+                    onMouseUp={e => e.preventDefault()}
               min={2}
               max={256}
               value={form.max_players}
@@ -108,7 +109,8 @@ export default function NewTournamentPage() {
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio de inscripción (€)</label>
             <input
               type="number"
-              onFocus={e => { const t = e.target; setTimeout(() => t.select(), 0) }}
+              onFocus={e => e.target.select()}
+                    onMouseUp={e => e.preventDefault()}
               min={0}
               step={0.5}
               value={form.price_cents}
