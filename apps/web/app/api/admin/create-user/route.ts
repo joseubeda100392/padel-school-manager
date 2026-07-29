@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     role,
     club_id: clubId,
     current_level_id: levelId || null,
+    force_password_change: true,
   })
 
   if (dbError) {

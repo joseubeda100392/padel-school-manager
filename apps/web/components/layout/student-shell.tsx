@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useSpring, useTransform } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt } from 'lucide-react'
+import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, HelpCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
@@ -35,6 +35,7 @@ const allNavItems = [
   { href: '/student/tarifas', label: 'Tarifas', icon: Receipt, exact: false, feature: null },
   { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false, feature: null },
   { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
+  { href: '/student/ayuda', label: 'Ayuda', icon: HelpCircle, exact: false, feature: null },
 ]
 
 export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features }: {

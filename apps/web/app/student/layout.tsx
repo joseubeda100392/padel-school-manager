@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { StudentShell } from '@/components/layout/student-shell'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { TermsGate } from './terms-gate'
+import { PasswordChangeGate } from './password-change-gate'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -13,7 +14,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const admin = getAdminClient()
   const { data: userData } = await admin
     .from('users')
-    .select('name, club_id, clubs(name)')
+    .select('name, club_id, clubs(name), force_password_change')
     .eq('id', user.id)
     .single()
   const clubId = (userData as any)?.club_id as string | undefined
@@ -25,6 +26,10 @@ export default async function StudentLayout({ children }: { children: React.Reac
   ])
 
   const clubName = (userData as any)?.clubs?.name ?? 'Tu Club'
+
+  if ((userData as any)?.force_password_change) {
+    return <PasswordChangeGate clubName={clubName} />
+  }
 
   let termsAcceptedAt: string | null = null
   if (features.enable_terms) {

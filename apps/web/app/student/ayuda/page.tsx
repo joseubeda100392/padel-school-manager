@@ -1,0 +1,158 @@
+export default function AyudaPage() {
+  return (
+    <div className="max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Ayuda</h1>
+        <p className="text-sm text-gray-500">Todo lo que necesitas saber para usar la aplicación</p>
+      </div>
+
+      <Section title="¿Qué es esta aplicación?">
+        <p>Esta es la plataforma digital de tu escuela de pádel. Desde ella puedes consultar tus clases, gestionar tu bolsa de créditos, recuperar clases perdidas, pagar bonos y contactar con el club.</p>
+        <p className="mt-2">Funciona desde cualquier navegador y en cualquier dispositivo: móvil, tablet u ordenador. Solo necesitas el enlace que te ha dado el club.</p>
+      </Section>
+
+      <Section title="Cómo acceder">
+        <Steps items={[
+          'Abre el enlace que te ha enviado el club.',
+          'Introduce tu email y la contraseña que te han proporcionado.',
+          'La primera vez tendrás que leer y aceptar las condiciones de uso del club.',
+        ]} />
+      </Section>
+
+      <Section title="El menú principal">
+        <div className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
+          {[
+            ['Inicio', 'Resumen de tu saldo de clases disponibles.'],
+            ['Mis Clases', 'Tus clases apuntadas, horarios y asistencia.'],
+            ['Mi Progreso', 'Tu nivel actual e historial de progresión.'],
+            ['Huecos', 'Plazas libres en otras clases para recuperar una que hayas perdido.'],
+            ['Intensivos', 'Cursos intensivos del club.'],
+            ['Torneos', 'Torneos disponibles e inscripción.'],
+            ['Bolsa', 'Saldo de créditos de clases y recargas.'],
+            ['Material', 'PDFs y ejercicios adaptados a tu nivel.'],
+            ['Tarifas', 'Precios del club: bonos, clases sueltas e intensivos.'],
+            ['Notificaciones', 'Avisos y mensajes del club.'],
+            ['Chat soporte', 'Escríbenos directamente si tienes alguna duda.'],
+          ].map(([label, desc]) => (
+            <div key={label} className="flex gap-3 bg-white px-4 py-3">
+              <span className="w-32 shrink-0 text-sm font-semibold text-gray-800">{label}</span>
+              <span className="text-sm text-gray-500">{desc}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Cancelar una clase">
+        <Steps items={[
+          'Ve a Mis Clases.',
+          'Pulsa sobre la clase que no puedes asistir.',
+          'Pulsa Cancelar asistencia y confirma.',
+        ]} />
+        <Aviso>El club tiene un plazo mínimo de cancelación. Si avisas dentro de ese plazo, el crédito vuelve automáticamente a tu bolsa. Si avisas tarde o no avisas, el crédito no se recupera. Consulta el plazo exacto en la sección Tarifas.</Aviso>
+      </Section>
+
+      <Section title="Recuperar una clase perdida">
+        <Steps items={[
+          'Ve a la sección Huecos.',
+          'Busca un horario libre que te venga bien.',
+          'Pulsa Reservar hueco y confirma.',
+        ]} />
+        <p className="mt-2 text-sm text-gray-500">Las plazas de recuperación son limitadas y dependen de la disponibilidad del club.</p>
+      </Section>
+
+      <Section title="Mi bolsa de clases">
+        <p>La bolsa es tu saldo de créditos. Cada clase que asistes descuenta 1 crédito. Puedes recargar comprando un bono desde la sección <strong>Bolsa</strong>.</p>
+        <p className="mt-2">Si cancelas con suficiente antelación, el crédito se devuelve solo. Si tu saldo llega a 0, consulta con el club si puedes pagar una clase suelta.</p>
+      </Section>
+
+      <Section title="Pagos">
+        <p>Los pagos se realizan con tarjeta bancaria de forma segura. Tus datos bancarios nunca se almacenan en la aplicación.</p>
+        <Steps items={[
+          'Ve a la sección Bolsa.',
+          'Selecciona el bono que quieres comprar.',
+          'Completa el pago con tarjeta.',
+          'Los créditos se añaden automáticamente a tu bolsa.',
+        ]} />
+      </Section>
+
+      <Section title="Preguntas frecuentes">
+        <div className="space-y-4">
+          <FAQ
+            q="¿Con cuánta antelación tengo que avisar si no puedo ir a una clase?"
+            a="El plazo mínimo lo establece el club y lo puedes consultar en la sección Tarifas. Si cancelas dentro del plazo, el crédito se devuelve. Si no, se pierde."
+          />
+          <FAQ
+            q="No recuerdo mi contraseña"
+            a='Pulsa "¿Olvidaste tu contraseña?" en la pantalla de inicio de sesión. Recibirás un email para restablecerla. Si no te llega, escríbenos por el chat de soporte.'
+          />
+          <FAQ
+            q="No veo materiales en la app"
+            a="Los materiales se asignan por nivel. Si no ves documentos, puede que el club aún no haya publicado contenido para tu nivel. Consúltalo con tu monitor."
+          />
+          <FAQ
+            q="He pagado pero no veo los créditos en mi bolsa"
+            a="Los créditos se actualizan automáticamente al completarse el pago. Si tras unos minutos no aparecen, contáctanos por el chat de soporte."
+          />
+          <FAQ
+            q="¿Puedo cambiarme a otro grupo o horario?"
+            a="Los cambios de grupo los gestiona el club. Escríbenos por el chat de soporte y te ayudamos."
+          />
+          <FAQ
+            q="¿Cómo me doy de baja del club?"
+            a="Escríbenos por el chat de soporte o habla directamente con el club."
+          />
+        </div>
+      </Section>
+
+      <div className="rounded-xl bg-brand-50 border border-brand-100 p-5 text-center">
+        <p className="text-sm font-semibold text-brand-700 mb-1">¿No encuentras lo que buscas?</p>
+        <p className="text-sm text-brand-600 mb-3">Escríbenos directamente y te respondemos lo antes posible.</p>
+        <a
+          href="/student/chat"
+          className="inline-block rounded-lg bg-brand-500 px-5 py-2 text-sm font-medium text-white hover:bg-brand-600"
+        >
+          Abrir chat de soporte
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl bg-white p-6 shadow-sm">
+      <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
+      <div className="text-sm text-gray-600 leading-relaxed">{children}</div>
+    </div>
+  )
+}
+
+function Steps({ items }: { items: string[] }) {
+  return (
+    <ol className="mt-2 space-y-2">
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-3">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600">{i + 1}</span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function Aviso({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <strong>Importante: </strong>{children}
+    </div>
+  )
+}
+
+function FAQ({ q, a }: { q: string; a: string }) {
+  return (
+    <div>
+      <p className="font-semibold text-gray-800">{q}</p>
+      <p className="mt-1 text-gray-500">{a}</p>
+    </div>
+  )
+}

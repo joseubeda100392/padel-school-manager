@@ -26,5 +26,7 @@ export async function POST(req: NextRequest) {
   const { error } = await admin.auth.admin.updateUserById(user.id, { password })
   if (error) return NextResponse.json({ error: 'Error al actualizar la contraseña' }, { status: 500 })
 
+  await admin.from('users').update({ force_password_change: false }).eq('id', user.id)
+
   return NextResponse.json({ ok: true })
 }

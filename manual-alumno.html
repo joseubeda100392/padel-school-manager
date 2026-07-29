@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual de Alumno · ePadel School</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #f0f4f8;
+    --card:      #ffffff;
+    --border:    #e2e8f0;
+    --text:      #0e1c2c;
+    --muted:     #6a849a;
+    --brand:     #00c49a;
+    --brand-dark:#00896a;
+    --brand-bg:  #f0fdf8;
+    --brand-bdr: #99f6e0;
+    --brand-txt: #00896a;
+    --header-bg: #0e1c2c;
+    --warn-bg:   #fffbeb;
+    --warn-bdr:  #fcd34d;
+    --warn-txt:  #92400e;
+    --step-bg:   #ccfbef;
+    --step-txt:  #00896a;
+    --shadow:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .site-header {
+    background: var(--header-bg);
+    color: white;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  }
+  .site-header .logo {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .site-header .logo svg { opacity: .9; }
+  .site-header .badge {
+    margin-left: auto;
+    font-size: 11px;
+    background: rgba(255,255,255,.2);
+    padding: 2px 10px;
+    border-radius: 20px;
+    letter-spacing: .3px;
+  }
+
+  /* LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 0;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 16px 64px;
+    align-items: start;
+  }
+
+  /* SIDEBAR NAV */
+  .sidebar {
+    position: sticky;
+    top: 72px;
+    padding-right: 24px;
+  }
+  .sidebar p {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .sidebar ul { list-style: none; }
+  .sidebar ul li a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: background .12s, color .12s;
+  }
+  .sidebar ul li a:hover {
+    background: white;
+    color: var(--brand);
+  }
+  .sidebar ul li a.active {
+    background: var(--brand-bg);
+    color: var(--brand-txt);
+    font-weight: 600;
+  }
+
+  /* MAIN */
+  .main { min-width: 0; }
+
+  /* Offset para el header sticky al navegar por anclas */
+  [id] { scroll-margin-top: 72px; }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 24px 28px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title .icon {
+    width: 30px;
+    height: 30px;
+    background: var(--brand-bg);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-title .icon svg { color: var(--brand); }
+  .card p { font-size: 14px; color: #374151; margin-bottom: 10px; }
+  .card p:last-child { margin-bottom: 0; }
+
+  /* HERO CARD */
+  .hero-card {
+    background: var(--header-bg);
+    border-radius: 14px;
+    padding: 32px 28px;
+    margin-bottom: 16px;
+    color: white;
+  }
+  .hero-card h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    margin-bottom: 6px;
+  }
+  .hero-card p {
+    font-size: 14px;
+    opacity: .85;
+    margin-bottom: 0;
+  }
+  .hero-card .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .hero-card .pill {
+    background: rgba(255,255,255,.18);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* TABLE */
+  .menu-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .menu-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: var(--muted);
+    padding: 0 12px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .menu-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .menu-table tr:last-child td { border-bottom: none; }
+  .menu-table td:first-child { font-weight: 600; white-space: nowrap; color: var(--text); }
+  .menu-table td:last-child { color: #4b5563; }
+
+  /* STEPS */
+  .steps { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    color: #374151;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--step-bg);
+    color: var(--step-txt);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* CALLOUTS */
+  .note {
+    background: var(--brand-bg);
+    border: 1px solid var(--brand-bdr);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--brand-txt);
+    margin: 12px 0 0;
+  }
+  .note strong { font-weight: 700; }
+  .warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-bdr);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--warn-txt);
+    margin: 12px 0 0;
+  }
+  .warn strong { font-weight: 700; }
+
+  /* FAQ */
+  .faq-item { border-bottom: 1px solid var(--border); padding: 14px 0; }
+  .faq-item:first-child { padding-top: 0; }
+  .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .faq-q { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+  .faq-a { font-size: 13px; color: #4b5563; }
+
+
+  /* UL inside card */
+  .card ul {
+    padding-left: 20px;
+    font-size: 14px;
+    color: #374151;
+  }
+  .card ul li { margin-bottom: 5px; }
+
+  /* Responsive */
+  @media (max-width: 680px) {
+    .layout { grid-template-columns: 1fr; padding: 16px 12px 48px; }
+    .sidebar { display: none; }
+    .card { padding: 18px 16px; }
+    .hero-card { padding: 24px 16px; }
+  }
+
+  @media print {
+    .site-header, .sidebar { display: none; }
+    .layout { display: block; padding: 0; max-width: 100%; }
+    .card, .hero-card, .cta-card { box-shadow: none; border: 1px solid #e5e7eb; page-break-inside: avoid; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+    ePadel School
+  </div>
+  <span class="badge">Manual de Alumno</span>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <p>Contenido</p>
+    <ul>
+      <li><a href="#que-es">¿Qué es?</a></li>
+      <li><a href="#acceso">Cómo acceder</a></li>
+      <li><a href="#menu">El menú</a></li>
+      <li><a href="#clases">Mis clases</a></li>
+      <li><a href="#bolsa">Bolsa de clases</a></li>
+      <li><a href="#recuperar">Recuperar clase</a></li>
+      <li><a href="#pagos">Pagos</a></li>
+      <li><a href="#materiales">Materiales</a></li>
+      <li><a href="#notificaciones">Notificaciones</a></li>
+      <li><a href="#chat">Chat soporte</a></li>
+      <li><a href="#faq">Preguntas frecuentes</a></li>
+    </ul>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="hero-card">
+      <h1>Manual de Alumno</h1>
+      <p>Todo lo que necesitas saber para usar la aplicación de <strong>ePadel School</strong>.</p>
+      <div class="pills">
+        <span class="pill">Móvil</span>
+        <span class="pill">Tablet</span>
+        <span class="pill">Ordenador</span>
+        <span class="pill">Sin instalar nada</span>
+      </div>
+    </div>
+
+    <!-- 1. QUÉ ES -->
+    <div class="card" id="que-es">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+        </span>
+        ¿Qué es esta aplicación?
+      </div>
+      <p>Esta es la plataforma digital de tu escuela de pádel. Desde ella puedes consultar tus clases, gestionar tu bolsa de créditos, recuperar clases perdidas, pagar bonos y contactar con el club.</p>
+      <p>Funciona desde cualquier navegador (Chrome, Safari, Firefox) en el móvil, tablet u ordenador. No necesitas descargar ninguna app de ninguna tienda — solo el enlace que te ha dado el club.</p>
+    </div>
+
+    <!-- 2. ACCESO -->
+    <div class="card" id="acceso">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        </span>
+        Cómo acceder
+      </div>
+      <p>El club te ha enviado un correo con tu email y una contraseña temporal. Si no lo ves, revisa la carpeta de spam.</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><span>Abre el enlace que te ha enviado el club.</span></div>
+        <div class="step"><span class="step-num">2</span><span>Introduce tu <strong>email</strong> y tu <strong>contraseña temporal</strong>.</span></div>
+        <div class="step"><span class="step-num">3</span><span>La primera vez tendrás que leer y aceptar las condiciones de uso del club.</span></div>
+        <div class="step"><span class="step-num">4</span><span>Te recomendamos cambiar tu contraseña temporal por una personal: pulsa <strong>¿Olvidaste tu contraseña?</strong> en la pantalla de inicio, introduce tu email y sigue las instrucciones del correo que recibirás.</span></div>
+      </div>
+      <div class="note"><strong>Contraseña olvidada:</strong> Pulsa "¿Olvidaste tu contraseña?" en la pantalla de inicio. Recibirás un email para restablecerla. Si no lo ves, revisa la carpeta de spam.</div>
+    </div>
+
+    <!-- 3. MENÚ -->
+    <div class="card" id="menu">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </span>
+        El menú principal
+      </div>
+      <p>Tras iniciar sesión encontrarás todas las secciones en el menú lateral. Si alguna opción no aparece, es que el club no la tiene activa.</p>
+      <table class="menu-table" style="margin-top:14px;">
+        <thead>
+          <tr><th>Sección</th><th>Para qué sirve</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Inicio</td><td>Resumen de tu saldo de clases disponibles.</td></tr>
+          <tr><td>Mis Clases</td><td>Tus clases apuntadas, horarios y asistencia.</td></tr>
+          <tr><td>Mi Progreso</td><td>Tu nivel actual e historial de progresión.</td></tr>
+          <tr><td>Huecos</td><td>Plazas libres en otras clases para recuperar una que hayas perdido.</td></tr>
+          <tr><td>Intensivos</td><td>Cursos intensivos del club.</td></tr>
+          <tr><td>Torneos</td><td>Torneos disponibles e inscripción.</td></tr>
+          <tr><td>Bolsa</td><td>Saldo de créditos de clases y recargas.</td></tr>
+          <tr><td>Material</td><td>PDFs y ejercicios adaptados a tu nivel.</td></tr>
+          <tr><td>Tarifas</td><td>Precios del club: bonos, clases sueltas e intensivos.</td></tr>
+          <tr><td>Notificaciones</td><td>Avisos y mensajes del club.</td></tr>
+          <tr><td>Chat soporte</td><td>Escríbenos directamente si tienes alguna duda.</td></tr>
+          <tr><td>Ayuda</td><td>Este manual y preguntas frecuentes.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. CLASES -->
+    <div class="card" id="clases">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        Mis clases
+      </div>
+      <p>En <strong>Mis Clases</strong> verás todas las clases en las que estás inscrito: día, hora, pista, monitor y estado de asistencia.</p>
+
+      <p style="font-weight:600; margin-top:14px; margin-bottom:6px;">Cancelar una clase</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><span>Ve a <strong>Mis Clases</strong>.</span></div>
+        <div class="step"><span class="step-num">2</span><span>Pulsa sobre la clase que no puedes asistir.</span></div>
+        <div class="step"><span class="step-num">3</span><span>Pulsa <strong>Cancelar asistencia</strong> y confirma.</span></div>
+      </div>
+      <div class="warn"><strong>Importante:</strong> El club tiene un plazo mínimo de cancelación. Si avisas dentro del plazo, el crédito vuelve automáticamente a tu bolsa. Si avisas tarde o no avisas, el crédito no se recupera. Pregunta a tu monitor o al club cuál es el plazo exacto.</div>
+    </div>
+
+    <!-- 5. BOLSA -->
+    <div class="card" id="bolsa">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </span>
+        Mi bolsa de clases
+      </div>
+      <p>La bolsa es tu saldo de créditos. Cada clase que asistes descuenta 1 crédito. En la sección <strong>Bolsa</strong> verás tu saldo actual y el historial de movimientos.</p>
+      <ul style="margin-top:10px;">
+        <li>Si cancelas con suficiente antelación, el crédito se devuelve solo.</li>
+        <li>Si tu saldo llega a 0, puedes pagar una clase suelta (si el club lo permite).</li>
+        <li>Puedes recargar comprando un bono desde la sección Bolsa.</li>
+      </ul>
+    </div>
+
+    <!-- 6. RECUPERAR -->
+    <div class="card" id="recuperar">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </span>
+        Recuperar una clase perdida
+      </div>
+      <p>Si faltaste a una clase, puedes apuntarte a otro horario con plazas libres:</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><span>Ve a la sección <strong>Huecos</strong>.</span></div>
+        <div class="step"><span class="step-num">2</span><span>Busca un horario libre que te venga bien.</span></div>
+        <div class="step"><span class="step-num">3</span><span>Pulsa <strong>Reservar hueco</strong> y confirma.</span></div>
+      </div>
+      <div class="note">Las plazas de recuperación son limitadas y dependen de la disponibilidad del club.</div>
+    </div>
+
+    <!-- 7. PAGOS -->
+    <div class="card" id="pagos">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </span>
+        Pagos
+      </div>
+      <p>Los pagos se realizan con tarjeta bancaria de forma segura a través de Redsys, la pasarela oficial de los bancos españoles. Tus datos bancarios nunca se almacenan en la aplicación.</p>
+      <p style="font-weight:600; margin-top:14px; margin-bottom:6px;">Comprar un bono</p>
+      <div class="steps">
+        <div class="step"><span class="step-num">1</span><span>Ve a la sección <strong>Bolsa</strong>.</span></div>
+        <div class="step"><span class="step-num">2</span><span>Selecciona el bono que quieres comprar.</span></div>
+        <div class="step"><span class="step-num">3</span><span>Completa el pago con tarjeta.</span></div>
+        <div class="step"><span class="step-num">4</span><span>Los créditos se añaden automáticamente a tu bolsa.</span></div>
+      </div>
+    </div>
+
+    <!-- 8. MATERIALES -->
+    <div class="card" id="materiales">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </span>
+        Materiales didácticos
+      </div>
+      <p>El club publica PDFs y ejercicios adaptados a tu nivel. Ve a la sección <strong>Material</strong> para verlos y descargarlos. A medida que subas de nivel tendrás acceso a nuevos contenidos.</p>
+      <div class="note">Si no ves materiales, puede que el club aún no haya publicado contenido para tu nivel. Consúltalo con tu monitor.</div>
+    </div>
+
+    <!-- 9. NOTIFICACIONES -->
+    <div class="card" id="notificaciones">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </span>
+        Notificaciones
+      </div>
+      <p>La aplicación te avisa cuando el club te envía un aviso directo o cuando hay un hueco libre disponible para recuperar una clase.</p>
+      <p style="font-weight:600; margin-top:14px; margin-bottom:6px;">Cómo activarlas</p>
+      <p>La primera vez que accedas, el navegador te preguntará si quieres recibir notificaciones. Es importante que pulses <strong>Permitir</strong> — si las bloqueas, no recibirás ningún aviso del club.</p>
+      <div class="warn"><strong>Si las bloqueaste por error:</strong> Ve a la configuración de tu navegador → Privacidad y seguridad → Notificaciones, busca la dirección de la aplicación y cámbiala a "Permitir". En el móvil también puedes hacerlo desde Ajustes → [nombre del navegador] → Notificaciones.</div>
+    </div>
+
+    <!-- 10. CHAT -->
+    <div class="card" id="chat">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </span>
+        Chat de soporte
+      </div>
+      <p>¿Tienes alguna duda? Escríbenos directamente desde la sección <strong>Chat soporte</strong>. Recibirás una notificación cuando el club te responda.</p>
+      <div class="note">El chat es para consultas sobre la aplicación, horarios o pagos. Para temas técnicos de pádel, habla directamente con tu monitor en la pista.</div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="card" id="faq">
+      <div class="card-title">
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        Preguntas frecuentes
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">¿Con cuánta antelación tengo que avisar si falto a una clase?</p>
+        <p class="faq-a">El plazo mínimo lo establece el club. Si cancelas dentro del plazo, el crédito se devuelve automáticamente. Si no, se pierde. Pregunta a tu monitor o al club cuál es el plazo exacto.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">¿Puedo usar la aplicación desde el móvil?</p>
+        <p class="faq-a">Sí. Funciona en cualquier navegador (Chrome, Safari, Firefox) y en cualquier dispositivo. Solo necesitas el enlace del club — no hay que instalar ninguna app.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">No recuerdo mi contraseña</p>
+        <p class="faq-a">Pulsa "¿Olvidaste tu contraseña?" en la pantalla de inicio. Recibirás un email para restablecerla. Si no te llega, escríbenos por el chat.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">He pagado pero no veo los créditos en mi bolsa</p>
+        <p class="faq-a">Los créditos se actualizan automáticamente al completarse el pago. Si tras unos minutos no aparecen, contáctanos por el chat de soporte.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">¿Puedo cambiarme a otro grupo o horario?</p>
+        <p class="faq-a">Los cambios de grupo los gestiona el club. Escríbenos por el chat de soporte y te ayudamos.</p>
+      </div>
+      <div class="faq-item">
+        <p class="faq-q">¿Mis datos están seguros?</p>
+        <p class="faq-a">Sí. La aplicación cumple con el RGPD. Tus datos solo se usan para la gestión del club y nunca se ceden a terceros.</p>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="card" style="text-align:center; padding: 20px 28px;">
+      <p style="color:var(--muted); font-size:13px;">¿Tienes alguna duda? Accede al <strong style="color:var(--text);">Chat de soporte</strong> desde la aplicación y te respondemos lo antes posible.</p>
+      <p style="color:var(--muted); font-size:12px; margin-top:8px;">ePadel School · Manual de Alumno v1.0</p>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
