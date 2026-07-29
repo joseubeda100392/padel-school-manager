@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function StudentTarifasPage() {
   const supabase = createClient()
@@ -11,11 +12,7 @@ export default async function StudentTarifasPage() {
   const { data: profile } = await admin.from('users').select('club_id').eq('id', user.id).single()
   const clubId = (profile as any)?.club_id ?? null
 
-  const { data: featRow } = clubId
-    ? await admin.from('clubs').select('club_features').eq('id', clubId).single()
-    : { data: null }
-
-  const features = (featRow as any)?.club_features ?? {}
+  const features = await getClubFeatures(clubId) as any
   const docs = [
     { key: 'tarifas_pdf_url', label: 'Tarifas', description: 'Precios de clases y bonos', apiPath: '/api/pdf/tarifas' },
     { key: 'calendario_pdf_url', label: 'Calendario', description: 'Calendario de la temporada', apiPath: '/api/pdf/calendario' },
