@@ -29,6 +29,21 @@ const defaults: AppConfig = {
   max_recovery_classes: 0,
 }
 
+function intVal(s: string): number {
+  const n = parseInt(s.replace(/\D/g, ''), 10)
+  return isNaN(n) ? 0 : n
+}
+function priceVal(s: string): number {
+  const n = parseFloat(s.replace(',', '.').replace(/[^\d.]/g, ''))
+  return isNaN(n) ? 0 : Math.round(n * 100)
+}
+function displayPrice(cents: number): string {
+  return cents === 0 ? '' : (cents / 100).toString()
+}
+function displayInt(n: number): string {
+  return n === 0 ? '' : n.toString()
+}
+
 export function SettingsClient({ clubId, userId }: { clubId: string | null; userId: string }) {
   const router = useRouter()
   const [config, setConfig] = useState<AppConfig>(defaults)
@@ -641,11 +656,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase 1 hora (€)</label>
                     <div className="relative">
                       <input
-                        type="number" min={0} step={0.5}
+                        type="text"
+                        inputMode="decimal"
                         onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                        value={config.pay_per_class_price_60 / 100}
-                        onChange={e => setConfig({ ...config, pay_per_class_price_60: Math.round(Number(e.target.value) * 100) })}
+                        value={displayPrice(config.pay_per_class_price_60)}
+                        onChange={e => setConfig({ ...config, pay_per_class_price_60: priceVal(e.target.value) })}
                         className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
                       />
                       <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
@@ -657,11 +672,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase 1h 30min (€)</label>
                     <div className="relative">
                       <input
-                        type="number" min={0} step={0.5}
+                        type="text"
+                        inputMode="decimal"
                         onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                        value={config.pay_per_class_price_90 / 100}
-                        onChange={e => setConfig({ ...config, pay_per_class_price_90: Math.round(Number(e.target.value) * 100) })}
+                        value={displayPrice(config.pay_per_class_price_90)}
+                        onChange={e => setConfig({ ...config, pay_per_class_price_90: priceVal(e.target.value) })}
                         className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
                       />
                       <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
@@ -682,11 +697,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     <div>
                       <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
                       <input
-                        type="number" min={1}
+                        type="text"
+                        inputMode="numeric"
                         onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                        value={config.classes_per_pack_60}
-                        onChange={e => setConfig({ ...config, classes_per_pack_60: Number(e.target.value) })}
+                        value={displayInt(config.classes_per_pack_60)}
+                        onChange={e => setConfig({ ...config, classes_per_pack_60: intVal(e.target.value) })}
                         className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
                       />
                     </div>
@@ -694,11 +709,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                       <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
                       <div className="relative">
                         <input
-                          type="number" min={0} step={0.5}
+                          type="text"
+                          inputMode="decimal"
                           onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                          value={config.pack_price_60 / 100}
-                          onChange={e => setConfig({ ...config, pack_price_60: Math.round(Number(e.target.value) * 100) })}
+                          value={displayPrice(config.pack_price_60)}
+                          onChange={e => setConfig({ ...config, pack_price_60: priceVal(e.target.value) })}
                           className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
                         />
                         <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
@@ -717,11 +732,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     <div>
                       <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
                       <input
-                        type="number" min={1}
+                        type="text"
+                        inputMode="numeric"
                         onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                        value={config.classes_per_pack_90}
-                        onChange={e => setConfig({ ...config, classes_per_pack_90: Number(e.target.value) })}
+                        value={displayInt(config.classes_per_pack_90)}
+                        onChange={e => setConfig({ ...config, classes_per_pack_90: intVal(e.target.value) })}
                         className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
                       />
                     </div>
@@ -729,11 +744,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                       <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
                       <div className="relative">
                         <input
-                          type="number" min={0} step={0.5}
+                          type="text"
+                          inputMode="decimal"
                           onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                          value={config.pack_price_90 / 100}
-                          onChange={e => setConfig({ ...config, pack_price_90: Math.round(Number(e.target.value) * 100) })}
+                          value={displayPrice(config.pack_price_90)}
+                          onChange={e => setConfig({ ...config, pack_price_90: priceVal(e.target.value) })}
                           className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
                         />
                         <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
@@ -754,11 +769,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
               <p className="mb-4 text-xs text-gray-400">Si el alumno cancela con menos de X horas, el crédito <strong>no</strong> se devuelve.</p>
               <div className="flex items-center gap-3">
                 <input
-                  type="number" min={0} max={168}
+                  type="text"
+                  inputMode="numeric"
                   onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                  value={config.cancellation_hours}
-                  onChange={e => setConfig({ ...config, cancellation_hours: Number(e.target.value) })}
+                  value={displayInt(config.cancellation_hours)}
+                  onChange={e => setConfig({ ...config, cancellation_hours: intVal(e.target.value) })}
                   className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
                 />
                 <span className="text-sm text-gray-500">horas antes del inicio</span>
@@ -782,11 +797,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
             </p>
             <div className="flex items-center gap-3">
               <input
-                type="number" min={0} max={99}
-                onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                value={config.max_recovery_classes}
-                onChange={e => setConfig({ ...config, max_recovery_classes: Number(e.target.value) })}
+                type="text"
+              inputMode="numeric"
+              onFocus={e => e.target.select()}
+              value={displayInt(config.max_recovery_classes)}
+              onChange={e => setConfig({ ...config, max_recovery_classes: intVal(e.target.value) })}
                 className="w-24 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
               />
               <span className="text-sm text-gray-500">
