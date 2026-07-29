@@ -5,6 +5,7 @@ import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { PasswordForm } from './password-form'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -32,7 +33,7 @@ export default async function StudentHomePage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: userData } = await admin.from('users').select('name, current_level_id, club_id').eq('id', user.id).single()
+  const { data: userData } = await admin.from('users').select('name, email, current_level_id, club_id').eq('id', user.id).single()
   const clubId = (userData as any)?.club_id as string | undefined
 
   const today = new Date().toISOString().split('T')[0]
@@ -118,8 +119,13 @@ export default async function StudentHomePage() {
 
   const spotsCount = absenceCount + capacityCount
 
+  const userName = (userData as any)?.name
+  const userEmail = user.email ?? ''
+  const levelName = level?.name ?? null
+  const levelColor = level?.color ?? null
+
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl space-y-4">
       <RealtimeRefresh
         channelName={`student-home-${user.id}`}
         subs={[
@@ -128,14 +134,41 @@ export default async function StudentHomePage() {
           { table: 'bookings', filter: `student_id=eq.${user.id}` },
         ]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Hola, {(userData as any)?.name?.split(' ')[0] ?? user.user_metadata?.full_name?.split(' ')[0] ?? user.user_metadata?.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'alumno'} 👋</h1>
-        <p className="text-sm text-gray-500">Bienvenido a tu área personal</p>
+
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Mi perfil</h1>
+        <p className="text-sm text-gray-500">Tu área personal</p>
+      </div>
+
+      {/* Datos personales */}
+      <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold text-gray-900">Datos personales</h2>
+        <div className="space-y-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Nombre</p>
+            <p className="mt-1 text-sm text-gray-800">{userName || <span className="italic text-gray-400">Sin nombre</span>}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Email</p>
+            <p className="mt-1 text-sm text-gray-800">{userEmail}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Nivel actual</p>
+            {levelName && levelColor ? (
+              <span className="mt-1 inline-block rounded-full px-3 py-1 text-sm font-semibold text-white" style={{ backgroundColor: levelColor }}>
+                {levelName}
+              </span>
+            ) : (
+              <p className="mt-1 text-sm italic text-gray-400">Sin asignar</p>
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-gray-400">Para cambiar tu nombre o email contacta con el club.</p>
       </div>
 
       {/* Alerta cuota pendiente */}
       {features.enable_payments && pendingEnrollments.length > 0 && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-semibold text-red-700">
             Tienes {pendingEnrollments.length} cuota{pendingEnrollments.length > 1 ? 's' : ''} pendiente{pendingEnrollments.length > 1 ? 's' : ''} de pago
           </p>
@@ -146,23 +179,19 @@ export default async function StudentHomePage() {
       )}
 
       {/* Cards resumen */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {features.enable_bag && (
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <p className="text-xs font-medium uppercase text-gray-500">Clases disponibles</p>
             <p className={`mt-2 text-4xl font-bold ${bagBalance > 0 ? 'text-brand-500' : 'text-gray-400'}`}>{bagBalance}</p>
-            <Link href="/student/bag" className="mt-2 block text-xs text-brand-500 hover:underline">
-              Ver historial →
-            </Link>
+            <Link href="/student/bag" className="mt-2 block text-xs text-brand-500 hover:underline">Ver historial →</Link>
           </div>
         )}
-
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-xs font-medium uppercase text-gray-500">Mis clases</p>
           <p className="mt-2 text-4xl font-bold text-gray-900">{activeEnrollments.length}</p>
           <Link href="/student/schedule" className="mt-2 block text-xs text-brand-500 hover:underline">Ver clases →</Link>
         </div>
-
         {features.enable_spots && (
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <p className="text-xs font-medium uppercase text-gray-500">Huecos libres</p>
@@ -174,7 +203,7 @@ export default async function StudentHomePage() {
 
       {/* Próxima clase */}
       {nextClass && (
-        <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
+        <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="mb-3 text-xs font-medium uppercase text-gray-500">Próxima clase</p>
           <div className="flex items-center justify-between">
             <div>
@@ -201,18 +230,8 @@ export default async function StudentHomePage() {
         </div>
       )}
 
-      {/* Nivel */}
-      {level && (
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="mb-2 text-xs font-medium uppercase text-gray-500">Mi nivel</p>
-          <span
-            className="inline-block rounded-full px-3 py-1 text-sm font-semibold text-white"
-            style={{ backgroundColor: level.color }}
-          >
-            {level.name}
-          </span>
-        </div>
-      )}
+      {/* Cambiar contraseña */}
+      <PasswordForm />
     </div>
   )
 }

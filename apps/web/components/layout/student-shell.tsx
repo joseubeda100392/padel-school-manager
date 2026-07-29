@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useSpring, useTransform } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, HelpCircle, User } from 'lucide-react'
+import { Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, HelpCircle, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
@@ -24,7 +24,7 @@ function AnimatedNumber({ target }: { target: number }) {
 }
 
 const allNavItems = [
-  { href: '/student', label: 'Inicio', icon: Home, exact: true, feature: null },
+  { href: '/student', label: 'Mi perfil', icon: User, exact: true, feature: null },
   { href: '/student/schedule', label: 'Mis Clases', icon: Calendar, exact: false, feature: null },
   { href: '/student/progress', label: 'Mi Progreso', icon: Target, exact: false, feature: 'enable_objectives' },
   { href: '/student/spots', label: 'Huecos', icon: Zap, exact: false, feature: 'enable_spots' },
@@ -36,7 +36,6 @@ const allNavItems = [
   { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false, feature: null },
   { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
   { href: '/student/ayuda', label: 'Ayuda', icon: HelpCircle, exact: false, feature: null },
-  { href: '/student/perfil', label: 'Mi perfil', icon: User, exact: false, feature: null },
 ]
 
 export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features }: {
