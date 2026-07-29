@@ -92,6 +92,7 @@ export function TarifasClient() {
                 <div className="relative">
                   <input
                     type="number" min={0} step={0.5}
+                    onFocus={e => e.target.select()}
                     value={config.pay_per_class_price_60 / 100}
                     onChange={e => setConfig({ ...config, pay_per_class_price_60: Math.round(Number(e.target.value) * 100) })}
                     className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
@@ -106,6 +107,7 @@ export function TarifasClient() {
                 <div className="relative">
                   <input
                     type="number" min={0} step={0.5}
+                    onFocus={e => e.target.select()}
                     value={config.pay_per_class_price_90 / 100}
                     onChange={e => setConfig({ ...config, pay_per_class_price_90: Math.round(Number(e.target.value) * 100) })}
                     className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
@@ -129,6 +131,7 @@ export function TarifasClient() {
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
                   <input
                     type="number" min={1}
+                    onFocus={e => e.target.select()}
                     value={config.classes_per_pack_60}
                     onChange={e => setConfig({ ...config, classes_per_pack_60: Number(e.target.value) })}
                     className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
@@ -139,6 +142,7 @@ export function TarifasClient() {
                   <div className="relative">
                     <input
                       type="number" min={0} step={0.5}
+                      onFocus={e => e.target.select()}
                       value={config.pack_price_60 / 100}
                       onChange={e => setConfig({ ...config, pack_price_60: Math.round(Number(e.target.value) * 100) })}
                       className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
@@ -160,6 +164,7 @@ export function TarifasClient() {
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
                   <input
                     type="number" min={1}
+                    onFocus={e => e.target.select()}
                     value={config.classes_per_pack_90}
                     onChange={e => setConfig({ ...config, classes_per_pack_90: Number(e.target.value) })}
                     className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
@@ -170,6 +175,7 @@ export function TarifasClient() {
                   <div className="relative">
                     <input
                       type="number" min={0} step={0.5}
+                      onFocus={e => e.target.select()}
                       value={config.pack_price_90 / 100}
                       onChange={e => setConfig({ ...config, pack_price_90: Math.round(Number(e.target.value) * 100) })}
                       className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
@@ -193,6 +199,7 @@ export function TarifasClient() {
           <div className="flex items-center gap-3">
             <input
               type="number" min={0} max={168}
+              onFocus={e => e.target.select()}
               value={config.cancellation_hours}
               onChange={e => setConfig({ ...config, cancellation_hours: Number(e.target.value) })}
               className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
@@ -219,6 +226,7 @@ export function TarifasClient() {
         <div className="flex items-center gap-3">
           <input
             type="number" min={0} max={99}
+            onFocus={e => e.target.select()}
             value={config.max_recovery_classes}
             onChange={e => setConfig({ ...config, max_recovery_classes: Number(e.target.value) })}
             className="w-24 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
