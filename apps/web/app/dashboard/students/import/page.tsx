@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import * as XLSX from 'xlsx'
 
 interface Row {
   nombre: string
@@ -76,18 +77,15 @@ function parseCSV(text: string): string[][] {
 }
 
 function downloadTemplate() {
-  const csv = [
-    'nombre,email,telefono,nivel,password',
-    'María García,maria@ejemplo.com,612345678,Iniciación,',
-    'Carlos López,carlos@ejemplo.com,,Intermedio,MiClave123',
-  ].join('\n')
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'plantilla_alumnos.csv'
-  a.click()
-  URL.revokeObjectURL(url)
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['nombre', 'email', 'telefono', 'nivel', 'password'],
+    ['María García', 'maria@ejemplo.com', '612345678', 'Iniciación', ''],
+    ['Carlos López', 'carlos@ejemplo.com', '', 'Intermedio', 'MiClave123'],
+  ])
+  ws['!cols'] = [{ wch: 28 }, { wch: 32 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Alumnos')
+  XLSX.writeFile(wb, 'plantilla_alumnos.xlsx')
 }
 
 export default function ImportStudentsPage() {
@@ -187,20 +185,18 @@ export default function ImportStudentsPage() {
 
   function downloadResults() {
     if (!results) return
-    const header = 'Nombre,Email,Estado,Contraseña temporal,Error'
-    const csvRows = results.map(r =>
-      [r.name ?? '', r.email, r.status === 'ok' ? 'Creado' : 'Error', r.password ?? '', r.error ?? '']
-        .map(v => `"${String(v).replace(/"/g, '""')}"`)
-        .join(',')
-    )
-    const csv = [header, ...csvRows].join('\n')
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'resultado_importacion.csv'
-    a.click()
-    URL.revokeObjectURL(url)
+    const rows = results.map(r => ({
+      Nombre: r.name ?? '',
+      Email: r.email,
+      Estado: r.status === 'ok' ? 'Creado' : 'Error',
+      'Contraseña temporal': r.status === 'ok' ? (r.password ?? '') : '',
+      Error: r.status === 'error' ? (r.error ?? '') : '',
+    }))
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [{ wch: 28 }, { wch: 32 }, { wch: 10 }, { wch: 20 }, { wch: 36 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Resultado')
+    XLSX.writeFile(wb, 'resultado_importacion.xlsx')
   }
 
   const ok = results?.filter((r) => r.status === 'ok') ?? []
@@ -235,7 +231,7 @@ export default function ImportStudentsPage() {
             onClick={downloadTemplate}
             className="shrink-0 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-100"
           >
-            ↓ Plantilla CSV
+            ↓ Plantilla Excel
           </button>
         </div>
       </div>
@@ -327,7 +323,7 @@ export default function ImportStudentsPage() {
                 onClick={downloadResults}
                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
               >
-                ↓ Descargar resultado CSV
+                ↓ Descargar resultado Excel
               </button>
               <button
                 onClick={() => { router.refresh(); router.push('/dashboard/students') }}
