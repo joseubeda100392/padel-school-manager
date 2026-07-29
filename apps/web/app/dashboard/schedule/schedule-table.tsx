@@ -86,7 +86,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
           placeholder="Buscar por pista, monitor o nivel..."
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="min-w-[200px] flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+          className="w-full min-w-0 flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none sm:min-w-[200px]"
         />
         <select
           value={day}

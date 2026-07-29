@@ -61,7 +61,7 @@ export default async function CoachHomePage() {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
         <div className="rounded-xl bg-white p-4 shadow-sm">
           <p className="text-xs text-gray-400">Clases asignadas</p>
           <p className="mt-1 text-3xl font-bold text-gray-900">{allSchedules?.length ?? 0}</p>

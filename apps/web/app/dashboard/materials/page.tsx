@@ -24,7 +24,7 @@ export default async function MaterialsPage() {
   return (
     <div>
       <DevError errors={[errMaterials?.message]} />
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Materiales didácticos</h1>
           <p className="text-sm text-gray-500">{materials?.length ?? 0} documentos</p>
@@ -78,7 +78,7 @@ export default async function MaterialsPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="text-right">
                 <p className="text-xs text-gray-400">{formatDate(m.created_at)}</p>
                 <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${m.is_published ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>

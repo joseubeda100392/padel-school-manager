@@ -70,7 +70,7 @@ export default async function CoachChatPage({
   return (
     <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-xl bg-white shadow-sm md:h-[calc(100vh-8rem)]">
       {/* Sidebar */}
-      <aside className="flex w-48 shrink-0 flex-col border-r border-gray-100 sm:w-56">
+      <aside className="flex w-32 shrink-0 flex-col border-r border-gray-100 sm:w-48">
         <div className="border-b border-gray-100 px-3 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Chat</p>
         </div>

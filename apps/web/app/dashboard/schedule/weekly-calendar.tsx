@@ -60,7 +60,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
   return (
     <div>
       {/* Navegación de semana */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <button
           onClick={() => setWeekOffset((o) => o - 1)}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"

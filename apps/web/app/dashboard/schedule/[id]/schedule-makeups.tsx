@@ -80,7 +80,7 @@ export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: 
 
   return (
     <div className="rounded-xl bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-6 py-4">
         <div>
           <h2 className="font-semibold text-gray-900">Recuperaciones</h2>
           <p className="text-xs text-gray-400">{makeups.filter(m => m.status === 'pending').length} pendientes</p>

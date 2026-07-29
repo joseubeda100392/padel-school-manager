@@ -89,7 +89,7 @@ export function StudentMandate({ studentId }: { studentId: string }) {
 
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="font-semibold text-gray-900">Domiciliación mensual</h2>
           <p className="text-xs text-gray-400">Cobro recurrente via Redsys</p>

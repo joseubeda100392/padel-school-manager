@@ -31,7 +31,7 @@ export default async function LevelsPage() {
   return (
     <div>
       <DevError errors={[errLevels?.message]} />
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Niveles de Juego</h1>
           <p className="text-sm text-gray-500">Gestiona los niveles y asígnalos a tus alumnos</p>

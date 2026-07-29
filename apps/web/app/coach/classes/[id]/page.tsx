@@ -101,7 +101,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
           { table: 'schedule_exclusions' },
         ]}
       />
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <Link href="/coach/classes" className="text-sm text-gray-500 hover:text-gray-700">← Mis Clases</Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-xl font-bold text-gray-900">Detalle de clase</h1>
