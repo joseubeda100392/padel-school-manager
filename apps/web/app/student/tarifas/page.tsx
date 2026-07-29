@@ -12,7 +12,7 @@ export default async function StudentTarifasPage() {
   const { data: profile } = await admin.from('users').select('club_id').eq('id', user.id).single()
   const clubId = (profile as any)?.club_id ?? null
 
-  const features = await getClubFeatures(clubId) as any
+  const features = await getClubFeatures(clubId)
   const docs = [
     { key: 'tarifas_pdf_url', label: 'Tarifas', description: 'Precios de clases y bonos', apiPath: '/api/pdf/tarifas' },
     { key: 'calendario_pdf_url', label: 'Calendario', description: 'Calendario de la temporada', apiPath: '/api/pdf/calendario' },
@@ -28,7 +28,7 @@ export default async function StudentTarifasPage() {
 
       <div className="space-y-4">
         {docs.map(doc => {
-          const hasUrl = typeof features[doc.key] === 'string' && !!features[doc.key]
+          const hasUrl = !!features[doc.key as keyof typeof features]
           return (
             <div key={doc.key} className="rounded-xl bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-4">

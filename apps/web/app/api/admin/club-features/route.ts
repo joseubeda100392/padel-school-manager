@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest) {
   const features: Record<string, unknown> = {}
   for (const key of allowed) {
     if (!(key in body)) continue
-    if (key === 'terms_pdf_url') {
+    if (key === 'terms_pdf_url' || key === 'tarifas_pdf_url' || key === 'calendario_pdf_url') {
       features[key] = typeof body[key] === 'string' ? body[key] : ''
     } else {
       features[key] = Boolean(body[key])

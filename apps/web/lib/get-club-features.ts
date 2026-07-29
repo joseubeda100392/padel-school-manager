@@ -16,6 +16,8 @@ export type ClubFeatures = {
   enable_pista_viva: boolean
   enable_terms: boolean
   terms_pdf_url: string
+  tarifas_pdf_url: string
+  calendario_pdf_url: string
 }
 
 export const DEFAULT_FEATURES: ClubFeatures = {
@@ -32,6 +34,8 @@ export const DEFAULT_FEATURES: ClubFeatures = {
   enable_pista_viva: false,
   enable_terms: false,
   terms_pdf_url: '',
+  tarifas_pdf_url: '',
+  calendario_pdf_url: '',
 }
 
 export const getClubFeatures = cache(async (clubId: string | null | undefined): Promise<ClubFeatures> => {
@@ -42,5 +46,7 @@ export const getClubFeatures = cache(async (clubId: string | null | undefined): 
   return {
     ...merged,
     terms_pdf_url: typeof merged.terms_pdf_url === 'string' ? merged.terms_pdf_url : '',
+    tarifas_pdf_url: typeof merged.tarifas_pdf_url === 'string' ? merged.tarifas_pdf_url : '',
+    calendario_pdf_url: typeof merged.calendario_pdf_url === 'string' ? merged.calendario_pdf_url : '',
   }
 })
