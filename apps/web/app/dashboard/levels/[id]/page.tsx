@@ -88,7 +88,7 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Orden (posición en la lista)</label>
           <input type="number" min={1} value={form.order} onChange={(e) => setForm({ ...form, order: e.target.value })}
-          onFocus={e => e.target.select()}
+          onFocus={e => { const t = e.target; setTimeout(() => t.select(), 0) }}
             className="w-32 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
         </div>
 

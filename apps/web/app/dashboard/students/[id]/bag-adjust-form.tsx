@@ -55,7 +55,7 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
         </select>
         <input
           type="number"
-          onFocus={e => e.target.select()}
+          onFocus={e => { const t = e.target; setTimeout(() => t.select(), 0) }}
           min={1}
           max={100}
           value={amount}

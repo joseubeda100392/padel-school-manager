@@ -173,7 +173,7 @@ export function StudentMandate({ studentId }: { studentId: string }) {
             <label className="mb-1 block text-sm font-medium text-gray-700">Importe mensual (€)</label>
             <input
               type="number"
-              onFocus={e => e.target.select()}
+              onFocus={e => { const t = e.target; setTimeout(() => t.select(), 0) }}
               step="0.01"
               min="1"
               value={amount}
