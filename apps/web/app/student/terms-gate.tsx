@@ -53,11 +53,11 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
             Antes de acceder a la aplicación debes leer y aceptar las condiciones de uso del club.
           </p>
 
-          {typeof pdfUrl === 'string' && pdfUrl.startsWith('http') ? (
+          {typeof pdfUrl === 'string' && pdfUrl ? (
             <div className="mb-6">
               <button
                 type="button"
-                onClick={() => { window.open(pdfUrl, '_blank') }}
+                onClick={() => { window.open('/api/pdf/normas', '_blank') }}
                 className="flex w-full items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-100"
               >
                 <span className="text-3xl">📄</span>
@@ -68,7 +68,7 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
                 <span className="ml-auto text-gray-400">↗</span>
               </button>
               <a
-                href={pdfUrl}
+                href="/api/pdf/normas"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-2 block text-center text-xs text-brand-500 underline"
