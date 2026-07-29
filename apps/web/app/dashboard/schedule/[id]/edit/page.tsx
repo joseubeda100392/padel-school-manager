@@ -150,6 +150,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Máx. alumnos</label>
             <input type="number" min={1} max={20} value={form.max_students}
+            onFocus={e => e.target.select()}
               onChange={(e) => setForm({ ...form, max_students: Number(e.target.value) })}
               className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
