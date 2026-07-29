@@ -81,7 +81,7 @@ function downloadTemplate() {
     'María García,maria@ejemplo.com,612345678,Iniciación,',
     'Carlos López,carlos@ejemplo.com,,Intermedio,MiClave123',
   ].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -194,7 +194,7 @@ export default function ImportStudentsPage() {
         .join(',')
     )
     const csv = [header, ...csvRows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
