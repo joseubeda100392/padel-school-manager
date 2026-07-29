@@ -24,7 +24,7 @@ export default function AyudaPage() {
       <Section title="El menú principal">
         <div className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
           {[
-            ['Inicio', 'Resumen de tu saldo de clases disponibles.'],
+            ['Mi perfil', 'Tus datos personales, resumen de clases y bolsa, próxima clase y cambio de contraseña.'],
             ['Mis Clases', 'Tus clases apuntadas, horarios y asistencia.'],
             ['Mi Progreso', 'Tu nivel actual e historial de progresión.'],
             ['Huecos', 'Plazas libres en otras clases para recuperar una que hayas perdido.'],
@@ -36,7 +36,6 @@ export default function AyudaPage() {
             ['Notificaciones', 'Avisos y mensajes del club.'],
             ['Chat soporte', 'Escríbenos directamente si tienes alguna duda.'],
             ['Ayuda', 'Este manual y preguntas frecuentes.'],
-            ['Mi perfil', 'Ver tus datos, tu nivel actual y cambiar tu contraseña.'],
           ].map(([label, desc]) => (
             <div key={label} className="flex gap-3 bg-white px-4 py-3">
               <span className="w-32 shrink-0 text-sm font-semibold text-gray-800">{label}</span>
