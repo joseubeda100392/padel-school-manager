@@ -54,9 +54,9 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
           <option value="90">90 min</option>
         </select>
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
           onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
           min={1}
           max={100}
           value={amount}

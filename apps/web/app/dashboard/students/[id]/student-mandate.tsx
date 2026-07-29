@@ -172,9 +172,9 @@ export function StudentMandate({ studentId }: { studentId: string }) {
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Importe mensual (€)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
               step="0.01"
               min="1"
               value={amount}

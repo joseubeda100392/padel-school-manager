@@ -64,11 +64,11 @@ export default function NewLevelPage() {
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Posición en la lista</label>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             min={1}
             value={order}
             onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
             onChange={(e) => setOrder(Number(e.target.value))}
             className="w-32 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           />

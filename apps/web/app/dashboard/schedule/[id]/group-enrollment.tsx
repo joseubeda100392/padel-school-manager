@@ -273,10 +273,10 @@ export default function GroupEnrollment({
                   {enablePayments && (editingPriceId === e.id ? (
                     <div className="flex items-center gap-1">
                       <input
-                        type="number" min={0} step={0.5}
+                        type="text"
+                        inputMode="decimal"
                         onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
-                        value={editingPriceValue / 100}
+                        value={editingPriceValue === 0 ? '' : String(editingPriceValue / 100)}
                         onChange={(ev) => setEditingPriceValue(Math.round(Number(ev.target.value) * 100))}
                         className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
                         autoFocus
@@ -418,9 +418,9 @@ export default function GroupEnrollment({
           {enablePayments && (
             <div className="relative">
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
                 min={0}
                 step={0.5}
                 value={monthlyPrice / 100}

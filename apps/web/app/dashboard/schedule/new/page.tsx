@@ -212,9 +212,9 @@ export default function NewSchedulePage() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Máx. alumnos</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
               min={1}
               max={20}
               value={form.max_students}
@@ -269,9 +269,9 @@ export default function NewSchedulePage() {
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio por clase (€)</label>
               <div className="relative">
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   onFocus={e => e.target.select()}
-                    onMouseUp={e => e.preventDefault()}
                   min={0}
                   step={0.5}
                   value={form.price_cents === 0 ? '' : form.price_cents / 100}
