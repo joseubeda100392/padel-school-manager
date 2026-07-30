@@ -97,33 +97,35 @@ export default async function StudentChatPage({
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-white shadow-sm">
-      {/* Sidebar siempre visible */}
-      <aside className="flex w-44 shrink-0 flex-col border-r border-gray-100 sm:w-52">
-        <div className="border-b border-gray-100 px-3 py-3">
+      {/* Sidebar — icon-only on mobile, full on sm+ */}
+      <aside className="flex w-12 shrink-0 flex-col border-r border-gray-100 sm:w-44">
+        <div className="hidden border-b border-gray-100 px-3 py-3 sm:block">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Conversaciones</p>
         </div>
-        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-1.5 space-y-1 sm:p-2">
           <a
             href="/student/chat?with=admin"
-            className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+            title="Administración"
+            className={`flex items-center justify-center gap-2.5 rounded-lg px-1.5 py-2.5 text-sm font-medium transition-colors sm:justify-start sm:px-3 ${
               withParam === 'admin' ? 'bg-brand-50 text-brand-600' : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">A</span>
-            <span className="truncate">Administración</span>
+            <span className="hidden truncate sm:block">Administración</span>
           </a>
           {coaches.map(c => (
             <a
               key={c.id}
               href={`/student/chat?with=${c.id}`}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              title={c.name}
+              className={`flex items-center justify-center gap-2.5 rounded-lg px-1.5 py-2.5 text-sm font-medium transition-colors sm:justify-start sm:px-3 ${
                 withParam === c.id ? 'bg-brand-50 text-brand-600' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
                 {c.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
               </span>
-              <span className="truncate">{c.name}</span>
+              <span className="hidden truncate sm:block">{c.name}</span>
             </a>
           ))}
         </nav>
