@@ -59,7 +59,17 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
 
   const errUnpaid = (unpaidResult as any).error ?? null
   const total = payments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
-  const unpaid = billingActive ? ((unpaidResult.data as any[]) ?? []) : []
+
+  const rawUnpaid: any[] = billingActive ? ((unpaidResult.data as any[]) ?? []) : []
+  const billingStart = billingStartDate ? new Date(billingStartDate + 'T00:00:00') : null
+  const unpaid = billingStart
+    ? rawUnpaid.map((item) => {
+        const monthsSinceBilling =
+          (selectedYear - billingStart.getFullYear()) * 12 +
+          (selectedMonth - billingStart.getMonth()) + 1
+        return { ...item, months_overdue: Math.min(item.months_overdue, monthsSinceBilling) }
+      })
+    : rawUnpaid
 
   return (
     <div className="space-y-6">
