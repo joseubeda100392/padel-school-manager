@@ -186,7 +186,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
           </div>
         </header>
 
-        <main ref={mainRef} className="flex-1 overflow-auto p-4 pb-safe md:p-8 md:pb-8">{children}</main>
+        <main ref={mainRef} className="flex flex-1 flex-col overflow-auto p-4 pb-safe md:p-8 md:pb-8">{children}</main>
         <PushNotificationProvider />
         <InstallBanner />
       </div>
