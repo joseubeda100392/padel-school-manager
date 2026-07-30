@@ -39,6 +39,7 @@ export async function GET() {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="tarifas.pdf"',
+      'Cache-Control': 'no-store',
     },
   })
 }

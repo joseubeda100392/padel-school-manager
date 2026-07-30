@@ -46,7 +46,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="material.pdf"',
-      'Content-Length': buffer.byteLength.toString(),
+      'Cache-Control': 'no-store',
     },
   })
 }
