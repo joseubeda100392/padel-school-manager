@@ -20,6 +20,14 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const features = await getClubFeatures(clubId ?? undefined)
   if (!features.enable_payments) redirect('/dashboard')
 
+  const TZ = 'Europe/Madrid'
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const { data: clubConfigRow } = clubId
+    ? await admin.from('clubs').select('config').eq('id', clubId).single()
+    : { data: null }
+  const billingStartDate: string | null = (clubConfigRow as any)?.config?.billing_start_date ?? null
+  const billingActive = !billingStartDate || todaySpain >= billingStartDate
+
   const now = new Date()
   const parsedDate = searchParams.month ? new Date(searchParams.month + '-01') : null
   const selectedDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : now
@@ -38,17 +46,20 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const [{ data: payments, error: errPayments }, { data: unpaidList, error: errUnpaid }] = await Promise.all([
+  const [{ data: payments, error: errPayments }, unpaidResult] = await Promise.all([
     clubId ? baseQuery.eq('club_id', clubId) : baseQuery,
-    admin.rpc('get_pending_payments', {
-      p_club_id: clubId ?? null,
-      p_year: selectedYear,
-      p_month: selectedMonth + 1, // RPC expects 1-indexed month
-    }),
+    billingActive
+      ? admin.rpc('get_pending_payments', {
+          p_club_id: clubId ?? null,
+          p_year: selectedYear,
+          p_month: selectedMonth + 1,
+        })
+      : Promise.resolve({ data: [] as any[], error: null }),
   ])
 
+  const errUnpaid = (unpaidResult as any).error ?? null
   const total = payments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
-  const unpaid = unpaidList ?? []
+  const unpaid = billingActive ? ((unpaidResult.data as any[]) ?? []) : []
 
   return (
     <div className="space-y-6">
@@ -90,7 +101,14 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
           <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {monthLabel}</h2>
           <p className="text-xs text-gray-400">{unpaid.length} alumnos sin regularizar</p>
         </div>
-        <UnpaidList key={monthLabel} items={unpaid as any[]} monthLabel={monthLabel} />
+        {!billingActive ? (
+          <p className="px-6 py-8 text-center text-sm text-gray-400">
+            El seguimiento de mensualidades empieza el{' '}
+            <strong>{new Date(billingStartDate! + 'T12:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+          </p>
+        ) : (
+          <UnpaidList key={monthLabel} items={unpaid as any[]} monthLabel={monthLabel} />
+        )}
       </div>
 
       <div>
