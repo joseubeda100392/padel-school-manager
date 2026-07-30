@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
 
 interface Doc {
   key: 'tarifas_pdf_url' | 'calendario_pdf_url' | 'terms_pdf_url'
@@ -61,17 +60,20 @@ export function DocumentosClient({ clubId, isAdmin = false }: { clubId: string |
 
   async function handleUpload(doc: Doc, file: File) {
     setUploading(doc.key)
-    const supabase = createClient()
-    const path = `${doc.storagePath}/${clubId ?? 'global'}/${Date.now()}.pdf`
-    const { error: upErr } = await supabase.storage
-      .from('materials')
-      .upload(path, file, { upsert: true, contentType: 'application/pdf' })
 
-    if (upErr) {
-      toast.error('Error al subir el PDF. Inténtalo de nuevo.')
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('key', doc.key)
+
+    const uploadRes = await fetch('/api/admin/upload-doc', { method: 'POST', body: formData })
+    if (!uploadRes.ok) {
+      const j = await uploadRes.json().catch(() => ({}))
+      toast.error('Error al subir el PDF: ' + (j.error ?? 'Error desconocido'))
       setUploading(null)
       return
     }
+
+    const { path } = await uploadRes.json()
 
     const featRes = await fetch('/api/admin/club-features').then(r => r.json()).catch(() => ({}))
     const updatedFeatures = { ...(featRes?.features ?? {}), [doc.key]: path }

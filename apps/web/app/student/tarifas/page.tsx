@@ -39,8 +39,6 @@ export default async function StudentTarifasPage() {
                 {hasUrl && (
                   <a
                     href={doc.apiPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
                   >
                     Ver PDF

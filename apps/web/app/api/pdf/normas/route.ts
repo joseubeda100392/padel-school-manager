@@ -39,6 +39,7 @@ export async function GET() {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="normas.pdf"',
+      'Content-Length': buffer.byteLength.toString(),
     },
   })
 }
