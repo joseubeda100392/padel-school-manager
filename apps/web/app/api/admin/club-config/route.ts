@@ -14,6 +14,7 @@ const DEFAULT_CONFIG = {
   cancellation_hours: 24,
   max_recovery_classes: 0,
   school_name: 'Mi Escuela de Pádel',
+  billing_start_date: '',
 }
 
 async function getEffectiveCaller() {

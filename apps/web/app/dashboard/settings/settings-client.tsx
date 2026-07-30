@@ -345,10 +345,10 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     const { publicUrl } = await res.json()
     const updatedFeatures = { ...features, terms_pdf_url: publicUrl }
     setFeatures(updatedFeatures)
-    const res = await fetch('/api/admin/club-features', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedFeatures) })
+    const saveRes = await fetch('/api/admin/club-features', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedFeatures) })
     setUploadingTerms(false)
     if (termsFileRef.current) termsFileRef.current.value = ''
-    if (res.ok) toast.success('PDF subido y guardado')
+    if (saveRes.ok) toast.success('PDF subido y guardado')
     else toast.error('PDF subido pero no se guardó la URL')
   }
 

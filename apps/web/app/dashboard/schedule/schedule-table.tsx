@@ -164,7 +164,9 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                   </td>
                 </tr>
               )}
-              {filtered.map((s: any) => (
+              {filtered.map((s: any) => {
+                const level = Array.isArray(s.level) ? s.level[0] : s.level
+                return (
                 <tr
                   key={s.id}
                   className={`cursor-pointer hover:bg-gray-50 ${selected.has(s.id) ? 'bg-red-50' : ''}`}
@@ -195,12 +197,12 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                   <td className="px-6 py-4 text-sm text-gray-600">{s.court?.name ?? '—'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{s.coach?.name ?? '—'}</td>
                   <td className="px-6 py-4">
-                    {s.level ? (
+                    {level ? (
                       <span
                         className="rounded-full px-2.5 py-1 text-xs font-medium text-white"
-                        style={{ backgroundColor: s.level.color }}
+                        style={{ backgroundColor: level.color }}
                       >
-                        {s.level.name}
+                        {level.name}
                       </span>
                     ) : (
                       <span className="text-xs text-gray-400">Todos</span>
@@ -237,7 +239,8 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                     )}
                   </td>
                 </tr>
-              ))}
+              )
+              })}
             </tbody>
           </table>
         </div>
