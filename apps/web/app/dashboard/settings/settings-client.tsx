@@ -570,7 +570,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     <p className="text-sm font-medium text-green-700">PDF subido correctamente</p>
                     <p className="truncate text-xs text-gray-400">{features.terms_pdf_url.split('/').pop()?.split('?')[0]}</p>
                   </div>
-                  <a href={features.terms_pdf_url} target="_blank" rel="noopener noreferrer"
+                  <a href="/api/pdf/normas" target="_blank" rel="noopener noreferrer"
                     className="shrink-0 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100">
                     Ver PDF
                   </a>
