@@ -333,11 +333,16 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     const file = e.target.files?.[0]
     if (!file) return
     setUploadingTerms(true)
-    const supabase = createClient()
-    const path = `terms/${clubId ?? 'global'}/${Date.now()}.pdf`
-    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: 'application/pdf' })
-    if (upErr) { toast.error('Error al subir el PDF: ' + upErr.message); setUploadingTerms(false); return }
-    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/admin/upload-terms', { method: 'POST', body: formData })
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}))
+      toast.error('Error al subir el PDF: ' + (j.error ?? 'Error desconocido'))
+      setUploadingTerms(false)
+      return
+    }
+    const { publicUrl } = await res.json()
     const updatedFeatures = { ...features, terms_pdf_url: publicUrl }
     setFeatures(updatedFeatures)
     const res = await fetch('/api/admin/club-features', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedFeatures) })
