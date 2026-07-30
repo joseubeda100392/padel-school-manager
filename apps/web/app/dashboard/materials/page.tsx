@@ -78,29 +78,31 @@ export default async function MaterialsPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
               <div className="text-right">
                 <p className="text-xs text-gray-400">{formatDate(m.created_at)}</p>
                 <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${m.is_published ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
                   {m.is_published ? 'Publicado' : 'Borrador'}
                 </span>
               </div>
-              {m.file_url && (
+              <div className="flex gap-2">
+                {m.file_url && (
+                  <a
+                    href={`/api/pdf/material/${m.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                  >
+                    Abrir
+                  </a>
+                )}
                 <a
-                  href={`/api/pdf/material/${m.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                  href={`/dashboard/materials/${m.id}/edit`}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
                 >
-                  Abrir
+                  Editar
                 </a>
-              )}
-              <a
-                href={`/dashboard/materials/${m.id}/edit`}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-              >
-                Editar
-              </a>
+              </div>
             </div>
           </div>
         ))}
