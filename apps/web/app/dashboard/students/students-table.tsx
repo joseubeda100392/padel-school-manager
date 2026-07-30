@@ -61,10 +61,7 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
 
   const filtered = useMemo(() => {
     const qLower = q.toLowerCase()
-    const seen = new Set<string>()
     return students.filter((s) => {
-      if (seen.has(s.id)) return false
-      seen.add(s.id)
       const matchQ = !q || (s.name ?? '').toLowerCase().includes(qLower) || (s.email ?? '').toLowerCase().includes(qLower)
       const matchRole = !role || s.role === role
       const matchStatus = status === '' || (status === 'active' ? s.is_active : !s.is_active)
@@ -198,7 +195,7 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
                         {s.role !== 'student' ? (
                           <span className="text-sm text-gray-300">—</span>
                         ) : level ? (
-                          <span className="rounded-full px-2.5 py-1 text-xs font-medium text-white" style={{ backgroundColor: level.color }}>
+                          <span className="rounded-full px-2.5 py-1 text-xs font-medium text-white whitespace-nowrap" style={{ backgroundColor: level.color }}>
                             {level.name}
                           </span>
                         ) : (

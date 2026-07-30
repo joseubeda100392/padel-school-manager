@@ -199,7 +199,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                   <td className="px-6 py-4">
                     {level ? (
                       <span
-                        className="rounded-full px-2.5 py-1 text-xs font-medium text-white"
+                        className="rounded-full px-2.5 py-1 text-xs font-medium text-white whitespace-nowrap"
                         style={{ backgroundColor: level.color }}
                       >
                         {level.name}
