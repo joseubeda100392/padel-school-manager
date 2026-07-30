@@ -34,35 +34,52 @@ export default async function DashboardPage() {
   const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
   const todayLabel = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 
+  // Fetch club config first to gate billing RPCs
+  const { data: club } = clubId
+    ? await admin.from('clubs').select('name, config').eq('id', clubId).single()
+    : { data: null }
+
+  const TZ = 'Europe/Madrid'
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const billingStartDate: string | null = (club as any)?.config?.billing_start_date ?? null
+  const billingActive = !billingStartDate || todaySpain >= billingStartDate
+
   const [
     { count: totalStudents, error: errStudents },
     { count: totalMaterials },
     { data: classesToday, error: errRpc1 },
-    { data: pendingCount, error: errRpc2 },
+    pendingCountResult,
     { data: recentStudents, error: errRecent },
-    { data: unpaidList, error: errRpc3 },
+    unpaidListResult,
     features,
     { data: payments },
     { data: levelsRaw },
     { data: bagStats },
     { data: studentsRaw },
     { count: totalCoaches },
-    { data: club },
   ] = await Promise.all([
     filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true)),
     filter(admin.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
     admin.rpc('count_classes_today', { p_club_id: clubId ?? null }),
-    admin.rpc('count_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
+    billingActive
+      ? admin.rpc('count_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 })
+      : Promise.resolve({ data: 0, error: null }),
     filter(admin.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
-    admin.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 }),
+    billingActive
+      ? admin.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 })
+      : Promise.resolve({ data: [] as any[], error: null }),
     getClubFeatures(clubId ?? undefined),
     filter(admin.from('payments').select('amount, type').eq('status', 'succeeded')),
     filter(admin.from('levels').select('id, name, color').order('order')),
     filter(admin.from('class_bag').select('balance_60, balance_90')),
     filter(admin.from('users').select('current_level_id').eq('role', 'student').eq('is_active', true)),
     filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true)),
-    clubId ? admin.from('clubs').select('name').eq('id', clubId).single() : Promise.resolve({ data: null }),
   ])
+
+  const pendingCount = billingActive ? (((pendingCountResult as any).data as number) ?? 0) : 0
+  const errRpc2 = (pendingCountResult as any).error
+  const unpaidList: any[] = billingActive ? (((unpaidListResult as any).data as any[]) ?? []) : []
+  const errRpc3 = (unpaidListResult as any).error
 
   const totalRevenue = payments?.reduce((acc: number, p: any) => acc + p.amount, 0) ?? 0
   const revenueByType = (payments ?? []).reduce((acc: Record<string, number>, p: any) => {
@@ -83,7 +100,7 @@ export default async function DashboardPage() {
     { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-brand-500', text: 'text-brand-500', href: '/dashboard/schedule' },
     { label: 'Monitores', value: totalCoaches ?? 0, icon: Users, color: 'bg-green-500', text: 'text-green-500', href: '/dashboard/students?tab=coach' },
     { label: 'Clases en bolsa', value: totalBagClasses, icon: BookOpen, color: 'bg-indigo-500', text: 'text-indigo-500', href: null },
-    ...(features.enable_payments ? [{ label: 'Sin pagar este mes', value: (pendingCount as number) ?? 0, icon: CreditCard, color: 'bg-yellow-500', text: 'text-yellow-500', href: '/dashboard/payments' }] : []),
+    ...(features.enable_payments && billingActive ? [{ label: 'Sin pagar este mes', value: pendingCount, icon: CreditCard, color: 'bg-yellow-500', text: 'text-yellow-500', href: '/dashboard/payments' }] : []),
     ...(features.enable_materials ? [{ label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', text: 'text-purple-500', href: '/dashboard/materials' }] : []),
   ]
 
@@ -132,11 +149,16 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
               <div>
                 <h2 className="font-semibold text-gray-900">Sin pagar — {currentMonthLabel}</h2>
-                <p className="text-xs text-gray-400">{unpaidList?.length ?? 0} mensualidades pendientes</p>
+                <p className="text-xs text-gray-400">{unpaidList.length} mensualidades pendientes</p>
               </div>
               <a href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver todos →</a>
             </div>
-            {!unpaidList?.length ? (
+            {!billingActive ? (
+              <p className="px-6 py-8 text-center text-sm text-gray-400">
+                El seguimiento de mensualidades empieza el{' '}
+                <strong>{new Date(billingStartDate! + 'T12:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+              </p>
+            ) : !unpaidList.length ? (
               <div className="px-6 py-10 text-center">
                 <p className="text-2xl">✓</p>
                 <p className="mt-1 text-sm font-medium text-brand-500">Todo el mundo al día</p>
