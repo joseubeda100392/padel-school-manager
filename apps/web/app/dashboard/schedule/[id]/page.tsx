@@ -49,6 +49,12 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
 
   const features = await getClubFeatures(schedule.club_id ?? undefined)
 
+  const { data: clubRow } = schedule.club_id
+    ? await admin.from('clubs').select('config').eq('id', schedule.club_id).single()
+    : { data: null }
+  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
+  const paymentsActive = features.enable_payments && (!billingStartDate || todaySpain >= billingStartDate)
+
   // Simplified join: avoid nested currentLevel:levels that can fail silently
   const { data: bookings } = await admin
     .from('bookings')
@@ -98,11 +104,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
     .eq('club_id', schedule.club_id)
     .order('name')
 
-  const { data: allStudents } = await (
-    effectiveLevelId
-      ? studentsQuery.eq('current_level_id', effectiveLevelId)
-      : studentsQuery
-  )
+  const { data: allStudents } = await studentsQuery
 
   const start = new Date(schedule.start_time)
   const end = new Date(schedule.end_time)
@@ -214,7 +216,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
           initialExclusions={exclusionsByEnrollment}
           availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
           defaultMonthlyPrice={6000}
-          enablePayments={features.enable_payments}
+          enablePayments={paymentsActive}
           enableSpots={features.enable_spots}
         />
       </div>

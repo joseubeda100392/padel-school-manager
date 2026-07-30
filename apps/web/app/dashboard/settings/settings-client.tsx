@@ -15,6 +15,7 @@ interface AppConfig {
   school_name: string
   cancellation_hours: number
   max_recovery_classes: number
+  billing_start_date: string
 }
 
 const defaults: AppConfig = {
@@ -27,6 +28,7 @@ const defaults: AppConfig = {
   school_name: 'Mi Escuela de Pádel',
   cancellation_hours: 24,
   max_recovery_classes: 0,
+  billing_start_date: '',
 }
 
 function intVal(s: string): number {
@@ -333,9 +335,9 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     setUploadingTerms(true)
     const supabase = createClient()
     const path = `terms/${clubId ?? 'global'}/${Date.now()}.pdf`
-    const { error: upErr } = await supabase.storage.from('materials').upload(path, file, { upsert: true, contentType: 'application/pdf' })
+    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: 'application/pdf' })
     if (upErr) { toast.error('Error al subir el PDF: ' + upErr.message); setUploadingTerms(false); return }
-    const { data: { publicUrl } } = supabase.storage.from('materials').getPublicUrl(path)
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
     const updatedFeatures = { ...features, terms_pdf_url: publicUrl }
     setFeatures(updatedFeatures)
     const res = await fetch('/api/admin/club-features', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedFeatures) })
@@ -838,6 +840,34 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 {holidaysSaving ? 'Guardando...' : 'Añadir'}
               </button>
             </div>
+          </div>
+
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="mb-1 font-semibold text-gray-900">Inicio de facturación</h2>
+            <p className="mb-4 text-xs text-gray-400">
+              Si el curso no empieza en enero, indica la fecha a partir de la cual se muestra el estado de pago mensual. Antes de esa fecha no aparecerá la columna de cobro en los grupos fijos.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="date"
+                value={config.billing_start_date}
+                onChange={e => setConfig({ ...config, billing_start_date: e.target.value })}
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+              {config.billing_start_date && (
+                <button
+                  onClick={() => setConfig({ ...config, billing_start_date: '' })}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Quitar fecha
+                </button>
+              )}
+            </div>
+            {config.billing_start_date && (
+              <p className="mt-2 text-xs text-brand-600">
+                Los pagos se mostrarán a partir del {new Date(config.billing_start_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
+              </p>
+            )}
           </div>
 
           {saveError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">Error: {saveError}</p>}

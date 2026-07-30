@@ -54,10 +54,6 @@ export async function POST(req: NextRequest) {
   )]
   const effectiveLevelId: string | null = schedule?.level_id ?? (enrolledLevels.length === 1 ? enrolledLevels[0] : null)
 
-  if (effectiveLevelId && student?.current_level_id !== effectiveLevelId) {
-    return NextResponse.json({ error: 'El nivel del alumno no coincide con el nivel de la clase' }, { status: 400 })
-  }
-
   if (schedule) {
     const newDow = new Date(schedule.start_time).getUTCDay()
     const newStart = new Date(schedule.start_time).getUTCHours() * 60 + new Date(schedule.start_time).getUTCMinutes()
