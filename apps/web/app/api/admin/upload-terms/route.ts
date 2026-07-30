@@ -20,14 +20,14 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer())
   const path = `terms/${profile.club_id ?? 'global'}/${Date.now()}.pdf`
 
-  const { error } = await admin.storage.from('avatars').upload(path, buffer, {
+  const { error } = await admin.storage.from('materials').upload(path, buffer, {
     upsert: true,
     contentType: 'application/pdf',
   })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const { data: { publicUrl } } = admin.storage.from('avatars').getPublicUrl(path)
+  const { data: { publicUrl } } = admin.storage.from('materials').getPublicUrl(path)
 
   return NextResponse.json({ publicUrl })
 }
