@@ -83,9 +83,13 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
           {DAY_NAMES.map((dayName, idx) => {
             const date = weekDates[idx]
             const isToday = date.toDateString() === new Date().toDateString()
-            const classes = [...byDay[idx]].sort(
-              (a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours()
-            )
+            const dateStr = date.toISOString().split('T')[0]
+            const classes = [...byDay[idx]]
+              .filter((s) => {
+                const startDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(s.start_time))
+                return dateStr >= startDate
+              })
+              .sort((a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours())
 
             return (
               <div key={idx}>
