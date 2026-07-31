@@ -529,7 +529,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 { key: 'enable_spots', label: 'Huecos libres', desc: 'Los alumnos pueden reservar huecos cuando un compañero falta' },
                 { key: 'enable_bag', label: 'Bolsa de clases', desc: 'Saldo de clases disponibles y gestión de bonos' },
                 { key: 'enable_chat', label: 'Chat de soporte', desc: 'Chat entre alumnos/monitores y la administración' },
-                { key: 'enable_materials', label: 'Material didáctico', desc: 'PDFs y contenido formativo por nivel' },
+                { key: 'enable_materials', label: 'Materia didáctica', desc: 'PDFs y contenido formativo por nivel' },
                 { key: 'enable_objectives', label: 'Objetivos y progreso', desc: 'Checklists de progreso asignados por el monitor' },
                 { key: 'enable_tournaments', label: 'Torneos', desc: 'Gestión de torneos e inscripciones de alumnos' },
                 { key: 'enable_intensivos', label: 'Semanas intensivas', desc: 'Clases intensivas de pago único por semana' },

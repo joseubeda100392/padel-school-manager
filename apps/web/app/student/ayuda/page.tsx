@@ -5,7 +5,7 @@ const NAV_ITEMS = [
   { id: 'clases',         label: 'Mis clases' },
   { id: 'recuperar',      label: 'Recuperar clase' },
   { id: 'bolsa',          label: 'Bolsa de clases' },
-  { id: 'material',       label: 'Material' },
+  { id: 'material',       label: 'Materia' },
   { id: 'notificaciones', label: 'Notificaciones' },
   { id: 'pagos',          label: 'Pagos' },
   { id: 'chat',           label: 'Chat soporte' },
@@ -50,7 +50,7 @@ export default function AyudaPage() {
                 ['Intensivos', 'Cursos intensivos del club.'],
                 ['Torneos', 'Torneos disponibles e inscripción.'],
                 ['Bolsa', 'Saldo de créditos de clases y recargas.'],
-                ['Material', 'PDFs y ejercicios adaptados a tu nivel.'],
+                ['Materia', 'PDFs y ejercicios adaptados a tu nivel.'],
                 ['Tarifas', 'Precios del club: bonos, clases sueltas e intensivos.'],
                 ['Notificaciones', 'Avisos y mensajes del club.'],
                 ['Chat soporte', 'Escríbenos directamente si tienes alguna duda.'],
@@ -88,9 +88,9 @@ export default function AyudaPage() {
             <p className="mt-2">Si cancelas con suficiente antelación, el crédito se devuelve solo. Si tu saldo llega a 0, consulta con el club si puedes pagar una clase suelta.</p>
           </Section>
 
-          <Section id="material" title="Material didáctico">
-            <p>El club publica PDFs y ejercicios adaptados a tu nivel. Ve a la sección <strong>Material</strong> para verlos y descargarlos. A medida que subas de nivel tendrás acceso a nuevos contenidos.</p>
-            <Nota>Si no ves materiales, puede que el club aún no haya publicado contenido para tu nivel. Consúltalo con tu monitor.</Nota>
+          <Section id="material" title="Materia didáctica">
+            <p>El club publica PDFs y ejercicios adaptados a tu nivel. Ve a la sección <strong>Materia</strong> para verlos y descargarlos. A medida que subas de nivel tendrás acceso a nuevos contenidos.</p>
+            <Nota>Si no ves materias, puede que el club aún no haya publicado contenido para tu nivel. Consúltalo con tu monitor.</Nota>
           </Section>
 
           <Section id="notificaciones" title="Notificaciones">

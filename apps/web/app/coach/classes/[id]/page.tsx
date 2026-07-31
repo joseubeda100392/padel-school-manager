@@ -193,7 +193,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
         <div className="mb-6 rounded-xl bg-white shadow-sm">
           <div className="border-b border-gray-100 px-5 py-4">
             <h2 className="font-semibold text-gray-900">
-              Material didáctico
+              Materia didáctica
               <span className="ml-1 text-sm font-normal text-gray-400">({materials.length})</span>
             </h2>
           </div>

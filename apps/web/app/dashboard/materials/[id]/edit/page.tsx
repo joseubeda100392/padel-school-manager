@@ -86,7 +86,7 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
   }
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar este material? Esta acción no se puede deshacer.')) return
+    if (!confirm('¿Eliminar esta materia? Esta acción no se puede deshacer.')) return
     setDeleting(true)
     const supabase = createClient()
     await supabase.from('material_levels').delete().eq('material_id', params.id)
@@ -100,10 +100,10 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
     <div className="max-w-2xl">
       <div className="mb-6 flex items-center gap-3">
         <a href="/dashboard/materials" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Materiales
+          ← Materias
         </a>
         <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Editar material</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Editar materia</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
@@ -187,13 +187,13 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
 
       <div className="mt-6 rounded-xl border border-red-100 bg-red-50 p-4">
         <p className="mb-1 text-sm font-medium text-red-700">Zona peligrosa</p>
-        <p className="mb-3 text-xs text-red-500">Se eliminará el material y sus asignaciones de nivel. El archivo en Storage no se borra automáticamente.</p>
+        <p className="mb-3 text-xs text-red-500">Se eliminará la materia y sus asignaciones de nivel. El archivo en Storage no se borra automáticamente.</p>
         <button
           onClick={handleDelete}
           disabled={deleting}
           className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
         >
-          {deleting ? 'Eliminando...' : 'Eliminar material'}
+          {deleting ? 'Eliminando...' : 'Eliminar materia'}
         </button>
       </div>
     </div>

@@ -101,7 +101,7 @@ export default async function DashboardPage() {
     { label: 'Monitores', value: totalCoaches ?? 0, icon: Users, color: 'bg-green-500', text: 'text-green-500', href: '/dashboard/students?tab=coach' },
     { label: 'Clases en bolsa', value: totalBagClasses, icon: BookOpen, color: 'bg-indigo-500', text: 'text-indigo-500', href: null },
     ...(features.enable_payments && billingActive ? [{ label: 'Sin pagar este mes', value: pendingCount, icon: CreditCard, color: 'bg-yellow-500', text: 'text-yellow-500', href: '/dashboard/payments' }] : []),
-    ...(features.enable_materials ? [{ label: 'Materiales publicados', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', text: 'text-purple-500', href: '/dashboard/materials' }] : []),
+    ...(features.enable_materials ? [{ label: 'Materias publicadas', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', text: 'text-purple-500', href: '/dashboard/materials' }] : []),
   ]
 
   return (

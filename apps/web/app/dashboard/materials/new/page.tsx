@@ -54,7 +54,7 @@ export default function NewMaterialPage() {
     if (!user) { setError('No autenticado'); setUploading(false); return }
 
     if (!['admin', 'super_admin', 'coach'].includes(userRole ?? '')) {
-      setError('Sin permisos para subir materiales')
+      setError('Sin permisos para subir materias')
       setUploading(false)
       return
     }
@@ -100,7 +100,7 @@ export default function NewMaterialPage() {
       .single()
 
     if (insertError || !material) {
-      setError('Error al guardar el material. Inténtalo de nuevo.')
+      setError('Error al guardar la materia. Inténtalo de nuevo.')
       setUploading(false)
       return
     }
@@ -118,10 +118,10 @@ export default function NewMaterialPage() {
     <div className="max-w-2xl">
       <div className="mb-6 flex items-center gap-3">
         <a href="/dashboard/materials" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Materiales
+          ← Materias
         </a>
         <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Subir material</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Subir materia</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
@@ -207,7 +207,7 @@ export default function NewMaterialPage() {
             disabled={uploading}
             className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
           >
-            {uploading ? 'Subiendo...' : 'Subir material'}
+            {uploading ? 'Subiendo...' : 'Subir materia'}
           </button>
           <a
             href="/dashboard/materials"

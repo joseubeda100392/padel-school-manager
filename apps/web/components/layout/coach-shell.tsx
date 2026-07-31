@@ -15,7 +15,7 @@ import type { ClubFeatures } from '@/lib/get-club-features'
 const allNavItems = [
   { href: '/coach', label: 'Inicio', icon: Home, exact: true, feature: null },
   { href: '/coach/classes', label: 'Mis Clases', icon: Calendar, exact: false, feature: null },
-  { href: '/coach/materials', label: 'Material', icon: BookOpen, exact: false, feature: 'enable_materials' },
+  { href: '/coach/materials', label: 'Materia', icon: BookOpen, exact: false, feature: 'enable_materials' },
   { href: '/coach/tarifas', label: 'Tarifas/Normas/Cal.', icon: Receipt, exact: false, feature: null },
   { href: '/coach/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
 ]

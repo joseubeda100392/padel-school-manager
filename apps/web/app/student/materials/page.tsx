@@ -44,7 +44,7 @@ export default async function StudentMaterialsPage() {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Material didáctico</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Materia didáctica</h1>
         <p className="text-sm text-gray-500">
           {myLevel ? (
             <>PDFs para tu nivel: <span className="font-medium" style={{ color: myLevel.color }}>{myLevel.name}</span></>
@@ -57,7 +57,7 @@ export default async function StudentMaterialsPage() {
       {materials.length === 0 ? (
         <div className="rounded-xl bg-white p-10 text-center shadow-sm">
           <p className="text-2xl mb-2">📚</p>
-          <p className="text-gray-400">No hay materiales disponibles para tu nivel todavía.</p>
+          <p className="text-gray-400">No hay materias disponibles para tu nivel todavía.</p>
           <p className="mt-1 text-xs text-gray-400">Tu monitor los irá subiendo próximamente.</p>
         </div>
       ) : (

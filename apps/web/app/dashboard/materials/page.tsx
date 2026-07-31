@@ -26,21 +26,21 @@ export default async function MaterialsPage() {
       <DevError errors={[errMaterials?.message]} />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Materiales didácticos</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Materias didácticas</h1>
           <p className="text-sm text-gray-500">{materials?.length ?? 0} documentos</p>
         </div>
         <a
           href="/dashboard/materials/new"
           className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
         >
-          + Subir material
+          + Subir materia
         </a>
       </div>
 
       <div className="space-y-3">
         {materials?.length === 0 && (
           <div className="rounded-xl bg-white p-12 text-center shadow-sm">
-            <p className="text-gray-400">No hay materiales. Sube el primero.</p>
+            <p className="text-gray-400">No hay materias. Sube la primera.</p>
             <a href="/dashboard/materials/new" className="mt-3 inline-block text-sm font-medium text-brand-500 hover:underline">
               Subir PDF
             </a>

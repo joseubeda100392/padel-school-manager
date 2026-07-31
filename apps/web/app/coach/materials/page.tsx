@@ -33,13 +33,13 @@ export default async function CoachMaterialsPage() {
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Material didáctico</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Materia didáctica</h1>
         <p className="text-sm text-gray-500">{materials?.length ?? 0} documentos</p>
       </div>
 
       {materials?.length === 0 ? (
         <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-gray-400">No hay materiales publicados.</p>
+          <p className="text-gray-400">No hay materias publicadas.</p>
         </div>
       ) : (
         <div className="space-y-3">

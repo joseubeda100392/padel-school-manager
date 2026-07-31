@@ -31,7 +31,7 @@ const allNavItems = [
   { href: '/student/intensivos', label: 'Intensivos', icon: Flame, exact: false, feature: 'enable_intensivos' },
   { href: '/student/tournaments', label: 'Torneos', icon: Medal, exact: false, feature: 'enable_tournaments' },
   { href: '/student/bag', label: 'Bolsa', icon: Package, exact: false, feature: 'enable_bag' },
-  { href: '/student/materials', label: 'Material', icon: BookOpen, exact: false, feature: 'enable_materials' },
+  { href: '/student/materials', label: 'Materia', icon: BookOpen, exact: false, feature: 'enable_materials' },
   { href: '/student/tarifas', label: 'Tarifas/Normas/Cal.', icon: Receipt, exact: false, feature: null },
   { href: '/student/notifications', label: 'Notificaciones', icon: Bell, exact: false, feature: null },
   { href: '/student/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },

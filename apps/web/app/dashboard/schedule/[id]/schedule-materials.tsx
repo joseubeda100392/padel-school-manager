@@ -59,7 +59,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
       is_published: true,
     })
 
-    if (dbErr) { setError('Error al guardar el material. Inténtalo de nuevo.'); setUploading(false); return }
+    if (dbErr) { setError('Error al guardar la materia. Inténtalo de nuevo.'); setUploading(false); return }
 
     setTitle('')
     setFile(null)
@@ -70,7 +70,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar este material?')) return
+    if (!confirm('¿Eliminar esta materia?')) return
     const supabase = createClient()
     await supabase.from('materials').delete().eq('id', id)
     load()
@@ -80,7 +80,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
     <div className="rounded-xl bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-6 py-4">
         <div>
-          <h2 className="font-semibold text-gray-900">Material de clase</h2>
+          <h2 className="font-semibold text-gray-900">Materia de clase</h2>
           <p className="text-xs text-gray-400">{materials.length} archivos</p>
         </div>
         <button
@@ -134,7 +134,7 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
 
       {materials.length === 0 ? (
         <div className="px-6 py-8 text-center">
-          <p className="text-sm text-gray-400">Sin material subido para esta clase.</p>
+          <p className="text-sm text-gray-400">Sin materia subida para esta clase.</p>
         </div>
       ) : (
         <ul className="divide-y divide-gray-50">
