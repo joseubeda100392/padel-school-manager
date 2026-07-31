@@ -33,8 +33,8 @@ const baseNavItems = [
   { href: '/dashboard/pista-viva', label: 'Pista Viva', icon: Zap, feature: 'enable_pista_viva' },
   { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard, feature: 'enable_payments' },
   { href: '/dashboard/chat', label: 'Chat Soporte', icon: MessageSquare, feature: 'enable_chat' },
-  { href: '/dashboard/materials', label: 'Materiales', icon: BookOpen, feature: 'enable_materials' },
-  { href: '/dashboard/tarifas', label: 'Tarifas', icon: Receipt, feature: null },
+  { href: '/dashboard/materials', label: 'Material', icon: BookOpen, feature: 'enable_materials' },
+  { href: '/dashboard/tarifas', label: 'Tarifas/Normas/Cal.', icon: Receipt, feature: null },
   { href: '/dashboard/notifications', label: 'Notificaciones', icon: Bell, feature: null },
   { href: '/dashboard/settings', label: 'Configuración', icon: Settings, feature: null },
 ]
