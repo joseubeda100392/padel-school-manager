@@ -218,12 +218,10 @@ export default async function StudentHomePage() {
                 {(nextClass.schedule as any)?.court?.name}
               </p>
             </div>
-            {features.enable_payments && (
+            {nextClass.monthly_price > 0 && (
               <div className="text-right">
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isPaidThisMonth(nextClass.paid_until) ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
-                  {isPaidThisMonth(nextClass.paid_until) ? 'Pagado' : 'Pendiente'}
-                </span>
-                <p className="mt-1 text-xs text-gray-400">{formatCurrency(nextClass.monthly_price)}/mes</p>
+                <p className="text-sm font-semibold text-gray-900">{formatCurrency(nextClass.monthly_price)}/mes</p>
+                <p className="text-xs text-gray-400">cuota mensual</p>
               </div>
             )}
           </div>

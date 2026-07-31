@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Image from 'next/image'
 import { useState, useMemo } from 'react'
@@ -16,9 +16,12 @@ const roleBadge: Record<string, string> = {
   admin: 'bg-brand-100 text-brand-600',
 }
 
+type EnrollmentSummary = { total: number; id: string | null }
+
 interface Props {
   students: any[]
   levelMap: Record<string, any>
+  enrollmentMap: Record<string, EnrollmentSummary>
   defaultTab?: string
 }
 
@@ -29,11 +32,15 @@ const TABS = [
   { value: 'admin', label: 'Admins' },
 ]
 
-export default function StudentsTable({ students, levelMap, defaultTab = 'student' }: Props) {
+export default function StudentsTable({ students, levelMap, enrollmentMap, defaultTab = 'student' }: Props) {
   const [q, setQ] = useState('')
   const [role, setRole] = useState(defaultTab)
   const [status, setStatus] = useState('')
   const [levelFilter, setLevelFilter] = useState('')
+  const [editingCuotaId, setEditingCuotaId] = useState<string | null>(null)
+  const [editingCuotaValue, setEditingCuotaValue] = useState('')
+  const [savingCuota, setSavingCuota] = useState(false)
+  const [localCuotas, setLocalCuotas] = useState<Record<string, number>>({})
 
   const countByRole = useMemo(() => {
     const counts: Record<string, number> = { '': students.length }
@@ -59,6 +66,23 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
     URL.revokeObjectURL(url)
   }
 
+  async function saveCuota(enrollmentId: string, studentId: string) {
+    const euros = parseFloat(editingCuotaValue)
+    if (isNaN(euros) || euros < 0) return
+    const cents = Math.round(euros * 100)
+    setSavingCuota(true)
+    const res = await fetch(`/api/group-enrollments/${enrollmentId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monthly_price: cents }),
+    })
+    if (res.ok) {
+      setLocalCuotas(prev => ({ ...prev, [studentId]: cents }))
+    }
+    setEditingCuotaId(null)
+    setSavingCuota(false)
+  }
+
   const filtered = useMemo(() => {
     const qLower = q.toLowerCase()
     return students.filter((s) => {
@@ -73,6 +97,9 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
       return matchQ && matchRole && matchStatus && matchLevel
     })
   }, [students, q, role, status, levelFilter])
+
+  const isStudentTab = role === 'student'
+  const colSpanCount = isStudentTab ? 9 : 6
 
   return (
     <>
@@ -153,23 +180,28 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nombre</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Rol</th>
-                {role === 'student' ? <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th> : null}
+                {isStudentTab ? <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th> : null}
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alta</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Baja</th>
-                {role === 'student' ? <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Cond.</th> : null}
+                {isStudentTab ? <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Cuota</th> : null}
+                {isStudentTab ? <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Cond.</th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {!filtered.length && (
                 <tr>
-                  <td colSpan={role === 'student' ? 8 : 6} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={colSpanCount} className="px-6 py-12 text-center text-gray-400">
                     {q || role || status ? 'Sin resultados para esa búsqueda.' : 'No hay usuarios aún.'}
                   </td>
                 </tr>
               )}
               {filtered.map((s) => {
                 const level = s.current_level_id ? levelMap[s.current_level_id] : null
+                const enrollment = enrollmentMap[s.id]
+                const cuotaCents = s.id in localCuotas ? localCuotas[s.id] : enrollment?.total ?? null
+                const isEditing = editingCuotaId === s.id
+
                 return (
                   <tr key={s.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
@@ -190,7 +222,7 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
                         {roleLabel[s.role] ?? s.role}
                       </span>
                     </td>
-                    {(role === 'student') && (
+                    {isStudentTab && (
                       <td className="px-6 py-4">
                         {s.role !== 'student' ? (
                           <span className="text-sm text-gray-300">—</span>
@@ -210,7 +242,53 @@ export default function StudentsTable({ students, levelMap, defaultTab = 'studen
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">{formatDate(s.start_date ?? s.created_at)}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{s.end_date ? formatDate(s.end_date) : '—'}</td>
-                    {(role === 'student') && (
+                    {isStudentTab && (
+                      <td className="px-6 py-4 text-sm">
+                        {s.role !== 'student' ? (
+                          <span className="text-gray-300">—</span>
+                        ) : cuotaCents === null ? (
+                          <span className="text-gray-300">—</span>
+                        ) : isEditing && enrollment?.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={editingCuotaValue}
+                              onChange={(e) => setEditingCuotaValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveCuota(enrollment.id!, s.id)
+                                if (e.key === 'Escape') setEditingCuotaId(null)
+                              }}
+                              className="w-20 rounded border border-brand-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => saveCuota(enrollment.id!, s.id)}
+                              disabled={savingCuota}
+                              className="rounded bg-brand-500 px-2 py-1 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                            >
+                              ✓
+                            </button>
+                            <button onClick={() => setEditingCuotaId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (enrollment?.id) {
+                                setEditingCuotaId(s.id)
+                                setEditingCuotaValue((cuotaCents / 100).toFixed(2))
+                              }
+                            }}
+                            className={`text-sm font-medium ${enrollment?.id ? 'cursor-pointer text-gray-700 hover:text-brand-500' : 'cursor-default text-gray-500'}`}
+                            title={enrollment?.id ? 'Clic para editar' : 'Múltiples matrículas — edita desde el perfil del alumno'}
+                          >
+                            {(cuotaCents / 100).toFixed(2)}€/mes{!enrollment?.id ? ' *' : ''}
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    {isStudentTab && (
                       <td className="px-6 py-4 text-sm">
                         {s.terms_accepted_at ? (
                           <span className="text-green-600" title={formatDate(s.terms_accepted_at)}>✓</span>

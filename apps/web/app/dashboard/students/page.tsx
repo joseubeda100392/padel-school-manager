@@ -16,18 +16,32 @@ export default async function StudentsPage({ searchParams }: { searchParams: { t
     .order('name')
 
   let levelsQuery = admin.from('levels').select('id, name, color')
+  let enrollmentsQuery = admin.from('group_enrollments').select('student_id, id, monthly_price').eq('status', 'active')
 
   if (clubId) {
     studentsQuery = studentsQuery.eq('club_id', clubId)
     levelsQuery = levelsQuery.eq('club_id', clubId)
+    enrollmentsQuery = enrollmentsQuery.eq('club_id', clubId)
   }
 
-  const [{ data: students, error }, { data: levels }] = await Promise.all([
+  const [{ data: students, error }, { data: levels }, { data: enrollments }] = await Promise.all([
     studentsQuery,
     levelsQuery,
+    enrollmentsQuery,
   ])
 
   const levelMap = Object.fromEntries((levels ?? []).map((l: any) => [l.id, l]))
+
+  type EnrollmentSummary = { total: number; id: string | null }
+  const enrollmentMap: Record<string, EnrollmentSummary> = {}
+  for (const e of enrollments ?? []) {
+    if (!enrollmentMap[e.student_id]) {
+      enrollmentMap[e.student_id] = { total: e.monthly_price, id: e.id }
+    } else {
+      enrollmentMap[e.student_id].total += e.monthly_price
+      enrollmentMap[e.student_id].id = null
+    }
+  }
 
   return (
     <div>
@@ -57,7 +71,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: { t
         </div>
       </div>
 
-      <StudentsTable students={students ?? []} levelMap={levelMap} defaultTab={searchParams.tab ?? 'student'} />
+      <StudentsTable students={students ?? []} levelMap={levelMap} enrollmentMap={enrollmentMap} defaultTab={searchParams.tab ?? 'student'} />
     </div>
   )
 }
