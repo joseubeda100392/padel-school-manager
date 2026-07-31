@@ -41,6 +41,11 @@ export default async function StudentBagPage() {
   const pack90Price = cfg.pack_price_90
   const pack90Classes = cfg.classes_per_pack_90
 
+  const TZ = 'Europe/Madrid'
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
+  const billingActive = !billingStartDate || todaySpain >= billingStartDate
+
   return (
     <div className="max-w-2xl">
       <RealtimeRefresh
@@ -78,7 +83,7 @@ export default async function StudentBagPage() {
       </div>
 
       {/* Comprar bono */}
-      {features.enable_payments && (
+      {features.enable_payments && billingActive && (
         <div className="mb-6">
           <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Comprar bono</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

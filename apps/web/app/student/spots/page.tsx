@@ -59,6 +59,8 @@ export default async function StudentSpotsPage() {
     ? await admin.from('clubs').select('config').eq('id', myClubId).single()
     : { data: null }
   const holidaySet = new Set<string>((clubRow as any)?.config?.holidays ?? [])
+  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
+  const billingActive = !billingStartDate || today >= billingStartDate
 
   const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }, { data: mySpotBookings }] = await Promise.all([
     admin
@@ -231,7 +233,7 @@ export default async function StudentSpotsPage() {
           spots={allSpots}
           balance60={balance60}
           balance90={balance90}
-          enablePayments={features.enable_payments}
+          enablePayments={features.enable_payments && billingActive}
           enable60min={features.enable_60min}
           enable90min={features.enable_90min}
         />

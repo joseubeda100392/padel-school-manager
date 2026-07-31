@@ -24,8 +24,7 @@ export default async function StudentIntensivosPage() {
   const features = await getClubFeatures(myClubId)
   if (!features.enable_intensivos) redirect('/student')
 
-
-  const [{ data: schedulesRaw }, { data: myBookings }, { data: allIntensivosBookings }] = await Promise.all([
+  const [{ data: schedulesRaw }, { data: myBookings }, { data: allIntensivosBookings }, { data: clubRow }] = await Promise.all([
     myClubId
       ? admin
           .from('schedules')
@@ -49,7 +48,13 @@ export default async function StudentIntensivosPage() {
     myClubId
       ? admin.from('bookings').select('schedule_id').eq('status', 'confirmed')
       : { data: [] },
+    myClubId
+      ? admin.from('clubs').select('config').eq('id', myClubId).single()
+      : Promise.resolve({ data: null }),
   ])
+
+  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
+  const billingActive = !billingStartDate || today >= billingStartDate
 
   const bookedScheduleIds = new Set((myBookings ?? []).map((b: any) => b.schedule_id))
   const bookingCountMap: Record<string, number> = {}
@@ -113,7 +118,7 @@ export default async function StudentIntensivosPage() {
           <p className="mt-1 text-xs text-gray-400">Tu club publicará los intensivos de verano próximamente.</p>
         </div>
       ) : (
-        <IntensivosClient packs={packs} enablePayments={features.enable_payments} />
+        <IntensivosClient packs={packs} enablePayments={features.enable_payments && billingActive} />
       )}
     </div>
   )

@@ -39,7 +39,7 @@ export default async function StudentHomePage() {
   const today = new Date().toISOString().split('T')[0]
   const TZ = 'Europe/Madrid'
 
-  const [features, { data: bag }, { data: enrollments }, { data: spots }, { data: capacitySchedules }, { data: mySpotBookings }] = await Promise.all([
+  const [features, { data: bag }, { data: enrollments }, { data: spots }, { data: capacitySchedules }, { data: mySpotBookings }, { data: clubRow }] = await Promise.all([
     getClubFeatures(clubId),
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
@@ -54,7 +54,14 @@ export default async function StudentHomePage() {
       ? admin.from('schedules').select('id, max_students, type, recurrence, recurrence_end_date, start_time, level:levels(id), enrollments:group_enrollments(student_id, status)').eq('club_id', clubId).neq('type', 'intensivo')
       : Promise.resolve({ data: [] }),
     admin.from('bookings').select('schedule_id, class_date').eq('student_id', user.id).eq('status', 'confirmed').not('class_date', 'is', null),
+    clubId
+      ? admin.from('clubs').select('config').eq('id', clubId).single()
+      : Promise.resolve({ data: null }),
   ])
+
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
+  const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
   const myLevelId = (userData as any)?.current_level_id ?? null
   const { data: levelData } = myLevelId
@@ -167,7 +174,7 @@ export default async function StudentHomePage() {
       </div>
 
       {/* Alerta cuota pendiente */}
-      {features.enable_payments && pendingEnrollments.length > 0 && (
+      {features.enable_payments && billingActive && pendingEnrollments.length > 0 && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-semibold text-red-700">
             Tienes {pendingEnrollments.length} cuota{pendingEnrollments.length > 1 ? 's' : ''} pendiente{pendingEnrollments.length > 1 ? 's' : ''} de pago
@@ -218,7 +225,7 @@ export default async function StudentHomePage() {
                 {(nextClass.schedule as any)?.court?.name}
               </p>
             </div>
-            {nextClass.monthly_price > 0 && (
+            {nextClass.monthly_price > 0 && billingActive && (
               <div className="text-right">
                 {features.enable_payments && (
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isPaidThisMonth(nextClass.paid_until) ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>

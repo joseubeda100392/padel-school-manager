@@ -96,6 +96,11 @@ export default async function StudentSchedulePage() {
   const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
   const features = await getClubFeatures(clubId)
 
+  const TZ = 'Europe/Madrid'
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
+  const billingActive = !billingStartDate || todaySpain >= billingStartDate
+
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
     const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours)
@@ -149,7 +154,7 @@ export default async function StudentSchedulePage() {
                 key={item.enrollmentId}
                 item={item}
                 cancellationHours={cancellationHours}
-                enablePayments={features.enable_payments}
+                enablePayments={features.enable_payments && billingActive}
               />
             ))}
           </div>
