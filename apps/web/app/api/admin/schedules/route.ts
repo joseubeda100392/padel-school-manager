@@ -27,27 +27,42 @@ function toMinutes(iso: string) {
   return d.getUTCHours() * 60 + d.getUTCMinutes()
 }
 
-function overlaps(startTime: string, endTime: string, existing: { start_time: string; end_time: string }[]) {
+const TZ = 'Europe/Madrid'
+function dateOnly(iso: string) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso))
+}
+
+function overlaps(
+  startTime: string, endTime: string, newEndDate: string | null | undefined,
+  existing: { start_time: string; end_time: string; recurrence_end_date: string | null }[]
+) {
   const dow = new Date(startTime).getUTCDay()
   const start = toMinutes(startTime)
   const end = toMinutes(endTime)
-  return existing.some(s =>
-    new Date(s.start_time).getUTCDay() === dow &&
-    start < toMinutes(s.end_time) &&
-    end > toMinutes(s.start_time)
-  )
+  const newStartDate = dateOnly(startTime)
+
+  return existing.some(s => {
+    if (new Date(s.start_time).getUTCDay() !== dow) return false
+    if (start >= toMinutes(s.end_time) || end <= toMinutes(s.start_time)) return false
+    const sStartDate = dateOnly(s.start_time)
+    // existing starts after new ends → no real overlap
+    if (newEndDate && sStartDate > newEndDate) return false
+    // new starts after existing ends → no real overlap
+    if (s.recurrence_end_date && newStartDate > s.recurrence_end_date) return false
+    return true
+  })
 }
 
-async function checkOverlap(admin: ReturnType<typeof getAdminClient>, courtId: string, startTime: string, endTime: string, excludeId?: string) {
-  const query = admin.from('schedules').select('id, start_time, end_time').eq('court_id', courtId).eq('is_active', true)
+async function checkOverlap(admin: ReturnType<typeof getAdminClient>, courtId: string, startTime: string, endTime: string, newEndDate: string | null | undefined, excludeId?: string) {
+  const query = admin.from('schedules').select('id, start_time, end_time, recurrence_end_date').eq('court_id', courtId).eq('is_active', true)
   const { data } = await (excludeId ? query.neq('id', excludeId) : query)
-  return overlaps(startTime, endTime, data ?? [])
+  return overlaps(startTime, endTime, newEndDate, data ?? [])
 }
 
-async function checkCoachOverlap(admin: ReturnType<typeof getAdminClient>, coachId: string, startTime: string, endTime: string, excludeId?: string) {
-  const query = admin.from('schedules').select('id, start_time, end_time').eq('coach_id', coachId).eq('is_active', true)
+async function checkCoachOverlap(admin: ReturnType<typeof getAdminClient>, coachId: string, startTime: string, endTime: string, newEndDate: string | null | undefined, excludeId?: string) {
+  const query = admin.from('schedules').select('id, start_time, end_time, recurrence_end_date').eq('coach_id', coachId).eq('is_active', true)
   const { data } = await (excludeId ? query.neq('id', excludeId) : query)
-  return overlaps(startTime, endTime, data ?? [])
+  return overlaps(startTime, endTime, newEndDate, data ?? [])
 }
 
 export async function POST(req: NextRequest) {
@@ -65,8 +80,8 @@ export async function POST(req: NextRequest) {
   if (badRequest) return badRequest
 
   const [courtBusy, coachBusy] = await Promise.all([
-    checkOverlap(admin, body.court_id, body.start_time, body.end_time),
-    checkCoachOverlap(admin, body.coach_id, body.start_time, body.end_time),
+    checkOverlap(admin, body.court_id, body.start_time, body.end_time, body.recurrence_end_date),
+    checkCoachOverlap(admin, body.coach_id, body.start_time, body.end_time, body.recurrence_end_date),
   ])
   if (courtBusy) return NextResponse.json({ error: 'Ya existe una clase activa en esa pista a esa hora.' }, { status: 409 })
   if (coachBusy) return NextResponse.json({ error: 'El monitor ya tiene otra clase a esa hora.' }, { status: 409 })
@@ -143,8 +158,8 @@ export async function PATCH(req: NextRequest) {
   }
 
   const [courtBusy, coachBusy] = await Promise.all([
-    checkOverlap(admin, body.court_id, body.start_time, body.end_time, body.id),
-    checkCoachOverlap(admin, body.coach_id, body.start_time, body.end_time, body.id),
+    checkOverlap(admin, body.court_id, body.start_time, body.end_time, body.recurrence_end_date, body.id),
+    checkCoachOverlap(admin, body.coach_id, body.start_time, body.end_time, body.recurrence_end_date, body.id),
   ])
   if (courtBusy) return NextResponse.json({ error: 'Ya existe una clase activa en esa pista a esa hora.' }, { status: 409 })
   if (coachBusy) return NextResponse.json({ error: 'El monitor ya tiene otra clase a esa hora.' }, { status: 409 })
