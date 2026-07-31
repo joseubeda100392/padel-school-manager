@@ -18,33 +18,37 @@ export async function POST(req: NextRequest) {
 
   // Overlap check: prevent booking two classes at the same time on the same weekday
   const [{ data: newSched }, { data: existing }] = await Promise.all([
-    admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time, recurrence_end_date').eq('id', scheduleId).single(),
     admin.from('bookings')
-      .select('schedule_id, schedules(start_time, end_time)')
+      .select('schedule_id, schedules(start_time, end_time, recurrence_end_date)')
       .eq('student_id', user.id)
       .neq('status', 'cancelled')
       .neq('schedule_id', scheduleId),
   ])
   if (newSched) {
-
+    const TZ = 'Europe/Madrid'
     const nStart = new Date(newSched.start_time)
     const nEnd = new Date(newSched.end_time)
     const nDow = nStart.getUTCDay()
     const nStartMin = nStart.getUTCHours() * 60 + nStart.getUTCMinutes()
     const nEndMin = nEnd.getUTCHours() * 60 + nEnd.getUTCMinutes()
+    const nStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(nStart)
+    const nEndDate = (newSched as any).recurrence_end_date ?? null
 
     for (const b of existing ?? []) {
       const s = (b as any).schedules
       if (!s) continue
       const sStart = new Date(s.start_time)
       const sEnd = new Date(s.end_time)
-      if (sStart.getUTCDay() === nDow) {
-        const sStartMin = sStart.getUTCHours() * 60 + sStart.getUTCMinutes()
-        const sEndMin = sEnd.getUTCHours() * 60 + sEnd.getUTCMinutes()
-        if (sStartMin < nEndMin && sEndMin > nStartMin) {
-          return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
-        }
-      }
+      if (sStart.getUTCDay() !== nDow) continue
+      const sStartMin = sStart.getUTCHours() * 60 + sStart.getUTCMinutes()
+      const sEndMin = sEnd.getUTCHours() * 60 + sEnd.getUTCMinutes()
+      if (sStartMin >= nEndMin || sEndMin <= nStartMin) continue
+      const sStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(sStart)
+      const sEndDate = s.recurrence_end_date ?? null
+      if (nEndDate && sStartDate > nEndDate) continue
+      if (sEndDate && nStartDate > sEndDate) continue
+      return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
     }
   }
 
