@@ -30,7 +30,9 @@ function getNextDate(startTime: string): string {
   let daysUntil = (classDow - todayDow + 7) % 7
   if (daysUntil === 0 && nowHourSpain >= classHourSpain) daysUntil = 7
   const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
+  const next = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
+  const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(startTime))
+  return next < scheduleStartDate ? scheduleStartDate : next
 }
 
 export default async function ScheduleDetailPage({ params }: { params: { id: string } }) {

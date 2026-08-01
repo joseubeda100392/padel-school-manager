@@ -12,20 +12,26 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient()
 
+  const TZ = 'Europe/Madrid'
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   const tomorrowDow = tomorrow.getDay()
+  const tomorrowDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(tomorrow)
 
   const { data: schedules } = await admin
     .from('schedules')
-    .select('id, start_time, end_time, court:courts(name)')
+    .select('id, start_time, end_time, recurrence_end_date, court:courts(name)')
     .eq('is_active', true)
     .in('recurrence', ['weekly', 'biweekly'])
     .limit(2000)
 
-  const tomorrowSchedules = (schedules ?? []).filter(
-    (s: any) => new Date(s.start_time).getDay() === tomorrowDow
-  )
+  const tomorrowSchedules = (schedules ?? []).filter((s: any) => {
+    if (new Date(s.start_time).getDay() !== tomorrowDow) return false
+    const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
+    if (scheduleStartDate > tomorrowDateStr) return false
+    if (s.recurrence_end_date && s.recurrence_end_date < tomorrowDateStr) return false
+    return true
+  })
 
   if (tomorrowSchedules.length === 0) {
     return NextResponse.json({ ok: true, sent: 0 })

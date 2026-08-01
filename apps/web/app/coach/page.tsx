@@ -16,17 +16,23 @@ export default async function CoachHomePage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const todayDow = new Date().getDay()
+  const TZ = 'Europe/Madrid'
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const todayDow = getDayOfWeek(new Date())
 
   const { data: allSchedules, error: errSchedules } = await admin
     .from('schedules')
-    .select('id, start_time, end_time, max_students, court:courts(name), level:levels(name, color)')
+    .select('id, start_time, end_time, max_students, recurrence, recurrence_end_date, court:courts(name), level:levels(name, color)')
     .eq('coach_id', user.id)
     .eq('is_active', true)
 
-  const todaySchedules = (allSchedules ?? []).filter(
-    (s: any) => getDayOfWeek(s.start_time) === todayDow
-  )
+  const todaySchedules = (allSchedules ?? []).filter((s: any) => {
+    const scheduleDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
+    if (s.recurrence === 'none') return scheduleDate === todaySpain
+    if (scheduleDate > todaySpain) return false
+    if (s.recurrence_end_date && todaySpain > s.recurrence_end_date) return false
+    return getDayOfWeek(s.start_time) === todayDow
+  })
 
   // Count enrolled per today's classes
   const todayIds = todaySchedules.map((s: any) => s.id)

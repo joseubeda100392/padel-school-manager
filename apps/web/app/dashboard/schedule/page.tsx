@@ -82,6 +82,9 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       d.setUTCDate(d.getUTCDate() + 7)
       next = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
     }
+    // The schedule may not have started yet — its real next occurrence can't be before that
+    const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
+    if (next < scheduleStartDate) next = scheduleStartDate
     if (s.recurrence_end_date && next > s.recurrence_end_date) continue
     nextDateMap[s.id] = next
   }

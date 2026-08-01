@@ -20,6 +20,7 @@ function getUpcomingOccurrences(
   first.setHours(base.getHours(), base.getMinutes(), 0, 0)
   const diff = (base.getDay() - now.getDay() + 7) % 7
   first.setDate(now.getDate() + (diff === 0 && first <= now ? 7 : diff))
+  while (first < base) first.setDate(first.getDate() + 7)
 
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(first)

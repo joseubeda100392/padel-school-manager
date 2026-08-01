@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
   if (classDt.getDay() !== base.getDay()) {
     return NextResponse.json({ error: 'La fecha no corresponde al día de la clase' }, { status: 400 })
   }
+  if (dateStr < new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(base)) {
+    return NextResponse.json({ error: 'Esa clase todavía no ha empezado' }, { status: 400 })
+  }
 
   const hoursUntilClass = (classDt.getTime() - Date.now()) / 3600000
   if (hoursUntilClass < 0) {

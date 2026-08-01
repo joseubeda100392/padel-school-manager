@@ -160,6 +160,8 @@ export default async function StudentSpotsPage() {
       d.setUTCDate(d.getUTCDate() + 7)
       nextDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
     }
+    const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
+    if (nextDate < scheduleStartDate) return null
     if (s.recurrence_end_date && nextDate > s.recurrence_end_date) return null
     return nextDate
   }

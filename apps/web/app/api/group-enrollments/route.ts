@@ -26,14 +26,14 @@ export async function POST(req: NextRequest) {
   }
 
   const [{ data: schedule }, { data: student }, { data: existingEnrollments }, { data: studentSchedules }] = await Promise.all([
-    admin.from('schedules').select('level_id, start_time, end_time, club_id').eq('id', scheduleId).single(),
+    admin.from('schedules').select('level_id, start_time, end_time, recurrence_end_date, club_id').eq('id', scheduleId).single(),
     admin.from('users').select('current_level_id, club_id').eq('id', studentId).single(),
     admin.from('group_enrollments')
       .select('student:users!group_enrollments_student_id_fkey(current_level_id)')
       .eq('schedule_id', scheduleId)
       .eq('status', 'active'),
     admin.from('group_enrollments')
-      .select('schedule:schedules!inner(id, start_time, end_time)')
+      .select('schedule:schedules!inner(id, start_time, end_time, recurrence_end_date)')
       .eq('student_id', studentId)
       .eq('status', 'active')
       .neq('schedule_id', scheduleId),
@@ -55,16 +55,25 @@ export async function POST(req: NextRequest) {
   const effectiveLevelId: string | null = schedule?.level_id ?? (enrolledLevels.length === 1 ? enrolledLevels[0] : null)
 
   if (schedule) {
+    const TZ = 'Europe/Madrid'
+    const dateOnly = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso))
     const newDow = new Date(schedule.start_time).getUTCDay()
     const newStart = new Date(schedule.start_time).getUTCHours() * 60 + new Date(schedule.start_time).getUTCMinutes()
     const newEnd = new Date(schedule.end_time).getUTCHours() * 60 + new Date(schedule.end_time).getUTCMinutes()
+    const newStartDate = dateOnly(schedule.start_time)
+    const newEndDate = (schedule as any).recurrence_end_date ?? null
     const clash = (studentSchedules ?? []).some((e: any) => {
       const s = e.schedule
       if (!s) return false
       if (new Date(s.start_time).getUTCDay() !== newDow) return false
       const exStart = new Date(s.start_time).getUTCHours() * 60 + new Date(s.start_time).getUTCMinutes()
       const exEnd = new Date(s.end_time).getUTCHours() * 60 + new Date(s.end_time).getUTCMinutes()
-      return newStart < exEnd && newEnd > exStart
+      if (newStart >= exEnd || newEnd <= exStart) return false
+      const sStartDate = dateOnly(s.start_time)
+      const sEndDate = s.recurrence_end_date ?? null
+      if (newEndDate && sStartDate > newEndDate) return false
+      if (sEndDate && newStartDate > sEndDate) return false
+      return true
     })
     if (clash) return NextResponse.json({ error: 'El alumno ya tiene otra clase a esa hora.' }, { status: 409 })
   }

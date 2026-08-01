@@ -18,6 +18,7 @@ function getNextOccurrence(startTime: string): Date | null {
   next.setHours(base.getHours(), base.getMinutes(), 0, 0)
   const diff = (base.getDay() - now.getDay() + 7) % 7
   next.setDate(now.getDate() + (diff === 0 && next <= now ? 7 : diff))
+  while (next < base) next.setDate(next.getDate() + 7)
   return next
 }
 
@@ -107,6 +108,8 @@ export default async function StudentHomePage() {
     if (daysUntil === 0 && nowH >= classH) daysUntil = 7
     const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
     const nextDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
+    const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(base)
+    if (nextDate < scheduleStartDate) return null
     if (s.recurrence_end_date && nextDate > s.recurrence_end_date) return null
     return nextDate
   }

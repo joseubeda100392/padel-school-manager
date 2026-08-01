@@ -45,6 +45,7 @@ function getNextOccurrence(startTime: string): string {
   let daysAhead = (classDow - todayDow + 7) % 7
   if (daysAhead === 0 && next <= now) daysAhead = 7
   next.setDate(next.getDate() + daysAhead)
+  while (next < base) next.setDate(next.getDate() + 7)
   return next.toISOString().split('T')[0]
 }
 
