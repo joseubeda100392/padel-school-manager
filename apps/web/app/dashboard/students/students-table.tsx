@@ -99,7 +99,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
   }, [students, q, role, status, levelFilter])
 
   const isStudentTab = role === 'student'
-  const colSpanCount = isStudentTab ? 9 : 6
+  const colSpanCount = isStudentTab ? 10 : 7
 
   return (
     <>
@@ -174,11 +174,12 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
 
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[780px]">
+          <table className="w-full min-w-[880px]">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nombre</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Teléfono</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Rol</th>
                 {isStudentTab ? <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th> : null}
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
@@ -217,6 +218,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
                       </a>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">{s.email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{s.phone || <span className="text-gray-300">—</span>}</td>
                     <td className="px-6 py-4">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${roleBadge[s.role] ?? 'bg-gray-100 text-gray-600'}`}>
                         {roleLabel[s.role] ?? s.role}
