@@ -25,11 +25,17 @@ export function UpdateChecker({ currentVersion }: { currentVersion: string }) {
     const onVisible = () => {
       if (document.visibilityState === 'visible') check()
     }
+    // visibilitychange es poco fiable en PWAs iOS en modo standalone al
+    // volver de segundo plano — focus y pageshow (bfcache) cubren ese hueco
     document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', check)
+    window.addEventListener('pageshow', check)
 
     return () => {
       clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', check)
+      window.removeEventListener('pageshow', check)
     }
   }, [currentVersion])
 
