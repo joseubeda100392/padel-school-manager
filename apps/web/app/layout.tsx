@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Sora, DM_Sans } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { SwipeGuard } from '@/components/swipe-guard'
+import { UpdateChecker } from '@/components/update-checker'
 import './globals.css'
 
 const sora = Sora({
@@ -50,12 +51,15 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const currentVersion = process.env.RAILWAY_GIT_COMMIT_SHA ?? 'dev'
+
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${sora.variable} ${dmSans.variable} font-sans antialiased`}>
         <SwipeGuard />
         {children}
         <Toaster richColors position="top-right" />
+        <UpdateChecker currentVersion={currentVersion} />
       </body>
     </html>
   )
