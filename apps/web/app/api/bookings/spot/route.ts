@@ -86,13 +86,14 @@ export async function POST(req: NextRequest) {
   const useBalance90 = durationType === '90' || bag.balance_60 <= 0
 
   // Mark spot as taken (prevents concurrent double-booking)
-  const { error: spotErr } = await admin
+  const { data: claimedSpot, error: spotErr } = await admin
     .from('schedule_exclusions')
     .update({ publish_spot: false })
     .eq('id', exclusionId)
     .eq('publish_spot', true)
+    .select('id')
 
-  if (spotErr) {
+  if (spotErr || !claimedSpot || claimedSpot.length === 0) {
     return NextResponse.json({ error: 'Este hueco ya no está disponible' }, { status: 409 })
   }
 
@@ -102,6 +103,7 @@ export async function POST(req: NextRequest) {
     .select('id, status')
     .eq('schedule_id', scheduleId)
     .eq('student_id', user.id)
+    .eq('class_date', exclusion.excluded_date)
     .maybeSingle()
 
   let bookingId: string
@@ -115,7 +117,7 @@ export async function POST(req: NextRequest) {
   } else {
     const { data: newBooking, error: bookErr } = await admin
       .from('bookings')
-      .insert({ schedule_id: scheduleId, student_id: user.id, status: 'confirmed', source: 'bag' })
+      .insert({ schedule_id: scheduleId, student_id: user.id, status: 'confirmed', source: 'bag', class_date: exclusion.excluded_date })
       .select('id')
       .single()
 
