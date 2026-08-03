@@ -13,6 +13,7 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
   const [durationType, setDurationType] = useState<'60' | '90'>('60')
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const currentBalance = durationType === '60' ? balance60 : balance90
 
@@ -23,6 +24,7 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
       : `¿Descontar ${n} clase(s) de ${durationType} min de la bolsa? Saldo actual: ${currentBalance}.`
     if (!confirm(msg)) return
     setSaving(true)
+    setError('')
     const delta = n * sign
 
     const res = await fetch('/api/admin/students/bag-adjust', {
@@ -36,14 +38,21 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
       }),
     })
 
-    setSaving(false)
     if (res.ok) {
       window.location.reload()
+      return
     }
+
+    setSaving(false)
+    const json = await res.json().catch(() => null)
+    setError(json?.error ?? `Error al ajustar la bolsa (${res.status})`)
   }
 
   return (
     <div className="space-y-2">
+      {error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{error}</p>
+      )}
       <div className="flex gap-2">
         <select
           value={durationType}
