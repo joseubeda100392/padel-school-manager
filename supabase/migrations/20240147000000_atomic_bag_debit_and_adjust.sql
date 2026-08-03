@@ -97,12 +97,12 @@ BEGIN
 
   IF v_applied_60 != 0 THEN
     INSERT INTO bag_transactions (user_id, class_bag_id, delta, type, reason, class_duration)
-    VALUES (p_user_id, v_bag_id, v_applied_60, CASE WHEN v_applied_60 > 0 THEN 'credit' ELSE 'debit' END, p_reason, '60');
+    VALUES (p_user_id, v_bag_id, v_applied_60, (CASE WHEN v_applied_60 > 0 THEN 'credit' ELSE 'debit' END)::bag_transaction_type, p_reason, '60');
   END IF;
 
   IF v_applied_90 != 0 THEN
     INSERT INTO bag_transactions (user_id, class_bag_id, delta, type, reason, class_duration)
-    VALUES (p_user_id, v_bag_id, v_applied_90, CASE WHEN v_applied_90 > 0 THEN 'credit' ELSE 'debit' END, p_reason, '90');
+    VALUES (p_user_id, v_bag_id, v_applied_90, (CASE WHEN v_applied_90 > 0 THEN 'credit' ELSE 'debit' END)::bag_transaction_type, p_reason, '90');
   END IF;
 
   RETURN jsonb_build_object('ok', true, 'bag_id', v_bag_id, 'new_balance_60', v_new_bal_60, 'new_balance_90', v_new_bal_90);
