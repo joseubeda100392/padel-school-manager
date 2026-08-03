@@ -9,9 +9,10 @@ const MAX_AMOUNT_CENTS = 99_999
 // Llamar cada día a las 08:00 desde Railway cron o similar
 // Cobra a todos los mandatos activos cuyo next_charge_at es hoy o anterior
 export async function POST(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET ?? ''
   const authHeader = req.headers.get('authorization') ?? ''
-  const expected = `Bearer ${process.env.CRON_SECRET ?? ''}`
-  const isValid = authHeader.length === expected.length &&
+  const expected = `Bearer ${cronSecret}`
+  const isValid = !!cronSecret && authHeader.length === expected.length &&
     timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
   if (!isValid) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
