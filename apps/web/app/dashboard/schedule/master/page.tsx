@@ -44,7 +44,10 @@ export default async function MasterSchedulePage() {
     <div>
       <RealtimeRefresh
         channelName="admin-schedule-master"
-        subs={[{ table: 'group_enrollments' }, { table: 'schedules' }]}
+        subs={clubId ? [
+          { table: 'group_enrollments', filter: `club_id=eq.${clubId}` },
+          { table: 'schedules', filter: `club_id=eq.${clubId}` },
+        ] : [{ table: 'group_enrollments' }, { table: 'schedules' }]}
       />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>

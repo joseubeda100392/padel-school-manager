@@ -76,7 +76,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
       <DevError errors={[errPayments?.message, errUnpaid?.message]} />
       <RealtimeRefresh
         channelName="admin-payments"
-        subs={[
+        subs={clubId ? [
+          { table: 'payments', filter: `club_id=eq.${clubId}` },
+          { table: 'group_enrollments', filter: `club_id=eq.${clubId}` },
+        ] : [
           { table: 'payments' },
           { table: 'group_enrollments' },
         ]}

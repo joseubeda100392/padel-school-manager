@@ -109,7 +109,11 @@ export default async function DashboardPage() {
       <DevError errors={[errStudents?.message, errRpc1?.message, errRpc2?.message, errRecent?.message, errRpc3?.message]} />
       <RealtimeRefresh
         channelName="admin-dashboard"
-        subs={[{ table: 'group_enrollments' }, { table: 'users' }, { table: 'payments' }]}
+        subs={clubId ? [
+          { table: 'group_enrollments', filter: `club_id=eq.${clubId}` },
+          { table: 'users', filter: `club_id=eq.${clubId}` },
+          { table: 'payments', filter: `club_id=eq.${clubId}` },
+        ] : [{ table: 'group_enrollments' }, { table: 'users' }, { table: 'payments' }]}
       />
 
       {/* Header */}

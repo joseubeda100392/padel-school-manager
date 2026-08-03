@@ -47,7 +47,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: { t
     <div>
       <RealtimeRefresh
         channelName="admin-students"
-        subs={[{ table: 'users' }]}
+        subs={clubId ? [{ table: 'users', filter: `club_id=eq.${clubId}` }] : [{ table: 'users' }]}
       />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>

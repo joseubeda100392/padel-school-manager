@@ -129,7 +129,11 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     <div>
       <RealtimeRefresh
         channelName="admin-schedule-list"
-        subs={[
+        subs={clubId ? [
+          { table: 'bookings', filter: `club_id=eq.${clubId}` },
+          { table: 'group_enrollments', filter: `club_id=eq.${clubId}` },
+          { table: 'schedule_exclusions' },
+        ] : [
           { table: 'bookings' },
           { table: 'group_enrollments' },
           { table: 'schedule_exclusions' },
