@@ -139,11 +139,9 @@ export async function DELETE(req: NextRequest) {
     originalTx = tx
   }
 
-  // Borrar referencias antes de borrar la reserva (FK RESTRICT)
-  await Promise.all([
-    admin.from('bag_transactions').delete().eq('booking_id', booking.id),
-    admin.from('payments').delete().eq('booking_id', booking.id),
-  ])
+  // bag_transactions se borra (no es rastro fiscal); payments se conserva
+  // (FK ON DELETE SET NULL) para no perder el historial de cobros de Redsys.
+  await admin.from('bag_transactions').delete().eq('booking_id', booking.id)
 
   const { error: deleteErr } = await admin.from('bookings').delete().eq('id', booking.id)
   if (deleteErr) return NextResponse.json({ error: 'Error al cancelar la reserva' }, { status: 500 })
