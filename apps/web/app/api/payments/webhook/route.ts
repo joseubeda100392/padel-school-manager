@@ -74,6 +74,12 @@ export async function POST(req: NextRequest) {
 
   if (!success) return NextResponse.json({ ok: false })
 
+  // Si el efecto (reserva/crédito/etc.) falla tras el claim, revertir a 'pending'
+  // para que el próximo reintento de Redsys pueda reprocesarlo en vez de quedar
+  // marcado 'succeeded' sin haber entregado lo pagado.
+  const revertToPending = () =>
+    adminSupabase.from('payments').update({ status: 'pending' }).eq('id', payment.id).eq('status', 'succeeded')
+
   const meta = payment.metadata ?? {}
 
   if (payment.type === 'single_class' && meta.schedule_id) {
@@ -106,6 +112,7 @@ export async function POST(req: NextRequest) {
       })
       if (bookingErr) {
         console.error('[webhook] single_class booking failed:', bookingErr.message)
+        await revertToPending()
         return NextResponse.json({ error: 'booking_failed' }, { status: 500 })
       }
     }
@@ -123,6 +130,7 @@ export async function POST(req: NextRequest) {
     })
     if (rpcErr) {
       console.error('[webhook] class_pack credit_class_bag failed:', rpcErr.message)
+      await revertToPending()
       return NextResponse.json({ error: 'credit_failed' }, { status: 500 })
     }
 
@@ -136,6 +144,7 @@ export async function POST(req: NextRequest) {
       .eq('student_id', payment.user_id)
     if (enrollErr) {
       console.error('[webhook] fixed_group_month enrollment update failed:', enrollErr.message)
+      await revertToPending()
       return NextResponse.json({ error: 'enrollment_update_failed' }, { status: 500 })
     }
 
@@ -153,6 +162,7 @@ export async function POST(req: NextRequest) {
       })
       if (regErr) {
         console.error('[webhook] tournament registration failed:', regErr.message)
+        await revertToPending()
         return NextResponse.json({ error: 'registration_failed' }, { status: 500 })
       }
     }
@@ -161,6 +171,7 @@ export async function POST(req: NextRequest) {
     const identifier = response.Ds_Merchant_Identifier ?? response.DS_MERCHANT_IDENTIFIER ?? response.Ds_Identifier ?? null
     if (!identifier) {
       console.error('[webhook] mandate_init: Redsys no devolvió Ds_Merchant_Identifier para mandate', meta.mandate_id)
+      await revertToPending()
       return NextResponse.json({ error: 'mandate_identifier_missing' }, { status: 500 })
     }
     const { data: mandate } = await adminSupabase
@@ -184,6 +195,7 @@ export async function POST(req: NextRequest) {
       .eq('id', meta.mandate_id)
     if (mandateErr) {
       console.error('[webhook] mandate_init mandate update failed:', mandateErr.message)
+      await revertToPending()
       return NextResponse.json({ error: 'mandate_update_failed' }, { status: 500 })
     }
 
@@ -228,6 +240,7 @@ export async function POST(req: NextRequest) {
         })
         if (iBookingErr) {
           console.error('[webhook] intensivo_group booking failed:', iBookingErr.message)
+          await revertToPending()
           return NextResponse.json({ error: 'intensivo_booking_failed' }, { status: 500 })
         }
       }
