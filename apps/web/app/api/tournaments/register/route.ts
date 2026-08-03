@@ -15,35 +15,27 @@ export async function POST(req: NextRequest) {
 
   const { data: tournament } = await admin
     .from('tournaments')
-    .select('id, status, max_players, club_id')
+    .select('id, club_id')
     .eq('id', tournamentId)
     .single()
 
   if (!tournament) return NextResponse.json({ error: 'Torneo no encontrado' }, { status: 404 })
-  if (tournament.status !== 'open') return NextResponse.json({ error: 'Las inscripciones están cerradas' }, { status: 409 })
 
   const { data: userRow } = await admin.from('users').select('club_id').eq('id', user.id).single()
   if ((userRow as any)?.club_id !== tournament.club_id) {
     return NextResponse.json({ error: 'No perteneces a este club' }, { status: 403 })
   }
 
-  const { count } = await admin
-    .from('tournament_registrations')
-    .select('id', { count: 'exact', head: true })
-    .eq('tournament_id', tournamentId)
-
-  if ((count ?? 0) >= tournament.max_players) {
-    return NextResponse.json({ error: 'El torneo está completo' }, { status: 409 })
-  }
-
-  const { error } = await admin.from('tournament_registrations').insert({
-    tournament_id: tournamentId,
-    student_id: user.id,
+  // Estado, aforo y duplicados se comprueban de forma atómica dentro de la
+  // función (lock sobre tournaments), para que dos altas simultáneas no
+  // puedan superar max_players.
+  const { data: result, error: rpcErr } = await admin.rpc('register_for_tournament', {
+    p_tournament_id: tournamentId,
+    p_student_id: user.id,
   })
 
-  if (error) {
-    if (error.code === '23505') return NextResponse.json({ error: 'Ya estás inscrito' }, { status: 409 })
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+  if (rpcErr || result?.error) {
+    return NextResponse.json({ error: result?.error ?? 'Error interno del servidor' }, { status: result?.error ? 409 : 500 })
   }
 
   return NextResponse.json({ ok: true })
