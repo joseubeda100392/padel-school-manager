@@ -80,7 +80,7 @@ export async function DELETE(req: NextRequest) {
   const isAdmin = ['admin', 'super_admin', 'coach'].includes(callerProfile?.role ?? '')
 
   // Admins can cancel any booking; students only their own
-  let bookingQuery = admin.from('bookings').select('id, source, schedule_id, student_id, club_id').neq('status', 'cancelled')
+  let bookingQuery = admin.from('bookings').select('id, source, schedule_id, student_id, club_id, class_date').neq('status', 'cancelled')
   if (bookingId) {
     bookingQuery = bookingQuery.eq('id', bookingId)
     if (!isAdmin) {
@@ -108,6 +108,24 @@ export async function DELETE(req: NextRequest) {
   }
 
   const studentId = booking.student_id ?? user.id
+
+  // Plazo de cancelación: solo autoservicio (no admin/coach) y solo reservas con fecha concreta
+  if (!isAdmin && (booking as any).class_date) {
+    const [{ data: sched }, { data: clubRow }] = await Promise.all([
+      admin.from('schedules').select('start_time').eq('id', booking.schedule_id).single(),
+      admin.from('clubs').select('config').eq('id', booking.club_id).single(),
+    ])
+    if (sched) {
+      const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
+      const base = new Date(sched.start_time)
+      const classDt = new Date((booking as any).class_date + 'T12:00:00')
+      classDt.setHours(base.getHours(), base.getMinutes(), 0, 0)
+      const hoursUntilClass = (classDt.getTime() - Date.now()) / 3600000
+      if (hoursUntilClass < cancellationHours) {
+        return NextResponse.json({ error: `Debes avisar con al menos ${cancellationHours} horas de antelación` }, { status: 400 })
+      }
+    }
+  }
 
   // Leer la tx original ANTES de borrar bag_transactions (necesario para durationType del reembolso)
   let originalTx: { class_duration: string | null } | null = null
