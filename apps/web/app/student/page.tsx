@@ -48,9 +48,11 @@ export default async function StudentHomePage() {
       .select('id, monthly_price, paid_until, schedule:schedules(id, start_time, end_time, court:courts(name))')
       .eq('student_id', user.id)
       .eq('status', 'active'),
-    clubId
-      ? admin.from('schedule_exclusions').select('id, group_enrollment:group_enrollments!group_enrollment_id(schedule_id, schedule:schedules!schedule_id(club_id))').eq('publish_spot', true).gte('excluded_date', today)
-      : admin.from('schedule_exclusions').select('id').eq('publish_spot', true).gte('excluded_date', today),
+    admin
+      .from('schedule_exclusions')
+      .select('id, group_enrollment:group_enrollments!group_enrollment_id(schedule_id, schedule:schedules!schedule_id(club_id, level_id))')
+      .eq('publish_spot', true)
+      .gte('excluded_date', today),
     clubId
       ? admin.from('schedules').select('id, max_students, type, recurrence, recurrence_end_date, start_time, level:levels(id), enrollments:group_enrollments(student_id, status)').eq('club_id', clubId).neq('type', 'intensivo')
       : Promise.resolve({ data: [] }),
@@ -82,9 +84,13 @@ export default async function StudentHomePage() {
 
   const level = levelData
 
-  const absenceSpots = clubId
-    ? (spots ?? []).filter((s: any) => (s.group_enrollment as any)?.schedule?.club_id === clubId)
-    : (spots ?? [])
+  const absenceSpots = (spots ?? []).filter((s: any) => {
+    const schedule = (s.group_enrollment as any)?.schedule
+    const clubOk = !clubId || schedule?.club_id === clubId
+    const levelId = schedule?.level_id ?? null
+    const levelOk = !myLevelId || !levelId || levelId === myLevelId
+    return clubOk && levelOk
+  })
   const absenceCount = absenceSpots.length
   const absenceScheduleIds = new Set(absenceSpots.map((s: any) => (s.group_enrollment as any)?.schedule_id).filter(Boolean))
 
