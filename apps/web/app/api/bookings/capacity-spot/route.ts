@@ -86,8 +86,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 400 })
   }
 
-  const useBalance90 = durationType === '90' || bag.balance_60 <= 0
-
   const { data: booking, error: bookErr } = await admin
     .from('bookings')
     .insert({ schedule_id: scheduleId, student_id: user.id, status: 'confirmed', source: 'bag', class_date: date })
@@ -98,30 +96,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
   }
 
-  const newBal60 = useBalance90 ? bag.balance_60 : bag.balance_60 - 1
-  const newBal90 = useBalance90 ? bag.balance_90 - 1 : bag.balance_90
-
-  const { error: bagErr } = await admin
-    .from('class_bag')
-    .update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() })
-    .eq('id', bag.id)
-
-  if (bagErr) {
-    await admin.from('bookings').delete().eq('id', booking.id)
-    return NextResponse.json({ error: 'Error al descontar la bolsa' }, { status: 500 })
-  }
-
   const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
 
-  await admin.from('bag_transactions').insert({
-    user_id: user.id,
-    class_bag_id: bag.id,
-    delta: -1,
-    type: 'debit',
-    reason: `Plaza libre del ${dateLabel}`,
-    booking_id: booking.id,
-    class_duration: durationType,
+  // Descuento atómico (lock + update en una sola transacción de BD, sin race entre reservas simultáneas)
+  const { data: debitResult, error: debitErr } = await admin.rpc('debit_class_bag_for_booking', {
+    p_user_id: user.id,
+    p_duration_type: durationType,
+    p_reason: `Plaza libre del ${dateLabel}`,
+    p_booking_id: booking.id,
   })
 
-  return NextResponse.json({ ok: true, newBalance: newBal60 + newBal90 })
+  if (debitErr || debitResult?.error) {
+    await admin.from('bookings').delete().eq('id', booking.id)
+    return NextResponse.json({ error: debitResult?.error ?? 'Error al descontar la bolsa' }, { status: debitResult?.error ? 400 : 500 })
+  }
+
+  return NextResponse.json({ ok: true, newBalance: debitResult.new_balance })
 }

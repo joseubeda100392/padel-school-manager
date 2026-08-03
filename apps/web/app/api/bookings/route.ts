@@ -165,27 +165,19 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', studentId).single()
-    if (bag) {
-      const newBal60 = durationType === '60' ? bag.balance_60 + 1 : bag.balance_60
-      const newBal90 = durationType === '90' ? bag.balance_90 + 1 : bag.balance_90
-      const { error: bagUpdateErr } = await admin.from('class_bag').update({ balance_60: newBal60, balance_90: newBal90, updated_at: new Date().toISOString() }).eq('id', bag.id)
-      if (bagUpdateErr) {
-        console.error('[bookings] refund bag update failed:', bagUpdateErr.message)
-        return NextResponse.json({ error: 'Error al devolver crédito a la bolsa' }, { status: 500 })
-      }
-      // booking_id omitido: el booking fue eliminado antes de esta inserción
-      const { error: txErr } = await admin.from('bag_transactions').insert({
-        user_id: studentId,
-        class_bag_id: bag.id,
-        delta: 1,
-        type: 'credit',
-        reason: 'Cancelación de clase',
-        class_duration: durationType,
-      })
-      if (txErr) console.error('[bookings] refund transaction insert failed:', txErr.message)
-      return NextResponse.json({ ok: true, newBalance: newBal60 + newBal90 })
+    // Crédito atómico — crea la fila de bolsa si no existía (antes el reembolso se perdía en silencio)
+    const { data: creditResult, error: creditErr } = await admin.rpc('credit_class_bag', {
+      p_user_id: studentId,
+      p_club_id: booking.club_id ?? null,
+      p_delta: 1,
+      p_pack_type: durationType,
+      p_reason: 'Cancelación de clase',
+    })
+    if (creditErr || creditResult?.error) {
+      console.error('[bookings] refund credit failed:', creditErr?.message ?? creditResult?.error)
+      return NextResponse.json({ error: 'Error al devolver crédito a la bolsa' }, { status: 500 })
     }
+    return NextResponse.json({ ok: true, newBalance: creditResult.new_balance })
   }
 
   return NextResponse.json({ ok: true })
