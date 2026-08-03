@@ -1,0 +1,64 @@
+'use client'
+
+import { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+
+const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+// JS getDay: 0=Dom,1=Lun... → map to our index (Mon=0)
+const JS_DAY_TO_IDX: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 }
+
+export default function MasterWeeklyCalendar({ schedules }: { schedules: any[] }) {
+  const router = useRouter()
+
+  const byDay = useMemo(() => {
+    const map: Record<number, any[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
+    schedules.forEach((s) => {
+      const idx = JS_DAY_TO_IDX[new Date(s.start_time).getDay()]
+      if (idx !== undefined) map[idx].push(s)
+    })
+    for (const idx of Object.keys(map)) {
+      map[Number(idx)].sort((a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours())
+    }
+    return map
+  }, [schedules])
+
+  return (
+    <div className="overflow-x-auto pb-2">
+      <div className="grid min-w-[900px] grid-cols-7 gap-2">
+        {DAY_NAMES.map((dayName, idx) => {
+          const classes = byDay[idx]
+          return (
+            <div key={idx}>
+              <div className="mb-2 rounded-lg bg-gray-100 px-2 py-2 text-center">
+                <p className="text-xs font-semibold text-gray-600">{dayName}</p>
+              </div>
+
+              <div className="space-y-2">
+                {classes.length === 0 && (
+                  <div className="rounded-lg border border-dashed border-gray-200 px-2 py-4 text-center">
+                    <p className="text-xs text-gray-300">Sin clases</p>
+                  </div>
+                )}
+                {classes.map((s: any) => (
+                  <button
+                    key={s.id}
+                    onClick={() => router.push(`/dashboard/schedule/${s.id}`)}
+                    className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all hover:ring-green-400 ${s.students?.length ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
+                  >
+                    <p className="text-xs font-semibold text-gray-900 truncate">{s.coach?.name ?? '—'}</p>
+                    {(s.level?.description || s.level?.name) && (
+                      <p className="mt-0.5 text-xs text-gray-500">{s.level.description || s.level.name}</p>
+                    )}
+                    {s.students?.length > 0 && (
+                      <p className="mt-1 text-[11px] leading-snug text-gray-600">{s.students.join(', ')}</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
