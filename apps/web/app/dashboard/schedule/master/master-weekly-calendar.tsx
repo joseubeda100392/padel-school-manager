@@ -47,10 +47,19 @@ export default function MasterWeeklyCalendar({ schedules }: { schedules: any[] }
                   >
                     <p className="text-xs font-semibold text-gray-900 truncate">{s.coach?.name ?? '—'}</p>
                     {(s.level?.description || s.level?.name) && (
-                      <p className="mt-0.5 text-xs text-gray-500">{s.level.description || s.level.name}</p>
+                      <span
+                        className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                        style={{ backgroundColor: s.level.color ?? '#6366f1' }}
+                      >
+                        {s.level.description || s.level.name}
+                      </span>
                     )}
                     {s.students?.length > 0 && (
-                      <p className="mt-1 text-[11px] leading-snug text-gray-600">{s.students.join(', ')}</p>
+                      <div className="mt-1.5 divide-y divide-gray-100 border-t border-gray-100">
+                        {s.students.map((name: string, i: number) => (
+                          <p key={i} className="py-1 text-[11px] text-gray-600">{name}</p>
+                        ))}
+                      </div>
                     )}
                   </button>
                 ))}

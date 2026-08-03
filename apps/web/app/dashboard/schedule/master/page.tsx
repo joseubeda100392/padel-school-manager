@@ -12,7 +12,7 @@ export default async function MasterSchedulePage() {
 
   const schedulesQuery = admin
     .from('schedules')
-    .select('id, start_time, end_time, recurrence, recurrence_end_date, coach:users!schedules_coach_id_fkey(name), level:levels(name, description)')
+    .select('id, start_time, end_time, recurrence, recurrence_end_date, coach:users!schedules_coach_id_fkey(name), level:levels(name, description, color)')
     .eq('is_active', true)
     .eq('type', 'regular')
     .order('start_time', { ascending: true })
