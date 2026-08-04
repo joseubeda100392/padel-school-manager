@@ -26,13 +26,14 @@ export async function POST(req: NextRequest) {
   const { data: body, error: badRequest } = await parseBody(req, z.object({
     email: z.string().email(),
     name: z.string().min(1).max(200),
+    phone: z.string().max(30).nullish(),
     role: z.enum(['student', 'coach', 'admin']),
     levelId: z.string().uuid().nullish(),
     tempPassword: z.string().min(6).max(100),
     clubIdOverride: z.string().uuid().optional(),
   }))
   if (badRequest) return badRequest
-  const { email, name, role, levelId, tempPassword, clubIdOverride } = body
+  const { email, name, phone, role, levelId, tempPassword, clubIdOverride } = body
 
   // Solo un super_admin puede crear administradores
   if (role === 'admin' && caller.role !== 'super_admin') {
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
     id: authData.user.id,
     email,
     name,
+    phone: phone || null,
     role,
     club_id: clubId,
     current_level_id: levelId || null,

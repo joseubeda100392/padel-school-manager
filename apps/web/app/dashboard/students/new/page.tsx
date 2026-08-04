@@ -8,6 +8,7 @@ export default function NewStudentPage() {
   const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [role, setRole] = useState<'student' | 'coach' | 'admin'>('student')
   const [levelId, setLevelId] = useState('')
   const [levels, setLevels] = useState<any[]>([])
@@ -35,7 +36,7 @@ export default function NewStudentPage() {
     const res = await fetch('/api/admin/create-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, role, levelId: levelId || null, tempPassword }),
+      body: JSON.stringify({ email, name, phone: phone.trim() || null, role, levelId: levelId || null, tempPassword }),
     })
 
     const json = await res.json()
@@ -81,6 +82,17 @@ export default function NewStudentPage() {
             required
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             placeholder="juan@email.com"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Teléfono</label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            placeholder="600 000 000"
           />
         </div>
 
