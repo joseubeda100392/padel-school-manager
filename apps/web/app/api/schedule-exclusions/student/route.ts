@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       .eq('student_id', user.id)
       .eq('status', 'active')
       .single(),
-    admin.from('schedules').select('start_time, end_time, court:courts(name), level:levels(name)').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time, level_id, court:courts(name), level:levels(name)').eq('id', scheduleId).single(),
     clubId
       ? admin.from('clubs').select('config').eq('id', clubId).single()
       : { data: null },
@@ -105,10 +105,14 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
 
     const excludedIds = new Set((enrolledIds ?? []).map((e: any) => e.student_id))
+    const scheduleLevelId = (schedule as any).level_id ?? null
 
-    const q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
+    const q = admin.from('users').select('id, current_level_id').eq('role', 'student').eq('is_active', true)
     const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)
-    const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
+    const targetIds = (candidates ?? [])
+      .filter((u: any) => !excludedIds.has(u.id))
+      .filter((u: any) => !scheduleLevelId || !u.current_level_id || u.current_level_id === scheduleLevelId)
+      .map((u: any) => u.id)
 
     if (targetIds.length > 0) {
       const sc = schedule as any
