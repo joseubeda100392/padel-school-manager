@@ -8,6 +8,12 @@ export type PlaytomicPlayer = {
   phone?: string
   gender?: string
   level?: number
+  birthDate?: string
+  lastActivity?: string
+  acceptsMarketing?: boolean
+  otherSports?: { sportId: string; level: number }[]
+  benefits?: { name: string; type: string; expiresAt?: string }[]
+  walletBalance?: string
 }
 
 export type PlaytomicSlot = {
@@ -391,7 +397,7 @@ export class PlaytomicOfficialClient {
     let cursorId: string | null = null
 
     while (true) {
-      const params = new URLSearchParams({ limit: '100', include: 'SPORTS' })
+      const params = new URLSearchParams({ limit: '100', include: 'SPORTS,BENEFITS,WALLETS' })
       if (cursorId) params.set('cursor_id', cursorId)
 
       const res = await fetchWithRetry(`${OFFICIAL_BASE}/venues/${tenantId}/players?${params}`, {
@@ -407,13 +413,27 @@ export class PlaytomicOfficialClient {
       if (!page.length) break
 
       for (const p of page) {
-        const padelSport = (p.sports ?? []).find((s: any) => s.sport_id === 'PADEL')
+        const sports: any[] = p.sports ?? []
+        const padelSport = sports.find((s: any) => s.sport_id === 'PADEL')
+        const otherSports = sports
+          .filter((s: any) => s.sport_id !== 'PADEL')
+          .map((s: any) => ({ sportId: s.sport_id, level: s.level_value }))
+        const wallets: any[] = p.wallets ?? []
+        const walletBalance = wallets.length ? wallets.map((w: any) => `${w.name ?? ''}: ${w.balance ?? 0}`).join(' / ') : undefined
+        const benefits: any[] = (p.benefits ?? []).map((b: any) => ({ name: b.name, type: b.type, expiresAt: b.expires_at }))
+
         players.push({
           user_id: p.player_id ?? p.user_id ?? '',
           name: p.name ?? '',
           email: p.email ?? '',
           phone: p.phone ?? undefined,
           gender: p.gender ?? undefined,
+          birthDate: p.birth_date ?? undefined,
+          lastActivity: p.last_registration_date ?? undefined,
+          acceptsMarketing: p.accepts_commercial_communications ?? undefined,
+          otherSports: otherSports.length ? otherSports : undefined,
+          benefits: benefits.length ? benefits : undefined,
+          walletBalance,
           level: padelSport?.level_value ?? undefined,
         })
       }

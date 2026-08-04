@@ -5,19 +5,20 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
+function downloadCsv(filename: string, rows: Record<string, unknown>[], columns?: { key: string; header: string }[]) {
   if (!rows.length) return
-  const headers = Array.from(rows.reduce((set, row) => {
+  const keys = columns?.map((c) => c.key) ?? Array.from(rows.reduce((set, row) => {
     Object.keys(row).forEach((k) => set.add(k))
     return set
   }, new Set<string>()))
+  const headers = columns?.map((c) => c.header) ?? keys
   const escapeCell = (value: unknown) => {
     const str = value === null || value === undefined ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value)
     return `"${str.replace(/"/g, '""')}"`
   }
   const lines = [
     headers.map(escapeCell).join(','),
-    ...rows.map((row) => headers.map((h) => escapeCell(row[h])).join(',')),
+    ...rows.map((row) => keys.map((k) => escapeCell(row[k])).join(',')),
   ]
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
@@ -27,6 +28,28 @@ function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+type PlaytomicPreviewPlayer = {
+  name: string; email: string | null; phone: string | null; gender: string | null
+  level: number | null; birthDate: string | null; lastActivity: string | null
+  acceptsMarketing: boolean | null; otherSports: string | null; benefits: string | null
+  walletBalance: string | null; status: string
+}
+
+const PLAYTOMIC_PLAYER_COLUMNS: { key: keyof PlaytomicPreviewPlayer; header: string }[] = [
+  { key: 'name', header: 'Nombre' },
+  { key: 'email', header: 'Email' },
+  { key: 'phone', header: 'Teléfono' },
+  { key: 'gender', header: 'Género (MALE / FEMALE / HIDDEN, dato de Playtomic)' },
+  { key: 'level', header: 'Nivel de pádel (escala Playtomic, aprox. 0 a 7)' },
+  { key: 'birthDate', header: 'Fecha de nacimiento' },
+  { key: 'lastActivity', header: 'Última actividad en Playtomic (última reserva o registro)' },
+  { key: 'acceptsMarketing', header: 'Acepta comunicaciones comerciales (consentimiento dado a Playtomic, no a nosotros)' },
+  { key: 'otherSports', header: 'Otros deportes con nivel (aparte de pádel)' },
+  { key: 'benefits', header: 'Bonos / beneficios activos en Playtomic' },
+  { key: 'walletBalance', header: 'Saldo en el monedero de Playtomic' },
+  { key: 'status', header: 'Estado en PSM (se_crearia / ya_existe / sin_email)' },
+]
 
 interface AppConfig {
   pay_per_class_price_60: number
@@ -119,7 +142,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [csvExporting, setCsvExporting] = useState(false)
   const [csvError, setCsvError] = useState('')
   const [previewing, setPreviewing] = useState(false)
-  const [preview, setPreview] = useState<{ total: number; wouldImport: number; wouldSkip: number; noEmail: number; players: { name: string; email: string | null; phone: string | null; status: string }[] } | null>(null)
+  const [preview, setPreview] = useState<{ total: number; wouldImport: number; wouldSkip: number; noEmail: number; players: PlaytomicPreviewPlayer[] } | null>(null)
   const [previewError, setPreviewError] = useState('')
   const [diagRunning, setDiagRunning] = useState(false)
   const [diagResult, setDiagResult] = useState<{
@@ -1046,25 +1069,33 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                   <p className="mb-3 text-sm font-medium text-gray-700">
                     {preview.total} jugadores en Playtomic — {preview.wouldImport} se crearían, {preview.wouldSkip} ya existen, {preview.noEmail} sin email (no importables)
                   </p>
-                  <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-100">
-                    <table className="w-full text-xs">
+                  <div className="max-h-64 overflow-auto rounded-lg border border-gray-100">
+                    <table className="w-full min-w-[1400px] text-xs">
                       <thead className="sticky top-0 bg-gray-50">
                         <tr>
-                          <th className="px-3 py-2 text-left">Nombre</th>
-                          <th className="px-3 py-2 text-left">Email</th>
-                          <th className="px-3 py-2 text-left">Estado</th>
+                          {PLAYTOMIC_PLAYER_COLUMNS.map((c) => (
+                            <th key={c.key} className="whitespace-nowrap px-3 py-2 text-left">{c.header}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {preview.players.map((p, i) => (
                           <tr key={i}>
-                            <td className="px-3 py-1.5">{p.name || '—'}</td>
-                            <td className="px-3 py-1.5">{p.email || '—'}</td>
-                            <td className="px-3 py-1.5">
-                              {p.status === 'se_crearia' && <span className="text-green-600">se crearía</span>}
-                              {p.status === 'ya_existe' && <span className="text-gray-400">ya existe</span>}
-                              {p.status === 'sin_email' && <span className="text-red-500">sin email</span>}
-                            </td>
+                            {PLAYTOMIC_PLAYER_COLUMNS.map((c) => (
+                              <td key={c.key} className="whitespace-nowrap px-3 py-1.5">
+                                {c.key === 'status' ? (
+                                  <>
+                                    {p.status === 'se_crearia' && <span className="text-green-600">se crearía</span>}
+                                    {p.status === 'ya_existe' && <span className="text-gray-400">ya existe</span>}
+                                    {p.status === 'sin_email' && <span className="text-red-500">sin email</span>}
+                                  </>
+                                ) : c.key === 'acceptsMarketing' ? (
+                                  p.acceptsMarketing === null ? '—' : p.acceptsMarketing ? 'Sí' : 'No'
+                                ) : (
+                                  String(p[c.key] ?? '—')
+                                )}
+                              </td>
+                            ))}
                           </tr>
                         ))}
                       </tbody>
@@ -1109,9 +1140,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     if (!res.ok) {
                       setCsvError(data.error ?? 'Error')
                     } else {
-                      downloadCsv('playtomic-jugadores.csv', (data.players ?? []).map((p: any) => ({
-                        name: p.name, email: p.email, phone: p.phone, status: p.status,
-                      })))
+                      downloadCsv('playtomic-jugadores.csv', data.players ?? [], PLAYTOMIC_PLAYER_COLUMNS)
                     }
                     setCsvExporting(false)
                   }}
