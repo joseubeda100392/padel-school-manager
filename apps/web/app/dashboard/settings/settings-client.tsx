@@ -150,6 +150,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     bookingsTotal?: number; bookingTypeCounts?: Record<string, number>
     pendingOpenMatches?: { booking_id: string; booking_start_date: string; resource_name: string | null; status: string; payment_status: string; faltan: number; participantes: { name: string; email: string }[] }[]
     allOpenMatches?: { booking_id: string; booking_start_date: string; resource_id: string | null; resource_name: string | null; status: string; is_canceled: boolean; payment_status: string; num_participantes: number; participantes: { name: string; email: string; tipo: string }[] }[]
+    gelutestFound?: { booking_id: string; booking_type: string; booking_start_date: string; resource_id: string | null; resource_name: string | null; status: string; is_canceled: boolean; payment_status: string; participantes: { name: string; email: string }[] }[]
     bookingsError?: string
   } | null>(null)
   const [diagError, setDiagError] = useState('')
@@ -1244,6 +1245,18 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     <p className="mb-2 text-xs text-gray-500">
                       {diagResult.bookingsTotal} reservas totales en la ventana. Desglose: {Object.entries(diagResult.bookingTypeCounts ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')}
                     </p>
+                  )}
+                  {diagResult.gelutestFound && (
+                    <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs">
+                      <p className="font-medium text-blue-800">
+                        Búsqueda directa de Gelu en TODAS las reservas (sin filtrar tipo/estado): {diagResult.gelutestFound.length === 0 ? 'no aparece en ningún sitio' : `${diagResult.gelutestFound.length} encontrada(s)`}
+                      </p>
+                      {diagResult.gelutestFound.map((b) => (
+                        <p key={b.booking_id} className="text-blue-700">
+                          {b.booking_start_date} — tipo: {b.booking_type} — pista: {b.resource_name || 'ninguna'} — {b.payment_status}
+                        </p>
+                      ))}
+                    </div>
                   )}
                   {diagResult.pendingOpenMatches && diagResult.pendingOpenMatches.length === 0 && (
                     <p className="text-sm text-gray-400">Ninguno con pista ya reservada pero sin llenar ahora mismo.</p>

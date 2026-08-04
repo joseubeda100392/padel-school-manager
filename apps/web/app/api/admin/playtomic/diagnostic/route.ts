@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
     allOpenMatches?: unknown
     bookingsTotal?: number
     bookingTypeCounts?: Record<string, number>
+    gelutestFound?: unknown
     bookingsError?: string
   } = {}
 
@@ -122,6 +123,27 @@ export async function POST(req: NextRequest) {
         payment_status: b.payment_status,
         num_participantes: (b.participant_info?.participants ?? []).length,
         participantes: (b.participant_info?.participants ?? []).map((p: any) => ({ name: p.name, email: p.email, tipo: p.participant_type })),
+      }))
+
+    // Búsqueda directa de un jugador concreto (Gelu) en TODAS las reservas
+    // sin filtrar por booking_type ni status — para descartar que su
+    // partido esté clasificado con un tipo distinto a OPEN_MATCH.
+    result.gelutestFound = allBookings
+      .filter((b: any) =>
+        (b.participant_info?.participants ?? []).some((p: any) =>
+          (p.email ?? '').toLowerCase().includes('elpolloeggoista') || (p.name ?? '').toLowerCase().includes('gelu'),
+        ),
+      )
+      .map((b: any) => ({
+        booking_id: b.booking_id,
+        booking_type: b.booking_type,
+        booking_start_date: formatMadrid(b.booking_start_date),
+        resource_id: b.resource_id,
+        resource_name: b.resource_name,
+        status: b.status,
+        is_canceled: b.is_canceled,
+        payment_status: b.payment_status,
+        participantes: (b.participant_info?.participants ?? []).map((p: any) => ({ name: p.name, email: p.email })),
       }))
   } catch (e: any) {
     result.bookingsError = e.message
