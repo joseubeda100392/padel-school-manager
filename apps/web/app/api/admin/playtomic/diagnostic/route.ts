@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
     bookingsTotal?: number
     bookingTypeCounts?: Record<string, number>
     gelutestFound?: unknown
+    statusPendingTotal?: number
+    gelutestInStatusPending?: boolean
     bookingsError?: string
   } = {}
 
@@ -143,6 +145,21 @@ export async function POST(req: NextRequest) {
         payment_status: b.payment_status,
         participantes: (b.participant_info?.participants ?? []).map((p: any) => ({ name: p.name, email: p.email })),
       }))
+
+    // Experimento controlado: pedir explícitamente status=PENDING como
+    // parámetro de servidor (en vez de no mandar status y filtrar en
+    // cliente) por si el comportamiento por defecto de la API difiere del
+    // filtro explícito. Se compara el total y se repite la búsqueda de Gelu
+    // sobre esta respuesta específica.
+    const pendingOnly = await ptClient.getVenueBookingsRaw(
+      club.playtomic_tenant_id, startBookingDate, endBookingDate, 10, { status: 'PENDING' },
+    )
+    result.statusPendingTotal = pendingOnly.length
+    result.gelutestInStatusPending = pendingOnly.some((b: any) =>
+      (b.participant_info?.participants ?? []).some((p: any) =>
+        (p.email ?? '').toLowerCase().includes('elpolloeggoista') || (p.name ?? '').toLowerCase().includes('gelu'),
+      ),
+    )
   } catch (e: any) {
     result.bookingsError = e.message
   }
