@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 export default function EditClubPage({ params }: { params: { id: string } }) {
   const [form, setForm] = useState<any>(null)
   const [existingFeatures, setExistingFeatures] = useState<Record<string, boolean>>({})
+  const [wasActive, setWasActive] = useState(true)
   const [loading, setLoading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
@@ -16,6 +17,7 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
       if (data) {
         const features = data.features ?? {}
         setExistingFeatures(features)
+        setWasActive(data.is_active)
         setForm({
           name: data.name,
           slug: data.slug,
@@ -41,12 +43,16 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
       is_active: form.is_active,
       features: mergedFeatures,
     }).eq('id', params.id)
+    if (!err && !wasActive && form.is_active) {
+      // Se acaba de reactivar: levantar el bloqueo de acceso de sus usuarios (requiere service role)
+      await fetch(`/api/admin/clubs/${params.id}/reactivate`, { method: 'POST' }).catch(() => {})
+    }
     if (err) { setError(err.message); setLoading(false); return }
     window.location.href = '/dashboard/clubs'
   }
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar este club y TODOS sus datos (alumnos, clases, pagos, etc.)? Esta acción NO se puede deshacer.')) return
+    if (!confirm('¿Eliminar este club y TODOS sus datos (alumnos, clases, pagos, etc.) de forma permanente? Esta acción NO se puede deshacer. Si solo quieres bloquear el acceso sin borrar nada, desmarca "Club activo" arriba y guarda.')) return
     setDeleting(true)
     const res = await fetch(`/api/admin/clubs/${params.id}`, { method: 'DELETE' })
     if (!res.ok) {

@@ -6,9 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 
 interface Props {
   student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string }
+  isSuperAdmin?: boolean
 }
 
-export function StudentEditForm({ student }: Props) {
+export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
   const router = useRouter()
   const [form, setForm] = useState({
     name: student.name ?? '',
@@ -41,6 +42,10 @@ export function StudentEditForm({ student }: Props) {
       start_date: form.start_date || null,
       end_date: form.end_date || null,
     }).eq('id', student.id)
+    if (!err && !student.is_active && form.is_active) {
+      // Se acaba de reactivar: levantar el bloqueo de acceso (requiere service role)
+      await fetch(`/api/admin/students/${student.id}/reactivate`, { method: 'POST' }).catch(() => {})
+    }
     setSaving(false)
     if (err) { setError(err.message); return }
     setDone(true)
@@ -66,14 +71,17 @@ export function StudentEditForm({ student }: Props) {
   }
 
   async function handleDelete() {
-    if (!confirm(`¿Eliminar a ${student.name}? Esta acción no se puede deshacer.`)) return
+    const confirmMsg = isSuperAdmin
+      ? `¿ELIMINAR a ${student.name} de forma permanente? Se borra su historial de reservas, pagos y bolsa. Esta acción NO se puede deshacer.`
+      : `¿Desactivar a ${student.name}? No podrá entrar en la app, pero su historial (reservas, pagos, bolsa) se conserva y puedes reactivarlo cuando quieras.`
+    if (!confirm(confirmMsg)) return
     setDeleting(true)
     const res = await fetch(`/api/admin/students/${student.id}`, { method: 'DELETE' })
     if (res.ok) {
       window.location.href = '/dashboard/students'
     } else {
       const json = await res.json().catch(() => ({}))
-      const msg = json.error ?? 'Error al eliminar usuario'
+      const msg = json.error ?? (isSuperAdmin ? 'Error al eliminar usuario' : 'Error al desactivar usuario')
       alert(`Error: ${msg}`)
       setDeleting(false)
     }
@@ -159,7 +167,9 @@ export function StudentEditForm({ student }: Props) {
       <div className="mt-6 border-t border-gray-100 pt-4 space-y-2">
         <button onClick={handleDelete} disabled={deleting}
           className="w-full rounded-lg bg-red-50 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-60">
-          {deleting ? 'Eliminando...' : 'Eliminar usuario'}
+          {deleting
+            ? (isSuperAdmin ? 'Eliminando...' : 'Desactivando...')
+            : (isSuperAdmin ? 'Eliminar usuario' : 'Desactivar usuario')}
         </button>
       </div>
     </div>

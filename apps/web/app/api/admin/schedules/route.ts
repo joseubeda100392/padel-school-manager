@@ -206,21 +206,41 @@ export async function DELETE(req: NextRequest) {
   // Step 1: get dependent IDs in parallel
   const [enrollmentsRes, bookingsRes] = await Promise.all([
     admin.from('group_enrollments').select('id').eq('schedule_id', scheduleId),
-    admin.from('bookings').select('id').eq('schedule_id', scheduleId),
+    admin.from('bookings').select('id, club_id').eq('schedule_id', scheduleId),
   ])
   const enrollmentIds = (enrollmentsRes.data ?? []).map((e: any) => e.id)
   const bookingIds = (bookingsRes.data ?? []).map((b: any) => b.id)
+  const clubIdByBooking = new Map((bookingsRes.data ?? []).map((b: any) => [b.id, b.club_id]))
 
-  // Step 2: delete leaf rows in parallel
+  // Step 1.5: devolver a la bolsa cualquier crédito ya gastado en estas
+  // reservas antes de borrar su rastro (bag_transactions) — si no, el
+  // alumno pierde el crédito sin que nadie se lo devuelva.
+  if (bookingIds.length > 0) {
+    const { data: debitTxs } = await admin
+      .from('bag_transactions')
+      .select('user_id, delta, class_duration, booking_id')
+      .in('booking_id', bookingIds)
+      .eq('type', 'debit')
+    await Promise.all((debitTxs ?? []).map((tx: any) =>
+      admin.rpc('credit_class_bag', {
+        p_user_id: tx.user_id,
+        p_club_id: clubIdByBooking.get(tx.booking_id) ?? null,
+        p_delta: Math.abs(tx.delta),
+        p_pack_type: tx.class_duration ?? '60',
+        p_reason: 'Clase eliminada por el administrador',
+      })
+    ))
+  }
+
+  // Step 2: delete leaf rows in parallel. payments NO se borra — su FK a
+  // bookings es ON DELETE SET NULL, así que sobrevive cuando se borre la
+  // reserva en el paso 3 (se conserva el rastro de cobro de Redsys).
   await Promise.all([
     enrollmentIds.length > 0
       ? admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollmentIds)
       : Promise.resolve(),
     bookingIds.length > 0
       ? admin.from('bag_transactions').delete().in('booking_id', bookingIds)
-      : Promise.resolve(),
-    bookingIds.length > 0
-      ? admin.from('payments').delete().in('booking_id', bookingIds)
       : Promise.resolve(),
   ])
 

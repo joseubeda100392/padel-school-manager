@@ -194,7 +194,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           is_active: (student as any).is_active ?? true,
           start_date: (student as any).start_date ?? (student.created_at as string).split('T')[0],
           end_date: (student as any).end_date ?? '',
-        }} />
+        }} isSuperAdmin={viewerRole === 'super_admin'} />
       </div>
 
       {student.role === 'student' && (

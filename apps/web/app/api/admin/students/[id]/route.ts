@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
+// admin (de club): solo baja lógica — no puede destruir historial de pagos
+// por un cabreo o un click equivocado.
+// super_admin: sigue pudiendo borrar de verdad (limpieza de datos de prueba,
+// solicitudes de baja legal, etc.) — es un círculo de confianza mucho más
+// pequeño que el de los admins de cada escuela.
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -22,11 +27,23 @@ export async function DELETE(
   if (caller.role !== 'super_admin') {
     const { data: target } = await admin.from('users').select('club_id').eq('id', userId).single()
     if (!target || !caller.club_id || target.club_id !== caller.club_id) {
-      return NextResponse.json({ error: 'Sin permisos para eliminar este usuario' }, { status: 403 })
+      return NextResponse.json({ error: 'Sin permisos para desactivar este usuario' }, { status: 403 })
     }
+
+    // --- Baja lógica ---
+    const { error } = await admin
+      .from('users')
+      .update({ is_active: false, end_date: new Date().toISOString().split('T')[0] })
+      .eq('id', userId)
+    if (error) return NextResponse.json({ error: 'Error al desactivar el usuario' }, { status: 500 })
+
+    await admin.auth.admin.updateUserById(userId, { ban_duration: '876000h' }).catch(() => {})
+    return NextResponse.json({ ok: true })
   }
 
-  // --- Paso 1: nullear FKs nullable + obtener IDs necesarios (todo en paralelo) ---
+  // --- super_admin: borrado físico completo ---
+
+  // Paso 1: nullear FKs nullable + obtener IDs necesarios (todo en paralelo)
   const [, , , , , , , , , , enrollmentsRes, studentBookingsRes, bagRes, schedulesRes, checklistsRes] =
     await Promise.all([
       admin.from('chat_threads').update({ recipient_id: null }).eq('recipient_id', userId),
@@ -52,7 +69,7 @@ export async function DELETE(
   const mySchedules = schedulesRes.data ?? []
   const checklistIds = (checklistsRes.data ?? []).map((c: any) => c.id)
 
-  // --- Paso 2: limpiar horarios del monitor (coach_id NOT NULL — hay que borrar) ---
+  // Paso 2: limpiar horarios del monitor (coach_id NOT NULL — hay que borrar)
   if (mySchedules.length > 0) {
     const scheduleIds = mySchedules.map((s: any) => s.id)
 
@@ -89,7 +106,7 @@ export async function DELETE(
     await admin.from('schedules').delete().in('id', scheduleIds)
   }
 
-  // --- Paso 3: limpiar dependencias del alumno (en paralelo donde es posible) ---
+  // Paso 3: limpiar dependencias del alumno (en paralelo donde es posible)
   await Promise.all([
     admin.from('user_levels').delete().eq('user_id', userId),
     admin.from('push_subscriptions').delete().eq('user_id', userId),
@@ -131,7 +148,7 @@ export async function DELETE(
     admin.from('student_checklists').delete().eq('student_id', userId),
   ])
 
-  // --- Paso 4: borrar el usuario ---
+  // Paso 4: borrar el usuario
   const { error: deleteErr } = await admin.from('users').delete().eq('id', userId)
   if (deleteErr) return NextResponse.json({ error: 'Error al eliminar el usuario' }, { status: 500 })
 

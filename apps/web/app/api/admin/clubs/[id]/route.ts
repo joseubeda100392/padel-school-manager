@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
+// Solo super_admin llega aquí (ver check más abajo) — borrado físico
+// completo, a propósito: es el círculo de confianza más pequeño de la app.
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
