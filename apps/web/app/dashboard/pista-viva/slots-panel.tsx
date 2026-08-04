@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { PlaytomicResource } from '@/lib/playtomic'
 
-const SESSION_KEY = 'pv_slots'
+// localStorage, no sessionStorage: queremos que el resultado sobreviva a
+// cerrar la pestaña/el navegador, para no tener que volver a llamar a
+// Playtomic salvo que el admin pulse el botón a propósito.
+const STORAGE_KEY = 'pv_slots'
 
 type Level = { id: string; name: string }
 
@@ -15,9 +18,9 @@ function filterFutureSlots(resources: PlaytomicResource[]): PlaytomicResource[] 
     .filter((r) => r.slots.length > 0)
 }
 
-function loadFromSession(): PlaytomicResource[] {
+function loadFromStorage(): PlaytomicResource[] {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? filterFutureSlots(JSON.parse(raw)) : []
   } catch { return [] }
 }
@@ -32,7 +35,7 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
   const [sent, setSent] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    const cached = loadFromSession()
+    const cached = loadFromStorage()
     if (cached.length > 0) setResources(cached)
   }, [])
 
@@ -48,7 +51,7 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
       if (!slotsRes.ok) { setError(slotsData.error ?? 'Error al consultar Playtomic'); return }
       const res = filterFutureSlots(slotsData.resources ?? [])
       setResources(res)
-      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(res)) } catch { /* ignore */ }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(res)) } catch { /* ignore */ }
       if (res.length === 0) setError('No hay pistas libres en las próximas 24h en Playtomic')
 
       if (levelsRes.ok) {

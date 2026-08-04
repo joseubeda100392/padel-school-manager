@@ -25,9 +25,13 @@ export async function POST(req: NextRequest) {
 
   if (!clubs?.length) return NextResponse.json({ ok: true, scanned: 0, created: 0 })
 
+  // Ventana 24h-48h (no 0h-48h): un rango de 24h limpias, por debajo del
+  // límite de ~25h por llamada, en vez de pedir 48h de golpe y arriesgarse a
+  // un truncado silencioso de Playtomic.
   const now = new Date()
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
   const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
-  const startMin = now.toISOString().replace('Z', '').split('.')[0]
+  const startMin = in24h.toISOString().replace('Z', '').split('.')[0]
   const startMax = in48h.toISOString().replace('Z', '').split('.')[0]
 
   const client = getPlaytomicClient()
