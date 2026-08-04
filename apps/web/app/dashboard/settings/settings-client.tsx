@@ -120,7 +120,12 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [preview, setPreview] = useState<{ total: number; wouldImport: number; wouldSkip: number; noEmail: number; players: { name: string; email: string | null; phone: string | null; status: string }[] } | null>(null)
   const [previewError, setPreviewError] = useState('')
   const [diagRunning, setDiagRunning] = useState(false)
-  const [diagResult, setDiagResult] = useState<{ players?: any; playersError?: string; bookings?: any; bookingsError?: string } | null>(null)
+  const [diagResult, setDiagResult] = useState<{
+    players?: any; playersError?: string
+    bookingsTotal?: number; bookingTypeCounts?: Record<string, number>
+    pendingOpenMatches?: { booking_id: string; booking_start_date: string; resource_name: string | null; status: string; payment_status: string; participantes: { name: string; email: string }[] }[]
+    bookingsError?: string
+  } | null>(null)
   const [diagError, setDiagError] = useState('')
 
   const [holidays, setHolidays] = useState<string[]>([])
@@ -1170,13 +1175,32 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-sm font-semibold text-gray-800">Partidos abiertos (OPEN_MATCH, próximos 14 días)</h3>
+                  <h3 className="mb-2 text-sm font-semibold text-gray-800">Partidos pendientes de cerrar (próximos 14 días)</h3>
                   {diagResult.bookingsError && (
                     <p className="text-sm text-red-600">{diagResult.bookingsError}</p>
                   )}
-                  <pre className="max-h-96 overflow-auto rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">
-                    {JSON.stringify(diagResult.bookings, null, 2)}
-                  </pre>
+                  {diagResult.bookingsTotal !== undefined && (
+                    <p className="mb-2 text-xs text-gray-500">
+                      {diagResult.bookingsTotal} reservas totales en la ventana. Desglose: {Object.entries(diagResult.bookingTypeCounts ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                    </p>
+                  )}
+                  {diagResult.pendingOpenMatches && diagResult.pendingOpenMatches.length === 0 && (
+                    <p className="text-sm text-gray-400">Ninguno pendiente sin pista asignada ahora mismo.</p>
+                  )}
+                  {diagResult.pendingOpenMatches && diagResult.pendingOpenMatches.length > 0 && (
+                    <div className="space-y-2">
+                      {diagResult.pendingOpenMatches.map((m) => (
+                        <div key={m.booking_id} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
+                          <p className="font-medium text-amber-800">{m.booking_start_date} — {m.status} — {m.payment_status}</p>
+                          <p className="text-amber-700">
+                            {m.participantes.length > 0
+                              ? m.participantes.map((p) => `${p.name} (${p.email})`).join(', ')
+                              : 'Sin participantes apuntados aún'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

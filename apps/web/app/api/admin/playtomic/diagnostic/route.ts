@@ -43,7 +43,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Error de autenticación con la API de Playtomic: ' + e.message }, { status: 502 })
   }
 
-  const result: { players?: unknown; playersError?: string; bookings?: unknown; bookingsError?: string } = {}
+  const result: {
+    players?: unknown
+    playersError?: string
+    pendingOpenMatches?: unknown
+    bookingsTotal?: number
+    bookingTypeCounts?: Record<string, number>
+    bookingsError?: string
+  } = {}
 
   try {
     result.players = await ptClient.getVenuePlayersSample(club.playtomic_tenant_id, 10)
@@ -55,12 +62,26 @@ export async function POST(req: NextRequest) {
     const now = new Date()
     const in14Days = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
     const toBookingDate = (d: Date) => d.toISOString().slice(0, 19)
-    result.bookings = await ptClient.getVenueBookingsSample(
-      club.playtomic_tenant_id,
-      toBookingDate(now),
-      toBookingDate(in14Days),
-      { booking_type: 'OPEN_MATCH' },
-    )
+    const startBookingDate = toBookingDate(now)
+    const endBookingDate = toBookingDate(in14Days)
+
+    const allBookings = await ptClient.getVenueBookingsRaw(club.playtomic_tenant_id, startBookingDate, endBookingDate)
+    result.bookingsTotal = allBookings.length
+    result.bookingTypeCounts = allBookings.reduce((acc: Record<string, number>, b: any) => {
+      const key = `${b.booking_type}${b.is_canceled ? ' (cancelado)' : ''}`
+      acc[key] = (acc[key] ?? 0) + 1
+      return acc
+    }, {})
+    result.pendingOpenMatches = allBookings
+      .filter((b: any) => b.booking_type === 'OPEN_MATCH' && !b.is_canceled && b.status !== 'CANCELED' && !b.resource_id)
+      .map((b: any) => ({
+        booking_id: b.booking_id,
+        booking_start_date: b.booking_start_date,
+        resource_name: b.resource_name,
+        status: b.status,
+        payment_status: b.payment_status,
+        participantes: (b.participant_info?.participants ?? []).map((p: any) => ({ name: p.name, email: p.email })),
+      }))
   } catch (e: any) {
     result.bookingsError = e.message
   }

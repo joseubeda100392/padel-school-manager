@@ -442,31 +442,66 @@ export class PlaytomicOfficialClient {
     return res.json()
   }
 
-  // Partidos/reservas del venue — GET /api/v1/bookings (documentado en
-  // third-party.playtomic.io/endpoints/bookings/). tenant_id + rango de
-  // fechas son obligatorios. booking_type=OPEN_MATCH filtra a partidos
-  // abiertos; resource_id/resource_name indica si ya tienen pista asignada.
-  async getVenueBookingsSample(
+  // Partidos/reservas del venue — GET /api/v1/bookings. tenant_id + rango de
+  // fechas son obligatorios. resource_id/resource_name indica si ya tienen
+  // pista asignada.
+  //
+  // El parámetro booking_type=OPEN_MATCH documentado NO filtra de forma
+  // fiable en la práctica (comprobado con datos reales: devuelve también
+  // RECURRING_BOOKING canceladas) — probablemente porque la doc consultada
+  // vive en un dominio distinto (third-party.playtomic.io) al host real de
+  // la API (thirdparty.playtomic.io) y puede no ser oficial. Por eso aquí
+  // NO se manda el filtro: se pagina por `page` hasta agotar resultados
+  // (paginación por página, sin cursor, según las convenciones documentadas)
+  // y el filtrado real se hace en getVenuePendingOpenMatches().
+  async getVenueBookingsRaw(
     tenantId: string,
     startBookingDate: string,
     endBookingDate: string,
-    extraParams: Record<string, string> = {},
-  ): Promise<unknown> {
+    maxPages = 10,
+  ): Promise<any[]> {
     if (!this.token) throw new Error('Not authenticated')
-    const qs = new URLSearchParams({
-      tenant_id: tenantId,
-      start_booking_date: startBookingDate,
-      end_booking_date: endBookingDate,
-      size: '100',
-      ...extraParams,
-    })
-    const res = await fetchWithRetry(`${OFFICIAL_BASE}/bookings?${qs}`, {
-      headers: { Authorization: `Bearer ${this.token}` },
-    })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`getVenueBookingsSample failed: ${res.status} — ${text}`)
+    const size = 200
+    const all: any[] = []
+
+    for (let page = 0; page < maxPages; page++) {
+      const qs = new URLSearchParams({
+        tenant_id: tenantId,
+        start_booking_date: startBookingDate,
+        end_booking_date: endBookingDate,
+        size: String(size),
+        page: String(page),
+      })
+      const res = await fetchWithRetry(`${OFFICIAL_BASE}/bookings?${qs}`, {
+        headers: { Authorization: `Bearer ${this.token}` },
+      })
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(`getVenueBookingsRaw failed: ${res.status} — ${text}`)
+      }
+      const data = await res.json()
+      const items: any[] = Array.isArray(data) ? data : (data.data ?? [])
+      all.push(...items)
+      if (items.length < size) break
     }
-    return res.json()
+
+    return all
+  }
+
+  // Partidos abiertos sin pista asignada y no cancelados — filtrado en
+  // nuestro lado porque el filtro de servidor no es fiable (ver nota
+  // arriba). Esto es lo que de verdad indica "partido pendiente de cerrar".
+  async getVenuePendingOpenMatches(
+    tenantId: string,
+    startBookingDate: string,
+    endBookingDate: string,
+  ): Promise<any[]> {
+    const all = await this.getVenueBookingsRaw(tenantId, startBookingDate, endBookingDate)
+    return all.filter((b) =>
+      b.booking_type === 'OPEN_MATCH' &&
+      !b.is_canceled &&
+      b.status !== 'CANCELED' &&
+      !b.resource_id,
+    )
   }
 }
