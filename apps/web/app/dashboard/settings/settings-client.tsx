@@ -139,11 +139,10 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [tenantResults, setTenantResults] = useState<{ tenant_id: string; name: string; address: string }[]>([])
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: number; message: string } | null>(null)
-  const [csvExporting, setCsvExporting] = useState(false)
-  const [csvError, setCsvError] = useState('')
-  const [previewing, setPreviewing] = useState(false)
-  const [preview, setPreview] = useState<{ total: number; truncated?: boolean; wouldImport: number; wouldSkip: number; noEmail: number; players: PlaytomicPreviewPlayer[] } | null>(null)
-  const [previewError, setPreviewError] = useState('')
+  const [extracting, setExtracting] = useState(false)
+  const [extractedPlayers, setExtractedPlayers] = useState<PlaytomicPreviewPlayer[]>([])
+  const [extractDone, setExtractDone] = useState(false)
+  const [extractError, setExtractError] = useState('')
   const [diagRunning, setDiagRunning] = useState(false)
   const [diagResult, setDiagResult] = useState<{
     players?: any; playersError?: string
@@ -151,6 +150,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     pendingOpenMatches?: { booking_id: string; booking_start_date: string; resource_name: string | null; status: string; payment_status: string; faltan: number; participantes: { name: string; email: string }[] }[]
     allOpenMatches?: { booking_id: string; booking_start_date: string; resource_id: string | null; resource_name: string | null; status: string; is_canceled: boolean; payment_status: string; num_participantes: number; participantes: { name: string; email: string; tipo: string }[] }[]
     gelutestFound?: { booking_id: string; booking_type: string; booking_start_date: string; resource_id: string | null; resource_name: string | null; status: string; is_canceled: boolean; payment_status: string; participantes: { name: string; email: string }[] }[]
+    statusPendingTotal?: number; gelutestInStatusPending?: boolean
     bookingsError?: string
   } | null>(null)
   const [diagError, setDiagError] = useState('')
@@ -1058,24 +1058,33 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 </div>
               </div>
 
-              {previewError && (
-                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{previewError}</div>
+              {extractError && (
+                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{extractError}</div>
               )}
 
-              {csvError && (
-                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{csvError}</div>
+              {extracting && (
+                <p className="text-sm text-gray-500">Extrayendo... {extractedPlayers.length} jugadores traídos hasta ahora</p>
               )}
 
-              {preview && (
+              {extractedPlayers.length > 0 && (
                 <div className="rounded-lg border border-dashed border-gray-300 p-4">
-                  <p className="mb-3 text-sm font-medium text-gray-700">
-                    {preview.total} jugadores en Playtomic — {preview.wouldImport} se crearían, {preview.wouldSkip} ya existen, {preview.noEmail} sin email (no importables)
-                  </p>
-                  {preview.truncated && (
-                    <p className="mb-3 text-xs text-amber-600">
-                      ⚠️ Lista incompleta: hay más jugadores en Playtomic de los que se han podido traer en esta consulta (límite para evitar timeout). Esto es una muestra parcial, no el total real.
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-700">
+                      {extractedPlayers.length} jugadores {extractDone ? 'traídos en total' : 'traídos hasta ahora (extracción en curso)'} —{' '}
+                      {extractedPlayers.filter((p) => p.status === 'se_crearia').length} se crearían,{' '}
+                      {extractedPlayers.filter((p) => p.status === 'ya_existe').length} ya existen,{' '}
+                      {extractedPlayers.filter((p) => p.status === 'sin_email').length} sin email
                     </p>
-                  )}
+                    {extractDone && (
+                      <button
+                        type="button"
+                        onClick={() => downloadCsv('playtomic-jugadores.csv', extractedPlayers, PLAYTOMIC_PLAYER_COLUMNS)}
+                        className="rounded-lg border border-gray-200 px-4 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        📄 Descargar CSV ({extractedPlayers.length})
+                      </button>
+                    )}
+                  </div>
                   <div className="max-h-64 overflow-auto rounded-lg border border-gray-100">
                     <table className="w-full min-w-[1400px] text-xs">
                       <thead className="sticky top-0 bg-gray-50">
@@ -1086,7 +1095,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {preview.players.map((p, i) => (
+                        {extractedPlayers.map((p, i) => (
                           <tr key={i}>
                             {PLAYTOMIC_PLAYER_COLUMNS.map((c) => (
                               <td key={c.key} className="whitespace-nowrap px-3 py-1.5">
@@ -1120,40 +1129,38 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
               <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
-                  disabled={previewing}
+                  disabled={extracting}
                   onClick={async () => {
-                    setPreviewing(true)
-                    setPreview(null)
-                    setPreviewError('')
-                    const res = await fetch('/api/admin/playtomic/import-players?dry_run=1', { method: 'POST' })
-                    const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
-                    if (!res.ok) setPreviewError(data.error ?? 'Error')
-                    else setPreview(data)
-                    setPreviewing(false)
-                  }}
-                  className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  {previewing ? 'Consultando...' : '🔍 Vista previa (no crea nada)'}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={csvExporting}
-                  onClick={async () => {
-                    setCsvExporting(true)
-                    setCsvError('')
-                    const res = await fetch('/api/admin/playtomic/import-players?dry_run=1', { method: 'POST' })
-                    const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
-                    if (!res.ok) {
-                      setCsvError(data.error ?? 'Error')
-                    } else {
-                      downloadCsv('playtomic-jugadores.csv', data.players ?? [], PLAYTOMIC_PLAYER_COLUMNS)
+                    setExtracting(true)
+                    setExtractError('')
+                    setExtractDone(false)
+                    setExtractedPlayers([])
+                    let cursorId: string | null = null
+                    let hasMore = true
+                    const acc: PlaytomicPreviewPlayer[] = []
+                    const MAX_BATCHES = 300 // salvaguarda, cubre de sobra los ~22.000 reales
+                    for (let i = 0; i < MAX_BATCHES && hasMore; i++) {
+                      const res: Response = await fetch('/api/admin/playtomic/players-page', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cursorId }),
+                      })
+                      const data: any = await res.json().catch(() => ({ error: 'Error de conexión' }))
+                      if (!res.ok) {
+                        setExtractError(data.error ?? 'Error')
+                        break
+                      }
+                      acc.push(...(data.players ?? []))
+                      setExtractedPlayers([...acc])
+                      cursorId = data.nextCursorId ?? null
+                      hasMore = !!data.hasMore
                     }
-                    setCsvExporting(false)
+                    setExtractDone(true)
+                    setExtracting(false)
                   }}
                   className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                 >
-                  {csvExporting ? 'Generando CSV...' : '📄 Descargar CSV'}
+                  {extracting ? 'Extrayendo...' : '📥 Extraer y ver jugadores de Playtomic'}
                 </button>
 
                 <button
@@ -1261,6 +1268,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                           {b.booking_start_date} — tipo: {b.booking_type} — pista: {b.resource_name || 'ninguna'} — {b.payment_status}
                         </p>
                       ))}
+                      {diagResult.statusPendingTotal !== undefined && (
+                        <p className="mt-2 border-t border-blue-200 pt-2 text-blue-800">
+                          Con <code>status=PENDING</code> explícito al servidor: {diagResult.statusPendingTotal} reservas — Gelu {diagResult.gelutestInStatusPending ? 'SÍ aparece aquí' : 'tampoco aparece'}
+                        </p>
+                      )}
                     </div>
                   )}
                   {diagResult.pendingOpenMatches && diagResult.pendingOpenMatches.length === 0 && (

@@ -391,67 +391,92 @@ export class PlaytomicOfficialClient {
     this.token = data.token
   }
 
-  // maxPages acota el número de peticiones secuenciales (la paginación por
-  // cursor no se puede paralelizar). Traer los ~22.000 jugadores del venue
-  // real (224 páginas) supera el tiempo de vida de la petición HTTP y el
-  // proxy de la plataforma corta la conexión antes de responder — probado
-  // en producción (fallaba con "Error de conexión"). Con el límite por
-  // defecto se cubre lo más reciente/relevante sin arriesgar timeout.
-  async getVenuePlayers(tenantId: string, maxPages = 30): Promise<{ players: PlaytomicPlayer[]; truncated: boolean }> {
+  private mapRawPlayer(p: any): PlaytomicPlayer {
+    const sports: any[] = p.sports ?? []
+    const padelSport = sports.find((s: any) => s.sport_id === 'PADEL')
+    const otherSports = sports
+      .filter((s: any) => s.sport_id !== 'PADEL')
+      .map((s: any) => ({ sportId: s.sport_id, level: s.level_value }))
+    const wallets: any[] = p.wallets ?? []
+    const walletBalance = wallets.length ? wallets.map((w: any) => `${w.name ?? ''}: ${w.balance ?? 0}`).join(' / ') : undefined
+    const benefits: any[] = (p.benefits ?? []).map((b: any) => ({ name: b.name, type: b.type, expiresAt: b.expires_at }))
+
+    return {
+      user_id: p.player_id ?? p.user_id ?? '',
+      name: p.name ?? '',
+      email: p.email ?? '',
+      phone: p.phone ?? undefined,
+      gender: p.gender ?? undefined,
+      birthDate: p.birth_date ?? undefined,
+      lastActivity: p.last_registration_date ?? undefined,
+      acceptsMarketing: p.accepts_commercial_communications ?? undefined,
+      otherSports: otherSports.length ? otherSports : undefined,
+      benefits: benefits.length ? benefits : undefined,
+      walletBalance,
+      level: padelSport?.level_value ?? undefined,
+    }
+  }
+
+  // Trae un lote acotado de páginas a partir de un cursor dado, sin agotar
+  // toda la paginación — pensado para que el CLIENTE dirija la extracción
+  // en varias llamadas cortas (cada una dentro del timeout de la
+  // plataforma) en vez de que el servidor intente traer los ~22.000
+  // jugadores del venue en una sola petición (224 páginas secuenciales,
+  // probado en producción que supera el timeout y falla con "Error de
+  // conexión").
+  async getVenuePlayersPage(
+    tenantId: string,
+    cursorId: string | null = null,
+    maxPages = 3,
+  ): Promise<{ players: PlaytomicPlayer[]; nextCursorId: string | null; hasMore: boolean }> {
     if (!this.token) throw new Error('Not authenticated')
     const players: PlaytomicPlayer[] = []
-    let cursorId: string | null = null
-    let truncated = false
+    let cursor = cursorId
+    let hasMore = true
 
-    for (let pageIdx = 0; pageIdx < maxPages; pageIdx++) {
+    for (let i = 0; i < maxPages && hasMore; i++) {
       const params = new URLSearchParams({ limit: '100', include: 'SPORTS,BENEFITS,WALLETS' })
-      if (cursorId) params.set('cursor_id', cursorId)
+      if (cursor) params.set('cursor_id', cursor)
 
       const res = await fetchWithRetry(`${OFFICIAL_BASE}/venues/${tenantId}/players?${params}`, {
         headers: { Authorization: `Bearer ${this.token}` },
       })
       if (!res.ok) {
         const text = await res.text().catch(() => '')
-        throw new Error(`getVenuePlayers failed: ${res.status} — ${text}`)
+        throw new Error(`getVenuePlayersPage failed: ${res.status} — ${text}`)
       }
       const data = await res.json()
-      // Response: { has_more, next_cursor_id, data: [...] }
       const pageItems: any[] = data.data ?? (Array.isArray(data) ? data : [])
-      if (!pageItems.length) break
+      for (const p of pageItems) players.push(this.mapRawPlayer(p))
 
-      for (const p of pageItems) {
-        const sports: any[] = p.sports ?? []
-        const padelSport = sports.find((s: any) => s.sport_id === 'PADEL')
-        const otherSports = sports
-          .filter((s: any) => s.sport_id !== 'PADEL')
-          .map((s: any) => ({ sportId: s.sport_id, level: s.level_value }))
-        const wallets: any[] = p.wallets ?? []
-        const walletBalance = wallets.length ? wallets.map((w: any) => `${w.name ?? ''}: ${w.balance ?? 0}`).join(' / ') : undefined
-        const benefits: any[] = (p.benefits ?? []).map((b: any) => ({ name: b.name, type: b.type, expiresAt: b.expires_at }))
-
-        players.push({
-          user_id: p.player_id ?? p.user_id ?? '',
-          name: p.name ?? '',
-          email: p.email ?? '',
-          phone: p.phone ?? undefined,
-          gender: p.gender ?? undefined,
-          birthDate: p.birth_date ?? undefined,
-          lastActivity: p.last_registration_date ?? undefined,
-          acceptsMarketing: p.accepts_commercial_communications ?? undefined,
-          otherSports: otherSports.length ? otherSports : undefined,
-          benefits: benefits.length ? benefits : undefined,
-          walletBalance,
-          level: padelSport?.level_value ?? undefined,
-        })
-      }
-
-      if (!data.has_more) break
-      cursorId = data.next_cursor_id ?? null
-      if (!cursorId) break
-      if (pageIdx === maxPages - 1) truncated = true
+      hasMore = !!data.has_more
+      cursor = data.next_cursor_id ?? null
+      if (!cursor) hasMore = false
     }
 
-    return { players, truncated }
+    return { players, nextCursorId: cursor, hasMore }
+  }
+
+  // maxPages acota el número de peticiones secuenciales de una sola
+  // llamada de servidor (ver getVenuePlayersPage). Se mantiene para la
+  // importación real, que sigue acotada por seguridad — la extracción
+  // completa sin límite la dirige el cliente vía getVenuePlayersPage.
+  async getVenuePlayers(tenantId: string, maxPages = 30): Promise<{ players: PlaytomicPlayer[]; truncated: boolean }> {
+    const all: PlaytomicPlayer[] = []
+    let cursor: string | null = null
+    let pagesUsed = 0
+    let hasMore = true
+
+    while (hasMore && pagesUsed < maxPages) {
+      const batchSize = Math.min(5, maxPages - pagesUsed)
+      const result = await this.getVenuePlayersPage(tenantId, cursor, batchSize)
+      all.push(...result.players)
+      cursor = result.nextCursorId
+      hasMore = result.hasMore
+      pagesUsed += batchSize
+    }
+
+    return { players: all, truncated: hasMore }
   }
 
   // Diagnóstico: trae una muestra sin paginar y sin mapear, tal cual la
@@ -487,6 +512,7 @@ export class PlaytomicOfficialClient {
     startBookingDate: string,
     endBookingDate: string,
     maxPages = 10,
+    extraParams: Record<string, string> = {},
   ): Promise<any[]> {
     if (!this.token) throw new Error('Not authenticated')
     const size = 200
@@ -499,6 +525,7 @@ export class PlaytomicOfficialClient {
         end_booking_date: endBookingDate,
         size: String(size),
         page: String(page),
+        ...extraParams,
       })
       const res = await fetchWithRetry(`${OFFICIAL_BASE}/bookings?${qs}`, {
         headers: { Authorization: `Bearer ${this.token}` },
