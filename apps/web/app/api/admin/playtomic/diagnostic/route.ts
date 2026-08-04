@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
     players?: unknown
     playersError?: string
     pendingOpenMatches?: unknown
+    allOpenMatches?: unknown
     bookingsTotal?: number
     bookingTypeCounts?: Record<string, number>
     bookingsError?: string
@@ -81,6 +82,22 @@ export async function POST(req: NextRequest) {
         status: b.status,
         payment_status: b.payment_status,
         participantes: (b.participant_info?.participants ?? []).map((p: any) => ({ name: p.name, email: p.email })),
+      }))
+    // Todos los OPEN_MATCH sin filtrar por resource_id/cancelación — para
+    // comparar campo a campo con lo que se ve en Manager y averiguar qué
+    // campo real distingue "pendiente" de "cerrado" (resource_id no basta).
+    result.allOpenMatches = allBookings
+      .filter((b: any) => b.booking_type === 'OPEN_MATCH')
+      .map((b: any) => ({
+        booking_id: b.booking_id,
+        booking_start_date: b.booking_start_date,
+        resource_id: b.resource_id,
+        resource_name: b.resource_name,
+        status: b.status,
+        is_canceled: b.is_canceled,
+        payment_status: b.payment_status,
+        num_participantes: (b.participant_info?.participants ?? []).length,
+        participantes: (b.participant_info?.participants ?? []).map((p: any) => ({ name: p.name, email: p.email, tipo: p.participant_type })),
       }))
   } catch (e: any) {
     result.bookingsError = e.message

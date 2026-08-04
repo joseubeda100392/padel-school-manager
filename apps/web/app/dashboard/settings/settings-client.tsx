@@ -149,6 +149,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     players?: any; playersError?: string
     bookingsTotal?: number; bookingTypeCounts?: Record<string, number>
     pendingOpenMatches?: { booking_id: string; booking_start_date: string; resource_name: string | null; status: string; payment_status: string; participantes: { name: string; email: string }[] }[]
+    allOpenMatches?: { booking_id: string; booking_start_date: string; resource_id: string | null; resource_name: string | null; status: string; is_canceled: boolean; payment_status: string; num_participantes: number; participantes: { name: string; email: string; tipo: string }[] }[]
     bookingsError?: string
   } | null>(null)
   const [diagError, setDiagError] = useState('')
@@ -1256,6 +1257,42 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                           </p>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {diagResult.allOpenMatches && diagResult.allOpenMatches.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="mb-2 text-xs font-semibold text-gray-600">
+                        Los {diagResult.allOpenMatches.length} OPEN_MATCH sin filtrar (para comparar campos y saber cuál marca "pendiente" de verdad)
+                      </h4>
+                      <div className="max-h-72 overflow-auto rounded-lg border border-gray-100">
+                        <table className="w-full min-w-[900px] text-xs">
+                          <thead className="sticky top-0 bg-gray-50">
+                            <tr>
+                              <th className="whitespace-nowrap px-3 py-2 text-left">Inicio</th>
+                              <th className="whitespace-nowrap px-3 py-2 text-left">resource_id</th>
+                              <th className="whitespace-nowrap px-3 py-2 text-left">resource_name</th>
+                              <th className="whitespace-nowrap px-3 py-2 text-left">status</th>
+                              <th className="whitespace-nowrap px-3 py-2 text-left">is_canceled</th>
+                              <th className="whitespace-nowrap px-3 py-2 text-left">payment_status</th>
+                              <th className="whitespace-nowrap px-3 py-2 text-left">nº participantes</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {diagResult.allOpenMatches.map((m) => (
+                              <tr key={m.booking_id}>
+                                <td className="whitespace-nowrap px-3 py-1.5">{m.booking_start_date}</td>
+                                <td className="whitespace-nowrap px-3 py-1.5">{m.resource_id || '—'}</td>
+                                <td className="whitespace-nowrap px-3 py-1.5">{m.resource_name || '—'}</td>
+                                <td className="whitespace-nowrap px-3 py-1.5">{m.status}</td>
+                                <td className="whitespace-nowrap px-3 py-1.5">{String(m.is_canceled)}</td>
+                                <td className="whitespace-nowrap px-3 py-1.5">{m.payment_status}</td>
+                                <td className="whitespace-nowrap px-3 py-1.5">{m.num_participantes}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
