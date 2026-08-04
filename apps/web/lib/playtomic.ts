@@ -391,12 +391,19 @@ export class PlaytomicOfficialClient {
     this.token = data.token
   }
 
-  async getVenuePlayers(tenantId: string): Promise<PlaytomicPlayer[]> {
+  // maxPages acota el número de peticiones secuenciales (la paginación por
+  // cursor no se puede paralelizar). Traer los ~22.000 jugadores del venue
+  // real (224 páginas) supera el tiempo de vida de la petición HTTP y el
+  // proxy de la plataforma corta la conexión antes de responder — probado
+  // en producción (fallaba con "Error de conexión"). Con el límite por
+  // defecto se cubre lo más reciente/relevante sin arriesgar timeout.
+  async getVenuePlayers(tenantId: string, maxPages = 30): Promise<{ players: PlaytomicPlayer[]; truncated: boolean }> {
     if (!this.token) throw new Error('Not authenticated')
     const players: PlaytomicPlayer[] = []
     let cursorId: string | null = null
+    let truncated = false
 
-    while (true) {
+    for (let pageIdx = 0; pageIdx < maxPages; pageIdx++) {
       const params = new URLSearchParams({ limit: '100', include: 'SPORTS,BENEFITS,WALLETS' })
       if (cursorId) params.set('cursor_id', cursorId)
 
@@ -409,10 +416,10 @@ export class PlaytomicOfficialClient {
       }
       const data = await res.json()
       // Response: { has_more, next_cursor_id, data: [...] }
-      const page: any[] = data.data ?? (Array.isArray(data) ? data : [])
-      if (!page.length) break
+      const pageItems: any[] = data.data ?? (Array.isArray(data) ? data : [])
+      if (!pageItems.length) break
 
-      for (const p of page) {
+      for (const p of pageItems) {
         const sports: any[] = p.sports ?? []
         const padelSport = sports.find((s: any) => s.sport_id === 'PADEL')
         const otherSports = sports
@@ -441,9 +448,10 @@ export class PlaytomicOfficialClient {
       if (!data.has_more) break
       cursorId = data.next_cursor_id ?? null
       if (!cursorId) break
+      if (pageIdx === maxPages - 1) truncated = true
     }
 
-    return players
+    return { players, truncated }
   }
 
   // Diagnóstico: trae una muestra sin paginar y sin mapear, tal cual la

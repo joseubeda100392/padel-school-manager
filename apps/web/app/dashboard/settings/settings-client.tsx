@@ -142,7 +142,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [csvExporting, setCsvExporting] = useState(false)
   const [csvError, setCsvError] = useState('')
   const [previewing, setPreviewing] = useState(false)
-  const [preview, setPreview] = useState<{ total: number; wouldImport: number; wouldSkip: number; noEmail: number; players: PlaytomicPreviewPlayer[] } | null>(null)
+  const [preview, setPreview] = useState<{ total: number; truncated?: boolean; wouldImport: number; wouldSkip: number; noEmail: number; players: PlaytomicPreviewPlayer[] } | null>(null)
   const [previewError, setPreviewError] = useState('')
   const [diagRunning, setDiagRunning] = useState(false)
   const [diagResult, setDiagResult] = useState<{
@@ -1071,6 +1071,11 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                   <p className="mb-3 text-sm font-medium text-gray-700">
                     {preview.total} jugadores en Playtomic — {preview.wouldImport} se crearían, {preview.wouldSkip} ya existen, {preview.noEmail} sin email (no importables)
                   </p>
+                  {preview.truncated && (
+                    <p className="mb-3 text-xs text-amber-600">
+                      ⚠️ Lista incompleta: hay más jugadores en Playtomic de los que se han podido traer en esta consulta (límite para evitar timeout). Esto es una muestra parcial, no el total real.
+                    </p>
+                  )}
                   <div className="max-h-64 overflow-auto rounded-lg border border-gray-100">
                     <table className="w-full min-w-[1400px] text-xs">
                       <thead className="sticky top-0 bg-gray-50">

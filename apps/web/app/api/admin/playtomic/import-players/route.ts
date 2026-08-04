@@ -49,10 +49,14 @@ async function handlePost(req: NextRequest) {
     return NextResponse.json({ error: 'Error de autenticación con la API de Playtomic' }, { status: 502 })
   }
 
-  // Traer todos los jugadores del venue
+  // Traer jugadores del venue (acotado a 30 páginas / ~3000 para no
+  // arriesgar timeout — ver nota en getVenuePlayers)
   let players
+  let truncated = false
   try {
-    players = await ptClient.getVenuePlayers(club.playtomic_tenant_id)
+    const result = await ptClient.getVenuePlayers(club.playtomic_tenant_id)
+    players = result.players
+    truncated = result.truncated
   } catch (e: any) {
     return NextResponse.json({ error: 'Error al obtener los jugadores de Playtomic' }, { status: 502 })
   }
@@ -77,6 +81,7 @@ async function handlePost(req: NextRequest) {
     return NextResponse.json({
       dryRun: true,
       total: players.length,
+      truncated,
       wouldImport: wouldImport.length,
       wouldSkip: wouldSkip.length,
       noEmail: noEmail.length,
@@ -139,6 +144,7 @@ async function handlePost(req: NextRequest) {
     skipped,
     errors,
     total: players.length,
-    message: `${imported} importados, ${skipped} ya existían, ${errors} errores`,
+    truncated,
+    message: `${imported} importados, ${skipped} ya existían, ${errors} errores` + (truncated ? ' (lista incompleta, hay más jugadores de los traídos)' : ''),
   })
 }
