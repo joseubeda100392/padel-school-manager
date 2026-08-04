@@ -74,13 +74,20 @@ export async function POST(req: NextRequest) {
       return acc
     }, {})
     result.pendingOpenMatches = allBookings
-      .filter((b: any) => b.booking_type === 'OPEN_MATCH' && !b.is_canceled && b.status !== 'CANCELED' && !b.resource_id)
+      .filter((b: any) =>
+        b.booking_type === 'OPEN_MATCH' &&
+        !b.is_canceled &&
+        b.payment_status !== 'PAID' &&
+        b.payment_status !== 'VOID' &&
+        b.payment_status !== 'REFUNDED',
+      )
       .map((b: any) => ({
         booking_id: b.booking_id,
         booking_start_date: b.booking_start_date,
         resource_name: b.resource_name,
         status: b.status,
         payment_status: b.payment_status,
+        faltan: 4 - (b.participant_info?.participants ?? []).length,
         participantes: (b.participant_info?.participants ?? []).map((p: any) => ({ name: p.name, email: p.email })),
       }))
     // Todos los OPEN_MATCH sin filtrar por resource_id/cancelación — para

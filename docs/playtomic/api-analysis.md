@@ -59,6 +59,12 @@
 
 Playtomic ya decide y ejecuta el cierre/cancelación por sí solo, con umbrales de tiempo conocidos. No hay ninguna acción de "cerrar partido" que se pueda ni deba automatizar vía API (que además es de solo lectura). Lo que Playtomic no hace es buscar activamente más jugadores — simplemente espera. Ahí está el hueco real de automatización para PSM (ver idea A).
 
+### 2.2 Validado con datos reales del club (Vendito Padel) — dos correcciones importantes
+
+**a) El campo correcto para detectar "pendiente de cerrar" es `payment_status`, no `resource_id`.** Se probó primero con `resource_id` vacío (hipótesis inicial visual, viendo "Reservar pista" en Manager) y no funcionó: los `OPEN_MATCH` que devuelve `GET /bookings` ya tienen `resource_id` asignado incluso sin estar llenos, porque Playtomic reserva la pista en cuanto hay 2 jugadores (ver 2.1). El campo fiable es `payment_status !== 'PAID'` (queda en `PARTIAL_PAID` mientras no se han apuntado y pagado los 4) — más robusto que contar participantes porque no asume que un partido siempre son 4 jugadores.
+
+**b) Límite real descubierto — la API no ve los partidos en la fase más temprana.** Comparando la respuesta real de `GET /bookings` con la vista de Manager del club, los partidos abiertos con 0-1 jugador y "Reservar pista" (sin pista aún) **no aparecen en absoluto** en la respuesta de la API — solo se ven los que ya tienen 2+ jugadores y pista reservada. Esto encaja con el comportamiento de 2.1 (la pista no se reserva hasta 2 jugadores): probablemente esos partidos ni siquiera existen como objeto `booking` en el sistema de Playtomic todavía. **Consecuencia:** el motor de reclutamiento (idea A) puede detectar partidos con 2-3 jugadores que necesitan 1-2 más, pero es ciego a los partidos recién creados con 0-1 jugador — que son, irónicamente, los que más necesitan ayuda. No hay forma conocida de solucionar esto con la API de solo lectura; sería necesario evaluar si la API consumer (la que causó el bloqueo) los expone, con el riesgo que eso implica.
+
 **Fuentes:**
 - [Brief introduction to Playtomic Manager](https://helpmanager.playtomic.com/hc/en-gb/articles/20535516949009-Brief-introduction-to-Playtomic-Manager)
 - [Revenues reports – Playtomic Manager](https://helpmanager.playtomic.com/hc/en-gb/articles/20534995597841-Revenues-reports)

@@ -508,9 +508,21 @@ export class PlaytomicOfficialClient {
     return all
   }
 
-  // Partidos abiertos sin pista asignada y no cancelados — filtrado en
-  // nuestro lado porque el filtro de servidor no es fiable (ver nota
-  // arriba). Esto es lo que de verdad indica "partido pendiente de cerrar".
+  // Partidos abiertos que aún necesitan jugadores — filtrado en nuestro
+  // lado porque el filtro de servidor no es fiable (ver nota arriba).
+  //
+  // Comprobado con datos reales: `resource_id` NO sirve para detectar
+  // "pendiente" — Playtomic reserva la pista desde que hay 2 jugadores
+  // apuntados, así que un partido con pista asignada puede seguir sin
+  // llenarse. El campo `status` tampoco (PENDING solo indica que aún no ha
+  // empezado la hora, da igual si está lleno o no).
+  //
+  // La señal fiable es `payment_status`: en pago dividido cada jugador paga
+  // su parte al apuntarse, así que mientras no estén todos, el pago total
+  // no puede estar completo (PARTIAL_PAID). Se usa como criterio principal
+  // porque no depende de asumir que un partido siempre son 4 jugadores.
+  // El número de participantes se calcula igualmente solo como contexto
+  // informativo (cuántos faltan), no como filtro.
   async getVenuePendingOpenMatches(
     tenantId: string,
     startBookingDate: string,
@@ -520,8 +532,9 @@ export class PlaytomicOfficialClient {
     return all.filter((b) =>
       b.booking_type === 'OPEN_MATCH' &&
       !b.is_canceled &&
-      b.status !== 'CANCELED' &&
-      !b.resource_id,
+      b.payment_status !== 'PAID' &&
+      b.payment_status !== 'VOID' &&
+      b.payment_status !== 'REFUNDED',
     )
   }
 }

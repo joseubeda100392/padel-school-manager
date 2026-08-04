@@ -148,7 +148,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [diagResult, setDiagResult] = useState<{
     players?: any; playersError?: string
     bookingsTotal?: number; bookingTypeCounts?: Record<string, number>
-    pendingOpenMatches?: { booking_id: string; booking_start_date: string; resource_name: string | null; status: string; payment_status: string; participantes: { name: string; email: string }[] }[]
+    pendingOpenMatches?: { booking_id: string; booking_start_date: string; resource_name: string | null; status: string; payment_status: string; faltan: number; participantes: { name: string; email: string }[] }[]
     allOpenMatches?: { booking_id: string; booking_start_date: string; resource_id: string | null; resource_name: string | null; status: string; is_canceled: boolean; payment_status: string; num_participantes: number; participantes: { name: string; email: string; tipo: string }[] }[]
     bookingsError?: string
   } | null>(null)
@@ -1234,6 +1234,9 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
 
                 <div>
                   <h3 className="mb-2 text-sm font-semibold text-gray-800">Partidos pendientes de cerrar (próximos 14 días)</h3>
+                  <p className="mb-2 text-[11px] text-amber-600">
+                    ⚠️ Límite conocido: solo detecta partidos que ya tienen pista reservada (2+ jugadores). Los que aún están en "Reservar pista" con 0-1 jugador en Manager no aparecen aquí — Playtomic no los expone como reserva hasta que llegan a 2 jugadores.
+                  </p>
                   {diagResult.bookingsError && (
                     <p className="text-sm text-red-600">{diagResult.bookingsError}</p>
                   )}
@@ -1243,13 +1246,13 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     </p>
                   )}
                   {diagResult.pendingOpenMatches && diagResult.pendingOpenMatches.length === 0 && (
-                    <p className="text-sm text-gray-400">Ninguno pendiente sin pista asignada ahora mismo.</p>
+                    <p className="text-sm text-gray-400">Ninguno con pista ya reservada pero sin llenar ahora mismo.</p>
                   )}
                   {diagResult.pendingOpenMatches && diagResult.pendingOpenMatches.length > 0 && (
                     <div className="space-y-2">
                       {diagResult.pendingOpenMatches.map((m) => (
                         <div key={m.booking_id} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
-                          <p className="font-medium text-amber-800">{m.booking_start_date} — {m.status} — {m.payment_status}</p>
+                          <p className="font-medium text-amber-800">{m.booking_start_date} — faltan {m.faltan} jugador{m.faltan === 1 ? '' : 'es'} — {m.payment_status}</p>
                           <p className="text-amber-700">
                             {m.participantes.length > 0
                               ? m.participantes.map((p) => `${p.name} (${p.email})`).join(', ')
