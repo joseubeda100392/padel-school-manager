@@ -5,6 +5,18 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 import { PlaytomicOfficialClient } from '@/lib/playtomic'
 
+// Playtomic devuelve booking_start_date sin sufijo de zona horaria, pero el
+// valor es UTC (comprobado con datos reales: 18:00 de la API = 20:00 en
+// Manager, la hora local del club en verano). Se formatea explícitamente a
+// hora de Madrid para no confundir al compararlo con lo que ve el club.
+function formatMadrid(isoNoTz: string): string {
+  const utcDate = new Date(isoNoTz.endsWith('Z') ? isoNoTz : isoNoTz + 'Z')
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Europe/Madrid',
+  }).format(utcDate)
+}
+
 // Endpoint de solo lectura y solo diagnóstico: nunca escribe en la base de
 // datos. Sirve para inspeccionar qué devuelve de verdad la API oficial de
 // Playtomic (jugadores y reservas/partidos) antes de construir lógica de
@@ -83,7 +95,7 @@ export async function POST(req: NextRequest) {
       )
       .map((b: any) => ({
         booking_id: b.booking_id,
-        booking_start_date: b.booking_start_date,
+        booking_start_date: formatMadrid(b.booking_start_date),
         resource_name: b.resource_name,
         status: b.status,
         payment_status: b.payment_status,
@@ -97,7 +109,7 @@ export async function POST(req: NextRequest) {
       .filter((b: any) => b.booking_type === 'OPEN_MATCH')
       .map((b: any) => ({
         booking_id: b.booking_id,
-        booking_start_date: b.booking_start_date,
+        booking_start_date: formatMadrid(b.booking_start_date),
         resource_id: b.resource_id,
         resource_name: b.resource_name,
         status: b.status,
