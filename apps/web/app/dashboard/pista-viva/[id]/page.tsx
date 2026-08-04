@@ -22,6 +22,9 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
   const [selectedLevel, setSelectedLevel] = useState('')
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState<{ ok: boolean; waSent?: number; pushSent?: number; error?: string } | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+  const [preview, setPreview] = useState<any>(null)
+  const [previewError, setPreviewError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -78,6 +81,22 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
       setSendResult({ ok: false, error: 'Error de conexión' })
     } finally {
       setSending(false)
+    }
+  }
+
+  async function handlePreview() {
+    setPreviewing(true)
+    setPreview(null)
+    setPreviewError('')
+    try {
+      const res = await fetch(`/api/admin/pista-viva/campaigns/${params.id}/send?dry_run=1`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) { setPreviewError(data.error ?? 'Error al hacer la prueba'); return }
+      setPreview(data.preview ?? data)
+    } catch {
+      setPreviewError('Error de conexión')
+    } finally {
+      setPreviewing(false)
     }
   }
 
@@ -203,6 +222,22 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
               ¡Enviado! WhatsApp: {sendResult.waSent} · Push: {sendResult.pushSent}
             </div>
           )}
+
+          <div className="rounded-lg border border-dashed border-gray-200 p-3">
+            <button
+              onClick={handlePreview}
+              disabled={previewing}
+              className="w-full rounded-lg border border-gray-200 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+            >
+              {previewing ? 'Consultando Playtomic...' : '🔍 Vista previa (no crea partido ni cobra nada)'}
+            </button>
+            {previewError && <p className="mt-2 text-xs text-red-600">{previewError}</p>}
+            {preview && (
+              <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-gray-900 p-3 text-[11px] leading-snug text-gray-100">
+                {JSON.stringify(preview, null, 2)}
+              </pre>
+            )}
+          </div>
 
           <button
             onClick={handleSend}
