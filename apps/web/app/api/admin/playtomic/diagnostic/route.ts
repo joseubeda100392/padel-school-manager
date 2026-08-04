@@ -73,9 +73,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const now = new Date()
+    // Arranca 24h atrás en vez de "ahora mismo": si la consulta se ejecuta
+    // después de la hora de inicio de un partido de hoy, un start_booking_date
+    // = ahora lo excluiría por quedar "en el pasado" respecto al filtro,
+    // aunque el partido siga pendiente de cerrarse.
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     const in14Days = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
     const toBookingDate = (d: Date) => d.toISOString().slice(0, 19)
-    const startBookingDate = toBookingDate(now)
+    const startBookingDate = toBookingDate(yesterday)
     const endBookingDate = toBookingDate(in14Days)
 
     const allBookings = await ptClient.getVenueBookingsRaw(club.playtomic_tenant_id, startBookingDate, endBookingDate)
