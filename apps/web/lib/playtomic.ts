@@ -158,42 +158,42 @@ export class PlaytomicClient {
       'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
     }
 
-    // Intento 1: endpoint v2 directo para SPLIT (sin payment_intent flow)
-    const v2Body = {
-      user_id: this.userId,
-      tenant_id: opts.tenantId,
-      resource_id: opts.resourceId,
-      start: opts.startTime,
-      duration: opts.durationMinutes,
-      number_of_players: numPlayers,
-      supports_split_payment: true,
-      match_registrations: [{ user_id: this.userId, pay_now: false }],
-    }
-    const v2Res = await fetchWithRetry(`${CONSUMER_BASE}/v2/matches/cart_items/customer_matches`, {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify(v2Body),
-    })
-    const v2Body2 = await v2Res.text()
-    console.error(`[pista-viva] v2 direct → ${v2Res.status}: ${v2Body2.slice(0, 300)}`)
+    // Intento 1: endpoint v2 directo para SPLIT (sin payment_intent flow).
+    // OJO: este POST crea el partido de verdad si tiene éxito — no hay forma
+    // conocida de "probarlo" sin ejecutarlo. Por eso en dryRun nos lo
+    // saltamos por completo y vamos directos a la vía de payment_intent, que
+    // sí tiene un punto de parada seguro antes de confirmar/cobrar (ver Step 3).
+    if (!opts.dryRun) {
+      const v2Body = {
+        user_id: this.userId,
+        tenant_id: opts.tenantId,
+        resource_id: opts.resourceId,
+        start: opts.startTime,
+        duration: opts.durationMinutes,
+        number_of_players: numPlayers,
+        supports_split_payment: true,
+        match_registrations: [{ user_id: this.userId, pay_now: false }],
+      }
+      const v2Res = await fetchWithRetry(`${CONSUMER_BASE}/v2/matches/cart_items/customer_matches`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify(v2Body),
+      })
+      const v2Body2 = await v2Res.text()
+      console.error(`[pista-viva] v2 direct → ${v2Res.status}: ${v2Body2.slice(0, 300)}`)
 
-    if (opts.dryRun) {
-      let parsed: any = null
-      try { parsed = JSON.parse(v2Body2) } catch {}
-      return { matchId: 'dry-run', matchUrl: 'dry-run', dryRun: true, preview: { v2_status: v2Res.status, v2_body: parsed ?? v2Body2.slice(0, 500) } }
-    }
-
-    if (v2Res.ok) {
-      let v2Data: any = {}
-      try { v2Data = JSON.parse(v2Body2) } catch {}
-      const matchId: string = v2Data.match_id ?? v2Data.id ?? ''
-      if (matchId) {
-        await this.publishMatch(matchId)
-        return { matchId, matchUrl: `https://app.playtomic.com/matches/${matchId}` }
+      if (v2Res.ok) {
+        let v2Data: any = {}
+        try { v2Data = JSON.parse(v2Body2) } catch {}
+        const matchId: string = v2Data.match_id ?? v2Data.id ?? ''
+        if (matchId) {
+          await this.publishMatch(matchId)
+          return { matchId, matchUrl: `https://app.playtomic.com/matches/${matchId}` }
+        }
       }
     }
 
-    // Fallback: payment_intent flow con MERCHANT_WALLET (SINGLE_PAYER)
+    // Fallback (o único intento en dryRun): payment_intent flow con MERCHANT_WALLET (SINGLE_PAYER)
     const piRes = await fetchWithRetry(`${CONSUMER_BASE}/v1/payment_intents`, {
       method: 'POST',
       headers: authHeaders,
