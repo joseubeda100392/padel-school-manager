@@ -519,18 +519,22 @@ export class PlaytomicOfficialClient {
   // Partidos abiertos que aún necesitan jugadores — filtrado en nuestro
   // lado porque el filtro de servidor no es fiable (ver nota arriba).
   //
-  // Comprobado con datos reales: `resource_id` NO sirve para detectar
-  // "pendiente" — Playtomic reserva la pista desde que hay 2 jugadores
-  // apuntados, así que un partido con pista asignada puede seguir sin
-  // llenarse. El campo `status` tampoco (PENDING solo indica que aún no ha
-  // empezado la hora, da igual si está lleno o no).
+  // Comprobado con datos reales:
+  // - `resource_id` NO sirve — Playtomic reserva la pista desde que hay 2
+  //   jugadores, así que un partido con pista asignada puede seguir sin
+  //   llenarse.
+  // - `status` tampoco — PENDING solo indica que aún no ha empezado la
+  //   hora, da igual si está lleno o no.
+  // - `payment_status` TAMPOCO basta solo: hay partidos con los 4
+  //   jugadores ya apuntados que siguen en PARTIAL_PAID porque a alguien
+  //   le falta terminar de pagar su parte — eso es un problema de cobro,
+  //   no de reclutar jugadores, y usarlo solo como filtro genera falsos
+  //   positivos (visto en producción: partido con 4/4 marcado como
+  //   pendiente).
   //
-  // La señal fiable es `payment_status`: en pago dividido cada jugador paga
-  // su parte al apuntarse, así que mientras no estén todos, el pago total
-  // no puede estar completo (PARTIAL_PAID). Se usa como criterio principal
-  // porque no depende de asumir que un partido siempre son 4 jugadores.
-  // El número de participantes se calcula igualmente solo como contexto
-  // informativo (cuántos faltan), no como filtro.
+  // La señal correcta es directamente el número de participantes < 4
+  // (pádel es 2 contra 2). payment_status se sigue devolviendo como
+  // información de contexto, no como filtro.
   async getVenuePendingOpenMatches(
     tenantId: string,
     startBookingDate: string,
@@ -540,9 +544,7 @@ export class PlaytomicOfficialClient {
     return all.filter((b) =>
       b.booking_type === 'OPEN_MATCH' &&
       !b.is_canceled &&
-      b.payment_status !== 'PAID' &&
-      b.payment_status !== 'VOID' &&
-      b.payment_status !== 'REFUNDED',
+      (b.participant_info?.participants ?? []).length < 4,
     )
   }
 }

@@ -95,9 +95,7 @@ export async function POST(req: NextRequest) {
       .filter((b: any) =>
         b.booking_type === 'OPEN_MATCH' &&
         !b.is_canceled &&
-        b.payment_status !== 'PAID' &&
-        b.payment_status !== 'VOID' &&
-        b.payment_status !== 'REFUNDED',
+        (b.participant_info?.participants ?? []).length < 4,
       )
       .map((b: any) => ({
         booking_id: b.booking_id,
