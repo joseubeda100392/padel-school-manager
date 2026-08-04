@@ -116,6 +116,8 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [tenantResults, setTenantResults] = useState<{ tenant_id: string; name: string; address: string }[]>([])
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: number; message: string } | null>(null)
+  const [csvExporting, setCsvExporting] = useState(false)
+  const [csvError, setCsvError] = useState('')
   const [previewing, setPreviewing] = useState(false)
   const [preview, setPreview] = useState<{ total: number; wouldImport: number; wouldSkip: number; noEmail: number; players: { name: string; email: string | null; phone: string | null; status: string }[] } | null>(null)
   const [previewError, setPreviewError] = useState('')
@@ -1035,6 +1037,10 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{previewError}</div>
               )}
 
+              {csvError && (
+                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{csvError}</div>
+              )}
+
               {preview && (
                 <div className="rounded-lg border border-dashed border-gray-300 p-4">
                   <p className="mb-3 text-sm font-medium text-gray-700">
@@ -1090,6 +1096,28 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                   className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                 >
                   {previewing ? 'Consultando...' : '🔍 Vista previa (no crea nada)'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={csvExporting}
+                  onClick={async () => {
+                    setCsvExporting(true)
+                    setCsvError('')
+                    const res = await fetch('/api/admin/playtomic/import-players?dry_run=1', { method: 'POST' })
+                    const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
+                    if (!res.ok) {
+                      setCsvError(data.error ?? 'Error')
+                    } else {
+                      downloadCsv('playtomic-jugadores.csv', (data.players ?? []).map((p: any) => ({
+                        name: p.name, email: p.email, phone: p.phone, status: p.status,
+                      })))
+                    }
+                    setCsvExporting(false)
+                  }}
+                  className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                >
+                  {csvExporting ? 'Generando CSV...' : '📄 Descargar CSV'}
                 </button>
 
                 <button
