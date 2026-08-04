@@ -5,14 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
-import { formatTime } from '@/lib/utils'
-
-function getClassDatetime(startTime: string, dateStr: string): Date {
-  const base = new Date(startTime)
-  const d = new Date(dateStr + 'T12:00:00')
-  d.setHours(base.getHours(), base.getMinutes(), 0, 0)
-  return d
-}
+import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -49,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
   const dateStr = date as string
-  const classDt = getClassDatetime(schedule.start_time, dateStr)
+  const classDt = getScheduleDateTimeInMadrid(schedule.start_time, dateStr)
 
 
   const base = new Date(schedule.start_time)
@@ -174,9 +167,7 @@ export async function DELETE(req: NextRequest) {
     .single()
 
   if (schedule) {
-    const base = new Date(schedule.start_time)
-    const classDt = new Date(exclusion.excluded_date + 'T12:00:00')
-    classDt.setHours(base.getHours(), base.getMinutes(), 0, 0)
+    const classDt = getScheduleDateTimeInMadrid(schedule.start_time, exclusion.excluded_date)
     if (classDt.getTime() < Date.now()) {
       return NextResponse.json({ error: 'La clase ya ha pasado' }, { status: 400 })
     }

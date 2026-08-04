@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { getScheduleDateTimeInMadrid } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -117,9 +118,7 @@ export async function DELETE(req: NextRequest) {
     ])
     if (sched) {
       const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
-      const base = new Date(sched.start_time)
-      const classDt = new Date((booking as any).class_date + 'T12:00:00')
-      classDt.setHours(base.getHours(), base.getMinutes(), 0, 0)
+      const classDt = getScheduleDateTimeInMadrid(sched.start_time, (booking as any).class_date)
       const hoursUntilClass = (classDt.getTime() - Date.now()) / 3600000
       if (hoursUntilClass < cancellationHours) {
         return NextResponse.json({ error: `Debes avisar con al menos ${cancellationHours} horas de antelación` }, { status: 400 })
