@@ -145,6 +145,31 @@ export async function DELETE(req: NextRequest) {
   const { error: deleteErr } = await admin.from('bookings').delete().eq('id', booking.id)
   if (deleteErr) return NextResponse.json({ error: 'Error al cancelar la reserva' }, { status: 500 })
 
+  // Si esta reserva ocupaba un "hueco por falta" (schedule_exclusions.publish_spot
+  // se puso a false al reservarlo), volver a publicarlo para que esté
+  // disponible de nuevo. No hace nada si era una reserva por capacidad libre
+  // (no tiene exclusion asociada).
+  if ((booking as any).class_date) {
+    const { data: candidateExclusions } = await admin
+      .from('schedule_exclusions')
+      .select('id, group_enrollment_id')
+      .eq('excluded_date', (booking as any).class_date)
+      .eq('publish_spot', false)
+    if (candidateExclusions && candidateExclusions.length > 0) {
+      const enrollmentIds = candidateExclusions.map((x: any) => x.group_enrollment_id)
+      const { data: matchingEnrollments } = await admin
+        .from('group_enrollments')
+        .select('id')
+        .in('id', enrollmentIds)
+        .eq('schedule_id', booking.schedule_id)
+      const matchingEnrollmentIds = new Set((matchingEnrollments ?? []).map((e: any) => e.id))
+      const exclusionToRepublish = candidateExclusions.find((x: any) => matchingEnrollmentIds.has(x.group_enrollment_id))
+      if (exclusionToRepublish) {
+        await admin.from('schedule_exclusions').update({ publish_spot: true }).eq('id', exclusionToRepublish.id)
+      }
+    }
+  }
+
   if (refundBag && (booking.source === 'bag' || booking.source === 'pay_per_class')) {
     let durationType: '60' | '90' = '60'
 
