@@ -60,6 +60,26 @@ export async function POST(req: NextRequest) {
 
   const existingEmails = new Set((existingUsers ?? []).map((u) => u.email?.toLowerCase()))
 
+  const dryRun = req.nextUrl.searchParams.get('dry_run') === '1'
+  if (dryRun) {
+    const wouldImport = players.filter((p) => p.email && !existingEmails.has(p.email.toLowerCase()))
+    const wouldSkip = players.filter((p) => p.email && existingEmails.has(p.email.toLowerCase()))
+    const noEmail = players.filter((p) => !p.email)
+    return NextResponse.json({
+      dryRun: true,
+      total: players.length,
+      wouldImport: wouldImport.length,
+      wouldSkip: wouldSkip.length,
+      noEmail: noEmail.length,
+      players: players.map((p) => ({
+        name: p.name,
+        email: p.email || null,
+        phone: p.phone ?? null,
+        status: !p.email ? 'sin_email' : existingEmails.has(p.email.toLowerCase()) ? 'ya_existe' : 'se_crearia',
+      })),
+    })
+  }
+
   let imported = 0
   let skipped = 0
   let errors = 0

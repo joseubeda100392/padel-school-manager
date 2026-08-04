@@ -391,7 +391,7 @@ export class PlaytomicOfficialClient {
     let cursorId: string | null = null
 
     while (true) {
-      const params = new URLSearchParams({ limit: '100' })
+      const params = new URLSearchParams({ limit: '100', include: 'SPORTS' })
       if (cursorId) params.set('cursor_id', cursorId)
 
       const res = await fetchWithRetry(`${OFFICIAL_BASE}/venues/${tenantId}/players?${params}`, {
@@ -407,12 +407,14 @@ export class PlaytomicOfficialClient {
       if (!page.length) break
 
       for (const p of page) {
+        const padelSport = (p.sports ?? []).find((s: any) => s.sport_id === 'PADEL')
         players.push({
           user_id: p.player_id ?? p.user_id ?? '',
           name: p.name ?? '',
           email: p.email ?? '',
           phone: p.phone ?? undefined,
           gender: p.gender ?? undefined,
+          level: padelSport?.level_value ?? undefined,
         })
       }
 
@@ -422,5 +424,49 @@ export class PlaytomicOfficialClient {
     }
 
     return players
+  }
+
+  // Diagnóstico: trae una muestra sin paginar y sin mapear, tal cual la
+  // devuelve Playtomic (con SPORTS/nivel incluido) — para inspeccionar qué
+  // campos trae de verdad antes de decidir si compensa importarlos.
+  async getVenuePlayersSample(tenantId: string, limit = 10): Promise<unknown> {
+    if (!this.token) throw new Error('Not authenticated')
+    const params = new URLSearchParams({ limit: String(limit), include: 'SPORTS' })
+    const res = await fetchWithRetry(`${OFFICIAL_BASE}/venues/${tenantId}/players?${params}`, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`getVenuePlayersSample failed: ${res.status} — ${text}`)
+    }
+    return res.json()
+  }
+
+  // Partidos/reservas del venue — GET /api/v1/bookings (documentado en
+  // third-party.playtomic.io/endpoints/bookings/). tenant_id + rango de
+  // fechas son obligatorios. booking_type=OPEN_MATCH filtra a partidos
+  // abiertos; resource_id/resource_name indica si ya tienen pista asignada.
+  async getVenueBookingsSample(
+    tenantId: string,
+    startBookingDate: string,
+    endBookingDate: string,
+    extraParams: Record<string, string> = {},
+  ): Promise<unknown> {
+    if (!this.token) throw new Error('Not authenticated')
+    const qs = new URLSearchParams({
+      tenant_id: tenantId,
+      start_booking_date: startBookingDate,
+      end_booking_date: endBookingDate,
+      size: '100',
+      ...extraParams,
+    })
+    const res = await fetchWithRetry(`${OFFICIAL_BASE}/bookings?${qs}`, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`getVenueBookingsSample failed: ${res.status} — ${text}`)
+    }
+    return res.json()
   }
 }

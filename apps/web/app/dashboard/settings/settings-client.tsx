@@ -5,6 +5,29 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
+function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
+  if (!rows.length) return
+  const headers = Array.from(rows.reduce((set, row) => {
+    Object.keys(row).forEach((k) => set.add(k))
+    return set
+  }, new Set<string>()))
+  const escapeCell = (value: unknown) => {
+    const str = value === null || value === undefined ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value)
+    return `"${str.replace(/"/g, '""')}"`
+  }
+  const lines = [
+    headers.map(escapeCell).join(','),
+    ...rows.map((row) => headers.map((h) => escapeCell(row[h])).join(',')),
+  ]
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 interface AppConfig {
   pay_per_class_price_60: number
   pay_per_class_price_90: number
@@ -93,6 +116,12 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [tenantResults, setTenantResults] = useState<{ tenant_id: string; name: string; address: string }[]>([])
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: number; message: string } | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+  const [preview, setPreview] = useState<{ total: number; wouldImport: number; wouldSkip: number; noEmail: number; players: { name: string; email: string | null; phone: string | null; status: string }[] } | null>(null)
+  const [previewError, setPreviewError] = useState('')
+  const [diagRunning, setDiagRunning] = useState(false)
+  const [diagResult, setDiagResult] = useState<{ players?: any; playersError?: string; bookings?: any; bookingsError?: string } | null>(null)
+  const [diagError, setDiagError] = useState('')
 
   const [holidays, setHolidays] = useState<string[]>([])
   const [newHoliday, setNewHoliday] = useState('')
@@ -997,29 +1026,160 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 </div>
               </div>
 
+              {previewError && (
+                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{previewError}</div>
+              )}
+
+              {preview && (
+                <div className="rounded-lg border border-dashed border-gray-300 p-4">
+                  <p className="mb-3 text-sm font-medium text-gray-700">
+                    {preview.total} jugadores en Playtomic — {preview.wouldImport} se crearían, {preview.wouldSkip} ya existen, {preview.noEmail} sin email (no importables)
+                  </p>
+                  <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-100">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Nombre</th>
+                          <th className="px-3 py-2 text-left">Email</th>
+                          <th className="px-3 py-2 text-left">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {preview.players.map((p, i) => (
+                          <tr key={i}>
+                            <td className="px-3 py-1.5">{p.name || '—'}</td>
+                            <td className="px-3 py-1.5">{p.email || '—'}</td>
+                            <td className="px-3 py-1.5">
+                              {p.status === 'se_crearia' && <span className="text-green-600">se crearía</span>}
+                              {p.status === 'ya_existe' && <span className="text-gray-400">ya existe</span>}
+                              {p.status === 'sin_email' && <span className="text-red-500">sin email</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {importResult && (
                 <div className={`rounded-lg px-4 py-3 text-sm ${importResult.errors > 0 && importResult.imported === 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
                   {importResult.message}
                 </div>
               )}
 
-              <button
-                type="button"
-                disabled={importing}
-                onClick={async () => {
-                  setImporting(true)
-                  setImportResult(null)
-                  const res = await fetch('/api/admin/playtomic/import-players', { method: 'POST' })
-                  const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
-                  if (!res.ok) setImportResult({ imported: 0, skipped: 0, errors: 1, message: data.error ?? 'Error' })
-                  else setImportResult(data)
-                  setImporting(false)
-                }}
-                className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-              >
-                {importing ? 'Importando jugadores...' : '⬇️ Importar jugadores de Playtomic'}
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled={previewing}
+                  onClick={async () => {
+                    setPreviewing(true)
+                    setPreview(null)
+                    setPreviewError('')
+                    const res = await fetch('/api/admin/playtomic/import-players?dry_run=1', { method: 'POST' })
+                    const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
+                    if (!res.ok) setPreviewError(data.error ?? 'Error')
+                    else setPreview(data)
+                    setPreviewing(false)
+                  }}
+                  className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                >
+                  {previewing ? 'Consultando...' : '🔍 Vista previa (no crea nada)'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={importing}
+                  onClick={async () => {
+                    setImporting(true)
+                    setImportResult(null)
+                    const res = await fetch('/api/admin/playtomic/import-players', { method: 'POST' })
+                    const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
+                    if (!res.ok) setImportResult({ imported: 0, skipped: 0, errors: 1, message: data.error ?? 'Error' })
+                    else setImportResult(data)
+                    setImporting(false)
+                  }}
+                  className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+                >
+                  {importing ? 'Importando jugadores...' : '⬇️ Importar jugadores de Playtomic'}
+                </button>
+              </div>
             </div>
+          </div>
+
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="mb-1 font-semibold text-gray-900">Diagnóstico API oficial (solo lectura)</h2>
+            <p className="mb-5 text-xs text-gray-400">
+              No crea ni guarda nada. Trae una muestra de 10 jugadores (con nivel de pádel) y los partidos abiertos
+              (OPEN_MATCH) de los próximos 14 días, para ver qué datos hay disponibles antes de decidir nada.
+            </p>
+
+            {diagError && (
+              <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{diagError}</div>
+            )}
+
+            <button
+              type="button"
+              disabled={diagRunning}
+              onClick={async () => {
+                setDiagRunning(true)
+                setDiagResult(null)
+                setDiagError('')
+                const res = await fetch('/api/admin/playtomic/diagnostic', { method: 'POST' })
+                const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
+                if (!res.ok) setDiagError(data.error ?? 'Error')
+                else setDiagResult(data)
+                setDiagRunning(false)
+              }}
+              className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            >
+              {diagRunning ? 'Consultando Playtomic...' : '🧪 Ejecutar diagnóstico'}
+            </button>
+
+            {diagResult && (
+              <div className="mt-5 space-y-5">
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-800">Muestra de jugadores</h3>
+                    {Array.isArray(diagResult.players?.data) && diagResult.players.data.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => downloadCsv('playtomic-jugadores-muestra.csv', diagResult.players.data.map((p: any) => ({
+                          player_id: p.player_id,
+                          name: p.name,
+                          email: p.email,
+                          phone: p.phone,
+                          gender: p.gender,
+                          birth_date: p.birth_date,
+                          last_registration_date: p.last_registration_date,
+                          nivel_padel: (p.sports ?? []).find((s: any) => s.sport_id === 'PADEL')?.level_value ?? '',
+                          sports_raw: p.sports,
+                        })))}
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                      >
+                        ⬇️ Descargar CSV (10 registros)
+                      </button>
+                    )}
+                  </div>
+                  {diagResult.playersError && (
+                    <p className="text-sm text-red-600">{diagResult.playersError}</p>
+                  )}
+                  <pre className="max-h-64 overflow-auto rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">
+                    {JSON.stringify(diagResult.players, null, 2)}
+                  </pre>
+                </div>
+
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-gray-800">Partidos abiertos (OPEN_MATCH, próximos 14 días)</h3>
+                  {diagResult.bookingsError && (
+                    <p className="text-sm text-red-600">{diagResult.bookingsError}</p>
+                  )}
+                  <pre className="max-h-96 overflow-auto rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">
+                    {JSON.stringify(diagResult.bookings, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
