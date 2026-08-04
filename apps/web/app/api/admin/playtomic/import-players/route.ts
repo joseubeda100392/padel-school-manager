@@ -6,6 +6,15 @@ import { cookies } from 'next/headers'
 import { PlaytomicOfficialClient } from '@/lib/playtomic'
 
 export async function POST(req: NextRequest) {
+  try {
+    return await handlePost(req)
+  } catch (e: any) {
+    console.error('[playtomic/import-players] unhandled error:', e)
+    return NextResponse.json({ error: 'Error inesperado: ' + (e?.message ?? String(e)) }, { status: 500 })
+  }
+}
+
+async function handlePost(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
