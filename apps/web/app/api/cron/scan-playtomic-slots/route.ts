@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
 
   for (const club of clubs) {
     const resources = await client.getAvailableSlots(club.playtomic_tenant_id!, startMin, startMax)
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     for (const resource of resources) {
       for (const slot of resource.slots) {

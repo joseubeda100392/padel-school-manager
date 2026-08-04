@@ -33,27 +33,20 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date()
+  // Ventana de 24h a 48h (no de 0h a 48h): una sola llamada, con un rango de
+  // 24h limpias — por debajo del límite de ~25h por llamada que documenta el
+  // código, sin arriesgarse a un posible truncado por pedir demasiado de golpe.
+  // Como efecto secundario, no detecta huecos de las próximas 24h — solo del
+  // segundo día — pero para Pista Viva probablemente sobra margen: un hueco a
+  // menos de 24h da poco tiempo real para notificar y que alguien lo llene.
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
   const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
   const fmt = (d: Date) => d.toISOString().replace('Z', '').split('.')[0]
 
   const client = getPlaytomicClient()
   try {
-    // Playtomic limita a 25h por llamada — dos llamadas para cubrir 48h
-    const [first, second] = await Promise.all([
-      client.getAvailableSlots(club.playtomic_tenant_id, fmt(now), fmt(in24h)),
-      client.getAvailableSlots(club.playtomic_tenant_id, fmt(in24h), fmt(in48h)),
-    ])
-
-    // Merge: same resource_id → merge slots, new resource_id → append
-    const byId = new Map(first.map((r) => [r.resource_id, { ...r, slots: [...r.slots] }]))
-    for (const r of second) {
-      const existing = byId.get(r.resource_id)
-      if (existing) existing.slots.push(...r.slots)
-      else byId.set(r.resource_id, r)
-    }
-
-    return NextResponse.json({ resources: Array.from(byId.values()) })
+    const resources = await client.getAvailableSlots(club.playtomic_tenant_id, fmt(in24h), fmt(in48h))
+    return NextResponse.json({ resources })
   } catch (e: any) {
     return NextResponse.json({ error: e.message ?? 'Error al consultar Playtomic', resources: [] }, { status: 502 })
   }

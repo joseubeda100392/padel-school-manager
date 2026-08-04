@@ -35,12 +35,43 @@ export type PlaytomicMatchStatus = {
   isConverted: boolean
 }
 
+// Espera progresiva ante 429 (límite de peticiones), tal como recomienda la
+// documentación de Playtomic: 1s → 2s → 4s. Cap bajo a propósito para no
+// alargar demasiado una respuesta HTTP de nuestra propia API.
+async function fetchWithRetry(url: string, init: RequestInit, maxRetries = 3): Promise<Response> {
+  let lastRes: Response | null = null
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, init)
+    if (res.status !== 429) return res
+    lastRes = res
+    if (attempt < maxRetries) {
+      const waitMs = 1000 * Math.pow(2, attempt)
+      await new Promise((resolve) => setTimeout(resolve, waitMs))
+    }
+  }
+  return lastRes!
+}
+
+// Cache del token de login por email — evita re-autenticar en cada llamada
+// (dry-run, envío real, etc.), que es justo el patrón de "muchos logins
+// seguidos con la misma cuenta" que puede parecer sospechoso a Playtomic.
+// Vida corta y conservadora porque no conocemos la expiración real del token.
+const TOKEN_TTL_MS = 15 * 60 * 1000
+const tokenCache = new Map<string, { token: string; userId: string | null; expiresAt: number }>()
+
 export class PlaytomicClient {
   private token: string | null = null
   private userId: string | null = null
 
   async login(email: string, password: string): Promise<void> {
-    const res = await fetch(`${CONSUMER_BASE}/v3/auth/login`, {
+    const cached = tokenCache.get(email)
+    if (cached && cached.expiresAt > Date.now()) {
+      this.token = cached.token
+      this.userId = cached.userId
+      return
+    }
+
+    const res = await fetchWithRetry(`${CONSUMER_BASE}/v3/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -57,6 +88,7 @@ export class PlaytomicClient {
     if (!data.access_token) throw new Error('Playtomic login: no access_token')
     this.token = data.access_token
     this.userId = data.user_id ?? null
+    tokenCache.set(email, { token: this.token as string, userId: this.userId, expiresAt: Date.now() + TOKEN_TTL_MS })
   }
 
   async getAvailableSlots(
@@ -72,7 +104,7 @@ export class PlaytomicClient {
       start_max: startMax,
       duration: String(duration),
     })
-    const res = await fetch(`${CONSUMER_BASE}/v1/availability?${params}`, {
+    const res = await fetchWithRetry(`${CONSUMER_BASE}/v1/availability?${params}`, {
       headers: {
         'X-Requested-With': 'com.playtomic.web',
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
@@ -137,7 +169,7 @@ export class PlaytomicClient {
       supports_split_payment: true,
       match_registrations: [{ user_id: this.userId, pay_now: false }],
     }
-    const v2Res = await fetch(`${CONSUMER_BASE}/v2/matches/cart_items/customer_matches`, {
+    const v2Res = await fetchWithRetry(`${CONSUMER_BASE}/v2/matches/cart_items/customer_matches`, {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify(v2Body),
@@ -162,7 +194,7 @@ export class PlaytomicClient {
     }
 
     // Fallback: payment_intent flow con MERCHANT_WALLET (SINGLE_PAYER)
-    const piRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents`, {
+    const piRes = await fetchWithRetry(`${CONSUMER_BASE}/v1/payment_intents`, {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({
@@ -204,7 +236,7 @@ export class PlaytomicClient {
 
     if (bestMethod && piData.status === 'REQUIRES_PAYMENT_METHOD') {
       const fullId: string = bestMethod.payment_method_id ?? bestMethod.method_type
-      const patchRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
+      const patchRes = await fetchWithRetry(`${CONSUMER_BASE}/v1/payment_intents/${piId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -241,7 +273,7 @@ export class PlaytomicClient {
     }
 
     // Step 3: Confirm
-    const confirmRes = await fetch(`${CONSUMER_BASE}/v1/payment_intents/${piId}/confirmation`, {
+    const confirmRes = await fetchWithRetry(`${CONSUMER_BASE}/v1/payment_intents/${piId}/confirmation`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -282,7 +314,7 @@ export class PlaytomicClient {
       'User-Agent': 'Playtomic/1 CFNetwork/1410.1 Darwin/22.6.0',
     }
     for (const visibility of ['PUBLIC', 'VISIBLE']) {
-      const res = await fetch(`${CONSUMER_BASE}/v1/matches/${matchId}`, {
+      const res = await fetchWithRetry(`${CONSUMER_BASE}/v1/matches/${matchId}`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ visibility }),
@@ -294,7 +326,7 @@ export class PlaytomicClient {
   }
 
   async getMatchStatus(matchId: string): Promise<PlaytomicMatchStatus> {
-    const res = await fetch(`${CONSUMER_BASE}/v1/matches/${matchId}`, {
+    const res = await fetchWithRetry(`${CONSUMER_BASE}/v1/matches/${matchId}`, {
       headers: { 'X-Requested-With': 'com.playtomic.web' },
     })
     if (!res.ok) throw new Error(`getMatchStatus failed: ${res.status}`)
@@ -321,7 +353,7 @@ export class PlaytomicClient {
       coordinate: '40.4168,-3.7038',
       radius: '2000000',
     })
-    const res = await fetch(`${CONSUMER_BASE}/v1/tenants?${params}`, {
+    const res = await fetchWithRetry(`${CONSUMER_BASE}/v1/tenants?${params}`, {
       headers: { 'X-Requested-With': 'com.playtomic.web' },
     })
     if (!res.ok) return []
@@ -339,7 +371,7 @@ export class PlaytomicOfficialClient {
 
   async login(clientId: string, clientSecret: string): Promise<void> {
     // Playtomic uses { client_id, secret } with JSON (not oauth standard)
-    const res = await fetch(`${OFFICIAL_BASE}/oauth/token`, {
+    const res = await fetchWithRetry(`${OFFICIAL_BASE}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: clientId, secret: clientSecret }),
@@ -362,7 +394,7 @@ export class PlaytomicOfficialClient {
       const params = new URLSearchParams({ limit: '100' })
       if (cursorId) params.set('cursor_id', cursorId)
 
-      const res = await fetch(`${OFFICIAL_BASE}/venues/${tenantId}/players?${params}`, {
+      const res = await fetchWithRetry(`${OFFICIAL_BASE}/venues/${tenantId}/players?${params}`, {
         headers: { Authorization: `Bearer ${this.token}` },
       })
       if (!res.ok) {
