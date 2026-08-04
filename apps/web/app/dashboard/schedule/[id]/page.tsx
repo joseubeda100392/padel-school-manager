@@ -42,7 +42,10 @@ function getNextDate(startTime: string): string {
   return next < scheduleStartDate ? scheduleStartDate : next
 }
 
-export default async function ScheduleDetailPage({ params }: { params: { id: string } }) {
+export default async function ScheduleDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { from?: string } }) {
+  const backHref = searchParams.from === 'master' ? '/dashboard/schedule/master' : '/dashboard/schedule'
+  const backLabel = searchParams.from === 'master' ? '← Calendario maestro' : '← Horarios'
+
   const supabase = createClient()
   const admin = getAdminClient()
 
@@ -156,7 +159,7 @@ export default async function ScheduleDetailPage({ params }: { params: { id: str
       />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <a href="/dashboard/schedule" className="text-sm text-gray-500 hover:text-gray-700">← Horarios</a>
+          <a href={backHref} className="text-sm text-gray-500 hover:text-gray-700">{backLabel}</a>
           <span className="text-gray-300">/</span>
           <h1 className="text-2xl font-bold text-gray-900">Detalle de clase</h1>
         </div>

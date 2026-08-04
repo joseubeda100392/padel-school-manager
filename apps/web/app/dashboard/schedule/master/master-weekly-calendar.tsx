@@ -42,7 +42,7 @@ export default function MasterWeeklyCalendar({ schedules }: { schedules: any[] }
                 {classes.map((s: any) => (
                   <button
                     key={s.id}
-                    onClick={() => router.push(`/dashboard/schedule/${s.id}`)}
+                    onClick={() => router.push(`/dashboard/schedule/${s.id}?from=master`)}
                     className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all hover:ring-green-400 ${s.students?.length ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
                   >
                     <p className="text-xs font-semibold text-gray-900 truncate">{s.coach?.name ?? '—'}</p>
