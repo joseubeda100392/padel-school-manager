@@ -123,7 +123,10 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
                 label="💳 Pagar mi plaza"
                 className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
               />
-              {!isIntensivo && spot.maxStudents > 1 && (
+              {/* Solo clase suelta de verdad: sin ningún alumno de grupo fijo ya
+                  inscrito. Si hubiera alumnos fijos, ellos ya pagan su cuota
+                  mensual — pagar "la clase entera" no tendría sentido ahí. */}
+              {!isIntensivo && spot.spotType === 'capacity' && spot.maxStudents > 1 && spot.enrolledCount === 0 && (
                 <PayButton
                   type="single_class"
                   scheduleId={spot.scheduleId}
