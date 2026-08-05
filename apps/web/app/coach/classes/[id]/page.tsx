@@ -84,8 +84,17 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
     return m.material_levels.some((ml: any) => ml.level_id === schedule.level_id)
   })
 
-  const start = schedule.start_time
-  const end = schedule.end_time
+  const TZ = 'Europe/Madrid'
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const { data: todayOverride } = await admin
+    .from('schedule_time_overrides')
+    .select('new_start_time, new_end_time')
+    .eq('schedule_id', params.id)
+    .eq('override_date', todaySpain)
+    .maybeSingle()
+
+  const start = todayOverride?.new_start_time ?? schedule.start_time
+  const end = todayOverride?.new_end_time ?? schedule.end_time
   const groupCount = groupEnrollments?.length ?? 0
   const bookingCount = bookings?.length ?? 0
   const enrolled = groupCount + bookingCount
@@ -114,6 +123,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
             <p className="text-lg font-bold text-gray-900">
               {DAYS[getDayOfWeek(start)]} · {formatTime(start)} – {formatTime(end)}
             </p>
+            {todayOverride && <p className="text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual hoy</p>}
             <p className="mt-0.5 text-sm text-gray-500">{schedule.court?.name ?? '—'}</p>
             {schedule.level && (
               <span

@@ -10,6 +10,7 @@ import GroupEnrollment from './group-enrollment'
 import ScheduleMaterials from './schedule-materials'
 import { AdminAddSpotBooking } from './add-spot-booking'
 import { SpotBookingsList } from './spot-bookings-list'
+import { TimeOverride } from './time-override'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 
@@ -137,6 +138,13 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ,
   })
 
+  const { data: timeOverride } = await admin
+    .from('schedule_time_overrides')
+    .select('id, override_date, new_start_time, new_end_time, reason')
+    .eq('schedule_id', params.id)
+    .eq('override_date', nextDate)
+    .maybeSingle()
+
   const enrolledStudentIds = new Set(
     (groupEnrollments ?? []).map((e: any) => e.student?.id).filter(Boolean)
   )
@@ -195,6 +203,12 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
                 </span>
               )}
             </div>
+            <TimeOverride
+              scheduleId={params.id}
+              nextDate={nextDate}
+              nextDateLabel={nextDateLabel}
+              existingOverride={timeOverride ?? null}
+            />
           </div>
           <div className="text-right">
             <p className="text-3xl font-bold text-gray-900">{enrolled}<span className="text-lg text-gray-400">/{schedule.max_students}</span></p>

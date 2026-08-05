@@ -24,9 +24,22 @@ function getWeekDates(offset: number) {
   })
 }
 
-export default function WeeklyCalendar({ schedules, holidays = [], enableIntensivos = true }: { schedules: any[]; holidays?: string[]; enableIntensivos?: boolean }) {
+interface TimeOverride {
+  schedule_id: string
+  override_date: string
+  new_start_time: string
+  new_end_time: string
+}
+
+export default function WeeklyCalendar({ schedules, holidays = [], enableIntensivos = true, timeOverrides = [] }: { schedules: any[]; holidays?: string[]; enableIntensivos?: boolean; timeOverrides?: TimeOverride[] }) {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
+
+  const overrideByKey = useMemo(() => {
+    const map = new Map<string, TimeOverride>()
+    for (const o of timeOverrides) map.set(`${o.schedule_id}_${o.override_date}`, o)
+    return map
+  }, [timeOverrides])
 
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset])
 
@@ -177,7 +190,9 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                     <p className="text-xs text-gray-300">Sin clases</p>
                   </div>
                 )}
-                {classes.map((s: any) => (
+                {classes.map((s: any) => {
+                  const override = overrideByKey.get(`${s.id}_${dateStr}`)
+                  return (
                   <button
                     key={s.id}
                     onClick={() => router.push(`/dashboard/schedule/${s.id}`)}
@@ -185,7 +200,8 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                   >
                     <div className="flex items-center justify-between gap-1">
                       <p className="text-xs font-semibold text-gray-900">
-                        {timeOnly(s.start_time)}
+                        {timeOnly(override?.new_start_time ?? s.start_time)}
+                        {override && <span className="ml-1 text-amber-600">⚠️</span>}
                       </p>
                       {s.is_fixed_group && (
                         <span className="shrink-0 rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-semibold text-orange-700">
@@ -214,7 +230,8 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                       </p>
                     )}
                   </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )

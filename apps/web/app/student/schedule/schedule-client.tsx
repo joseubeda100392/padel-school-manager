@@ -9,6 +9,7 @@ interface Occurrence {
   dateStr: string
   label: string
   canRegister: boolean
+  overrideTime: string | null
 }
 
 interface ScheduleItem {
@@ -143,6 +144,9 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
                   <div key={occ.dateStr} className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
                     <span className={`capitalize ${!occ.canRegister && !isRegistered ? 'text-gray-400' : 'text-gray-700'}`}>
                       {occ.label}
+                      {occ.overrideTime && (
+                        <span className="ml-1.5 font-normal text-amber-600">⚠️ excepcionalmente a las {occ.overrideTime}</span>
+                      )}
                     </span>
                     {isRegistered ? (
                       <span className="text-xs font-medium text-brand-500">✓ Registrada</span>

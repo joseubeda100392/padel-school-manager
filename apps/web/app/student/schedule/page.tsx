@@ -12,8 +12,9 @@ const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', '
 function getUpcomingOccurrences(
   startTime: string,
   cancellationHours: number,
+  overrides: { override_date: string; new_start_time: string }[],
   count = 8,
-): { dateStr: string; label: string; canRegister: boolean }[] {
+): { dateStr: string; label: string; canRegister: boolean; overrideTime: string | null }[] {
   const base = new Date(startTime)
   const now = new Date()
   const first = new Date(now)
@@ -30,7 +31,11 @@ function getUpcomingOccurrences(
     const label = new Date(dateStr + 'T12:00:00').toLocaleDateString('es-ES', {
       weekday: 'long', day: 'numeric', month: 'long',
     })
-    return { dateStr, label, canRegister: hoursUntil >= cancellationHours }
+    const override = overrides.find(o => o.override_date === dateStr)
+    const overrideTime = override
+      ? new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(new Date(override.new_start_time))
+      : null
+    return { dateStr, label, canRegister: hoursUntil >= cancellationHours, overrideTime }
   })
 }
 
@@ -102,9 +107,19 @@ export default async function StudentSchedulePage() {
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
+  const scheduleIdsForOverrides = (enrollments ?? []).map(e => (e.schedule as any)?.id).filter(Boolean)
+  const { data: timeOverrides } = scheduleIdsForOverrides.length
+    ? await getAdminClient()
+        .from('schedule_time_overrides')
+        .select('schedule_id, override_date, new_start_time')
+        .in('schedule_id', scheduleIdsForOverrides)
+        .gte('override_date', todaySpain)
+    : { data: [] }
+
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
-    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours)
+    const myOverrides = (timeOverrides ?? []).filter((o: any) => o.schedule_id === schedule?.id)
+    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides)
     const myExclusions = (exclusionsRaw ?? [])
       .filter(x => x.group_enrollment_id === e.id)
       .map(x => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))

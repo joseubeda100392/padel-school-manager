@@ -75,10 +75,24 @@ export default async function StudentHomePage() {
   const activeEnrollments = enrollments ?? []
   const pendingEnrollments = activeEnrollments.filter((e: any) => !isPaidThisMonth(e.paid_until))
 
+  const enrolledScheduleIds = activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean)
+  const { data: timeOverrides } = enrolledScheduleIds.length
+    ? await admin
+        .from('schedule_time_overrides')
+        .select('schedule_id, override_date, new_start_time, new_end_time')
+        .in('schedule_id', enrolledScheduleIds)
+        .gte('override_date', todaySpain)
+    : { data: [] }
+
   const nextClass = (activeEnrollments as any[])
     .flatMap((e: any) => {
       const nextDate = getNextOccurrence((e.schedule as any)?.start_time ?? '')
-      return nextDate ? [{ ...e, nextDate }] : []
+      if (!nextDate) return []
+      const nextDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(nextDate)
+      const override = (timeOverrides ?? []).find(
+        (o: any) => o.schedule_id === (e.schedule as any)?.id && o.override_date === nextDateStr
+      )
+      return [{ ...e, nextDate, override: override ?? null }]
     })
     .sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime())[0]
 
@@ -227,12 +241,15 @@ export default async function StudentHomePage() {
                 {DAYS[nextClass.nextDate.getDay()]} {nextClass.nextDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
               </p>
               <p className="text-sm text-gray-500">
-                {formatTime((nextClass.schedule as any)?.start_time)}
+                {formatTime(nextClass.override?.new_start_time ?? (nextClass.schedule as any)?.start_time)}
                 {' — '}
-                {formatTime((nextClass.schedule as any)?.end_time)}
+                {formatTime(nextClass.override?.new_end_time ?? (nextClass.schedule as any)?.end_time)}
                 {' · '}
                 {(nextClass.schedule as any)?.court?.name}
               </p>
+              {nextClass.override && (
+                <p className="mt-1 text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual solo este día</p>
+              )}
             </div>
             {nextClass.monthly_price > 0 && billingActive && (
               <div className="text-right">

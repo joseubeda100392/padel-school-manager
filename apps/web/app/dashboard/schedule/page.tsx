@@ -125,6 +125,15 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     is_fixed_group: isFixedGroupMap[s.id] ?? false,
   }))
 
+  const allScheduleIds = (rawSchedules ?? []).map((s: any) => s.id)
+  const { data: timeOverrides } = allScheduleIds.length
+    ? await admin
+        .from('schedule_time_overrides')
+        .select('schedule_id, override_date, new_start_time, new_end_time')
+        .in('schedule_id', allScheduleIds)
+        .gte('override_date', todaySpain)
+    : { data: [] }
+
   return (
     <div>
       <RealtimeRefresh
@@ -169,7 +178,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       )}
 
       {view === 'week'
-        ? <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} />
+        ? <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} timeOverrides={timeOverrides ?? []} />
         : <ScheduleTable schedules={schedules} />
       }
     </div>

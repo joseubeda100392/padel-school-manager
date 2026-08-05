@@ -49,6 +49,15 @@ export default async function CoachHomePage() {
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
   }
 
+  const { data: todayOverrides } = todayIds.length
+    ? await admin
+        .from('schedule_time_overrides')
+        .select('schedule_id, new_start_time, new_end_time')
+        .in('schedule_id', todayIds)
+        .eq('override_date', todaySpain)
+    : { data: [] }
+  const overrideBySchedule = new Map((todayOverrides ?? []).map((o: any) => [o.schedule_id, o]))
+
   const firstName = user.user_metadata?.name?.split(' ')[0] ?? 'Monitor'
 
   return (
@@ -90,9 +99,14 @@ export default async function CoachHomePage() {
       ) : (
         <div className="space-y-3">
           {todaySchedules
-            .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+            .sort((a: any, b: any) => {
+              const aTime = (overrideBySchedule.get(a.id) as any)?.new_start_time ?? a.start_time
+              const bTime = (overrideBySchedule.get(b.id) as any)?.new_start_time ?? b.start_time
+              return new Date(aTime).getTime() - new Date(bTime).getTime()
+            })
             .map((s: any) => {
               const enrolled = countBySchedule[s.id] ?? 0
+              const override = overrideBySchedule.get(s.id) as any
               return (
                 <Link
                   key={s.id}
@@ -102,8 +116,9 @@ export default async function CoachHomePage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-bold text-gray-900">
-                        {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                        {formatTime(override?.new_start_time ?? s.start_time)} – {formatTime(override?.new_end_time ?? s.end_time)}
                       </p>
+                      {override && <p className="text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual hoy</p>}
                       <p className="mt-0.5 text-sm text-gray-500">{s.court?.name ?? '—'}</p>
                       {s.level && (
                         <span
