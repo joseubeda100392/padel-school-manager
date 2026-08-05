@@ -54,6 +54,8 @@ const PLAYTOMIC_PLAYER_COLUMNS: { key: keyof PlaytomicPreviewPlayer; header: str
 interface AppConfig {
   pay_per_class_price_60: number
   pay_per_class_price_90: number
+  whole_class_price_60: number
+  whole_class_price_90: number
   pack_price_60: number
   classes_per_pack_60: number
   pack_price_90: number
@@ -67,6 +69,8 @@ interface AppConfig {
 const defaults: AppConfig = {
   pay_per_class_price_60: 1200,
   pay_per_class_price_90: 1500,
+  whole_class_price_60: 4800,
+  whole_class_price_90: 6000,
   pack_price_60: 9000,
   classes_per_pack_60: 10,
   pack_price_90: 12000,
@@ -745,6 +749,47 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                         onFocus={e => e.target.select()}
                         value={displayPrice(config.pay_per_class_price_90)}
                         onChange={e => setConfig({ ...config, pay_per_class_price_90: priceVal(e.target.value) })}
+                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+                      />
+                      <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {features.enable_payments && (features.enable_60min || features.enable_90min) && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="mb-1 font-semibold text-gray-900">Clase entera</h2>
+              <p className="mb-4 text-xs text-gray-400">Un alumno paga la clase completa en vez de cada uno su plaza — útil para grupos que reparten el pago entre ellos fuera de la app.</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {features.enable_60min && (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase entera 1 hora (€)</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        onFocus={e => e.target.select()}
+                        value={displayPrice(config.whole_class_price_60)}
+                        onChange={e => setConfig({ ...config, whole_class_price_60: priceVal(e.target.value) })}
+                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+                      />
+                      <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+                    </div>
+                  </div>
+                )}
+                {features.enable_90min && (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase entera 1h 30min (€)</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        onFocus={e => e.target.select()}
+                        value={displayPrice(config.whole_class_price_90)}
+                        onChange={e => setConfig({ ...config, whole_class_price_90: priceVal(e.target.value) })}
                         className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
                       />
                       <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>

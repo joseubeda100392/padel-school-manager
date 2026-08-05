@@ -114,14 +114,27 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
               {booking ? '...' : '🎾 Usar 1 clase'}
             </button>
           ) : enablePayments ? (
-            <PayButton
-              type="single_class"
-              scheduleId={spot.scheduleId}
-              exclusionId={spot.exclusionId ?? undefined}
-              classDate={spot.excludedDate}
-              label="💳 Pagar clase"
-              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-            />
+            <>
+              <PayButton
+                type="single_class"
+                scheduleId={spot.scheduleId}
+                exclusionId={spot.exclusionId ?? undefined}
+                classDate={spot.excludedDate}
+                label="💳 Pagar mi plaza"
+                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+              />
+              {!isIntensivo && spot.maxStudents > 1 && (
+                <PayButton
+                  type="single_class"
+                  scheduleId={spot.scheduleId}
+                  exclusionId={spot.exclusionId ?? undefined}
+                  classDate={spot.excludedDate}
+                  wholeClass
+                  label="💳 Pagar la clase entera"
+                  className="rounded-lg border border-brand-500 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
+                />
+              )}
+            </>
           ) : null}
           {!hasBalance && enable90min && durationType === '90' && balance60 > 0 && (
             <p className="text-xs text-orange-600">Tu bono es de 60min — no válido para 1h 30min</p>

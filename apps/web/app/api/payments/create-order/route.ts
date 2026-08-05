@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
   const DEFAULT_CFG = {
     pay_per_class_price_60: 1200,
     pay_per_class_price_90: 1500,
+    whole_class_price_60: 4800,
+    whole_class_price_90: 6000,
     pack_price_60: 9000,
     classes_per_pack_60: 10,
     pack_price_90: 12000,
@@ -71,6 +73,7 @@ export async function POST(req: NextRequest) {
   const { data: orderBody, error: badRequest } = await parseBody(req, z.object({
     type: z.enum(['single_class', 'class_pack', 'fixed_group_month', 'tournament', 'intensivo_group']),
     scheduleId: z.string().uuid().optional(),
+    wholeClass: z.boolean().optional(),
     packType: z.enum(['60', '90']).optional(),
     enrollmentId: z.string().uuid().optional(),
     exclusionId: z.string().uuid().optional(),
@@ -80,7 +83,7 @@ export async function POST(req: NextRequest) {
     classDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
   }))
   if (badRequest) return badRequest
-  const { type, scheduleId, packType, enrollmentId, exclusionId, classDate, tournamentId, intensivoGroupId, classDates } = orderBody
+  const { type, scheduleId, wholeClass, packType, enrollmentId, exclusionId, classDate, tournamentId, intensivoGroupId, classDates } = orderBody
 
   let amount: number
   let productDesc: string
@@ -128,6 +131,10 @@ export async function POST(req: NextRequest) {
     if (schedulePriceCents && schedulePriceCents > 0) {
       amount = schedulePriceCents
       productDesc = scheduleType === 'intensivo' ? 'Clase intensivo pádel' : 'Clase de pádel'
+    } else if (wholeClass) {
+      const priceKey = durationMin >= 80 ? 'whole_class_price_90' : 'whole_class_price_60'
+      amount = cfg[priceKey]
+      productDesc = durationMin >= 80 ? 'Clase de pádel entera 1h 30min' : 'Clase de pádel entera 1h'
     } else {
       const priceKey = durationMin >= 80 ? 'pay_per_class_price_90' : 'pay_per_class_price_60'
       amount = cfg[priceKey]
@@ -259,6 +266,7 @@ export async function POST(req: NextRequest) {
     status: 'pending',
     metadata: {
       schedule_id: scheduleId ?? null,
+      whole_class: wholeClass ?? false,
       classes_per_pack: classesToAdd,
       pack_type: packType ?? null,
       enrollment_id: enrollmentId ?? null,
