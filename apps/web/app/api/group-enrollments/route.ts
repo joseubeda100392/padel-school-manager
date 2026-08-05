@@ -78,6 +78,33 @@ export async function POST(req: NextRequest) {
     if (clash) return NextResponse.json({ error: 'El alumno ya tiene otra clase a esa hora.' }, { status: 409 })
   }
 
+  // Si el alumno ya pagó la cuota de este mes (p. ej. se le está moviendo de
+  // grupo tras haber pagado en el anterior), se respeta ese pago en la
+  // inscripción nueva en vez de marcarla como "sin pagar" — el pago queda
+  // registrado en payments independientemente de qué inscripción existiera
+  // en el momento de pagar, así que sobrevive aunque se borre la antigua.
+  // Solo se respeta si la cuota nueva es igual o más barata que lo ya
+  // pagado — si es más cara, no se da por buena automáticamente para no
+  // dejar de cobrar la diferencia (queda "sin pagar" y se marca a mano).
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const { data: recentPayment } = await admin
+    .from('payments')
+    .select('amount')
+    .eq('user_id', studentId)
+    .eq('club_id', adminUser.club_id)
+    .eq('type', 'fixed_group_month')
+    .eq('status', 'succeeded')
+    .gte('created_at', startOfMonth)
+    .order('amount', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const alreadyCoversNewPrice = !!recentPayment && recentPayment.amount >= (monthlyPrice ?? 0)
+  const paidUntil = alreadyCoversNewPrice
+    ? new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    : null
+
   const { data, error } = await admin.from('group_enrollments').upsert({
     schedule_id: scheduleId,
     student_id: studentId,
@@ -86,7 +113,7 @@ export async function POST(req: NextRequest) {
     status: 'active',
     enrolled_by: user.id,
     enrolled_at: new Date().toISOString(),
-    paid_until: null,
+    paid_until: paidUntil,
   }, { onConflict: 'schedule_id,student_id' }).select().single()
 
   if (error) return NextResponse.json({ error: 'Error al inscribir el alumno' }, { status: 400 })
