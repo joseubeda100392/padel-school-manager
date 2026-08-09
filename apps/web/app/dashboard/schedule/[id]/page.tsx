@@ -13,6 +13,7 @@ import { SpotBookingsList } from './spot-bookings-list'
 import { TimeOverride } from './time-override'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { DevError } from '@/components/dev-error'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -78,12 +79,13 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     .gte('class_date', todaySpain)
     .order('class_date')
 
-  const { data: groupEnrollments } = await admin
+  const { data: groupEnrollments, error: errGroupEnrollments } = await admin
     .from('group_enrollments')
     .select('id, monthly_price, price_per_class_cents, discount_classes_pending, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
     .eq('schedule_id', params.id)
     .eq('status', 'active')
     .order('enrolled_at')
+  if (errGroupEnrollments) console.error('[schedule/[id]] group_enrollments query failed:', errGroupEnrollments.message)
 
   const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
   const { data: exclusionsRaw } = enrollmentIds.length
@@ -157,6 +159,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
 
   return (
     <div className="max-w-2xl">
+      <DevError errors={[errGroupEnrollments?.message]} />
       <RealtimeRefresh
         channelName={`admin-schedule-${params.id}`}
         subs={[
