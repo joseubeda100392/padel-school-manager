@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     if (scheduleId) {
       const { data: schedule } = await admin
         .from('schedules')
-        .select('start_time, end_time, type, price_cents')
+        .select('start_time, end_time, type, price_cents, max_students')
         .eq('id', scheduleId)
         .single()
       if (schedule) {
@@ -124,6 +124,26 @@ export async function POST(req: NextRequest) {
             if (sStartMin < nEndMin && sEndMin > nStartMin) {
               return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
             }
+          }
+
+          // Aviso temprano de aforo antes de mandar al alumno a pagar (la
+          // comprobación real y a prueba de carreras va en el webhook vía
+          // book_paid_class_spot; esto solo evita que llegue a pagar algo
+          // que ya no está disponible).
+          const [{ data: dateBookings }, { count: activeGroupCount }] = await Promise.all([
+            admin.from('bookings').select('notes').eq('schedule_id', scheduleId).eq('class_date', classDate).eq('status', 'confirmed'),
+            admin.from('group_enrollments').select('id', { count: 'exact', head: true }).eq('schedule_id', scheduleId).eq('status', 'active'),
+          ])
+          const wholeClassTaken = (dateBookings ?? []).some((b: any) => b.notes === 'clase_entera')
+          if (wholeClassTaken) {
+            return NextResponse.json({ error: 'Esta clase ya está pagada entera por otro alumno para esta fecha' }, { status: 409 })
+          }
+          const currentCount = (dateBookings?.length ?? 0) + (activeGroupCount ?? 0)
+          if (wholeClass && currentCount > 0) {
+            return NextResponse.json({ error: 'Ya hay alumnos apuntados a esta clase, no se puede pagar como clase entera' }, { status: 409 })
+          }
+          if (!wholeClass && (schedule as any).max_students && currentCount >= (schedule as any).max_students) {
+            return NextResponse.json({ error: 'La clase ya está completa' }, { status: 409 })
           }
         }
       }

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { verifySignature, parseRedsysResponse, isPaymentSuccessful } from '@/lib/redsys'
+import { sendPushToUsers } from '@/lib/push'
 
 export async function POST(req: NextRequest) {
   const adminSupabase = createClient(
@@ -90,30 +91,75 @@ export async function POST(req: NextRequest) {
         .eq('id', meta.exclusion_id)
     }
 
-    let existingQuery = adminSupabase
-      .from('bookings')
-      .select('id')
-      .eq('schedule_id', meta.schedule_id)
-      .eq('student_id', payment.user_id)
-      .neq('status', 'cancelled')
     if (meta.class_date) {
-      existingQuery = existingQuery.eq('class_date', meta.class_date)
-    }
-    const { data: existing } = await existingQuery.maybeSingle()
-
-    if (!existing) {
-      const { error: bookingErr } = await adminSupabase.from('bookings').insert({
-        schedule_id: meta.schedule_id,
-        student_id: payment.user_id,
-        status: 'confirmed',
-        source: 'pay_per_class',
-        club_id: payment.club_id ?? null,
-        class_date: meta.class_date ?? null,
+      // Aforo comprobado de forma atómica (bloqueo de la fila de schedules) —
+      // evita que dos pagos simultáneos superen max_students, y que alguien
+      // pague su plaza individual sobre una fecha ya cubierta por "clase
+      // entera". El dinero ya se ha cobrado en Redsys en este punto: si la
+      // clase ya está completa/cubierta no se puede simplemente rechazar el
+      // pago, así que se deja constancia en el pago y se avisa al admin para
+      // que lo resuelva a mano (reembolso, contactar al alumno, etc.).
+      const { data: rpcResult, error: rpcErr } = await adminSupabase.rpc('book_paid_class_spot', {
+        p_schedule_id: meta.schedule_id,
+        p_student_id: payment.user_id,
+        p_class_date: meta.class_date,
+        p_whole_class: meta.whole_class ?? false,
       })
-      if (bookingErr) {
-        console.error('[webhook] single_class booking failed:', bookingErr.message)
+
+      if (rpcErr) {
+        console.error('[webhook] single_class booking RPC failed:', rpcErr.message)
         await revertToPending()
         return NextResponse.json({ error: 'booking_failed' }, { status: 500 })
+      }
+
+      if (rpcResult?.error) {
+        console.error('[webhook] single_class capacity conflict:', rpcResult.error, 'payment', payment.id)
+        await adminSupabase
+          .from('payments')
+          .update({ metadata: { ...meta, capacity_conflict: rpcResult.error } })
+          .eq('id', payment.id)
+
+        const { data: admins } = await adminSupabase
+          .from('users')
+          .select('id')
+          .eq('club_id', payment.club_id)
+          .in('role', ['admin', 'super_admin'])
+        const adminIds = (admins ?? []).map((a) => a.id)
+        if (adminIds.length) {
+          await sendPushToUsers(adminIds, {
+            title: 'Conflicto de aforo — pago ya cobrado',
+            body: `Un alumno ha pagado una clase para el ${meta.class_date} que ya está completa/cubierta. Revisa el pago ${payment.id} para gestionar el reembolso.`,
+          }, 'admin_message')
+        }
+        // No se revierte a pending: el cobro en Redsys ya se hizo y es
+        // definitivo, revertir el status aquí no deshace el cargo real.
+      }
+    } else {
+      // Camino de compatibilidad si algún día llega sin class_date (no
+      // ocurre en los flujos actuales de la app): comportamiento anterior,
+      // sin chequeo de aforo.
+      const { data: existing } = await adminSupabase
+        .from('bookings')
+        .select('id')
+        .eq('schedule_id', meta.schedule_id)
+        .eq('student_id', payment.user_id)
+        .neq('status', 'cancelled')
+        .maybeSingle()
+
+      if (!existing) {
+        const { error: bookingErr } = await adminSupabase.from('bookings').insert({
+          schedule_id: meta.schedule_id,
+          student_id: payment.user_id,
+          status: 'confirmed',
+          source: 'pay_per_class',
+          club_id: payment.club_id ?? null,
+          class_date: null,
+        })
+        if (bookingErr) {
+          console.error('[webhook] single_class booking failed:', bookingErr.message)
+          await revertToPending()
+          return NextResponse.json({ error: 'booking_failed' }, { status: 500 })
+        }
       }
     }
 
