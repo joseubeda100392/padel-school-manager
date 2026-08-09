@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   const uniqueClubIds = [...new Set(mandates.map(m => m.club_id))]
   const { data: clubsData } = await admin
     .from('clubs')
-    .select('id, redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env')
+    .select('id, redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env, features')
     .in('id', uniqueClubIds)
   const clubMap = Object.fromEntries((clubsData ?? []).map((c: any) => [c.id, c]))
 
@@ -53,18 +53,38 @@ export async function POST(req: NextRequest) {
       continue
     }
 
+    // Módulo de validación de clases: descontar clases no dadas por causa
+    // del club de las inscripciones activas de este alumno, si aplica.
+    let discountedEnrollmentIds: string[] = []
+    let mandateDiscountCents = 0
+    if ((club as any)?.features?.enable_class_validation) {
+      const { data: studentEnrollments } = await admin
+        .from('group_enrollments')
+        .select('id, price_per_class_cents, discount_classes_pending')
+        .eq('student_id', mandate.user_id)
+        .eq('club_id', mandate.club_id)
+        .eq('status', 'active')
+        .gt('discount_classes_pending', 0)
+      for (const e of studentEnrollments ?? []) {
+        if (!e.price_per_class_cents) continue
+        mandateDiscountCents += e.discount_classes_pending * e.price_per_class_cents
+        discountedEnrollmentIds.push(e.id)
+      }
+    }
+    const chargeAmountCents = Math.max(0, mandate.amount_cents - mandateDiscountCents)
+
     const orderId = generateOrderId()
 
     // Registrar el pago como pending antes de llamar a Redsys
     const { data: payment, error: payInsertErr } = await admin.from('payments').insert({
       user_id: mandate.user_id,
       club_id: mandate.club_id,
-      amount: mandate.amount_cents,
+      amount: chargeAmountCents,
       currency: 'eur',
       type: 'mandate_charge',
       status: 'pending',
       redsys_order_id: orderId,
-      metadata: { mandate_id: mandate.id },
+      metadata: { mandate_id: mandate.id, ...(mandateDiscountCents > 0 ? { discount_applied_cents: mandateDiscountCents } : {}) },
     }).select('id').single()
 
     if (payInsertErr || !payment) {
@@ -81,7 +101,7 @@ export async function POST(req: NextRequest) {
         terminal,
         env,
         identifier: mandate.redsys_identifier!,
-        amountCents: mandate.amount_cents,
+        amountCents: chargeAmountCents,
         orderId,
       })
     } catch (err) {
@@ -104,7 +124,7 @@ export async function POST(req: NextRequest) {
       }).eq('id', mandate.id),
       ...(success ? [
         admin.from('group_enrollments')
-          .update({ paid_until: paidUntil })
+          .update({ paid_until: paidUntil, discount_classes_pending: 0 })
           .eq('student_id', mandate.user_id)
           .eq('club_id', mandate.club_id)
           .eq('status', 'active'),

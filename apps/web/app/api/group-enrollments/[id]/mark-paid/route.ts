@@ -16,7 +16,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const { data: enrollment } = await admin
     .from('group_enrollments')
-    .select('student_id, monthly_price, club_id')
+    .select('student_id, monthly_price, club_id, price_per_class_cents, discount_classes_pending')
     .eq('id', params.id)
     .single()
 
@@ -31,21 +31,38 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const clubId = enrollment.club_id ?? adminUser.club_id
 
-  const { error: enrollErr } = await admin.from('group_enrollments').update({ paid_until: paidUntil }).eq('id', params.id)
+  // Módulo de validación de clases: si hay clases pendientes de descontar
+  // (no dadas por causa del club) y precio por clase configurado, se
+  // resta del importe habitual en vez de cobrar la cuota fija completa.
+  const { data: club } = clubId ? await admin.from('clubs').select('features').eq('id', clubId).single() : { data: null }
+  const validationOn = !!(club as any)?.features?.enable_class_validation
+  const pendingDiscount = enrollment.discount_classes_pending ?? 0
+  const discountCents = validationOn && enrollment.price_per_class_cents && pendingDiscount > 0
+    ? pendingDiscount * enrollment.price_per_class_cents
+    : 0
+  const amountToCharge = Math.max(0, enrollment.monthly_price - discountCents)
+
+  const enrollmentUpdate: Record<string, unknown> = { paid_until: paidUntil }
+  if (discountCents > 0) enrollmentUpdate.discount_classes_pending = 0
+
+  const { error: enrollErr } = await admin.from('group_enrollments').update(enrollmentUpdate).eq('id', params.id)
   if (enrollErr) return NextResponse.json({ error: enrollErr.message }, { status: 500 })
 
   const { error: paymentError } = await admin.from('payments').insert({
     user_id: enrollment.student_id,
     club_id: clubId,
-    amount: enrollment.monthly_price,
+    amount: amountToCharge,
     type: 'fixed_group_month',
     status: 'succeeded',
-    metadata: { enrollment_id: params.id, method: 'cash', paid_until: paidUntil },
+    metadata: {
+      enrollment_id: params.id, method: 'cash', paid_until: paidUntil,
+      ...(discountCents > 0 ? { discount_applied_cents: discountCents, discount_classes: pendingDiscount } : {}),
+    },
   })
 
   if (paymentError) {
     return NextResponse.json({ error: paymentError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, paidUntil })
+  return NextResponse.json({ ok: true, paidUntil, amountCharged: amountToCharge, discountCents })
 }

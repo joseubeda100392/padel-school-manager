@@ -80,7 +80,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
 
   const { data: groupEnrollments } = await admin
     .from('group_enrollments')
-    .select('id, monthly_price, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
+    .select('id, monthly_price, price_per_class_cents, discount_classes_pending, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
     .eq('schedule_id', params.id)
     .eq('status', 'active')
     .order('enrolled_at')
@@ -235,6 +235,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           initialEnrollments={(groupEnrollments ?? []).map((e: any) => ({
             id: e.id,
             monthly_price: e.monthly_price,
+            price_per_class_cents: e.price_per_class_cents,
+            discount_classes_pending: e.discount_classes_pending,
             paid_until: e.paid_until,
             status: e.status,
             student: { id: e.student?.id, name: e.student?.name, email: e.student?.email },
@@ -244,6 +246,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           defaultMonthlyPrice={mostCommonMonthlyPrice(groupEnrollments ?? [])}
           enablePayments={paymentsActive}
           enableSpots={features.enable_spots}
+          enableClassValidation={features.enable_class_validation}
         />
       </div>
 

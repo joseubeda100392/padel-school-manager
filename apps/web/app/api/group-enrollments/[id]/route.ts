@@ -22,9 +22,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json()
+  const updates: Record<string, unknown> = {}
+  if (body.monthly_price !== undefined) updates.monthly_price = body.monthly_price
+  if (body.price_per_class_cents !== undefined) updates.price_per_class_cents = body.price_per_class_cents
+
   const { error } = await admin
     .from('group_enrollments')
-    .update({ monthly_price: body.monthly_price })
+    .update(updates)
     .eq('id', params.id)
 
   if (error) return NextResponse.json({ error: 'Error al actualizar la inscripción' }, { status: 500 })

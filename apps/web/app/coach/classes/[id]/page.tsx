@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { ClassSessionMarker } from './class-session-marker'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -99,6 +100,33 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
   const bookingCount = bookings?.length ?? 0
   const enrolled = groupCount + bookingCount
 
+  const todayDow = new Date(todaySpain + 'T12:00:00Z').getUTCDay()
+  const scheduleDow = new Date(schedule.start_time).getUTCDay()
+  const isClassDayToday = todayDow === scheduleDow
+
+  let existingSessionData: { status: 'given' | 'not_given'; cancel_reason: string | null; confirmed_by_admin: string | null; absentStudentIds: string[] } | null = null
+  if (features.enable_class_validation && isClassDayToday) {
+    const { data: sessionRow } = await admin
+      .from('class_sessions')
+      .select('id, status, cancel_reason, confirmed_by_admin')
+      .eq('schedule_id', params.id)
+      .eq('session_date', todaySpain)
+      .maybeSingle()
+    if (sessionRow) {
+      const { data: absences } = await admin
+        .from('class_session_absences')
+        .select('student_id')
+        .eq('class_session_id', sessionRow.id)
+      existingSessionData = {
+        status: sessionRow.status as 'given' | 'not_given',
+        cancel_reason: sessionRow.cancel_reason,
+        confirmed_by_admin: sessionRow.confirmed_by_admin,
+        absentStudentIds: (absences ?? []).map((a) => a.student_id),
+      }
+    }
+  }
+  const todayLabel = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ }).format(new Date(todaySpain + 'T12:00:00Z'))
+
   return (
     <div className="max-w-2xl">
       <DevError errors={[errEnrollments?.message, errBookings?.message]} />
@@ -151,6 +179,20 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
           <p className="mt-1 text-xs text-gray-400">{schedule.max_students - enrolled} plazas libres</p>
         </div>
       </div>
+
+      {features.enable_class_validation && isClassDayToday && (
+        <div className="mb-6">
+          <ClassSessionMarker
+            scheduleId={params.id}
+            sessionDate={todaySpain}
+            sessionDateLabel={todayLabel}
+            students={(groupEnrollments ?? [])
+              .map((e: any) => ({ id: e.student?.id, name: e.student?.name }))
+              .filter((s: any) => s.id)}
+            existingSession={existingSessionData}
+          />
+        </div>
+      )}
 
       {/* Grupo fijo */}
       {groupCount > 0 && (

@@ -8,6 +8,8 @@ import { StudentCombobox } from '@/components/student-combobox'
 interface Enrollment {
   id: string
   monthly_price: number
+  price_per_class_cents?: number | null
+  discount_classes_pending?: number
   paid_until: string | null
   status: string
   student: { id: string; name: string; email: string }
@@ -58,6 +60,7 @@ export default function GroupEnrollment({
   defaultMonthlyPrice,
   enablePayments = true,
   enableSpots = true,
+  enableClassValidation = false,
 }: {
   scheduleId: string
   scheduleStartTime: string
@@ -67,6 +70,7 @@ export default function GroupEnrollment({
   defaultMonthlyPrice: number
   enablePayments?: boolean
   enableSpots?: boolean
+  enableClassValidation?: boolean
 }) {
   const router = useRouter()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
@@ -79,6 +83,8 @@ export default function GroupEnrollment({
   const [markPaidError, setMarkPaidError] = useState<string | null>(null)
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
   const [editingPriceValue, setEditingPriceValue] = useState(0)
+  const [editingPerClassId, setEditingPerClassId] = useState<string | null>(null)
+  const [editingPerClassValue, setEditingPerClassValue] = useState(0)
   const [faltaFormId, setFaltaFormId] = useState<string | null>(null)
   const [faltaDate, setFaltaDate] = useState('')
   const [faltaPublish, setFaltaPublish] = useState(true)
@@ -144,6 +150,24 @@ export default function GroupEnrollment({
       prev.map((e) => e.id === id ? { ...e, monthly_price: editingPriceValue } : e)
     )
     setEditingPriceId(null)
+  }
+
+  async function handleUpdatePerClassPrice(id: string) {
+    setLoadingId(id)
+    const res = await fetch(`/api/group-enrollments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ price_per_class_cents: editingPerClassValue }),
+    })
+    setLoadingId(null)
+    if (!res.ok) {
+      toast.error('No se pudo actualizar el precio por clase')
+      return
+    }
+    setEnrollments((prev) =>
+      prev.map((e) => e.id === id ? { ...e, price_per_class_cents: editingPerClassValue } : e)
+    )
+    setEditingPerClassId(null)
   }
 
   async function handleMarkPaid(id: string) {
@@ -294,6 +318,36 @@ export default function GroupEnrollment({
                       {(e.monthly_price / 100).toFixed(2)}€/mes ✎
                     </button>
                   ))}
+
+                  {enableClassValidation && enablePayments && (editingPerClassId === e.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        onFocus={ev => ev.target.select()}
+                        value={editingPerClassValue === 0 ? '' : String(editingPerClassValue / 100)}
+                        onChange={(ev) => setEditingPerClassValue(Math.round(Number(ev.target.value) * 100))}
+                        className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+                        autoFocus
+                      />
+                      <button onClick={() => handleUpdatePerClassPrice(e.id)} className="text-xs font-medium text-brand-500">✓</button>
+                      <button onClick={() => setEditingPerClassId(null)} className="text-xs text-gray-400">✕</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setEditingPerClassId(e.id); setEditingPerClassValue(e.price_per_class_cents ?? 0) }}
+                      className="text-xs font-medium text-gray-500 hover:text-brand-500"
+                      title="Precio por clase suelta (para el descuento de clases no dadas)"
+                    >
+                      {e.price_per_class_cents ? `${(e.price_per_class_cents / 100).toFixed(2)}€/clase ✎` : 'Sin precio/clase ✎'}
+                    </button>
+                  ))}
+
+                  {enableClassValidation && (e.discount_classes_pending ?? 0) > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                      −{e.discount_classes_pending} clase{e.discount_classes_pending === 1 ? '' : 's'} el próximo cobro
+                    </span>
+                  )}
 
                   {enablePayments && (
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>

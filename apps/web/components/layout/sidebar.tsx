@@ -18,6 +18,7 @@ import {
   LogOut,
   Zap,
   Receipt,
+  ClipboardCheck,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -31,6 +32,7 @@ const baseNavItems = [
   { href: '/dashboard/schedule', label: 'Clases', icon: CalendarDays, feature: null },
   { href: '/dashboard/tournaments', label: 'Torneos', icon: Medal, feature: 'enable_tournaments' },
   { href: '/dashboard/pista-viva', label: 'Pista Viva', icon: Zap, feature: 'enable_pista_viva' },
+  { href: '/dashboard/class-validation', label: 'Validación clases', icon: ClipboardCheck, feature: 'enable_class_validation' },
   { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard, feature: 'enable_payments' },
   { href: '/dashboard/chat', label: 'Chat Soporte', icon: MessageSquare, feature: 'enable_chat' },
   { href: '/dashboard/materials', label: 'Materia', icon: BookOpen, feature: 'enable_materials' },

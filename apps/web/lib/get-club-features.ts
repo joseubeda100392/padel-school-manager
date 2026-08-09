@@ -14,6 +14,7 @@ export type ClubFeatures = {
   enable_tournaments: boolean
   enable_intensivos: boolean
   enable_pista_viva: boolean
+  enable_class_validation: boolean
   enable_terms: boolean
   terms_pdf_url: string
   tarifas_pdf_url: string
@@ -32,6 +33,7 @@ export const DEFAULT_FEATURES: ClubFeatures = {
   enable_tournaments: true,
   enable_intensivos: true,
   enable_pista_viva: false,
+  enable_class_validation: false,
   enable_terms: false,
   terms_pdf_url: '',
   tarifas_pdf_url: '',
