@@ -15,6 +15,7 @@ import { NotificationList } from '@/app/student/notifications/notification-list'
 import { StudentObjectives } from './student-objectives'
 import { ResetMfaButton } from './reset-mfa-button'
 import { StudentMandate } from './student-mandate'
+import { DevError } from '@/components/dev-error'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -65,7 +66,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: bagHistory },
     { data: payments },
     { data: enrollments },
-    { data: makeups },
+    { data: makeups, error: makeupsError },
     { data: studentNotifications },
     { data: checklists },
     features,
@@ -105,7 +106,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .order('enrolled_at', { ascending: false }),
     admin
       .from('makeups')
-      .select('id, original_date, makeup_date, status, notes, schedule:schedules(id, start_time)')
+      .select('id, original_date, makeup_date, status, notes, schedule:schedules!makeups_original_schedule_id_fkey(id, start_time)')
       .eq('student_id', params.id)
       .order('created_at', { ascending: false }),
     admin
@@ -134,6 +135,8 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
   if (clubId && (student as any).club_id && (student as any).club_id !== clubId) notFound()
 
+  if (makeupsError) console.error('[students/[id]] makeups query failed:', makeupsError.message)
+
   const currentLevelId = (student as any).current_level_id as string | null
   const currentLevel = currentLevelId
     ? (levels ?? []).find((l: any) => l.id === currentLevelId) ?? null
@@ -145,6 +148,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
   return (
     <div className="max-w-4xl">
+      <DevError errors={[makeupsError?.message]} />
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <a href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">
           ← Alumnos
