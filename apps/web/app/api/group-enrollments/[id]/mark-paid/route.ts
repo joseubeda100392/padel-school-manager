@@ -14,12 +14,13 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const { data: enrollment } = await admin
+  const { data: enrollment, error: enrollmentErr } = await admin
     .from('group_enrollments')
     .select('student_id, monthly_price, club_id, price_per_class_cents, discount_classes_pending')
     .eq('id', params.id)
     .single()
 
+  if (enrollmentErr) return NextResponse.json({ error: 'Error al leer la inscripción: ' + enrollmentErr.message }, { status: 500 })
   if (!enrollment) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
 
   if (adminUser.role !== 'super_admin' && enrollment.club_id && enrollment.club_id !== adminUser.club_id) {

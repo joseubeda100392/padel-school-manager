@@ -58,13 +58,14 @@ export async function POST(req: NextRequest) {
     let discountedEnrollmentIds: string[] = []
     let mandateDiscountCents = 0
     if ((club as any)?.features?.enable_class_validation) {
-      const { data: studentEnrollments } = await admin
+      const { data: studentEnrollments, error: enrollmentsErr } = await admin
         .from('group_enrollments')
         .select('id, price_per_class_cents, discount_classes_pending')
         .eq('student_id', mandate.user_id)
         .eq('club_id', mandate.club_id)
         .eq('status', 'active')
         .gt('discount_classes_pending', 0)
+      if (enrollmentsErr) console.error('[charge-mandates] discount lookup failed for mandate', mandate.id, enrollmentsErr.message)
       for (const e of studentEnrollments ?? []) {
         if (!e.price_per_class_cents) continue
         mandateDiscountCents += e.discount_classes_pending * e.price_per_class_cents
