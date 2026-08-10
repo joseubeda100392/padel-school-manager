@@ -2,15 +2,16 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatTime, getDayOfWeek } from '@/lib/utils'
 
 const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 function dayName(dateStr: string) {
-  return days[new Date(dateStr).getDay()]
+  return days[getDayOfWeek(dateStr)]
 }
 
 function timeOnly(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  return formatTime(dateStr)
 }
 
 export default function ScheduleTable({ schedules }: { schedules: any[] }) {
@@ -28,7 +29,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
         (s.court?.name ?? '').toLowerCase().includes(qLower) ||
         (s.coach?.name ?? '').toLowerCase().includes(qLower) ||
         (s.level?.name ?? '').toLowerCase().includes(qLower)
-      const matchDay = !day || String(new Date(s.start_time).getDay()) === day
+      const matchDay = !day || String(getDayOfWeek(s.start_time)) === day
       const matchType = !type || (s.type ?? 'regular') === type
       return matchQ && matchDay && matchType
     })

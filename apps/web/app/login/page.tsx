@@ -24,7 +24,11 @@ export default function LoginPage() {
       return
     }
 
-    const role = data.user?.user_metadata?.role
+    // user_metadata puede desincronizarse del rol real en la tabla users
+    // (p.ej. cuentas creadas fuera del flujo estándar) — la tabla es la
+    // fuente de verdad, no el JWT metadata.
+    const { data: profile } = await supabase.from('users').select('role').eq('id', data.user!.id).single()
+    const role = profile?.role ?? data.user?.user_metadata?.role
 
     if (role === 'admin' || role === 'super_admin') {
       const { data: factorsData } = await supabase.auth.mfa.listFactors()

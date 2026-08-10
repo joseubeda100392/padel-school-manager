@@ -58,7 +58,8 @@ export default async function StudentSchedulePage() {
       id, monthly_price, paid_until, enrolled_at,
       schedule:schedules(id, start_time, end_time, max_students,
         court:courts(name),
-        level:levels(name, color)
+        level:levels(name, color),
+        coach:users!schedules_coach_id_fkey(name)
       )
     `)
     .eq('student_id', user.id)
@@ -136,6 +137,7 @@ export default async function StudentSchedulePage() {
         startTime: formatTime(schedule?.start_time),
         endTime: formatTime(schedule?.end_time),
         courtName: schedule?.court?.name ?? '—',
+        coachName: schedule?.coach?.name ?? null,
         level: schedule?.level ?? null,
       },
       exclusions: myExclusions,

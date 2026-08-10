@@ -24,6 +24,7 @@ interface ScheduleItem {
     startTime: string
     endTime: string
     courtName: string
+    coachName: string | null
     level: { name: string; color: string } | null
   }
   exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
@@ -90,7 +91,9 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
             <p className="text-lg font-bold text-gray-900">
               {item.schedule.dayLabel} · {item.schedule.startTime} – {item.schedule.endTime}
             </p>
-            <p className="mt-0.5 text-sm text-gray-500">{item.schedule.courtName}</p>
+            <p className="mt-0.5 text-sm text-gray-500">
+              {item.schedule.courtName}{item.schedule.coachName ? ` · Monitor: ${item.schedule.coachName}` : ''}
+            </p>
             {item.schedule.level && (
               <span
                 className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
