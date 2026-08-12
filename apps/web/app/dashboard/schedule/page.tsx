@@ -102,16 +102,27 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     }
   }
 
-  // Fetch spot bookings only for the specific next occurrence date of each schedule
+  // Fetch spot bookings only for the specific next occurrence date of each schedule, and
+  // time overrides — ambas dependen solo de rawSchedules, ninguna de la otra: en paralelo.
   const uniqueNextDates = [...new Set(Object.values(nextDateMap))]
-  const { data: spotBookingsRaw } = uniqueNextDates.length
-    ? await admin
-        .from('bookings')
-        .select('schedule_id, class_date')
-        .eq('status', 'confirmed')
-        .not('class_date', 'is', null)
-        .in('class_date', uniqueNextDates)
-    : { data: [] }
+  const allScheduleIds = (rawSchedules ?? []).map((s: any) => s.id)
+  const [{ data: spotBookingsRaw }, { data: timeOverrides }] = await Promise.all([
+    uniqueNextDates.length
+      ? admin
+          .from('bookings')
+          .select('schedule_id, class_date')
+          .eq('status', 'confirmed')
+          .not('class_date', 'is', null)
+          .in('class_date', uniqueNextDates)
+      : { data: [] },
+    allScheduleIds.length
+      ? admin
+          .from('schedule_time_overrides')
+          .select('schedule_id, override_date, new_start_time, new_end_time')
+          .in('schedule_id', allScheduleIds)
+          .gte('override_date', todaySpain)
+      : { data: [] },
+  ])
 
   const spotCountMap: Record<string, number> = {}
   for (const b of spotBookingsRaw ?? []) {
@@ -125,15 +136,6 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     bookings_count: (groupAttendingMap[s.id] ?? 0) + (spotCountMap[s.id] ?? 0),
     is_fixed_group: isFixedGroupMap[s.id] ?? false,
   }))
-
-  const allScheduleIds = (rawSchedules ?? []).map((s: any) => s.id)
-  const { data: timeOverrides } = allScheduleIds.length
-    ? await admin
-        .from('schedule_time_overrides')
-        .select('schedule_id, override_date, new_start_time, new_end_time')
-        .in('schedule_id', allScheduleIds)
-        .gte('override_date', todaySpain)
-    : { data: [] }
 
   return (
     <div>

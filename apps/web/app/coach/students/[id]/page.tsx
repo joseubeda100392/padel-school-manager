@@ -16,31 +16,30 @@ export default async function CoachStudentPage({ params }: { params: { id: strin
   const { data: coach } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   if (!coach || coach.role !== 'coach') redirect('/coach')
 
-  const { data: coachSchedules } = await admin
-    .from('schedules')
-    .select('id')
-    .eq('coach_id', user.id)
-
-  const scheduleIds = (coachSchedules ?? []).map((s: any) => s.id)
-
-  const [{ data: student }, { data: checklists }, { data: enrollment }] = await Promise.all([
+  // coachSchedules, student y checklists son independientes entre sí — solo
+  // enrollment necesita esperar a coachSchedules (para su scheduleIds).
+  const [{ data: coachSchedules }, { data: student }, { data: checklists }] = await Promise.all([
+    admin.from('schedules').select('id').eq('coach_id', user.id),
     admin.from('users').select('id, name, email, current_level_id').eq('id', params.id).eq('club_id', coach.club_id).single(),
     admin
       .from('student_checklists')
       .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at, completed_by_id)')
       .eq('student_id', params.id)
       .order('created_at', { ascending: false }),
-    scheduleIds.length > 0
-      ? admin
-          .from('group_enrollments')
-          .select('id')
-          .eq('student_id', params.id)
-          .eq('status', 'active')
-          .in('schedule_id', scheduleIds)
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
   ])
+
+  const scheduleIds = (coachSchedules ?? []).map((s: any) => s.id)
+
+  const { data: enrollment } = scheduleIds.length > 0
+    ? await admin
+        .from('group_enrollments')
+        .select('id')
+        .eq('student_id', params.id)
+        .eq('status', 'active')
+        .in('schedule_id', scheduleIds)
+        .limit(1)
+        .maybeSingle()
+    : { data: null }
 
   if (!student || !enrollment) notFound()
 

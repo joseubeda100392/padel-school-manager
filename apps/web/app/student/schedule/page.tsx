@@ -52,37 +52,26 @@ export default async function StudentSchedulePage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: enrollments } = await getAdminClient()
-    .from('group_enrollments')
-    .select(`
-      id, monthly_price, paid_until, enrolled_at,
-      schedule:schedules(id, start_time, end_time, max_students,
-        court:courts(name),
-        level:levels(name, color),
-        coach:users!schedules_coach_id_fkey(name)
-      )
-    `)
-    .eq('student_id', user.id)
-    .eq('status', 'active')
-    .order('enrolled_at')
-
-  const enrollmentIds = (enrollments ?? []).map(e => e.id)
-  const { data: exclusionsRaw } = enrollmentIds.length
-    ? await getAdminClient()
-        .from('schedule_exclusions')
-        .select('id, group_enrollment_id, excluded_date, publish_spot')
-        .in('group_enrollment_id', enrollmentIds)
-        .gte('excluded_date', today)
-        .order('excluded_date')
-    : { data: [] }
-
-  const { data: userRow } = await getAdminClient().from('users').select('club_id').eq('id', user.id).single()
-  const clubId = (userRow as any)?.club_id ?? null
-
-  const [{ data: clubRow }, { data: spotBookings }] = await Promise.all([
-    clubId
-      ? getAdminClient().from('clubs').select('config').eq('id', clubId).single()
-      : { data: null },
+  // Stage 1: solo dependen de user.id, en paralelo.
+  const [
+    { data: enrollments },
+    { data: userRow },
+    { data: spotBookings },
+  ] = await Promise.all([
+    getAdminClient()
+      .from('group_enrollments')
+      .select(`
+        id, monthly_price, paid_until, enrolled_at,
+        schedule:schedules(id, start_time, end_time, max_students,
+          court:courts(name),
+          level:levels(name, color),
+          coach:users!schedules_coach_id_fkey(name)
+        )
+      `)
+      .eq('student_id', user.id)
+      .eq('status', 'active')
+      .order('enrolled_at'),
+    getAdminClient().from('users').select('club_id').eq('id', user.id).single(),
     getAdminClient()
       .from('bookings')
       .select(`
@@ -100,30 +89,51 @@ export default async function StudentSchedulePage() {
       .order('class_date'),
   ])
 
-  const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
-  const features = await getClubFeatures(clubId)
-
+  const clubId = (userRow as any)?.club_id ?? null
+  const enrollmentIds = (enrollments ?? []).map(e => e.id)
+  const scheduleIdsForOverrides = (enrollments ?? []).map(e => (e.schedule as any)?.id).filter(Boolean)
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+
+  // Stage 2: dependen de datos de la stage 1 (clubId / enrollmentIds), pero no entre sí.
+  const [
+    { data: exclusionsRaw },
+    { data: clubRow },
+    features,
+    { data: timeOverrides },
+  ] = await Promise.all([
+    enrollmentIds.length
+      ? getAdminClient()
+          .from('schedule_exclusions')
+          .select('id, group_enrollment_id, excluded_date, publish_spot')
+          .in('group_enrollment_id', enrollmentIds)
+          .gte('excluded_date', today)
+          .order('excluded_date')
+      : { data: [] },
+    clubId
+      ? getAdminClient().from('clubs').select('config').eq('id', clubId).single()
+      : { data: null },
+    getClubFeatures(clubId),
+    scheduleIdsForOverrides.length
+      ? getAdminClient()
+          .from('schedule_time_overrides')
+          .select('schedule_id, override_date, new_start_time')
+          .in('schedule_id', scheduleIdsForOverrides)
+          .gte('override_date', todaySpain)
+      : { data: [] },
+  ])
+
+  const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
-
-  const scheduleIdsForOverrides = (enrollments ?? []).map(e => (e.schedule as any)?.id).filter(Boolean)
-  const { data: timeOverrides } = scheduleIdsForOverrides.length
-    ? await getAdminClient()
-        .from('schedule_time_overrides')
-        .select('schedule_id, override_date, new_start_time')
-        .in('schedule_id', scheduleIdsForOverrides)
-        .gte('override_date', todaySpain)
-    : { data: [] }
 
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
     const myOverrides = (timeOverrides ?? []).filter((o: any) => o.schedule_id === schedule?.id)
     const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides)
     const myExclusions = (exclusionsRaw ?? [])
-      .filter(x => x.group_enrollment_id === e.id)
-      .map(x => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))
+      .filter((x: any) => x.group_enrollment_id === e.id)
+      .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))
 
     return {
       enrollmentId: e.id,

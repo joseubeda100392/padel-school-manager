@@ -30,8 +30,16 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
   if (!schedule) notFound()
 
   const today = new Date().toISOString().split('T')[0]
+  const TZ = 'Europe/Madrid'
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
 
-  const [{ data: groupEnrollments, error: errEnrollments }, { data: bookings, error: errBookings }] = await Promise.all([
+  // Stage 1: solo dependen de schedule (ya disponible), en paralelo.
+  const [
+    { data: groupEnrollments, error: errEnrollments },
+    { data: bookings, error: errBookings },
+    features,
+    { data: todayOverride },
+  ] = await Promise.all([
     admin
       .from('group_enrollments')
       .select('id, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
@@ -44,24 +52,43 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
       .eq('schedule_id', params.id)
       .neq('status', 'cancelled')
       .order('created_at'),
+    getClubFeatures(schedule.club_id ?? undefined),
+    admin
+      .from('schedule_time_overrides')
+      .select('new_start_time, new_end_time')
+      .eq('schedule_id', params.id)
+      .eq('override_date', todaySpain)
+      .maybeSingle(),
   ])
 
   const levelIds = [...new Set((groupEnrollments ?? []).map((e: any) => e.student?.current_level_id).filter(Boolean))]
-  const { data: levelsData } = levelIds.length
-    ? await admin.from('levels').select('id, name, color').in('id', levelIds)
-    : { data: [] }
+  const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
+  const materialsQuery = admin
+    .from('materials')
+    .select('id, title, description, file_url, material_levels(level_id)')
+    .eq('is_published', true)
+    .order('created_at', { ascending: false })
+
+  // Stage 2: dependen de datos de stage 1, pero no entre sí — en paralelo.
+  const [{ data: levelsData }, { data: exclusions }, { data: allMaterials }] = await Promise.all([
+    levelIds.length
+      ? admin.from('levels').select('id, name, color').in('id', levelIds)
+      : { data: [] },
+    enrollmentIds.length
+      ? admin
+          .from('schedule_exclusions')
+          .select('group_enrollment_id, excluded_date')
+          .in('group_enrollment_id', enrollmentIds)
+          .gte('excluded_date', today)
+          .order('excluded_date')
+      : { data: [] },
+    features.enable_materials
+      ? (schedule.club_id ? materialsQuery.eq('club_id', schedule.club_id) : materialsQuery)
+      : { data: [] },
+  ])
+
   const levelsMap: Record<string, { name: string; color: string }> = {}
   for (const l of levelsData ?? []) levelsMap[l.id] = { name: l.name, color: l.color }
-
-  const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
-  const { data: exclusions } = enrollmentIds.length
-    ? await admin
-        .from('schedule_exclusions')
-        .select('group_enrollment_id, excluded_date')
-        .in('group_enrollment_id', enrollmentIds)
-        .gte('excluded_date', today)
-        .order('excluded_date')
-    : { data: [] }
 
   const exclusionsByEnrollment: Record<string, string[]> = {}
   for (const x of exclusions ?? []) {
@@ -69,30 +96,11 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
     exclusionsByEnrollment[x.group_enrollment_id].push(x.excluded_date)
   }
 
-  const features = await getClubFeatures(schedule.club_id ?? undefined)
-
-  const materialsQuery = admin
-    .from('materials')
-    .select('id, title, description, file_url, material_levels(level_id)')
-    .eq('is_published', true)
-    .order('created_at', { ascending: false })
-  const { data: allMaterials } = features.enable_materials ? await (
-    schedule.club_id ? materialsQuery.eq('club_id', schedule.club_id) : materialsQuery
-  ) : { data: [] }
   const materials = (allMaterials ?? []).filter((m: any) => {
     if (!m.material_levels || m.material_levels.length === 0) return true
     if (!schedule.level_id) return true
     return m.material_levels.some((ml: any) => ml.level_id === schedule.level_id)
   })
-
-  const TZ = 'Europe/Madrid'
-  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
-  const { data: todayOverride } = await admin
-    .from('schedule_time_overrides')
-    .select('new_start_time, new_end_time')
-    .eq('schedule_id', params.id)
-    .eq('override_date', todaySpain)
-    .maybeSingle()
 
   const start = todayOverride?.new_start_time ?? schedule.start_time
   const end = todayOverride?.new_end_time ?? schedule.end_time

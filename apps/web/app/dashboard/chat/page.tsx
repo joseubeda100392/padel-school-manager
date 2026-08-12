@@ -12,20 +12,26 @@ import { DevError } from '@/components/dev-error'
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
   const admin = getAdminClient()
-  const clubId = await getClubId()
 
-  const features = await getClubFeatures(clubId ?? undefined)
-  if (!features.enable_chat) redirect('/dashboard')
+  // clubId y currentUser no dependen entre sí — en paralelo.
+  const [clubId, { data: { user: currentUser } }] = await Promise.all([
+    getClubId(),
+    supabase.auth.getUser(),
+  ])
 
   let threadsQuery = admin
     .from('chat_threads')
     .select('id, status, created_at, user_id, club_id, user:users!chat_threads_user_id_fkey(name, email), lastMessage:chat_messages(content, created_at)')
     .eq('thread_type', 'admin')
     .order('created_at', { ascending: false })
-
   if (clubId) threadsQuery = threadsQuery.eq('club_id', clubId)
 
-  const { data: threads, error: errThreads } = await threadsQuery
+  // features y threads dependen solo de clubId, ninguno del otro — en paralelo.
+  const [features, { data: threads, error: errThreads }] = await Promise.all([
+    getClubFeatures(clubId ?? undefined),
+    threadsQuery,
+  ])
+  if (!features.enable_chat) redirect('/dashboard')
 
   const activeThreadId = searchParams.thread ?? threads?.[0]?.id ?? null
   const mobileShowChat = !!searchParams.thread
@@ -41,8 +47,6 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
       .order('created_at', { ascending: true })
     messages = data ?? []
   }
-
-  const { data: { user: currentUser } } = await supabase.auth.getUser()
 
   return (
     <div className="flex flex-col gap-2">

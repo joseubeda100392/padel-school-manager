@@ -46,22 +46,20 @@ export default async function StudentChatPage({
 
   const admin = getAdminClient()
 
-  const { data: userProfile } = await admin
-    .from('users')
-    .select('club_id')
-    .eq('id', user.id)
-    .single()
+  // userProfile y enrollments dependen solo de user.id, ninguno del otro: en paralelo.
+  const [{ data: userProfile }, { data: enrollments }] = await Promise.all([
+    admin.from('users').select('club_id').eq('id', user.id).single(),
+    // Get student's coaches from active group enrollments (admin client bypasses RLS on users join)
+    admin
+      .from('group_enrollments')
+      .select('schedule:schedules(coach_id, coach:users!schedules_coach_id_fkey(id, name))')
+      .eq('student_id', user.id)
+      .eq('status', 'active'),
+  ])
   const clubId = (userProfile?.club_id as string | null) ?? null
 
   const features = await getClubFeatures(clubId ?? undefined)
   if (!features.enable_chat) redirect('/student')
-
-  // Get student's coaches from active group enrollments (admin client bypasses RLS on users join)
-  const { data: enrollments } = await admin
-    .from('group_enrollments')
-    .select('schedule:schedules(coach_id, coach:users!schedules_coach_id_fkey(id, name))')
-    .eq('student_id', user.id)
-    .eq('status', 'active')
 
   // Deduplicate coaches
   const coachMap = new Map<string, { id: string; name: string }>()

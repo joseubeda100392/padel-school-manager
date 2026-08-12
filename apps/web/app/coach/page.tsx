@@ -34,28 +34,30 @@ export default async function CoachHomePage() {
     return getDayOfWeek(s.start_time) === todayDow
   })
 
-  // Count enrolled per today's classes
+  // Count enrolled per today's classes + time overrides — ambas dependen
+  // solo de todayIds, ninguna de la otra: en paralelo.
   const todayIds = todaySchedules.map((s: any) => s.id)
-  const { data: enrollmentCounts } = todayIds.length
-    ? await admin
-        .from('group_enrollments')
-        .select('schedule_id')
-        .in('schedule_id', todayIds)
-        .eq('status', 'active')
-    : { data: [] }
+  const [{ data: enrollmentCounts }, { data: todayOverrides }] = await Promise.all([
+    todayIds.length
+      ? admin
+          .from('group_enrollments')
+          .select('schedule_id')
+          .in('schedule_id', todayIds)
+          .eq('status', 'active')
+      : { data: [] },
+    todayIds.length
+      ? admin
+          .from('schedule_time_overrides')
+          .select('schedule_id, new_start_time, new_end_time')
+          .in('schedule_id', todayIds)
+          .eq('override_date', todaySpain)
+      : { data: [] },
+  ])
 
   const countBySchedule: Record<string, number> = {}
   for (const e of enrollmentCounts ?? []) {
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
   }
-
-  const { data: todayOverrides } = todayIds.length
-    ? await admin
-        .from('schedule_time_overrides')
-        .select('schedule_id, new_start_time, new_end_time')
-        .in('schedule_id', todayIds)
-        .eq('override_date', todaySpain)
-    : { data: [] }
   const overrideBySchedule = new Map((todayOverrides ?? []).map((o: any) => [o.schedule_id, o]))
 
   const firstName = user.user_metadata?.name?.split(' ')[0] ?? 'Monitor'

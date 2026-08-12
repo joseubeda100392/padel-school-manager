@@ -52,12 +52,15 @@ export default async function StudentSpotsPage() {
   const myLevelId: string | null = userRow?.current_level_id ?? null
   const myClubId: string | null = (userRow as any)?.club_id ?? null
 
-  const features = await getClubFeatures((userRow as any)?.club_id)
+  // features y clubRow dependen solo de myClubId, ninguno del otro: en paralelo.
+  const [features, { data: clubRow }] = await Promise.all([
+    getClubFeatures((userRow as any)?.club_id),
+    myClubId
+      ? admin.from('clubs').select('config').eq('id', myClubId).single()
+      : Promise.resolve({ data: null }),
+  ])
   if (!features.enable_spots) redirect('/student')
 
-  const { data: clubRow } = myClubId
-    ? await admin.from('clubs').select('config').eq('id', myClubId).single()
-    : { data: null }
   const holidaySet = new Set<string>((clubRow as any)?.config?.holidays ?? [])
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || today >= billingStartDate
