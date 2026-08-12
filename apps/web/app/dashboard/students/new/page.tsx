@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
+const DEFAULT_PASSWORD = 'miclave123'
+
 export default function NewStudentPage() {
   const router = useRouter()
   const [name, setName] = useState('')
@@ -13,6 +15,7 @@ export default function NewStudentPage() {
   const [levelId, setLevelId] = useState('')
   const [levels, setLevels] = useState<any[]>([])
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [tempPassword, setTempPassword] = useState(DEFAULT_PASSWORD)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -30,8 +33,6 @@ export default function NewStudentPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-
-    const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
 
     const res = await fetch('/api/admin/create-user', {
       method: 'POST',
@@ -94,6 +95,19 @@ export default function NewStudentPage() {
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             placeholder="600 000 000"
           />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Contraseña inicial *</label>
+          <input
+            value={tempPassword}
+            onChange={(e) => setTempPassword(e.target.value)}
+            required
+            minLength={6}
+            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            placeholder="Mínimo 6 caracteres"
+          />
+          <p className="mt-1 text-xs text-gray-400">Compártesela al usuario — podrá cambiarla luego desde su perfil.</p>
         </div>
 
         <div>
