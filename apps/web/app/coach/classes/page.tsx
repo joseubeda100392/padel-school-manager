@@ -71,18 +71,18 @@ export default async function CoachClassesPage({
           <p className="text-sm text-gray-500">{schedules?.length ?? 0} clases asignadas</p>
         </div>
         <div className="flex gap-2">
-          <a
+          <Link
             href="/coach/classes?view=list"
             className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${view === 'list' ? 'border-brand-500 bg-brand-50 text-brand-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
           >
             Lista
-          </a>
-          <a
+          </Link>
+          <Link
             href="/coach/classes?view=week"
             className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${view === 'week' ? 'border-brand-500 bg-brand-50 text-brand-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
           >
             Calendario
-          </a>
+          </Link>
         </div>
       </div>
 

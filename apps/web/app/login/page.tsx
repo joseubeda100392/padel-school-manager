@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -154,12 +155,12 @@ export default function LoginPage() {
             </motion.button>
           </form>
 
-          <a
+          <Link
             href="/login/forgot-password"
             className="mt-5 block text-center text-sm text-gray-400 transition hover:text-brand-500"
           >
             ¿Olvidaste tu contraseña?
-          </a>
+          </Link>
         </div>
       </motion.div>
     </main>

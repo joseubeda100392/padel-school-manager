@@ -136,9 +136,9 @@ export default async function DashboardPage() {
             </>
           )
           return stat.href ? (
-            <a key={stat.label} href={stat.href} className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full block hover:ring-2 hover:ring-brand-200 transition-all">
+            <Link key={stat.label} href={stat.href} className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full block hover:ring-2 hover:ring-brand-200 transition-all">
               {inner}
-            </a>
+            </Link>
           ) : (
             <div key={stat.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full">
               {inner}

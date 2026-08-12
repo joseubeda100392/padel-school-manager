@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { StudentChatClient } from './student-chat-client'
 import { getClubFeatures } from '@/lib/get-club-features'
 
@@ -103,7 +104,7 @@ export default async function StudentChatPage({
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Conversaciones</p>
         </div>
         <nav className="flex-1 overflow-y-auto p-1.5 space-y-1 sm:p-2">
-          <a
+          <Link
             href="/student/chat?with=admin"
             title="Administración"
             className={`flex items-center justify-center gap-2.5 rounded-lg px-1.5 py-2.5 text-sm font-medium transition-colors sm:justify-start sm:px-3 ${
@@ -112,9 +113,9 @@ export default async function StudentChatPage({
           >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">A</span>
             <span className="hidden truncate sm:block">Administración</span>
-          </a>
+          </Link>
           {coaches.map(c => (
-            <a
+            <Link
               key={c.id}
               href={`/student/chat?with=${c.id}`}
               title={c.name}
@@ -126,7 +127,7 @@ export default async function StudentChatPage({
                 {c.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
               </span>
               <span className="hidden truncate sm:block">{c.name}</span>
-            </a>
+            </Link>
           ))}
         </nav>
       </aside>

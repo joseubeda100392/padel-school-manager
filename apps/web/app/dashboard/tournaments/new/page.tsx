@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function NewTournamentPage() {
@@ -183,12 +184,12 @@ export default function NewTournamentPage() {
         )}
 
         <div className="flex gap-3 pt-2">
-          <a
+          <Link
             href="/dashboard/tournaments"
             className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
             Cancelar
-          </a>
+          </Link>
           <button
             type="submit"
             disabled={saving}

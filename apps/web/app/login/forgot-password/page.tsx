@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ForgotPasswordPage() {
@@ -37,12 +38,12 @@ export default function ForgotPasswordPage() {
             <div className="rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-600">
               Si el email existe, recibirás un enlace en breve. Revisa también la carpeta de spam.
             </div>
-            <a
+            <Link
               href="/login"
               className="block text-center text-sm text-gray-400 hover:text-brand-500"
             >
               ← Volver al login
-            </a>
+            </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,12 +69,12 @@ export default function ForgotPasswordPage() {
               {loading ? 'Enviando...' : 'Enviar enlace'}
             </button>
 
-            <a
+            <Link
               href="/login"
               className="block text-center text-sm text-gray-400 hover:text-brand-500"
             >
               ← Volver al login
-            </a>
+            </Link>
           </form>
         )}
       </div>

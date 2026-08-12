@@ -128,12 +128,12 @@ export default function NewClubPage() {
         {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
 
         <div className="flex gap-3 pt-2">
-          <a
+          <Link
             href="/dashboard/clubs"
             className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
             Cancelar
-          </a>
+          </Link>
           <button
             type="submit"
             disabled={loading}

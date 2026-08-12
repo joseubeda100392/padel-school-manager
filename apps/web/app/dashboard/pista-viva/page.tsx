@@ -39,12 +39,12 @@ export default async function PistaVivaPage() {
             Detecta pistas libres en Playtomic y notifica a tus socios
           </p>
         </div>
-        <a
+        <Link
           href="/dashboard/settings#playtomic"
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
         >
           ⚙️ Configurar Playtomic
-        </a>
+        </Link>
       </div>
 
       {/* Stats */}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 const COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6']
@@ -98,12 +99,12 @@ export default function NewLevelPage() {
         )}
 
         <div className="flex gap-3 pt-2">
-          <a
+          <Link
             href="/dashboard/levels"
             className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
             Cancelar
-          </a>
+          </Link>
           <button
             type="submit"
             disabled={loading}

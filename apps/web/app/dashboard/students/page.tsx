@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId, isSuperAdmin } from '@/lib/get-club'
+import Link from 'next/link'
 import StudentsTable from './students-table'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 
@@ -56,18 +57,18 @@ export default async function StudentsPage({ searchParams }: { searchParams: { t
           {error && <p className="mt-1 text-xs text-red-500">Error: {error.message}</p>}
         </div>
         <div className="flex flex-wrap gap-2">
-          <a
+          <Link
             href="/dashboard/students/import"
             className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100"
           >
             ↑ Importar Excel
-          </a>
-          <a
+          </Link>
+          <Link
             href="/dashboard/students/new"
             className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600"
           >
             + Nuevo usuario
-          </a>
+          </Link>
         </div>
       </div>
 

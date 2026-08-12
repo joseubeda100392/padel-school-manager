@@ -61,32 +61,55 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
   if (!schedule) notFound()
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  const nextDate = getNextDate(schedule.start_time)
 
-  const features = await getClubFeatures(schedule.club_id ?? undefined)
+  // Independientes entre sí una vez tenemos schedule — en paralelo en vez
+  // de en cadena, para no sumar la latencia de cada una por separado.
+  const [
+    features,
+    { data: clubRow },
+    { data: bookings },
+    { data: groupEnrollments, error: errGroupEnrollments },
+    { data: allStudents },
+    { data: timeOverride },
+  ] = await Promise.all([
+    getClubFeatures(schedule.club_id ?? undefined),
+    schedule.club_id
+      ? admin.from('clubs').select('config').eq('id', schedule.club_id).single()
+      : Promise.resolve({ data: null }),
+    // Simplified join: avoid nested currentLevel:levels that can fail silently
+    admin
+      .from('bookings')
+      .select('id, status, source, class_date, student_id, student:users!bookings_student_id_fkey(name, email, avatar_url)')
+      .eq('schedule_id', params.id)
+      .neq('status', 'cancelled')
+      .not('class_date', 'is', null)
+      .gte('class_date', todaySpain)
+      .order('class_date'),
+    admin
+      .from('group_enrollments')
+      .select('id, monthly_price, price_per_class_cents, discount_classes_pending, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
+      .eq('schedule_id', params.id)
+      .eq('status', 'active')
+      .order('enrolled_at'),
+    admin
+      .from('users')
+      .select('id, name, email')
+      .eq('role', 'student')
+      .eq('is_active', true)
+      .eq('club_id', schedule.club_id)
+      .order('name'),
+    admin
+      .from('schedule_time_overrides')
+      .select('id, override_date, new_start_time, new_end_time, reason')
+      .eq('schedule_id', params.id)
+      .eq('override_date', nextDate)
+      .maybeSingle(),
+  ])
+  if (errGroupEnrollments) console.error('[schedule/[id]] group_enrollments query failed:', errGroupEnrollments.message)
 
-  const { data: clubRow } = schedule.club_id
-    ? await admin.from('clubs').select('config').eq('id', schedule.club_id).single()
-    : { data: null }
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const paymentsActive = features.enable_payments && (!billingStartDate || todaySpain >= billingStartDate)
-
-  // Simplified join: avoid nested currentLevel:levels that can fail silently
-  const { data: bookings } = await admin
-    .from('bookings')
-    .select('id, status, source, class_date, student_id, student:users!bookings_student_id_fkey(name, email, avatar_url)')
-    .eq('schedule_id', params.id)
-    .neq('status', 'cancelled')
-    .not('class_date', 'is', null)
-    .gte('class_date', todaySpain)
-    .order('class_date')
-
-  const { data: groupEnrollments, error: errGroupEnrollments } = await admin
-    .from('group_enrollments')
-    .select('id, monthly_price, price_per_class_cents, discount_classes_pending, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
-    .eq('schedule_id', params.id)
-    .eq('status', 'active')
-    .order('enrolled_at')
-  if (errGroupEnrollments) console.error('[schedule/[id]] group_enrollments query failed:', errGroupEnrollments.message)
 
   const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
   const { data: exclusionsRaw } = enrollmentIds.length
@@ -112,19 +135,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
   const inferredLevelId = uniqueEnrolledLevels.length === 1 ? uniqueEnrolledLevels[0] : null
   const effectiveLevelId: string | null = schedule.level_id ?? inferredLevelId
 
-  const studentsQuery = admin
-    .from('users')
-    .select('id, name, email')
-    .eq('role', 'student')
-    .eq('is_active', true)
-    .eq('club_id', schedule.club_id)
-    .order('name')
-
-  const { data: allStudents } = await studentsQuery
-
   const start = new Date(schedule.start_time)
   const end = new Date(schedule.end_time)
-  const nextDate = getNextDate(schedule.start_time)
 
   // All upcoming spot bookings (for display in Reservas puntuales)
   const spotBookings = bookings ?? []
@@ -141,19 +153,12 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ,
   })
 
-  const { data: timeOverride } = await admin
-    .from('schedule_time_overrides')
-    .select('id, override_date, new_start_time, new_end_time, reason')
-    .eq('schedule_id', params.id)
-    .eq('override_date', nextDate)
-    .maybeSingle()
-
   const enrolledStudentIds = new Set(
     (groupEnrollments ?? []).map((e: any) => e.student?.id).filter(Boolean)
   )
   const spotAvailableStudents = (allStudents ?? [])
     .map((s: any) => ({ id: s.id, name: s.name, email: s.email }))
-    .filter((s) => !enrolledStudentIds.has(s.id))
+    .filter((s: any) => !enrolledStudentIds.has(s.id))
   const existingBookings = (bookings ?? [])
     .filter((b: any) => b.student_id)
     .map((b: any) => ({ studentId: b.student_id as string, classDate: b.class_date as string }))
@@ -171,7 +176,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <a href={backHref} className="text-sm text-gray-500 hover:text-gray-700">{backLabel}</a>
+          <Link href={backHref} className="text-sm text-gray-500 hover:text-gray-700">{backLabel}</Link>
           <span className="text-gray-300">/</span>
           <h1 className="text-2xl font-bold text-gray-900">Detalle de clase</h1>
         </div>

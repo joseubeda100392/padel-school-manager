@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ResetPasswordPage() {
@@ -64,9 +65,9 @@ export default function ResetPasswordPage() {
       <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
         <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center space-y-4">
           <p className="text-sm text-red-600">{linkError}</p>
-          <a href="/login/forgot-password" className="block text-sm text-brand-500 hover:underline">
+          <Link href="/login/forgot-password" className="block text-sm text-brand-500 hover:underline">
             Solicitar nuevo enlace
-          </a>
+          </Link>
         </div>
       </main>
     )

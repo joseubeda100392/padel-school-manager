@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { StudentChatClient } from '@/app/student/chat/student-chat-client'
 import { getClubFeatures } from '@/lib/get-club-features'
 
@@ -77,7 +78,7 @@ export default async function CoachChatPage({
         <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {/* Admin thread */}
           {adminThread && (
-            <a
+            <Link
               href={`/coach/chat?thread=${adminThread.id}`}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 activeId === adminThread.id
@@ -87,7 +88,7 @@ export default async function CoachChatPage({
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">A</span>
               <span className="truncate">Administración</span>
-            </a>
+            </Link>
           )}
 
           {/* Student threads */}
@@ -98,7 +99,7 @@ export default async function CoachChatPage({
                 const name = t.user?.name ?? 'Alumno'
                 const initials = name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
                 return (
-                  <a
+                  <Link
                     key={t.id}
                     href={`/coach/chat?thread=${t.id}`}
                     className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -116,7 +117,7 @@ export default async function CoachChatPage({
                         <p className="text-xs text-gray-400">Resuelto</p>
                       )}
                     </div>
-                  </a>
+                  </Link>
                 )
               })}
             </>

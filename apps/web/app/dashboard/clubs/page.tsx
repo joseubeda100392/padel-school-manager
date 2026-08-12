@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { ClubManageButton } from '@/components/clubs/club-manage-button'
 
@@ -44,12 +45,12 @@ export default async function ClubsPage() {
           <h1 className="font-display text-2xl font-bold text-gray-900">Clubes</h1>
           <p className="mt-1 text-sm text-gray-500">{clubs?.length ?? 0} clubes registrados</p>
         </div>
-        <a
+        <Link
           href="/dashboard/clubs/new"
           className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600"
         >
           + Nuevo club
-        </a>
+        </Link>
       </div>
 
       <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
@@ -92,12 +93,12 @@ export default async function ClubsPage() {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <ClubManageButton clubId={club.id} />
-                    <a
+                    <Link
                       href={`/dashboard/clubs/${club.id}/edit`}
                       className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
                     >
                       Editar
-                    </a>
+                    </Link>
                   </div>
                 </td>
               </tr>

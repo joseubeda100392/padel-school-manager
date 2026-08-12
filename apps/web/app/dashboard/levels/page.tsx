@@ -2,6 +2,7 @@
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
+import Link from 'next/link'
 import { LevelCard } from '@/components/levels/level-card'
 import { DevError } from '@/components/dev-error'
 
@@ -36,12 +37,12 @@ export default async function LevelsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Niveles de Juego</h1>
           <p className="text-sm text-gray-500">Gestiona los niveles y asígnalos a tus alumnos</p>
         </div>
-        <a
+        <Link
           href="/dashboard/levels/new"
           className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
         >
           + Nuevo nivel
-        </a>
+        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

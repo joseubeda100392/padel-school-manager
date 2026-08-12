@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function PrivacidadPage() {
   return (
     <div className="max-w-2xl space-y-6">
@@ -49,12 +51,12 @@ export default function PrivacidadPage() {
       <div className="rounded-xl border border-red-100 bg-red-50 p-6">
         <h2 className="text-sm font-semibold text-red-800 mb-2">Solicitar baja del club</h2>
         <p className="text-sm text-red-700 mb-4">Si quieres darte de baja y solicitar la eliminación de tus datos, escríbenos por el chat de soporte indicando que deseas causar baja. Lo gestionaremos en un plazo máximo de 30 días.</p>
-        <a
+        <Link
           href="/student/chat"
           className="inline-block rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white hover:bg-red-700"
         >
           Solicitar baja por chat
-        </a>
+        </Link>
       </div>
     </div>
   )

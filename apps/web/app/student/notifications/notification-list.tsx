@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const TYPE_ICON: Record<string, string> = {
   spot_available: '🎾',
@@ -115,9 +116,9 @@ export function NotificationList({ initial, targetUserId }: { initial: Notificat
           )
 
           return url ? (
-            <a key={n.id} href={url} className="block hover:opacity-90">
+            <Link key={n.id} href={url} className="block hover:opacity-90">
               {card}
-            </a>
+            </Link>
           ) : (
             <div key={n.id}>{card}</div>
           )

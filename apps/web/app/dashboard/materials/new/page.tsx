@@ -210,12 +210,12 @@ export default function NewMaterialPage() {
           >
             {uploading ? 'Subiendo...' : 'Subir materia'}
           </button>
-          <a
+          <Link
             href="/dashboard/materials"
             className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
             Cancelar
-          </a>
+          </Link>
         </div>
       </form>
     </div>

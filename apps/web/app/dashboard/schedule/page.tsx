@@ -7,6 +7,7 @@ import { getDayOfWeek } from '@/lib/utils'
 import ScheduleTable from './schedule-table'
 import WeeklyCalendar from './weekly-calendar'
 import ScheduleViewToggle from './schedule-view-toggle'
+import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
 
@@ -156,18 +157,18 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
         </div>
         <div className="flex items-center gap-3">
           <ScheduleViewToggle current={view} />
-          <a
+          <Link
             href="/dashboard/schedule/master"
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
           >
             Calendario maestro
-          </a>
-          <a
+          </Link>
+          <Link
             href="/dashboard/schedule/new"
             className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
           >
             + Nueva clase
-          </a>
+          </Link>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { ChatWindow } from './chat-window'
 import { DevError } from '@/components/dev-error'
 
@@ -58,7 +59,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
             <p className="p-6 text-center text-sm text-gray-400">No hay conversaciones aún.</p>
           )}
           {threads?.map((t: any) => (
-            <a
+            <Link
               key={t.id}
               href={`/dashboard/chat?thread=${t.id}`}
               className={`block border-b border-gray-50 p-4 hover:bg-gray-50 ${activeThreadId === t.id ? 'bg-brand-50 border-l-2 border-l-green-600' : ''}`}
@@ -74,7 +75,7 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
                   </span>
                 </div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </aside>
@@ -82,12 +83,12 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
       {/* Chat panel — hidden on mobile until a thread is explicitly selected */}
       <div className={`flex-col flex-1 min-w-0 ${mobileShowChat ? 'flex' : 'hidden md:flex'}`}>
         {mobileShowChat && (
-          <a
+          <Link
             href="/dashboard/chat"
             className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50 md:hidden"
           >
             ← Conversaciones
-          </a>
+          </Link>
         )}
         {activeThread ? (
           <ChatWindow

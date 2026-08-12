@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 export function ScheduleActions({ scheduleId, nextDate }: { scheduleId: string; nextDate: string }) {
   const [deleting, setDeleting] = useState(false)
@@ -45,12 +46,12 @@ export function ScheduleActions({ scheduleId, nextDate }: { scheduleId: string; 
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        <a
+        <Link
           href={`/dashboard/schedule/${scheduleId}/edit`}
           className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
         >
           Editar
-        </a>
+        </Link>
         <button
           onClick={() => setShowCancelModal(true)}
           className="rounded-lg bg-orange-50 px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-100"
