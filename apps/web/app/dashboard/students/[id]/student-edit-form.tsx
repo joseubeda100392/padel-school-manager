@@ -126,7 +126,7 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
         </div>
         <div className="flex items-center gap-3">
           <input type="checkbox" id="is_active_edit" checked={form.is_active}
-            onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+            onChange={(e) => setForm({ ...form, is_active: e.target.checked, end_date: e.target.checked ? '' : form.end_date })}
             className="h-4 w-4 rounded border-gray-300 text-brand-500" />
           <label htmlFor="is_active_edit" className="text-sm font-medium text-gray-700">Usuario activo</label>
         </div>
