@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 const statusBadge: Record<string, string> = {
   draft:     'bg-gray-100 text-gray-600',
@@ -127,7 +128,7 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
   return (
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
-        <a href="/dashboard/pista-viva" className="text-sm text-gray-500 hover:text-gray-700">← Pista Viva</a>
+        <Link href="/dashboard/pista-viva" className="text-sm text-gray-500 hover:text-gray-700">← Pista Viva</Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-xl font-bold text-gray-900">{campaign.court_name}</h1>
         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[campaign.status] ?? ''}`}>

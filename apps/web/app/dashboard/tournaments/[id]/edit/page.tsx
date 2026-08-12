@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function EditTournamentPage() {
@@ -82,7 +83,7 @@ export default function EditTournamentPage() {
   return (
     <div className="max-w-lg">
       <div className="mb-6 flex items-center gap-3">
-        <a href={`/dashboard/tournaments/${id}`} className="text-sm text-gray-400 hover:text-gray-600">← Torneo</a>
+        <Link href={`/dashboard/tournaments/${id}`} className="text-sm text-gray-400 hover:text-gray-600">← Torneo</Link>
         <span className="text-gray-200">/</span>
         <h1 className="text-2xl font-bold text-gray-900">Editar torneo</h1>
       </div>

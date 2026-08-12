@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function MandateOkPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
@@ -11,9 +13,9 @@ export default function MandateOkPage() {
         <p className="mt-2 text-sm text-gray-500">
           Tu pago se ha procesado correctamente. A partir de ahora tu cuota mensual se cobrará automáticamente.
         </p>
-        <a href="/dashboard" className="mt-6 inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+        <Link href="/dashboard" className="mt-6 inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
           Volver al panel
-        </a>
+        </Link>
       </div>
     </div>
   )

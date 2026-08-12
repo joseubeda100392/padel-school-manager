@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function NewSchedulePage() {
@@ -101,16 +102,16 @@ export default function NewSchedulePage() {
   return (
     <div className="max-w-lg">
       <div className="mb-6 flex items-center gap-3">
-        <a href="/dashboard/schedule" className="text-sm text-gray-500 hover:text-gray-700">
+        <Link href="/dashboard/schedule" className="text-sm text-gray-500 hover:text-gray-700">
           ← Horarios
-        </a>
+        </Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-2xl font-bold text-gray-900">Nueva clase</h1>
       </div>
 
       {courts.length === 0 && (
         <div className="mb-4 rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-          No hay pistas activas. <a href="/dashboard/settings" className="font-medium underline">Créalas primero en Configuración</a>.
+          No hay pistas activas. <Link href="/dashboard/settings" className="font-medium underline">Créalas primero en Configuración</Link>.
         </div>
       )}
 

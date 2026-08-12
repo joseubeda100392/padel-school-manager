@@ -1,5 +1,6 @@
 ﻿export const dynamic = 'force-dynamic'
 
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -41,9 +42,9 @@ export default async function MaterialsPage() {
         {materials?.length === 0 && (
           <div className="rounded-xl bg-white p-12 text-center shadow-sm">
             <p className="text-gray-400">No hay materias. Sube la primera.</p>
-            <a href="/dashboard/materials/new" className="mt-3 inline-block text-sm font-medium text-brand-500 hover:underline">
+            <Link href="/dashboard/materials/new" className="mt-3 inline-block text-sm font-medium text-brand-500 hover:underline">
               Subir PDF
-            </a>
+            </Link>
           </div>
         )}
 

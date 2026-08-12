@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { PlaytomicResource } from '@/lib/playtomic'
 
 // localStorage, no sessionStorage: queremos que el resultado sobreviva a
@@ -112,9 +113,9 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
           {error.includes('tenant_id') || error.includes('Playtomic no configurado') ? (
             <>
               Primero debes configurar tus credenciales de Playtomic.{' '}
-              <a href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
+              <Link href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
                 Ir a Settings → Playtomic →
-              </a>
+              </Link>
             </>
           ) : (
             <span>⚠️ {error}</span>

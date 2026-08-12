@@ -2,6 +2,7 @@
 
 import { toast } from 'sonner'
 import { useState } from 'react'
+import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -143,10 +144,10 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
                       : 'Nunca'}
                   </td>
                   <td className="px-6 py-4">
-                    <a href={`/dashboard/schedule/${e.schedule_id}`}
+                    <Link href={`/dashboard/schedule/${e.schedule_id}`}
                       className="text-xs font-medium text-brand-500 hover:underline whitespace-nowrap">
                       Marcar pagado →
-                    </a>
+                    </Link>
                   </td>
                 </tr>
               )

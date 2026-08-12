@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 
 interface Enrollment {
@@ -111,10 +112,10 @@ export function StudentEnrollments({ initialEnrollments }: { initialEnrollments:
                 {paid ? 'Al día' : `Pdte. ${currentMonth}`}
               </span>
 
-              <a href={`/dashboard/schedule/${e.schedule?.id}`}
+              <Link href={`/dashboard/schedule/${e.schedule?.id}`}
                 className="text-xs font-medium text-brand-500 hover:underline shrink-0">
                 Ver clase →
-              </a>
+              </Link>
             </div>
           )
         })}

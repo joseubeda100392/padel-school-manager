@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 interface Makeup {
   id: string
@@ -71,10 +72,10 @@ export function StudentMakeups({ initialMakeups }: { initialMakeups: Makeup[] })
                 </div>
               )}
               {m.schedule?.id && (
-                <a href={`/dashboard/schedule/${m.schedule.id}`}
+                <Link href={`/dashboard/schedule/${m.schedule.id}`}
                   className="shrink-0 text-xs font-medium text-brand-500 hover:underline">
                   Ver clase →
-                </a>
+                </Link>
               )}
             </li>
           )

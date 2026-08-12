@@ -11,6 +11,7 @@ import ScheduleMaterials from './schedule-materials'
 import { AdminAddSpotBooking } from './add-spot-booking'
 import { SpotBookingsList } from './spot-bookings-list'
 import { TimeOverride } from './time-override'
+import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { DevError } from '@/components/dev-error'
@@ -202,7 +203,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
                 </span>
               ) : (
                 <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-400">
-                  Sin nivel · <a href={`/dashboard/schedule/${params.id}/edit`} className="underline hover:text-gray-600">Asignar nivel</a>
+                  Sin nivel · <Link href={`/dashboard/schedule/${params.id}/edit`} className="underline hover:text-gray-600">Asignar nivel</Link>
                 </span>
               )}
             </div>

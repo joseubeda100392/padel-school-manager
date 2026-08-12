@@ -3,6 +3,7 @@
 import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const DEFAULT_PASSWORD = 'miclave123'
 
@@ -55,9 +56,9 @@ export default function NewStudentPage() {
   return (
     <div className="max-w-lg">
       <div className="mb-6 flex items-center gap-3">
-        <a href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">
+        <Link href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">
           ← Alumnos
-        </a>
+        </Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-2xl font-bold text-gray-900">Nuevo usuario</h1>
       </div>
@@ -129,9 +130,9 @@ export default function NewStudentPage() {
             {levels.length === 0 ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 Este club no tiene niveles creados.{' '}
-                <a href="/dashboard/levels/new" className="font-medium underline hover:text-amber-900">
+                <Link href="/dashboard/levels/new" className="font-medium underline hover:text-amber-900">
                   Crea los niveles primero
-                </a>{' '}
+                </Link>{' '}
                 para poder asignar uno al alumno.
               </div>
             ) : (

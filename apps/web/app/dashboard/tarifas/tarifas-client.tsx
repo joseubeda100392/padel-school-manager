@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 
 interface Config {
@@ -237,7 +238,7 @@ export function TarifasClient() {
       {!hasPrices && !hasPacks && (
         <p className="text-sm text-gray-400">
           Activa los módulos de pagos o bolsa en{' '}
-          <a href="/dashboard/settings" className="text-brand-500 hover:underline">Configuración → Módulos</a>
+          <Link href="/dashboard/settings" className="text-brand-500 hover:underline">Configuración → Módulos</Link>
           {' '}para configurar precios.
         </p>
       )}

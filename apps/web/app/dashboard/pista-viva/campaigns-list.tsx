@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const statusBadge: Record<string, string> = {
   draft:     'bg-gray-100 text-gray-600',
@@ -63,9 +64,9 @@ export default function CampaignsList({ campaigns: initial }: { campaigns: any[]
           </td>
           <td className="px-6 py-4">
             <div className="flex items-center gap-3">
-              <a href={`/dashboard/pista-viva/${c.id}`} className="text-sm text-brand-600 hover:underline">
+              <Link href={`/dashboard/pista-viva/${c.id}`} className="text-sm text-brand-600 hover:underline">
                 Ver →
-              </a>
+              </Link>
               <button
                 onClick={() => deleteCampaign(c.id)}
                 disabled={deleting === c.id}

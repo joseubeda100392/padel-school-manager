@@ -16,6 +16,7 @@ import { StudentObjectives } from './student-objectives'
 import { ResetMfaButton } from './reset-mfa-button'
 import { StudentMandate } from './student-mandate'
 import { DevError } from '@/components/dev-error'
+import Link from 'next/link'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -128,7 +129,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       <div className="rounded-xl bg-red-50 p-6 text-red-700">
         <p className="font-semibold">Error al cargar el alumno</p>
         <p className="text-sm">{studentError?.message ?? 'No encontrado'}</p>
-        <a href="/dashboard/students" className="mt-3 block text-sm underline">← Volver</a>
+        <Link href="/dashboard/students" className="mt-3 block text-sm underline">← Volver</Link>
       </div>
     )
   }
@@ -150,9 +151,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     <div className="max-w-4xl">
       <DevError errors={[makeupsError?.message]} />
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <a href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">
+        <Link href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">
           ← Alumnos
-        </a>
+        </Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${(student as any).is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>

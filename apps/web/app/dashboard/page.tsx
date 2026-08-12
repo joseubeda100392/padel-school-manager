@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Image from 'next/image'
+import Link from 'next/link'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -155,7 +156,7 @@ export default async function DashboardPage() {
                 <h2 className="font-semibold text-gray-900">Sin pagar — {currentMonthLabel}</h2>
                 <p className="text-xs text-gray-400">{unpaidList.length} mensualidades pendientes</p>
               </div>
-              <a href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver todos →</a>
+              <Link href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver todos →</Link>
             </div>
             {!billingActive ? (
               <p className="px-6 py-8 text-center text-sm text-gray-400">
@@ -193,12 +194,12 @@ export default async function DashboardPage() {
         <div className="rounded-xl bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <h2 className="font-semibold text-gray-900">Últimos alumnos</h2>
-            <a href="/dashboard/students/new" className="text-xs font-medium text-brand-500 hover:underline">+ Nuevo →</a>
+            <Link href="/dashboard/students/new" className="text-xs font-medium text-brand-500 hover:underline">+ Nuevo →</Link>
           </div>
           {!recentStudents?.length ? (
             <div className="px-6 py-10 text-center">
               <p className="text-sm text-gray-400">Aún no hay alumnos.</p>
-              <a href="/dashboard/students/new" className="mt-1 inline-block text-sm font-medium text-brand-500 hover:underline">Crear el primero</a>
+              <Link href="/dashboard/students/new" className="mt-1 inline-block text-sm font-medium text-brand-500 hover:underline">Crear el primero</Link>
             </div>
           ) : (
             <ul className="divide-y divide-gray-50">
@@ -217,7 +218,7 @@ export default async function DashboardPage() {
                       <p className="truncate text-sm font-medium text-gray-900">{s.name}</p>
                       <p className="truncate text-xs text-gray-400">{s.email}</p>
                     </div>
-                    <a href={`/dashboard/students/${s.id}`} className="shrink-0 text-xs font-medium text-brand-500 hover:underline">Ver →</a>
+                    <Link href={`/dashboard/students/${s.id}`} className="shrink-0 text-xs font-medium text-brand-500 hover:underline">Ver →</Link>
                   </li>
                 )
               })}
@@ -231,7 +232,7 @@ export default async function DashboardPage() {
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Alumnos por nivel</h2>
-            <a href="/dashboard/levels" className="text-xs font-medium text-brand-500 hover:underline">Gestionar →</a>
+            <Link href="/dashboard/levels" className="text-xs font-medium text-brand-500 hover:underline">Gestionar →</Link>
           </div>
           {levels.length === 0 ? (
             <p className="text-sm text-gray-400">No hay niveles creados.</p>
@@ -262,7 +263,7 @@ export default async function DashboardPage() {
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Ingresos por tipo</h2>
-            <a href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver pagos →</a>
+            <Link href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver pagos →</Link>
           </div>
           {Object.keys(revenueByType).length === 0 ? (
             <p className="text-sm text-gray-400">Sin datos de pagos aún.</p>

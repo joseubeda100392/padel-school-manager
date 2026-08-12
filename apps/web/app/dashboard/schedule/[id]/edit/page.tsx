@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function EditSchedulePage({ params }: { params: { id: string } }) {
@@ -82,7 +83,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
   return (
     <div className="max-w-lg">
       <div className="mb-6 flex items-center gap-3">
-        <a href={`/dashboard/schedule/${params.id}`} className="text-sm text-gray-500 hover:text-gray-700">← Clase</a>
+        <Link href={`/dashboard/schedule/${params.id}`} className="text-sm text-gray-500 hover:text-gray-700">← Clase</Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-2xl font-bold text-gray-900">Editar clase</h1>
       </div>
@@ -177,10 +178,10 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
 
         <div className="flex gap-3 pt-2">
-          <a href={`/dashboard/schedule/${params.id}`}
+          <Link href={`/dashboard/schedule/${params.id}`}
             className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50">
             Cancelar
-          </a>
+          </Link>
           <button type="submit" disabled={loading}
             className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
             {loading ? 'Guardando...' : 'Guardar cambios'}

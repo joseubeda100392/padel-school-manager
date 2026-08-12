@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import SlotsPanel from './slots-panel'
@@ -67,9 +68,9 @@ export default async function PistaVivaPage() {
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
           <span className="font-medium">⚙️ Configuración pendiente.</span>{' '}
           Para usar Pista Viva necesitas introducir tus credenciales de Playtomic.{' '}
-          <a href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
+          <Link href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
             Configurar ahora →
-          </a>
+          </Link>
         </div>
       )}
 

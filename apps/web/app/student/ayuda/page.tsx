@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 const NAV_ITEMS = [
   { id: 'que-es',         label: '¿Qué es?' },
   { id: 'acceso',         label: 'Cómo acceder' },
@@ -136,9 +138,9 @@ export default function AyudaPage() {
           <div className="rounded-xl bg-brand-50 border border-brand-100 p-5 text-center">
             <p className="text-sm font-semibold text-brand-700 mb-1">¿No encuentras lo que buscas?</p>
             <p className="text-sm text-brand-600 mb-3">Escríbenos directamente y te respondemos lo antes posible.</p>
-            <a href="/student/chat" className="inline-block rounded-lg bg-brand-500 px-5 py-2 text-sm font-medium text-white hover:bg-brand-600">
+            <Link href="/student/chat" className="inline-block rounded-lg bg-brand-500 px-5 py-2 text-sm font-medium text-white hover:bg-brand-600">
               Abrir chat de soporte
-            </a>
+            </Link>
           </div>
         </div>
 

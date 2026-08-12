@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 interface Level {
@@ -117,9 +118,9 @@ export default function NewMaterialPage() {
   return (
     <div className="max-w-2xl">
       <div className="mb-6 flex items-center gap-3">
-        <a href="/dashboard/materials" className="text-sm text-gray-500 hover:text-gray-700">
+        <Link href="/dashboard/materials" className="text-sm text-gray-500 hover:text-gray-700">
           ← Materias
-        </a>
+        </Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-2xl font-bold text-gray-900">Subir materia</h1>
       </div>

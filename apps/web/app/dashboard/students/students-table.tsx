@@ -1,7 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useMemo } from 'react'
+import Link from 'next/link'
+import { useState, useMemo, useDeferredValue, useCallback, memo } from 'react'
 import { formatDate } from '@/lib/utils'
 
 const roleLabel: Record<string, string> = {
@@ -66,8 +67,8 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
     URL.revokeObjectURL(url)
   }
 
-  async function saveCuota(enrollmentId: string, studentId: string) {
-    const euros = parseFloat(editingCuotaValue)
+  const saveCuota = useCallback(async (enrollmentId: string, studentId: string, value: string) => {
+    const euros = parseFloat(value)
     if (isNaN(euros) || euros < 0) return
     const cents = Math.round(euros * 100)
     setSavingCuota(true)
@@ -81,12 +82,23 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
     }
     setEditingCuotaId(null)
     setSavingCuota(false)
-  }
+  }, [])
+
+  const startEditCuota = useCallback((studentId: string, initialValue: string) => {
+    setEditingCuotaId(studentId)
+    setEditingCuotaValue(initialValue)
+  }, [])
+
+  const cancelEditCuota = useCallback(() => setEditingCuotaId(null), [])
+
+  // useDeferredValue mantiene el input reactivo al instante mientras el
+  // filtrado/repintado de las ~350 filas se procesa en segundo plano.
+  const deferredQ = useDeferredValue(q)
 
   const filtered = useMemo(() => {
-    const qLower = q.toLowerCase()
+    const qLower = deferredQ.toLowerCase()
     return students.filter((s) => {
-      const matchQ = !q || (s.name ?? '').toLowerCase().includes(qLower) || (s.email ?? '').toLowerCase().includes(qLower)
+      const matchQ = !deferredQ || (s.name ?? '').toLowerCase().includes(qLower) || (s.email ?? '').toLowerCase().includes(qLower)
       const matchRole = !role || s.role === role
       const matchStatus = status === '' || (status === 'active' ? s.is_active : !s.is_active)
       const matchLevel = !levelFilter || (
@@ -96,7 +108,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
       )
       return matchQ && matchRole && matchStatus && matchLevel
     })
-  }, [students, q, role, status, levelFilter])
+  }, [students, deferredQ, role, status, levelFilter])
 
   const isStudentTab = role === 'student'
   const colSpanCount = isStudentTab ? 10 : 7
@@ -197,111 +209,23 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
                   </td>
                 </tr>
               )}
-              {filtered.map((s) => {
-                const level = s.current_level_id ? levelMap[s.current_level_id] : null
-                const enrollment = enrollmentMap[s.id]
-                const cuotaCents = s.id in localCuotas ? localCuotas[s.id] : enrollment?.total ?? null
-                const isEditing = editingCuotaId === s.id
-
-                return (
-                  <tr key={s.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <a href={`/dashboard/students/${s.id}`} className="flex items-center gap-3 font-medium text-gray-900 hover:text-brand-500">
-                        {s.avatar_url ? (
-                          <Image src={s.avatar_url} alt={s.name} width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
-                        ) : (
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">
-                            {(s.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
-                          </div>
-                        )}
-                        {s.name}
-                      </a>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{s.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{s.phone || <span className="text-gray-300">—</span>}</td>
-                    <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${roleBadge[s.role] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {roleLabel[s.role] ?? s.role}
-                      </span>
-                    </td>
-                    {isStudentTab && (
-                      <td className="px-6 py-4">
-                        {s.role !== 'student' ? (
-                          <span className="text-sm text-gray-300">—</span>
-                        ) : level ? (
-                          <span className="rounded-full px-2.5 py-1 text-xs font-medium text-white whitespace-nowrap" style={{ backgroundColor: level.color }}>
-                            {level.name}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">Sin asignar</span>
-                        )}
-                      </td>
-                    )}
-                    <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
-                        {s.is_active ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(s.start_date ?? s.created_at)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{s.end_date ? formatDate(s.end_date) : '—'}</td>
-                    {isStudentTab && (
-                      <td className="px-6 py-4 text-sm">
-                        {s.role !== 'student' ? (
-                          <span className="text-gray-300">—</span>
-                        ) : cuotaCents === null ? (
-                          <span className="text-gray-300">—</span>
-                        ) : isEditing && enrollment?.id ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={editingCuotaValue}
-                              onChange={(e) => setEditingCuotaValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveCuota(enrollment.id!, s.id)
-                                if (e.key === 'Escape') setEditingCuotaId(null)
-                              }}
-                              className="w-20 rounded border border-brand-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => saveCuota(enrollment.id!, s.id)}
-                              disabled={savingCuota}
-                              className="rounded bg-brand-500 px-2 py-1 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-                            >
-                              ✓
-                            </button>
-                            <button onClick={() => setEditingCuotaId(null)} className="text-gray-400 hover:text-gray-600">✕</button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (enrollment?.id) {
-                                setEditingCuotaId(s.id)
-                                setEditingCuotaValue((cuotaCents / 100).toFixed(2))
-                              }
-                            }}
-                            className={`text-sm font-medium ${enrollment?.id ? 'cursor-pointer text-gray-700 hover:text-brand-500' : 'cursor-default text-gray-500'}`}
-                            title={enrollment?.id ? 'Clic para editar' : 'Múltiples matrículas — edita desde el perfil del alumno'}
-                          >
-                            {(cuotaCents / 100).toFixed(2)}€/mes{!enrollment?.id ? ' *' : ''}
-                          </button>
-                        )}
-                      </td>
-                    )}
-                    {isStudentTab && (
-                      <td className="px-6 py-4 text-sm">
-                        {s.terms_accepted_at ? (
-                          <span className="text-green-600" title={formatDate(s.terms_accepted_at)}>✓</span>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                )
-              })}
+              {filtered.map((s) => (
+                <StudentRow
+                  key={s.id}
+                  student={s}
+                  level={s.current_level_id ? levelMap[s.current_level_id] : null}
+                  enrollment={enrollmentMap[s.id]}
+                  cuotaCents={s.id in localCuotas ? localCuotas[s.id] : enrollmentMap[s.id]?.total ?? null}
+                  isStudentTab={isStudentTab}
+                  isEditing={editingCuotaId === s.id}
+                  editingValue={editingCuotaId === s.id ? editingCuotaValue : ''}
+                  savingCuota={savingCuota}
+                  onChangeCuotaValue={setEditingCuotaValue}
+                  onStartEdit={startEditCuota}
+                  onCancelEdit={cancelEditCuota}
+                  onSave={saveCuota}
+                />
+              ))}
             </tbody>
           </table>
         </div>
@@ -309,3 +233,119 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
     </>
   )
 }
+
+interface StudentRowProps {
+  student: any
+  level: any
+  enrollment: EnrollmentSummary | undefined
+  cuotaCents: number | null
+  isStudentTab: boolean
+  isEditing: boolean
+  editingValue: string
+  savingCuota: boolean
+  onChangeCuotaValue: (value: string) => void
+  onStartEdit: (studentId: string, initialValue: string) => void
+  onCancelEdit: () => void
+  onSave: (enrollmentId: string, studentId: string, value: string) => void
+}
+
+const StudentRow = memo(function StudentRow({
+  student: s, level, enrollment, cuotaCents, isStudentTab, isEditing, editingValue, savingCuota,
+  onChangeCuotaValue, onStartEdit, onCancelEdit, onSave,
+}: StudentRowProps) {
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-6 py-4">
+        <Link href={`/dashboard/students/${s.id}`} className="flex items-center gap-3 font-medium text-gray-900 hover:text-brand-500">
+          {s.avatar_url ? (
+            <Image src={s.avatar_url} alt={s.name} width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">
+              {(s.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
+            </div>
+          )}
+          {s.name}
+        </Link>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">{s.email}</td>
+      <td className="px-6 py-4 text-sm text-gray-500">{s.phone || <span className="text-gray-300">—</span>}</td>
+      <td className="px-6 py-4">
+        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${roleBadge[s.role] ?? 'bg-gray-100 text-gray-600'}`}>
+          {roleLabel[s.role] ?? s.role}
+        </span>
+      </td>
+      {isStudentTab && (
+        <td className="px-6 py-4">
+          {s.role !== 'student' ? (
+            <span className="text-sm text-gray-300">—</span>
+          ) : level ? (
+            <span className="rounded-full px-2.5 py-1 text-xs font-medium text-white whitespace-nowrap" style={{ backgroundColor: level.color }}>
+              {level.name}
+            </span>
+          ) : (
+            <span className="text-sm text-gray-400">Sin asignar</span>
+          )}
+        </td>
+      )}
+      <td className="px-6 py-4">
+        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
+          {s.is_active ? 'Activo' : 'Inactivo'}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">{formatDate(s.start_date ?? s.created_at)}</td>
+      <td className="px-6 py-4 text-sm text-gray-500">{s.end_date ? formatDate(s.end_date) : '—'}</td>
+      {isStudentTab && (
+        <td className="px-6 py-4 text-sm">
+          {s.role !== 'student' ? (
+            <span className="text-gray-300">—</span>
+          ) : cuotaCents === null ? (
+            <span className="text-gray-300">—</span>
+          ) : isEditing && enrollment?.id ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={editingValue}
+                onChange={(e) => onChangeCuotaValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onSave(enrollment.id!, s.id, editingValue)
+                  if (e.key === 'Escape') onCancelEdit()
+                }}
+                className="w-20 rounded border border-brand-300 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-brand-500"
+                autoFocus
+              />
+              <button
+                onClick={() => onSave(enrollment.id!, s.id, editingValue)}
+                disabled={savingCuota}
+                className="rounded bg-brand-500 px-2 py-1 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+              >
+                ✓
+              </button>
+              <button onClick={onCancelEdit} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                if (enrollment?.id) onStartEdit(s.id, (cuotaCents / 100).toFixed(2))
+              }}
+              className={`text-sm font-medium ${enrollment?.id ? 'cursor-pointer text-gray-700 hover:text-brand-500' : 'cursor-default text-gray-500'}`}
+              title={enrollment?.id ? 'Clic para editar' : 'Múltiples matrículas — edita desde el perfil del alumno'}
+            >
+              {(cuotaCents / 100).toFixed(2)}€/mes{!enrollment?.id ? ' *' : ''}
+            </button>
+          )}
+        </td>
+      )}
+      {isStudentTab && (
+        <td className="px-6 py-4 text-sm">
+          {s.terms_accepted_at ? (
+            <span className="text-green-600" title={formatDate(s.terms_accepted_at)}>✓</span>
+          ) : (
+            <span className="text-gray-300">—</span>
+          )}
+        </td>
+      )}
+    </tr>
+  )
+})

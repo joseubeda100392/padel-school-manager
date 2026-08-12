@@ -12,11 +12,21 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: userData } = await admin
+  const { data: userData, error: userError } = await admin
     .from('users')
-    .select('name, club_id, clubs(name), force_password_change')
+    .select('role, name, club_id, clubs(name), force_password_change')
     .eq('id', user.id)
     .single()
+
+  if (userError) console.error('[student/layout] users query failed:', userError.message)
+
+  const role = (userData as any)?.role as string | undefined
+  // Lista blanca estricta: solo 'student' se queda aquí. Cualquier otra
+  // cosa (coach, admin, o sin fila en absoluto) se manda a su sitio real
+  // en vez de dejar pasar por defecto cuando el rol no se pudo leer.
+  if (role === 'coach') redirect('/coach')
+  if (role !== 'student') redirect('/dashboard')
+
   const clubId = (userData as any)?.club_id as string | undefined
 
   const [{ data: bag }, { count: unreadCount }, features] = await Promise.all([
