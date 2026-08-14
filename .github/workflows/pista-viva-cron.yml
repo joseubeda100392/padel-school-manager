@@ -1,0 +1,15 @@
+name: Pista Viva — scan open matches
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call scan-open-matches
+        run: |
+          curl -sf -X POST "https://epadelschool.app/api/cron/scan-open-matches" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
