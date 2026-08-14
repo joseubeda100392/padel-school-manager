@@ -163,8 +163,8 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
               <Menu className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-blue-500">
-                <span className="text-xs font-bold text-white">P</span>
+              <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-lg">
+                <img src="/apple-icon" alt="ePadel School" className="h-6 w-6 object-cover" />
               </div>
               <span className="text-sm font-semibold text-gray-900">{clubName ?? 'ePadel School'}</span>
             </div>

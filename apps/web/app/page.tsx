@@ -5,8 +5,8 @@ export default function HomePage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-8">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500 text-white">
-            <span className="text-lg font-bold">P</span>
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg">
+            <img src="/apple-icon" alt="ePadel School" className="h-10 w-10 object-cover" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">ePadel School</h1>

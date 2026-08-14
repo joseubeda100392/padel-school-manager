@@ -87,8 +87,8 @@ export default function ResetPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
         <div className="mb-8 flex flex-col items-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500">
-            <span className="text-xl font-bold text-white">P</span>
+          <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
+            <img src="/apple-icon" alt="ePadel School" className="h-12 w-12 object-cover" />
           </div>
           <h1 className="text-xl font-bold text-gray-900">Nueva contraseña</h1>
         </div>

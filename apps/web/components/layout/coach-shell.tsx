@@ -124,8 +124,8 @@ export function CoachShell({ children, userName, clubName, features }: {
               <Menu className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                <span className="text-xs font-bold text-white">M</span>
+              <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-lg">
+                <img src="/apple-icon" alt="ePadel School" className="h-6 w-6 object-cover" />
               </div>
               <span className="text-sm font-semibold text-gray-900">{clubName ?? 'Monitor'}</span>
             </div>

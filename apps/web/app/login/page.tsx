@@ -69,8 +69,8 @@ export default function LoginPage() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-blue-500">
-            <span className="text-base font-bold text-white">P</span>
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl">
+            <img src="/apple-icon" alt="ePadel School" className="h-10 w-10 object-cover" />
           </div>
         </motion.div>
 
@@ -106,8 +106,8 @@ export default function LoginPage() {
         transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
       >
         <div className="w-full max-w-sm">
-          <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-blue-500 lg:hidden">
-            <span className="text-lg font-bold text-white">P</span>
+          <div className="mb-2 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl lg:hidden">
+            <img src="/apple-icon" alt="ePadel School" className="h-11 w-11 object-cover" />
           </div>
 
           <h2 className="mt-6 font-display text-2xl font-bold text-gray-900">Bienvenido</h2>
