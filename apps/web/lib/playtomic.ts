@@ -593,26 +593,27 @@ export class PlaytomicOfficialClient {
   }
 }
 
-// Nivel real del partido: consulta el nivel de cada participante ya
-// apuntado directamente vía participant_id, sea o no alumno nuestro.
-// Solo usa el número en memoria para el rango — nunca guarda nada de
-// estos jugadores. Devuelve null si no hay señal de nivel (0 participantes,
-// o fallo al consultar a todos).
+// Nivel real del partido: replica la fórmula que usa Playtomic para fijar
+// el rango de nivel al crear un partido abierto, confirmada contra dos
+// partidos reales (registro de auditoría de Manager): rango = [nivel del
+// creador - 0.25, nivel del creador + 0.75] — ancho fijo de 1.00, no
+// centrado. El creador es siempre el primer elemento de participants[]
+// en los partidos reales comprobados. Solo usa el número en memoria —
+// nunca guarda nada del creador. Puede diferir ligeramente del rango
+// original si su nivel ha cambiado desde que creó el partido (Playtomic
+// recalcula el nivel de forma continua; solo podemos consultar el actual).
 export async function getMatchLevelRange(
   client: PlaytomicOfficialClient,
   tenantId: string,
   participants: { participant_id?: string }[],
 ): Promise<{ min: number; max: number } | null> {
-  const participantIds = participants.map((p) => p.participant_id).filter((id): id is string => !!id)
-  const levels: number[] = []
-  for (const pid of participantIds) {
-    try {
-      const player = await client.getPlayerById(tenantId, pid)
-      if (player?.level != null) levels.push(player.level)
-    } catch {
-      // fallo puntual al consultar un jugador — no interrumpe el resto
-    }
+  const creatorId = participants[0]?.participant_id
+  if (!creatorId) return null
+  try {
+    const creator = await client.getPlayerById(tenantId, creatorId)
+    if (creator?.level == null) return null
+    return { min: creator.level - 0.25, max: creator.level + 0.75 }
+  } catch {
+    return null
   }
-  if (!levels.length) return null
-  return { min: Math.min(...levels) - 0.3, max: Math.max(...levels) + 0.3 }
 }
