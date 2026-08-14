@@ -479,6 +479,23 @@ export class PlaytomicOfficialClient {
     return { players: all, truncated: hasMore }
   }
 
+  // Jugador individual del venue — usado por el opt-in de Pista Viva para
+  // sincronizar el nivel real de UN usuario que enlazó su propio perfil de
+  // Playtomic (nunca para importar en bloque). Devuelve null si ese
+  // player_id no pertenece a este venue.
+  async getPlayerById(tenantId: string, playerId: string): Promise<PlaytomicPlayer | null> {
+    if (!this.token) throw new Error('Not authenticated')
+    const res = await fetchWithRetry(`${OFFICIAL_BASE}/venues/${tenantId}/players/${playerId}?include=SPORTS`, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    })
+    if (res.status === 404) return null
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`getPlayerById failed: ${res.status} — ${text}`)
+    }
+    return this.mapRawPlayer(await res.json())
+  }
+
   // Diagnóstico: trae una muestra sin paginar y sin mapear, tal cual la
   // devuelve Playtomic (con SPORTS/nivel incluido) — para inspeccionar qué
   // campos trae de verdad antes de decidir si compensa importarlos.

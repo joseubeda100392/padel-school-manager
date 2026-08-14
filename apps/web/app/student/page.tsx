@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { PasswordForm } from './password-form'
+import { PistaVivaOptin } from './pista-viva-optin'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -34,7 +35,7 @@ export default async function StudentHomePage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: userData } = await admin.from('users').select('name, email, current_level_id, club_id').eq('id', user.id).single()
+  const { data: userData } = await admin.from('users').select('name, email, current_level_id, club_id, pista_viva_optin, playtomic_level').eq('id', user.id).single()
   const clubId = (userData as any)?.club_id as string | undefined
 
   const today = new Date().toISOString().split('T')[0]
@@ -263,6 +264,14 @@ export default async function StudentHomePage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Pista Viva */}
+      {features.enable_pista_viva && (
+        <PistaVivaOptin
+          optedIn={(userData as any)?.pista_viva_optin ?? false}
+          level={(userData as any)?.playtomic_level ?? null}
+        />
       )}
 
       {/* Cambiar contraseña */}
