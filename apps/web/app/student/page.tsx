@@ -37,12 +37,16 @@ export default async function StudentHomePage() {
   const admin = getAdminClient()
   const { data: userData } = await admin.from('users').select('name, email, current_level_id, club_id, pista_viva_optin, playtomic_level').eq('id', user.id).single()
   const clubId = (userData as any)?.club_id as string | undefined
+  const myPistaVivaLevel = (userData as any)?.playtomic_level as number | null
 
   const today = new Date().toISOString().split('T')[0]
   const TZ = 'Europe/Madrid'
 
-  const [features, { data: bag }, { data: enrollments }, { data: spots }, { data: capacitySchedules }, { data: mySpotBookings }, { data: clubRow }] = await Promise.all([
-    getClubFeatures(clubId),
+  // features se resuelve antes del resto porque el resto necesita saber si
+  // Pista Viva está activa en este club antes de decidir si consultar sus partidos.
+  const features = await getClubFeatures(clubId)
+
+  const [{ data: bag }, { data: enrollments }, { data: spots }, { data: capacitySchedules }, { data: mySpotBookings }, { data: clubRow }, { data: pistaVivaMatches }] = await Promise.all([
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
       .from('group_enrollments')
@@ -61,6 +65,17 @@ export default async function StudentHomePage() {
     clubId
       ? admin.from('clubs').select('config').eq('id', clubId).single()
       : Promise.resolve({ data: null }),
+    features.enable_pista_viva && clubId && myPistaVivaLevel != null
+      ? admin
+          .from('pista_viva_open_match_alerts')
+          .select('playtomic_match_id, court_name, slot_datetime, level_min, level_max')
+          .eq('club_id', clubId)
+          .eq('status', 'sent')
+          .lte('level_min', myPistaVivaLevel)
+          .gte('level_max', myPistaVivaLevel)
+          .gt('slot_datetime', new Date().toISOString())
+          .order('slot_datetime', { ascending: true })
+      : Promise.resolve({ data: [] }),
   ])
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
@@ -271,6 +286,7 @@ export default async function StudentHomePage() {
         <PistaVivaOptin
           optedIn={(userData as any)?.pista_viva_optin ?? false}
           level={(userData as any)?.playtomic_level ?? null}
+          matches={pistaVivaMatches ?? []}
         />
       )}
 

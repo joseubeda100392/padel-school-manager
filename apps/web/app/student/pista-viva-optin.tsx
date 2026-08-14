@@ -2,12 +2,21 @@
 
 import { useState } from 'react'
 
+type OpenMatch = {
+  playtomic_match_id: string
+  court_name: string | null
+  slot_datetime: string
+  level_min: number | null
+  level_max: number | null
+}
+
 type Props = {
   optedIn: boolean
   level: number | null
+  matches: OpenMatch[]
 }
 
-export function PistaVivaOptin({ optedIn, level }: Props) {
+export function PistaVivaOptin({ optedIn, level, matches }: Props) {
   const [isOptedIn, setIsOptedIn] = useState(optedIn)
   const [currentLevel, setCurrentLevel] = useState(level)
   const [profileUrl, setProfileUrl] = useState('')
@@ -56,21 +65,53 @@ export function PistaVivaOptin({ optedIn, level }: Props) {
       </div>
 
       {isOptedIn ? (
-        <div className="flex items-center justify-between rounded-lg bg-brand-50 px-4 py-3">
-          <div>
-            <p className="text-sm font-medium text-brand-700">Avisos activados</p>
-            {currentLevel != null && (
-              <p className="text-xs text-brand-600">Tu nivel Playtomic: {currentLevel.toFixed(2)}</p>
-            )}
+        <>
+          <div className="flex items-center justify-between rounded-lg bg-brand-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-brand-700">Avisos activados</p>
+              {currentLevel != null && (
+                <p className="text-xs text-brand-600">Tu nivel Playtomic: {currentLevel.toFixed(2)}</p>
+              )}
+            </div>
+            <button
+              onClick={handleDeactivate}
+              disabled={loading}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+            >
+              Desactivar
+            </button>
           </div>
-          <button
-            onClick={handleDeactivate}
-            disabled={loading}
-            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
-          >
-            Desactivar
-          </button>
-        </div>
+
+          {matches.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Partidos de tu nivel ahora mismo</p>
+              {matches.map((m) => {
+                const date = new Date(m.slot_datetime)
+                return (
+                  <a
+                    key={m.playtomic_match_id}
+                    href={`https://app.playtomic.io/matches/${m.playtomic_match_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-2.5 text-sm hover:border-brand-300 hover:bg-brand-50"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">{m.court_name ?? 'Pista'}</p>
+                      <p className="text-xs text-gray-500">
+                        {date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Madrid' })}
+                        {' · '}
+                        {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}
+                      </p>
+                    </div>
+                    <span className="text-xs font-medium text-brand-600">Apuntarme →</span>
+                  </a>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">Ahora mismo no hay partidos abiertos de tu nivel en el club.</p>
+          )}
+        </>
       ) : (
         <form onSubmit={handleActivate} className="space-y-2">
           <label className="block text-xs font-medium text-gray-500">

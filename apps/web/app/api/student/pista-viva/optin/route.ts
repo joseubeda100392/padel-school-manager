@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { PlaytomicOfficialClient } from '@/lib/playtomic'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 const PROFILE_URL_RE = /\/profile\/user\/(\d+)/
 
@@ -21,6 +22,11 @@ export async function POST(req: NextRequest) {
   const admin = getAdminClient()
   const { data: me } = await admin.from('users').select('club_id').eq('id', user.id).single()
   if (!me?.club_id) return NextResponse.json({ error: 'Club no encontrado' }, { status: 400 })
+
+  const features = await getClubFeatures(me.club_id)
+  if (!features.enable_pista_viva) {
+    return NextResponse.json({ error: 'Pista Viva no está activo en tu club' }, { status: 403 })
+  }
 
   const { data: club } = await admin
     .from('clubs')
