@@ -99,18 +99,20 @@ export async function POST(req: NextRequest) {
 
       if (participantCount >= 4 || startDate.getTime() <= now.getTime()) continue
 
-      // Nivel del partido: solo si alguno de los ya apuntados es un usuario
-      // nuestro con nivel conocido. Sin esa señal no arriesgamos a avisar
-      // a ciegas — se salta el partido.
-      const { data: knownParticipants } = await admin
-        .from('users')
-        .select('playtomic_level')
-        .eq('club_id', club.id)
-        .in('email', Array.from(participantEmails).length ? Array.from(participantEmails) : [''])
-
-      const levels = (knownParticipants ?? [])
-        .map((u: any) => u.playtomic_level)
-        .filter((l: number | null): l is number => l != null)
+      // Nivel del partido: se consulta en directo el nivel real de cada
+      // participante ya apuntado (participant_id), sea o no alumno nuestro.
+      // Solo se usa el número en memoria para calcular el rango — nunca se
+      // guarda nada de estos jugadores en nuestra base de datos.
+      const participantIds: string[] = participants.map((p: any) => p.participant_id).filter(Boolean)
+      const levels: number[] = []
+      for (const pid of participantIds) {
+        try {
+          const player = await ptClient.getPlayerById(club.playtomic_tenant_id!, pid)
+          if (player?.level != null) levels.push(player.level)
+        } catch {
+          // fallo puntual al consultar un jugador — no interrumpe el partido
+        }
+      }
 
       if (!levels.length) continue
 
