@@ -118,9 +118,9 @@ export default async function PistaVivaPage() {
                 <tr key={a.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{a.court_name ?? '—'}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {new Date(a.slot_datetime).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    {new Date(a.slot_datetime).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Madrid' })}
                     {' '}
-                    {new Date(a.slot_datetime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(a.slot_datetime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {a.level_min != null && a.level_max != null ? `${a.level_min.toFixed(2)} – ${a.level_max.toFixed(2)}` : '—'}
