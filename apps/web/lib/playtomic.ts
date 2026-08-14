@@ -592,3 +592,27 @@ export class PlaytomicOfficialClient {
     )
   }
 }
+
+// Nivel real del partido: consulta el nivel de cada participante ya
+// apuntado directamente vía participant_id, sea o no alumno nuestro.
+// Solo usa el número en memoria para el rango — nunca guarda nada de
+// estos jugadores. Devuelve null si no hay señal de nivel (0 participantes,
+// o fallo al consultar a todos).
+export async function getMatchLevelRange(
+  client: PlaytomicOfficialClient,
+  tenantId: string,
+  participants: { participant_id?: string }[],
+): Promise<{ min: number; max: number } | null> {
+  const participantIds = participants.map((p) => p.participant_id).filter((id): id is string => !!id)
+  const levels: number[] = []
+  for (const pid of participantIds) {
+    try {
+      const player = await client.getPlayerById(tenantId, pid)
+      if (player?.level != null) levels.push(player.level)
+    } catch {
+      // fallo puntual al consultar un jugador — no interrumpe el resto
+    }
+  }
+  if (!levels.length) return null
+  return { min: Math.min(...levels) - 0.3, max: Math.max(...levels) + 0.3 }
+}

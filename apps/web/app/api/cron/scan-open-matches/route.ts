@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
-import { PlaytomicOfficialClient } from '@/lib/playtomic'
+import { PlaytomicOfficialClient, getMatchLevelRange } from '@/lib/playtomic'
 import { sendPushToUsers } from '@/lib/push'
 
 function formatMadrid(isoNoTz: string): string {
@@ -99,25 +99,9 @@ export async function POST(req: NextRequest) {
 
       if (participantCount >= 4 || startDate.getTime() <= now.getTime()) continue
 
-      // Nivel del partido: se consulta en directo el nivel real de cada
-      // participante ya apuntado (participant_id), sea o no alumno nuestro.
-      // Solo se usa el número en memoria para calcular el rango — nunca se
-      // guarda nada de estos jugadores en nuestra base de datos.
-      const participantIds: string[] = participants.map((p: any) => p.participant_id).filter(Boolean)
-      const levels: number[] = []
-      for (const pid of participantIds) {
-        try {
-          const player = await ptClient.getPlayerById(club.playtomic_tenant_id!, pid)
-          if (player?.level != null) levels.push(player.level)
-        } catch {
-          // fallo puntual al consultar un jugador — no interrumpe el partido
-        }
-      }
-
-      if (!levels.length) continue
-
-      const levelMin = Math.min(...levels) - 0.3
-      const levelMax = Math.max(...levels) + 0.3
+      const levelRange = await getMatchLevelRange(ptClient, club.playtomic_tenant_id!, participants)
+      if (!levelRange) continue
+      const { min: levelMin, max: levelMax } = levelRange
 
       const { data: candidates } = await admin
         .from('users')

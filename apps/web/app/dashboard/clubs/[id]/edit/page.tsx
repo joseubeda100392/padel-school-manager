@@ -116,7 +116,7 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
               className="h-4 w-4 rounded border-gray-300 text-brand-500"
             />
             <label htmlFor="enable_pista_viva" className="text-sm font-medium text-gray-700">
-              ⚡ Pista Viva <span className="ml-1 text-xs font-normal text-gray-400">(detección de pistas libres + WhatsApp)</span>
+              ⚡ Pista Viva <span className="ml-1 text-xs font-normal text-gray-400">(detección de partidos abiertos con jugadores pendientes)</span>
             </label>
           </div>
         </div>

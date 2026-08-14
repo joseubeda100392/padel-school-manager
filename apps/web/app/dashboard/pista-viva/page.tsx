@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
+import { PendingMatchesPanel } from './pending-matches-panel'
 
 const statusBadge: Record<string, string> = {
   sent: 'bg-blue-100 text-blue-700',
@@ -44,7 +45,7 @@ export default async function PistaVivaPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Pista Viva ⚡</h1>
           <p className="mt-0.5 text-sm text-gray-500">
-            Detecta pistas libres en Playtomic y notifica a tus socios
+            Detecta partidos abiertos en Playtomic a los que les faltan jugadores y avisa a tus alumnos
           </p>
         </div>
         <Link
@@ -83,9 +84,11 @@ export default async function PistaVivaPage() {
       )}
 
       <p className="text-sm text-gray-500">
-        Detecta automáticamente (cada pocos minutos) partidos abiertos en Playtomic a los que les falta 1-2 jugadores,
-        y avisa a los socios del club con opt-in activo y nivel compatible.
+        Detecta automáticamente (cada pocos minutos) partidos abiertos en Playtomic a los que les faltan 3, 2 o 1 jugadores,
+        y avisa a los alumnos del club con opt-in activo y nivel compatible.
       </p>
+
+      {!needsSetup && <PendingMatchesPanel />}
 
       {/* Lista de partidos vigilados */}
       <div className="rounded-xl bg-white shadow-sm">

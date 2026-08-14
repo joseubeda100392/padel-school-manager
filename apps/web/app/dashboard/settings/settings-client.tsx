@@ -148,18 +148,6 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
   const [extractedPlayers, setExtractedPlayers] = useState<PlaytomicPreviewPlayer[]>([])
   const [extractDone, setExtractDone] = useState(false)
   const [extractError, setExtractError] = useState('')
-  const [diagRunning, setDiagRunning] = useState(false)
-  const [diagResult, setDiagResult] = useState<{
-    players?: any; playersError?: string
-    bookingsTotal?: number; bookingTypeCounts?: Record<string, number>
-    pendingOpenMatches?: { booking_id: string; booking_start_date: string; resource_name: string | null; status: string; payment_status: string; faltan: number; participantes: { name: string; email: string }[] }[]
-    allOpenMatches?: { booking_id: string; booking_start_date: string; resource_id: string | null; resource_name: string | null; status: string; is_canceled: boolean; payment_status: string; num_participantes: number; participantes: { name: string; email: string; tipo: string }[] }[]
-    gelutestFound?: { booking_id: string; booking_type: string; booking_start_date: string; resource_id: string | null; resource_name: string | null; status: string; is_canceled: boolean; payment_status: string; participantes: { name: string; email: string }[] }[]
-    statusPendingTotal?: number; gelutestInStatusPending?: boolean
-    bookingsError?: string
-  } | null>(null)
-  const [diagError, setDiagError] = useState('')
-
   const [holidays, setHolidays] = useState<string[]>([])
   const [newHoliday, setNewHoliday] = useState('')
   const [holidaysSaving, setHolidaysSaving] = useState(false)
@@ -994,7 +982,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       {activeTab === 'playtomic' && features.enable_pista_viva && (
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-1 font-semibold text-gray-900">⚡ Pista Viva — Playtomic</h2>
-          <p className="mb-5 text-xs text-gray-400">Credenciales para detectar pistas libres y crear partidos abiertos en nombre del club.</p>
+          <p className="mb-5 text-xs text-gray-400">Credenciales oficiales de Playtomic (Client ID + Secret) para detectar partidos abiertos con jugadores pendientes.</p>
           <div className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Email de tu cuenta Playtomic</label>
@@ -1228,156 +1216,6 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 </button>
               </div>
             </div>
-          </div>
-
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-1 font-semibold text-gray-900">Diagnóstico API oficial (solo lectura)</h2>
-            <p className="mb-5 text-xs text-gray-400">
-              No crea ni guarda nada. Trae una muestra de 10 jugadores (con nivel de pádel) y los partidos abiertos
-              (OPEN_MATCH) de los próximos 14 días, para ver qué datos hay disponibles antes de decidir nada.
-            </p>
-
-            {diagError && (
-              <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{diagError}</div>
-            )}
-
-            <button
-              type="button"
-              disabled={diagRunning}
-              onClick={async () => {
-                setDiagRunning(true)
-                setDiagResult(null)
-                setDiagError('')
-                const res = await fetch('/api/admin/playtomic/diagnostic', { method: 'POST' })
-                const data = await res.json().catch(() => ({ error: 'Error de conexión' }))
-                if (!res.ok) setDiagError(data.error ?? 'Error')
-                else setDiagResult(data)
-                setDiagRunning(false)
-              }}
-              className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-            >
-              {diagRunning ? 'Consultando Playtomic...' : '🧪 Ejecutar diagnóstico'}
-            </button>
-
-            {diagResult && (
-              <div className="mt-5 space-y-5">
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-800">Muestra de jugadores</h3>
-                    {Array.isArray(diagResult.players?.data) && diagResult.players.data.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => downloadCsv('playtomic-jugadores-muestra.csv', diagResult.players.data.map((p: any) => ({
-                          player_id: p.player_id,
-                          name: p.name,
-                          email: p.email,
-                          phone: p.phone,
-                          gender: p.gender,
-                          birth_date: p.birth_date,
-                          last_registration_date: p.last_registration_date,
-                          nivel_padel: (p.sports ?? []).find((s: any) => s.sport_id === 'PADEL')?.level_value ?? '',
-                          sports_raw: p.sports,
-                        })))}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                      >
-                        ⬇️ Descargar CSV (10 registros)
-                      </button>
-                    )}
-                  </div>
-                  {diagResult.playersError && (
-                    <p className="text-sm text-red-600">{diagResult.playersError}</p>
-                  )}
-                  <pre className="max-h-64 overflow-auto rounded-lg bg-gray-50 p-3 text-[11px] text-gray-600">
-                    {JSON.stringify(diagResult.players, null, 2)}
-                  </pre>
-                </div>
-
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-gray-800">Partidos pendientes de cerrar (próximos 14 días)</h3>
-                  <p className="mb-2 text-[11px] text-amber-600">
-                    ⚠️ Límite conocido: solo detecta partidos que ya tienen pista reservada (2+ jugadores). Los que aún están en "Reservar pista" con 0-1 jugador en Manager no aparecen aquí — Playtomic no los expone como reserva hasta que llegan a 2 jugadores.
-                  </p>
-                  {diagResult.bookingsError && (
-                    <p className="text-sm text-red-600">{diagResult.bookingsError}</p>
-                  )}
-                  {diagResult.bookingsTotal !== undefined && (
-                    <p className="mb-2 text-xs text-gray-500">
-                      {diagResult.bookingsTotal} reservas totales en la ventana. Desglose: {Object.entries(diagResult.bookingTypeCounts ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')}
-                    </p>
-                  )}
-                  {diagResult.gelutestFound && (
-                    <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs">
-                      <p className="font-medium text-blue-800">
-                        Búsqueda directa de Gelu en TODAS las reservas (sin filtrar tipo/estado): {diagResult.gelutestFound.length === 0 ? 'no aparece en ningún sitio' : `${diagResult.gelutestFound.length} encontrada(s)`}
-                      </p>
-                      {diagResult.gelutestFound.map((b) => (
-                        <p key={b.booking_id} className="text-blue-700">
-                          {b.booking_start_date} — tipo: {b.booking_type} — pista: {b.resource_name || 'ninguna'} — {b.payment_status}
-                        </p>
-                      ))}
-                      {diagResult.statusPendingTotal !== undefined && (
-                        <p className="mt-2 border-t border-blue-200 pt-2 text-blue-800">
-                          Con <code>status=PENDING</code> explícito al servidor: {diagResult.statusPendingTotal} reservas — Gelu {diagResult.gelutestInStatusPending ? 'SÍ aparece aquí' : 'tampoco aparece'}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  {diagResult.pendingOpenMatches && diagResult.pendingOpenMatches.length === 0 && (
-                    <p className="text-sm text-gray-400">Ninguno con pista ya reservada pero sin llenar ahora mismo.</p>
-                  )}
-                  {diagResult.pendingOpenMatches && diagResult.pendingOpenMatches.length > 0 && (
-                    <div className="space-y-2">
-                      {diagResult.pendingOpenMatches.map((m) => (
-                        <div key={m.booking_id} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
-                          <p className="font-medium text-amber-800">{m.booking_start_date} — faltan {m.faltan} jugador{m.faltan === 1 ? '' : 'es'} — {m.payment_status}</p>
-                          <p className="text-amber-700">
-                            {m.participantes.length > 0
-                              ? m.participantes.map((p) => `${p.name} (${p.email})`).join(', ')
-                              : 'Sin participantes apuntados aún'}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {diagResult.allOpenMatches && diagResult.allOpenMatches.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="mb-2 text-xs font-semibold text-gray-600">
-                        Los {diagResult.allOpenMatches.length} OPEN_MATCH sin filtrar (para comparar campos y saber cuál marca "pendiente" de verdad)
-                      </h4>
-                      <div className="max-h-72 overflow-auto rounded-lg border border-gray-100">
-                        <table className="w-full min-w-[900px] text-xs">
-                          <thead className="sticky top-0 bg-gray-50">
-                            <tr>
-                              <th className="whitespace-nowrap px-3 py-2 text-left">Inicio</th>
-                              <th className="whitespace-nowrap px-3 py-2 text-left">resource_id</th>
-                              <th className="whitespace-nowrap px-3 py-2 text-left">resource_name</th>
-                              <th className="whitespace-nowrap px-3 py-2 text-left">status</th>
-                              <th className="whitespace-nowrap px-3 py-2 text-left">is_canceled</th>
-                              <th className="whitespace-nowrap px-3 py-2 text-left">payment_status</th>
-                              <th className="whitespace-nowrap px-3 py-2 text-left">nº participantes</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {diagResult.allOpenMatches.map((m) => (
-                              <tr key={m.booking_id}>
-                                <td className="whitespace-nowrap px-3 py-1.5">{m.booking_start_date}</td>
-                                <td className="whitespace-nowrap px-3 py-1.5">{m.resource_id || '—'}</td>
-                                <td className="whitespace-nowrap px-3 py-1.5">{m.resource_name || '—'}</td>
-                                <td className="whitespace-nowrap px-3 py-1.5">{m.status}</td>
-                                <td className="whitespace-nowrap px-3 py-1.5">{String(m.is_canceled)}</td>
-                                <td className="whitespace-nowrap px-3 py-1.5">{m.payment_status}</td>
-                                <td className="whitespace-nowrap px-3 py-1.5">{m.num_participantes}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
