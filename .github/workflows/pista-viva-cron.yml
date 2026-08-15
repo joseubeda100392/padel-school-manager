@@ -3,13 +3,24 @@ name: Pista Viva — scan open matches
 on:
   schedule:
     - cron: '*/15 * * * *'
+    - cron: '0 3 * * *'
   workflow_dispatch: {}
 
 jobs:
   scan:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/15 * * * *'
     steps:
       - name: Call scan-open-matches
         run: |
           curl -sf -X POST "https://epadelschool.app/api/cron/scan-open-matches" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  sync-levels:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 3 * * *'
+    steps:
+      - name: Call sync-playtomic-levels
+        run: |
+          curl -sf -X POST "https://epadelschool.app/api/cron/sync-playtomic-levels" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
