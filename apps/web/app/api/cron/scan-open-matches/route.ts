@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { PlaytomicOfficialClient, getMatchLevelRange } from '@/lib/playtomic'
 import { sendPushToUsers } from '@/lib/push'
+import { matchesDayTimePreference } from '@/lib/utils'
 
 function formatMadrid(isoNoTz: string): string {
   const utcDate = new Date(isoNoTz.endsWith('Z') ? isoNoTz : isoNoTz + 'Z')
@@ -105,14 +106,17 @@ export async function POST(req: NextRequest) {
 
       const { data: candidates } = await admin
         .from('users')
-        .select('id, email')
+        .select('id, email, pista_viva_preferred_days, pista_viva_preferred_start, pista_viva_preferred_end')
         .eq('club_id', club.id)
         .eq('pista_viva_optin', true)
         .gte('playtomic_level', levelMin)
         .lte('playtomic_level', levelMax)
 
       const targetUserIds = (candidates ?? [])
-        .filter((c: any) => !participantEmails.has((c.email ?? '').toLowerCase()))
+        .filter((c: any) =>
+          !participantEmails.has((c.email ?? '').toLowerCase()) &&
+          matchesDayTimePreference(startDate, c.pista_viva_preferred_days, c.pista_viva_preferred_start, c.pista_viva_preferred_end),
+        )
         .map((c: any) => c.id as string)
 
       if (!targetUserIds.length) continue

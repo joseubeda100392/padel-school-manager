@@ -26,17 +26,23 @@ export default async function PistaVivaPage() {
 
   const needsSetup = !clubConfig?.playtomic_client_id || !clubConfig?.playtomic_client_secret || !clubConfig?.playtomic_tenant_id
 
-  const { data: alerts } = await admin
-    .from('pista_viva_open_match_alerts')
-    .select('*')
-    .eq('club_id', clubId!)
-    .order('slot_datetime', { ascending: false })
-    .limit(100)
+  const [{ data: alerts }, { count: totalStudents }, { count: optedInStudents }] = await Promise.all([
+    admin
+      .from('pista_viva_open_match_alerts')
+      .select('*')
+      .eq('club_id', clubId!)
+      .order('slot_datetime', { ascending: false })
+      .limit(100),
+    admin.from('users').select('id', { count: 'exact', head: true }).eq('club_id', clubId!).eq('role', 'student'),
+    admin.from('users').select('id', { count: 'exact', head: true }).eq('club_id', clubId!).eq('role', 'student').eq('pista_viva_optin', true),
+  ])
 
   const stats = {
     watching: (alerts ?? []).filter((a) => a.status === 'sent').length,
     recovered: (alerts ?? []).filter((a) => a.status === 'recovered').length,
     lost: (alerts ?? []).filter((a) => a.status === 'lost').length,
+    optedIn: optedInStudents ?? 0,
+    totalStudents: totalStudents ?? 0,
   }
 
   return (
@@ -57,7 +63,7 @@ export default async function PistaVivaPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Vigilando</p>
           <p className="mt-1 text-3xl font-bold text-blue-600">{stats.watching}</p>
@@ -69,6 +75,10 @@ export default async function PistaVivaPage() {
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Perdidos</p>
           <p className="mt-1 text-3xl font-bold text-gray-900">{stats.lost}</p>
+        </div>
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Alumnos con Pista Viva activo</p>
+          <p className="mt-1 text-3xl font-bold text-brand-600">{stats.optedIn} <span className="text-base font-medium text-gray-400">de {stats.totalStudents}</span></p>
         </div>
       </div>
 

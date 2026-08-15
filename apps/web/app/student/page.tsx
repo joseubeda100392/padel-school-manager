@@ -1,7 +1,7 @@
 ﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
+import { formatCurrency, formatTime, getDayOfWeek, matchesDayTimePreference } from '@/lib/utils'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -35,9 +35,12 @@ export default async function StudentHomePage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: userData } = await admin.from('users').select('name, email, current_level_id, club_id, pista_viva_optin, playtomic_level').eq('id', user.id).single()
+  const { data: userData } = await admin.from('users').select('name, email, current_level_id, club_id, pista_viva_optin, playtomic_level, pista_viva_preferred_days, pista_viva_preferred_start, pista_viva_preferred_end').eq('id', user.id).single()
   const clubId = (userData as any)?.club_id as string | undefined
   const myPistaVivaLevel = (userData as any)?.playtomic_level as number | null
+  const myPreferredDays = (userData as any)?.pista_viva_preferred_days as number[] | null
+  const myPreferredStart = (userData as any)?.pista_viva_preferred_start as string | null
+  const myPreferredEnd = (userData as any)?.pista_viva_preferred_end as string | null
 
   const today = new Date().toISOString().split('T')[0]
   const TZ = 'Europe/Madrid'
@@ -77,6 +80,10 @@ export default async function StudentHomePage() {
           .order('slot_datetime', { ascending: true })
       : Promise.resolve({ data: [] }),
   ])
+
+  const visiblePistaVivaMatches = (pistaVivaMatches ?? []).filter((m: any) =>
+    matchesDayTimePreference(new Date(m.slot_datetime), myPreferredDays, myPreferredStart, myPreferredEnd),
+  )
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
@@ -286,7 +293,10 @@ export default async function StudentHomePage() {
         <PistaVivaOptin
           optedIn={(userData as any)?.pista_viva_optin ?? false}
           level={(userData as any)?.playtomic_level ?? null}
-          matches={pistaVivaMatches ?? []}
+          matches={visiblePistaVivaMatches}
+          preferredDays={myPreferredDays}
+          preferredStart={myPreferredStart}
+          preferredEnd={myPreferredEnd}
         />
       )}
 

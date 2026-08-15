@@ -50,6 +50,27 @@ export function getDayOfWeek(date: Date | string): number {
   return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(day)
 }
 
+function madridTimeHHMM(date: Date): string {
+  return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ }).format(date)
+}
+
+// Franjas que cruzan medianoche (ej. 23:00-08:00) se comparan con OR en vez de AND.
+function isWithinTimeRange(time: string, start: string, end: string): boolean {
+  return start <= end ? (time >= start && time < end) : (time >= start || time < end)
+}
+
+// Preferencias de Pista Viva: días/franja vacíos o null = sin restricción.
+export function matchesDayTimePreference(
+  matchStart: Date,
+  preferredDays: number[] | null | undefined,
+  preferredStart: string | null | undefined,
+  preferredEnd: string | null | undefined,
+): boolean {
+  if (preferredDays?.length && !preferredDays.includes(getDayOfWeek(matchStart))) return false
+  if (preferredStart && preferredEnd && !isWithinTimeRange(madridTimeHHMM(matchStart), preferredStart, preferredEnd)) return false
+  return true
+}
+
 // Devuelve el instante UTC real de "dateStr a la hora de Madrid que representa
 // scheduleStartTime", teniendo en cuenta el cambio de hora de esa fecha
 // concreta (no la que tenía cuando se creó el horario). Usar SIEMPRE esto en

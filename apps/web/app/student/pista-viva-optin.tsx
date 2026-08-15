@@ -14,14 +14,55 @@ type Props = {
   optedIn: boolean
   level: number | null
   matches: OpenMatch[]
+  preferredDays: number[] | null
+  preferredStart: string | null
+  preferredEnd: string | null
 }
 
-export function PistaVivaOptin({ optedIn, level, matches }: Props) {
+// 0=domingo ... 6=sábado (mismo criterio que getDayOfWeek en lib/utils.ts).
+// Se muestran empezando en lunes, orden habitual en España.
+const DAY_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: 'L' },
+  { value: 2, label: 'M' },
+  { value: 3, label: 'X' },
+  { value: 4, label: 'J' },
+  { value: 5, label: 'V' },
+  { value: 6, label: 'S' },
+  { value: 0, label: 'D' },
+]
+
+export function PistaVivaOptin({ optedIn, level, matches, preferredDays, preferredStart, preferredEnd }: Props) {
   const [isOptedIn, setIsOptedIn] = useState(optedIn)
   const [currentLevel, setCurrentLevel] = useState(level)
   const [profileUrl, setProfileUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [selectedDays, setSelectedDays] = useState<number[]>(preferredDays ?? [])
+  const [prefStart, setPrefStart] = useState(preferredStart ?? '')
+  const [prefEnd, setPrefEnd] = useState(preferredEnd ?? '')
+  const [savingPrefs, setSavingPrefs] = useState(false)
+  const [prefsSaved, setPrefsSaved] = useState(false)
+
+  function toggleDay(day: number) {
+    setSelectedDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]))
+    setPrefsSaved(false)
+  }
+
+  async function handleSavePreferences() {
+    setSavingPrefs(true)
+    setPrefsSaved(false)
+    try {
+      await fetch('/api/student/pista-viva/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preferredDays: selectedDays, preferredStart: prefStart || null, preferredEnd: prefEnd || null }),
+      })
+      setPrefsSaved(true)
+    } finally {
+      setSavingPrefs(false)
+    }
+  }
 
   async function handleActivate(e: React.FormEvent) {
     e.preventDefault()
@@ -80,6 +121,47 @@ export function PistaVivaOptin({ optedIn, level, matches }: Props) {
             >
               Desactivar
             </button>
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-gray-100 p-3">
+            <p className="text-xs font-medium text-gray-700">¿Cuándo te interesa jugar? (vacío = cualquier día/hora)</p>
+            <div className="flex gap-1.5">
+              {DAY_OPTIONS.map((d) => (
+                <button
+                  key={d.value}
+                  type="button"
+                  onClick={() => toggleDay(d.value)}
+                  className={`h-8 w-8 rounded-full text-xs font-semibold transition-colors ${
+                    selectedDays.includes(d.value) ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={prefStart}
+                onChange={(e) => { setPrefStart(e.target.value); setPrefsSaved(false) }}
+                className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
+              />
+              <span className="text-xs text-gray-400">a</span>
+              <input
+                type="time"
+                value={prefEnd}
+                onChange={(e) => { setPrefEnd(e.target.value); setPrefsSaved(false) }}
+                className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
+              />
+              <button
+                type="button"
+                onClick={handleSavePreferences}
+                disabled={savingPrefs}
+                className="ml-auto rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700 disabled:opacity-60"
+              >
+                {savingPrefs ? 'Guardando...' : prefsSaved ? '✓ Guardado' : 'Guardar'}
+              </button>
+            </div>
           </div>
 
           {matches.length > 0 ? (
