@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { notFound } from 'next/navigation'
-import { formatDate, formatCurrency } from '@/lib/utils'
+import { formatDate, formatCurrency, mostCommonMonthlyPrice } from '@/lib/utils'
 import { StudentLevelForm } from './student-level-form'
 import { BagAdjustForm } from './bag-adjust-form'
 import { StudentEditForm } from './student-edit-form'
@@ -71,6 +71,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: studentNotifications },
     { data: checklists },
     features,
+    { data: clubRow },
   ] = await Promise.all([
     admin
       .from('users')
@@ -101,7 +102,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .limit(20),
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, paid_until, status, start_date, end_date, schedule:schedules(id, start_time, court:courts(name))')
+      .select('id, monthly_price, paid_until, status, start_date, end_date, discount_applied, schedule:schedules(id, start_time, court:courts(name))')
       .eq('student_id', params.id)
       .eq('status', 'active')
       .order('enrolled_at', { ascending: false }),
@@ -122,6 +123,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .eq('student_id', params.id)
       .order('created_at', { ascending: false }),
     getClubFeatures(clubId ?? undefined),
+    clubId
+      ? admin.from('clubs').select('config').eq('id', clubId).single()
+      : Promise.resolve({ data: null }),
   ])
 
   if (studentError || !student) {
@@ -146,6 +150,25 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const totalPagado = (payments ?? [])
     .filter((p: any) => p.status === 'succeeded')
     .reduce((acc: number, p: any) => acc + p.amount, 0)
+
+  // Precio "normal" de cada grupo fijo en el que está este alumno — para
+  // poder calcular a cuánto equivale aplicar/quitar el descuento estándar
+  // del club sobre la cuota de cada inscripción. Se calcula solo con las
+  // inscripciones SIN descuento activo (si se incluyeran las descontadas,
+  // en un grupo pequeño o mayoritariamente descontado el precio "normal"
+  // calculado acabaría siendo el ya rebajado, y el check quedaría mal
+  // marcado al recargar la página — el flag persistido evita justo eso).
+  const scheduleIds = [...new Set((enrollments ?? []).map((e: any) => e.schedule?.id).filter(Boolean))] as string[]
+  const { data: siblingEnrollments } = scheduleIds.length
+    ? await admin.from('group_enrollments').select('schedule_id, monthly_price').eq('status', 'active').eq('discount_applied', false).in('schedule_id', scheduleIds)
+    : { data: [] }
+  const defaultPriceByScheduleId: Record<string, number> = {}
+  for (const scheduleId of scheduleIds) {
+    defaultPriceByScheduleId[scheduleId] = mostCommonMonthlyPrice(
+      (siblingEnrollments ?? []).filter((e: any) => e.schedule_id === scheduleId),
+    )
+  }
+  const discountCents = (clubRow as any)?.config?.standard_discount_cents ?? 4000
 
   return (
     <div className="max-w-4xl">
@@ -210,8 +233,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             paid_until: e.paid_until,
             start_date: e.start_date,
             end_date: e.end_date,
+            discount_applied: e.discount_applied ?? false,
             schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
-          }))} />
+          }))} defaultPriceByScheduleId={defaultPriceByScheduleId} discountCents={discountCents} />
         </div>
       )}
 

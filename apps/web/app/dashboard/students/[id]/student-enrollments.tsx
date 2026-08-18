@@ -10,6 +10,7 @@ interface Enrollment {
   paid_until: string | null
   start_date: string | null
   end_date: string | null
+  discount_applied: boolean
   schedule: { id: string; start_time: string; court: { name: string } | null } | null
 }
 
@@ -23,27 +24,56 @@ function isPaidThisMonth(paidUntil: string | null) {
   return new Date(paidUntil) >= endOfMonth
 }
 
-export function StudentEnrollments({ initialEnrollments }: { initialEnrollments: Enrollment[] }) {
+export function StudentEnrollments({
+  initialEnrollments,
+  defaultPriceByScheduleId,
+  discountCents,
+}: {
+  initialEnrollments: Enrollment[]
+  defaultPriceByScheduleId: Record<string, number>
+  discountCents: number
+}) {
   const [enrollments, setEnrollments] = useState(initialEnrollments)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingPrice, setEditingPrice] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [discountLoadingId, setDiscountLoadingId] = useState<string | null>(null)
 
   const now = new Date()
   const currentMonth = MONTHS[now.getMonth()]
 
-  async function handleSavePrice(id: string) {
-    setSaving(true)
+  async function saveEnrollment(id: string, updates: { monthly_price: number; discount_applied?: boolean }) {
     await fetch(`/api/group-enrollments/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ monthly_price: editingPrice }),
+      body: JSON.stringify(updates),
     })
     setEnrollments((prev) =>
-      prev.map((e) => e.id === id ? { ...e, monthly_price: editingPrice } : e)
+      prev.map((e) => e.id === id ? { ...e, ...updates } : e)
     )
+  }
+
+  async function handleSavePrice(id: string) {
+    setSaving(true)
+    await saveEnrollment(id, { monthly_price: editingPrice })
     setEditingId(null)
     setSaving(false)
+  }
+
+  // basePrice=0 significa que no había ninguna inscripción sin descuento en
+  // el grupo con la que calcular el precio normal (p.ej. todo el grupo ya
+  // está descontado) — en ese caso, para desactivar, se deshace el
+  // descuento conocido sobre el propio precio actual en vez de usar 0.
+  async function handleToggleDiscount(e: Enrollment, basePrice: number) {
+    setDiscountLoadingId(e.id)
+    if (e.discount_applied) {
+      const restoredPrice = basePrice > 0 ? basePrice : e.monthly_price + discountCents
+      await saveEnrollment(e.id, { monthly_price: restoredPrice, discount_applied: false })
+    } else {
+      const discountedPrice = Math.max(0, (basePrice > 0 ? basePrice : e.monthly_price) - discountCents)
+      await saveEnrollment(e.id, { monthly_price: discountedPrice, discount_applied: true })
+    }
+    setDiscountLoadingId(null)
   }
 
   if (!enrollments.length) {
@@ -107,6 +137,22 @@ export function StudentEnrollments({ initialEnrollments }: { initialEnrollments:
                   {formatCurrency(e.monthly_price)} ✎
                 </button>
               )}
+
+              {e.schedule?.id && (() => {
+                const basePrice = defaultPriceByScheduleId[e.schedule.id] ?? 0
+                return (
+                  <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500" title={`Descuento estándar: ${formatCurrency(discountCents)} · solo para el próximo cobro, se desmarca solo al registrar el pago`}>
+                    <input
+                      type="checkbox"
+                      checked={e.discount_applied}
+                      disabled={discountLoadingId === e.id}
+                      onChange={() => handleToggleDiscount(e, basePrice)}
+                      className="h-3.5 w-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+                    />
+                    Descuento
+                  </label>
+                )
+              })()}
 
               <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-brand-100 text-brand-600' : 'bg-yellow-100 text-yellow-700'}`}>
                 {paid ? 'Al día' : `Pdte. ${currentMonth}`}

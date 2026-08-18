@@ -25,6 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const updates: Record<string, unknown> = {}
   if (body.monthly_price !== undefined) updates.monthly_price = body.monthly_price
   if (body.price_per_class_cents !== undefined) updates.price_per_class_cents = body.price_per_class_cents
+  if (body.discount_applied !== undefined) updates.discount_applied = body.discount_applied
 
   const { error } = await admin
     .from('group_enrollments')

@@ -17,6 +17,7 @@ const DEFAULT_CONFIG = {
   max_recovery_classes: 0,
   school_name: 'Mi Escuela de Pádel',
   billing_start_date: '',
+  standard_discount_cents: 4000,
 }
 
 async function getEffectiveCaller() {
@@ -52,7 +53,7 @@ export async function PATCH(req: NextRequest) {
   if (!caller.club_id) return NextResponse.json({ error: 'Sin club asignado' }, { status: 400 })
 
   const body = await req.json()
-  const numericKeys = ['pay_per_class_price_60','pay_per_class_price_90','whole_class_price_60','whole_class_price_90','pack_price_60','classes_per_pack_60','pack_price_90','classes_per_pack_90','cancellation_hours','max_recovery_classes']
+  const numericKeys = ['pay_per_class_price_60','pay_per_class_price_90','whole_class_price_60','whole_class_price_90','pack_price_60','classes_per_pack_60','pack_price_90','classes_per_pack_90','cancellation_hours','max_recovery_classes','standard_discount_cents']
   const updates: Record<string, number | string> = {}
   for (const key of Object.keys(DEFAULT_CONFIG)) {
     if (!(key in body)) continue

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { verifySignature, parseRedsysResponse, isPaymentSuccessful } from '@/lib/redsys'
 import { sendPushToUsers } from '@/lib/push'
+import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
 
 export async function POST(req: NextRequest) {
   const adminSupabase = createClient(
@@ -192,6 +193,16 @@ export async function POST(req: NextRequest) {
       console.error('[webhook] fixed_group_month enrollment update failed:', enrollErr.message)
       await revertToPending()
       return NextResponse.json({ error: 'enrollment_update_failed' }, { status: 500 })
+    }
+
+    // Descuento puntual, no permanente: se cobró este mes ya con el precio
+    // rebajado, se resetea para que el siguiente vuelva al precio normal.
+    // Nunca debe tirar abajo la confirmación de un pago ya cobrado — si
+    // falla, se registra y se sigue; el pago ya está bien procesado arriba.
+    try {
+      await resetEnrollmentDiscountAfterPayment(adminSupabase, meta.enrollment_id)
+    } catch (err) {
+      console.error('[webhook] resetEnrollmentDiscountAfterPayment failed:', err)
     }
 
   } else if (payment.type === 'tournament' && meta.tournament_id) {

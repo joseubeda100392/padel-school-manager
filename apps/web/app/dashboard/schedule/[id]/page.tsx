@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
-import { formatDate, formatTime, getDayOfWeek } from '@/lib/utils'
+import { formatDate, formatTime, getDayOfWeek, mostCommonMonthlyPrice } from '@/lib/utils'
 import { ScheduleActions } from './schedule-actions'
 import AttendanceForm from './attendance-form'
 import GroupEnrollment from './group-enrollment'
@@ -18,13 +18,6 @@ import { DevError } from '@/components/dev-error'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
-
-function mostCommonMonthlyPrice(enrollments: { monthly_price: number }[]): number {
-  if (!enrollments.length) return 0
-  const counts = new Map<number, number>()
-  for (const e of enrollments) counts.set(e.monthly_price, (counts.get(e.monthly_price) ?? 0) + 1)
-  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0]
-}
 
 function getNextDate(startTime: string): string {
   const classDow = getDayOfWeek(new Date(startTime))

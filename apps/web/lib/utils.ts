@@ -12,6 +12,16 @@ export function formatCurrency(amount: number, currency = 'EUR') {
   }).format(amount / 100)
 }
 
+// Precio "normal" de un grupo fijo: el más repetido entre sus inscripciones
+// activas — usado como base para precargar la cuota de un alumno nuevo y
+// para calcular a cuánto equivale aplicar/quitar el descuento estándar.
+export function mostCommonMonthlyPrice(enrollments: { monthly_price: number }[]): number {
+  if (!enrollments.length) return 0
+  const counts = new Map<number, number>()
+  for (const e of enrollments) counts.set(e.monthly_price, (counts.get(e.monthly_price) ?? 0) + 1)
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0]
+}
+
 // Timezone fija España. Los timestamps se guardan en UTC; el servidor Railway
 // corre en UTC, por lo que toLocaleTimeString sin timeZone mostraría UTC, no hora local.
 const TZ = 'Europe/Madrid'

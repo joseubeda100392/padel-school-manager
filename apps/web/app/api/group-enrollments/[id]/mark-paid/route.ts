@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -63,6 +64,17 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   if (paymentError) {
     return NextResponse.json({ error: paymentError.message }, { status: 500 })
+  }
+
+  // El descuento estándar es puntual, no permanente — se cobra este mes ya
+  // con el precio rebajado (amountToCharge de arriba) y se resetea para
+  // el siguiente en cuanto este pago queda registrado. Nunca debe tirar
+  // abajo la confirmación de un pago ya registrado — si falla, se
+  // registra y se sigue.
+  try {
+    await resetEnrollmentDiscountAfterPayment(admin, params.id)
+  } catch (err) {
+    console.error('[mark-paid] resetEnrollmentDiscountAfterPayment failed:', err)
   }
 
   return NextResponse.json({ ok: true, paidUntil, amountCharged: amountToCharge, discountCents })
