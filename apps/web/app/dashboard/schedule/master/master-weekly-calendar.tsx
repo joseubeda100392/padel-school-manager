@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatTime, getDayOfWeek } from '@/lib/utils'
 
 const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 // JS getDay: 0=Dom,1=Lun... → map to our index (Mon=0)
@@ -13,11 +14,11 @@ export default function MasterWeeklyCalendar({ schedules }: { schedules: any[] }
   const byDay = useMemo(() => {
     const map: Record<number, any[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
     schedules.forEach((s) => {
-      const idx = JS_DAY_TO_IDX[new Date(s.start_time).getDay()]
+      const idx = JS_DAY_TO_IDX[getDayOfWeek(s.start_time)]
       if (idx !== undefined) map[idx].push(s)
     })
     for (const idx of Object.keys(map)) {
-      map[Number(idx)].sort((a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours())
+      map[Number(idx)].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
     }
     return map
   }, [schedules])
@@ -45,6 +46,9 @@ export default function MasterWeeklyCalendar({ schedules }: { schedules: any[] }
                     onClick={() => router.push(`/dashboard/schedule/${s.id}?from=master`)}
                     className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all hover:ring-green-400 ${s.students?.length ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
                   >
+                    <p className="text-[11px] font-medium text-gray-500">
+                      {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                    </p>
                     <p className="text-xs font-semibold text-gray-900 truncate">{s.coach?.name ?? '—'}</p>
                     {(s.level?.description || s.level?.name) && (
                       <span
