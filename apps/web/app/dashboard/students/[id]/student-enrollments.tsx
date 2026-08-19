@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 
@@ -42,21 +43,31 @@ export function StudentEnrollments({
   const now = new Date()
   const currentMonth = MONTHS[now.getMonth()]
 
-  async function saveEnrollment(id: string, updates: { monthly_price: number; discount_applied?: boolean }) {
-    await fetch(`/api/group-enrollments/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    })
+  async function saveEnrollment(id: string, updates: { monthly_price: number; discount_applied?: boolean }): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/group-enrollments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (!res.ok) {
+        toast.error('No se pudo guardar el cambio. Inténtalo de nuevo.')
+        return false
+      }
+    } catch {
+      toast.error('Error de conexión. El cambio no se ha guardado.')
+      return false
+    }
     setEnrollments((prev) =>
       prev.map((e) => e.id === id ? { ...e, ...updates } : e)
     )
+    return true
   }
 
   async function handleSavePrice(id: string) {
     setSaving(true)
-    await saveEnrollment(id, { monthly_price: editingPrice })
-    setEditingId(null)
+    const ok = await saveEnrollment(id, { monthly_price: editingPrice })
+    if (ok) setEditingId(null)
     setSaving(false)
   }
 
@@ -66,12 +77,15 @@ export function StudentEnrollments({
   // descuento conocido sobre el propio precio actual en vez de usar 0.
   async function handleToggleDiscount(e: Enrollment, basePrice: number) {
     setDiscountLoadingId(e.id)
+    let ok: boolean
     if (e.discount_applied) {
       const restoredPrice = basePrice > 0 ? basePrice : e.monthly_price + discountCents
-      await saveEnrollment(e.id, { monthly_price: restoredPrice, discount_applied: false })
+      ok = await saveEnrollment(e.id, { monthly_price: restoredPrice, discount_applied: false })
+      if (ok) toast.success('Descuento quitado — cuota normal guardada')
     } else {
       const discountedPrice = Math.max(0, (basePrice > 0 ? basePrice : e.monthly_price) - discountCents)
-      await saveEnrollment(e.id, { monthly_price: discountedPrice, discount_applied: true })
+      ok = await saveEnrollment(e.id, { monthly_price: discountedPrice, discount_applied: true })
+      if (ok) toast.success(`Descuento aplicado — ${formatCurrency(discountedPrice)}/mes guardado`)
     }
     setDiscountLoadingId(null)
   }
