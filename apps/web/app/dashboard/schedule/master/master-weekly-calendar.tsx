@@ -8,7 +8,7 @@ const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábad
 // JS getDay: 0=Dom,1=Lun... → map to our index (Mon=0)
 const JS_DAY_TO_IDX: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 }
 
-export default function MasterWeeklyCalendar({ schedules }: { schedules: any[] }) {
+export default function MasterWeeklyCalendar({ schedules, readOnly = false }: { schedules: any[]; readOnly?: boolean }) {
   const router = useRouter()
 
   const byDay = useMemo(() => {
@@ -43,8 +43,10 @@ export default function MasterWeeklyCalendar({ schedules }: { schedules: any[] }
                 {classes.map((s: any) => (
                   <button
                     key={s.id}
-                    onClick={() => router.push(`/dashboard/schedule/${s.id}?from=master`)}
-                    className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all hover:ring-green-400 ${s.students?.length ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
+                    type="button"
+                    onClick={readOnly ? undefined : () => router.push(`/dashboard/schedule/${s.id}?from=master`)}
+                    disabled={readOnly}
+                    className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all ${readOnly ? 'cursor-default' : 'hover:ring-green-400'} ${s.students?.length ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
                   >
                     <p className="text-[11px] font-medium text-gray-500">
                       {formatTime(s.start_time)} – {formatTime(s.end_time)}
