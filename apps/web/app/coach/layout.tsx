@@ -11,7 +11,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await getAdminClient()
     .from('users')
-    .select('role, name, club_id, clubs(name)')
+    .select('role, also_student, name, club_id, clubs(name)')
     .eq('id', user.id)
     .single()
 
@@ -22,7 +22,12 @@ export default async function CoachLayout({ children }: { children: React.ReactN
   const features = await getClubFeatures(clubId)
 
   return (
-    <CoachShell userName={profile.name ?? undefined} clubName={clubName} features={features}>
+    <CoachShell
+      userName={profile.name ?? undefined}
+      clubName={clubName}
+      features={features}
+      alsoStudent={(profile as any)?.also_student === true}
+    >
       {children}
     </CoachShell>
   )

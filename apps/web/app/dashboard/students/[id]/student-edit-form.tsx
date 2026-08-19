@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
-  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string }
+  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string; also_student?: boolean }
   isSuperAdmin?: boolean
 }
 
@@ -18,6 +18,7 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
     is_active: student.is_active ?? true,
     start_date: student.start_date ?? '',
     end_date: student.end_date ?? '',
+    also_student: student.also_student ?? false,
   })
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -41,6 +42,7 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
       is_active: form.is_active,
       start_date: form.start_date || null,
       end_date: form.end_date || null,
+      also_student: form.role === 'coach' ? form.also_student : false,
     }).eq('id', student.id)
     if (!err && !student.is_active && form.is_active) {
       // Se acaba de reactivar: levantar el bloqueo de acceso (requiere service role)
@@ -111,6 +113,16 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
             <option value="admin">Admin</option>
           </select>
         </div>
+        {form.role === 'coach' && (
+          <div className="flex items-center gap-3">
+            <input type="checkbox" id="also_student_edit" checked={form.also_student}
+              onChange={(e) => setForm({ ...form, also_student: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500" />
+            <label htmlFor="also_student_edit" className="text-sm font-medium text-gray-700">
+              También es alumno <span className="font-normal text-gray-400">(puede entrar también al panel de alumno, apuntarse a clases y tener cuota)</span>
+            </label>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha de alta</label>

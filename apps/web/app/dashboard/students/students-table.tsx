@@ -273,6 +273,11 @@ const StudentRow = memo(function StudentRow({
         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${roleBadge[s.role] ?? 'bg-gray-100 text-gray-600'}`}>
           {roleLabel[s.role] ?? s.role}
         </span>
+        {s.role === 'coach' && s.also_student && (
+          <span className="ml-1.5 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+            + Alumno
+          </span>
+        )}
       </td>
       {isStudentTab && (
         <td className="px-6 py-4">

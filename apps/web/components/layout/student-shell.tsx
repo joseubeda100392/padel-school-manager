@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, useSpring, useTransform } from 'motion/react'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, HelpCircle, User } from 'lucide-react'
+import { Calendar, Zap, Package, BookOpen, LogOut, Menu, X, Bell, MessageCircle, Target, Medal, Flame, Receipt, HelpCircle, User, Repeat } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
@@ -38,13 +38,14 @@ const allNavItems = [
   { href: '/student/ayuda', label: 'Ayuda', icon: HelpCircle, exact: false, feature: null },
 ]
 
-export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features }: {
+export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features, isAlsoCoach }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
   bagBalance?: number
   unreadCount?: number
   features?: ClubFeatures
+  isAlsoCoach?: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -144,6 +145,13 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
         </motion.nav>
 
         <div className="border-t border-court-700 p-3 space-y-1">
+          {isAlsoCoach && (
+            <Link href="/coach"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-court-300 transition hover:bg-court-800 hover:text-white">
+              <Repeat className="h-4 w-4" />
+              Volver a Monitor
+            </Link>
+          )}
           <Link href="/student/privacidad"
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-court-400 transition hover:bg-court-800 hover:text-white">
             Privacidad y datos

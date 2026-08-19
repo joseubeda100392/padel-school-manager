@@ -14,18 +14,20 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const admin = getAdminClient()
   const { data: userData, error: userError } = await admin
     .from('users')
-    .select('role, name, club_id, clubs(name), force_password_change')
+    .select('role, also_student, name, club_id, clubs(name), force_password_change')
     .eq('id', user.id)
     .single()
 
   if (userError) console.error('[student/layout] users query failed:', userError.message)
 
   const role = (userData as any)?.role as string | undefined
-  // Lista blanca estricta: solo 'student' se queda aquí. Cualquier otra
-  // cosa (coach, admin, o sin fila en absoluto) se manda a su sitio real
-  // en vez de dejar pasar por defecto cuando el rol no se pudo leer.
-  if (role === 'coach') redirect('/coach')
-  if (role !== 'student') redirect('/dashboard')
+  const alsoStudent = (userData as any)?.also_student === true
+  // Lista blanca estricta: solo 'student', o un 'coach' marcado explícitamente
+  // como also_student, se queda aquí. Cualquier otra cosa (coach normal,
+  // admin, o sin fila en absoluto) se manda a su sitio real en vez de dejar
+  // pasar por defecto cuando el rol no se pudo leer.
+  if (role === 'coach' && !alsoStudent) redirect('/coach')
+  if (role !== 'student' && !(role === 'coach' && alsoStudent)) redirect('/dashboard')
 
   const clubId = (userData as any)?.club_id as string | undefined
 
@@ -62,6 +64,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       bagBalance={(bag?.balance_60 ?? 0) + (bag?.balance_90 ?? 0)}
       unreadCount={unreadCount ?? 0}
       features={features}
+      isAlsoCoach={role === 'coach'}
     >
       {children}
     </StudentShell>

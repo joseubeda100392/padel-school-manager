@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, BookOpen, MessageCircle, LogOut, Menu, X, Receipt } from 'lucide-react'
+import { Home, Calendar, BookOpen, MessageCircle, LogOut, Menu, X, Receipt, Repeat } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
@@ -20,11 +20,12 @@ const allNavItems = [
   { href: '/coach/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
 ]
 
-export function CoachShell({ children, userName, clubName, features }: {
+export function CoachShell({ children, userName, clubName, features, alsoStudent }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
   features?: ClubFeatures
+  alsoStudent?: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -84,6 +85,17 @@ export function CoachShell({ children, userName, clubName, features }: {
         <div className="mx-3 mt-3 rounded-xl bg-blue-500/15 px-4 py-2.5">
           <p className="text-xs font-semibold text-blue-400">Panel de Monitor</p>
         </div>
+
+        {alsoStudent && (
+          <Link
+            href="/student"
+            onClick={() => setSidebarOpen(false)}
+            className="mx-3 mt-2 flex items-center gap-2 rounded-xl border border-brand-500/30 bg-brand-500/10 px-4 py-2.5 text-xs font-semibold text-brand-400 transition hover:bg-brand-500/20 hover:text-white"
+          >
+            <Repeat className="h-3.5 w-3.5 shrink-0" />
+            Ver como alumno
+          </Link>
+        )}
 
         <motion.nav
           className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4"

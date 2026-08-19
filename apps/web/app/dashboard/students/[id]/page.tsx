@@ -75,7 +75,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   ] = await Promise.all([
     admin
       .from('users')
-      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url, start_date, end_date')
+      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url, start_date, end_date, also_student')
       .eq('id', params.id)
       .single(),
     clubId
@@ -142,6 +142,10 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
   if (makeupsError) console.error('[students/[id]] makeups query failed:', makeupsError.message)
 
+  // Un monitor marcado como also_student usa las secciones de alumno
+  // (cuota, bolsa, nivel...) igual que un alumno normal, sin que su role
+  // en users deje de ser 'coach' para el resto del sistema (paneles, etc.).
+  const actsAsStudent = student.role === 'student' || (student.role === 'coach' && (student as any).also_student === true)
   const currentLevelId = (student as any).current_level_id as string | null
   const currentLevel = currentLevelId
     ? (levels ?? []).find((l: any) => l.id === currentLevelId) ?? null
@@ -222,10 +226,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           is_active: (student as any).is_active ?? true,
           start_date: (student as any).start_date ?? (student.created_at as string).split('T')[0],
           end_date: (student as any).end_date ?? '',
+          also_student: (student as any).also_student ?? false,
         }} isSuperAdmin={viewerRole === 'super_admin'} />
       </div>
 
-      {student.role === 'student' && (
+      {actsAsStudent && (
         <div className="mb-6">
           <StudentEnrollments initialEnrollments={(enrollments ?? []).map((e: any) => ({
             id: e.id,
@@ -239,7 +244,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {student.role === 'student' && (
+      {actsAsStudent && (
       <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Nivel de juego</h2>
@@ -297,7 +302,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       </div>
       )}
 
-      {student.role === 'student' && makeups && makeups.length > 0 && (
+      {actsAsStudent && makeups && makeups.length > 0 && (
         <div className="mb-6">
           <StudentMakeups initialMakeups={(makeups ?? []).map((m: any) => ({
             id: m.id,
@@ -310,13 +315,13 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {features.enable_payments && student.role === 'student' && (
+      {features.enable_payments && actsAsStudent && (
         <div className="mb-6">
           <StudentMandate studentId={student.id as string} />
         </div>
       )}
 
-      {features.enable_payments && student.role === 'student' && (
+      {features.enable_payments && actsAsStudent && (
         <div className="mb-6 rounded-xl bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             <h2 className="font-semibold text-gray-900">Historial de pagos</h2>
@@ -359,7 +364,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {student.role === 'student' && (
+      {actsAsStudent && (
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Notificaciones del alumno</h2>
           {(!studentNotifications || studentNotifications.length === 0) ? (
@@ -370,7 +375,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {student.role === 'student' && levelHistory && levelHistory.length > 0 && (
+      {actsAsStudent && levelHistory && levelHistory.length > 0 && (
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 font-semibold text-gray-900">Historial de niveles</h2>
           <ul className="space-y-3">
@@ -390,7 +395,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {features.enable_objectives && student.role === 'student' && <StudentObjectives
+      {features.enable_objectives && actsAsStudent && <StudentObjectives
         studentId={params.id}
         initialChecklists={(checklists ?? []).map((c: any) => ({
           id: c.id,

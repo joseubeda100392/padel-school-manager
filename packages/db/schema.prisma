@@ -67,6 +67,7 @@ model User {
   id               String   @id @default(uuid())
   email            String   @unique
   role             UserRole @default(student)
+  alsoStudent      Boolean  @default(false) @map("also_student")
   name             String
   avatarUrl        String?
   phone            String?

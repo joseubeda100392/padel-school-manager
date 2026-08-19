@@ -88,7 +88,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     admin
       .from('users')
       .select('id, name, email')
-      .eq('role', 'student')
+      .or('role.eq.student,and(role.eq.coach,also_student.eq.true)')
       .eq('is_active', true)
       .eq('club_id', schedule.club_id)
       .order('name'),
