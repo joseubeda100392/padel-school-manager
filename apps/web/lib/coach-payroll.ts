@@ -43,3 +43,35 @@ export async function calculateCoachPending(
 
   return { hours, amountCents, sessionCount: sessions?.length ?? 0, periodStart, hourlyRateCents }
 }
+
+// Horas dadas por un profesor dentro del mes en curso (huso Europe/Madrid).
+// A diferencia de calculateCoachPending (que cuenta desde el último pago),
+// esto es solo informativo para el admin y no depende de ningún ciclo de
+// pago — se deriva de session_date en cada consulta, así que "se reinicia"
+// solo por el hecho de que el mes nuevo aún no tiene sesiones.
+export async function calculateCoachMonthlyHours(
+  admin: SupabaseClient,
+  coachId: string,
+  clubId: string,
+): Promise<{ hours: number; sessionCount: number }> {
+  const todayMadrid = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const monthStart = todayMadrid.slice(0, 7) + '-01'
+
+  const { data: sessions } = await admin
+    .from('class_sessions')
+    .select('session_date, schedule:schedules!inner(coach_id, start_time, end_time)')
+    .eq('club_id', clubId)
+    .eq('status', 'given')
+    .not('confirmed_by_admin', 'is', null)
+    .eq('schedule.coach_id', coachId)
+    .gte('session_date', monthStart)
+
+  let totalMinutes = 0
+  for (const s of sessions ?? []) {
+    const schedule = (s as any).schedule
+    if (!schedule) continue
+    totalMinutes += Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
+  }
+
+  return { hours: totalMinutes / 60, sessionCount: sessions?.length ?? 0 }
+}

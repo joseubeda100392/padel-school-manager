@@ -5,7 +5,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { redirect } from 'next/navigation'
-import { calculateCoachPending } from '@/lib/coach-payroll'
+import { calculateCoachPending, calculateCoachMonthlyHours } from '@/lib/coach-payroll'
 import { ClassValidationClient } from './class-validation-client'
 
 export default async function ClassValidationPage() {
@@ -52,8 +52,11 @@ export default async function ClassValidationPage() {
 
   const payroll = await Promise.all(
     (coaches ?? []).map(async (coach) => {
-      const pendingPay = await calculateCoachPending(admin, coach.id, clubId ?? '')
-      return { id: coach.id, name: coach.name, email: coach.email, ...pendingPay }
+      const [pendingPay, monthly] = await Promise.all([
+        calculateCoachPending(admin, coach.id, clubId ?? ''),
+        calculateCoachMonthlyHours(admin, coach.id, clubId ?? ''),
+      ])
+      return { id: coach.id, name: coach.name, email: coach.email, ...pendingPay, monthlyHours: monthly.hours, monthlySessionCount: monthly.sessionCount }
     })
   )
 

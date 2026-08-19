@@ -25,7 +25,11 @@ interface CoachPayroll {
   sessionCount: number
   periodStart: string | null
   hourlyRateCents: number | null
+  monthlyHours: number
+  monthlySessionCount: number
 }
+
+const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
 function formatDate(d: string) {
   return new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -151,6 +155,9 @@ export function ClassValidationClient({ initialPending, initialPayroll }: { init
                   <p className="text-sm font-medium text-gray-900">{c.name}</p>
                   <p className="text-xs text-gray-400">
                     {c.hours.toFixed(1)}h pendientes ({c.sessionCount} sesiones) {c.periodStart ? `desde ${formatDate(c.periodStart)}` : '(histórico completo)'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {c.monthlyHours.toFixed(1)}h en {MONTH_NAMES[new Date().getMonth()]} ({c.monthlySessionCount} sesiones)
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
