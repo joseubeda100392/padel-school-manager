@@ -12,7 +12,7 @@ async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, sch
   try {
     const { data: scheduleData } = await admin
       .from('schedules')
-      .select('start_time, club_id, court:courts(name), level:levels(name)')
+      .select('start_time, club_id, level_id, court:courts(name), level:levels(name)')
       .eq('id', scheduleId)
       .single()
 
@@ -24,9 +24,12 @@ async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, sch
 
     const excludedIds = new Set((enrolledRows ?? []).map((e: any) => e.student_id))
     const clubId = (scheduleData as any)?.club_id
+    const levelId = (scheduleData as any)?.level_id
 
-    const q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
-    const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)
+    let q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
+    if (clubId) q = q.eq('club_id', clubId)
+    if (levelId) q = q.eq('current_level_id', levelId)
+    const { data: candidates } = await q
     const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
 
     if (!targetIds.length || !scheduleData) return
