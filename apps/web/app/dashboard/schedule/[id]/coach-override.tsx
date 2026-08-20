@@ -14,7 +14,9 @@ interface Override {
   override_date: string
   new_coach_id: string
   reason: string | null
-  coach: { name: string } | null
+  // PostgREST puede devolver el embed como objeto o como array de 1 según
+  // cómo infiera la cardinalidad de la FK — se normaliza al usarlo.
+  coach: { name: string } | { name: string }[] | null
 }
 
 export function CoachOverride({ scheduleId, nextDate, nextDateLabel, coaches, existingOverride, regularCoachId }: {
@@ -33,6 +35,9 @@ export function CoachOverride({ scheduleId, nextDate, nextDateLabel, coaches, ex
   const [error, setError] = useState('')
 
   const substituteOptions = coaches.filter((c) => c.id !== regularCoachId)
+  const existingCoachName = Array.isArray(existingOverride?.coach)
+    ? existingOverride?.coach[0]?.name
+    : existingOverride?.coach?.name
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -67,7 +72,7 @@ export function CoachOverride({ scheduleId, nextDate, nextDateLabel, coaches, ex
     return (
       <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
         <p className="font-medium text-amber-800">
-          ⚠️ Sustituto puntual: el {nextDateLabel} la da {existingOverride.coach?.name ?? 'otro monitor'} (en vez del habitual)
+          ⚠️ Sustituto puntual: el {nextDateLabel} la da {existingCoachName ?? 'otro monitor'} (en vez del habitual)
         </p>
         {existingOverride.reason && <p className="mt-0.5 text-xs text-amber-600">{existingOverride.reason}</p>}
         <div className="mt-2 flex gap-3">
