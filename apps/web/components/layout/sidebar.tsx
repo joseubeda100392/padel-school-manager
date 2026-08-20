@@ -19,6 +19,7 @@ import {
   Zap,
   Receipt,
   ClipboardCheck,
+  Clock,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -33,6 +34,7 @@ const baseNavItems = [
   { href: '/dashboard/tournaments', label: 'Torneos', icon: Medal, feature: 'enable_tournaments' },
   { href: '/dashboard/pista-viva', label: 'Pista Viva', icon: Zap, feature: 'enable_pista_viva' },
   { href: '/dashboard/class-validation', label: 'Validación clases', icon: ClipboardCheck, feature: 'enable_class_validation' },
+  { href: '/dashboard/coach-hours', label: 'Horas de monitores', icon: Clock, feature: null, hideFeature: 'enable_class_validation' },
   { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard, feature: 'enable_payments' },
   { href: '/dashboard/chat', label: 'Chat Soporte', icon: MessageSquare, feature: 'enable_chat' },
   { href: '/dashboard/materials', label: 'Materia', icon: BookOpen, feature: 'enable_materials' },
@@ -61,8 +63,9 @@ export function Sidebar({ clubName, role, userName, features, saActiveClub, onCl
     : 'P'
 
   const navItems = baseNavItems.filter(item => {
-    if (!item.feature || !features) return true
-    return features[item.feature as keyof ClubFeatures]
+    if (item.feature && features && !features[item.feature as keyof ClubFeatures]) return false
+    if ('hideFeature' in item && item.hideFeature && features && features[item.hideFeature as keyof ClubFeatures]) return false
+    return true
   })
 
   async function handleExitClub() {
