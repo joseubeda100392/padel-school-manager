@@ -11,6 +11,7 @@ import ScheduleMaterials from './schedule-materials'
 import { AdminAddSpotBooking } from './add-spot-booking'
 import { SpotBookingsList } from './spot-bookings-list'
 import { TimeOverride } from './time-override'
+import { CoachOverride } from './coach-override'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -65,6 +66,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     { data: groupEnrollments, error: errGroupEnrollments },
     { data: allStudents },
     { data: timeOverride },
+    { data: coaches },
+    { data: coachOverride },
   ] = await Promise.all([
     getClubFeatures(schedule.club_id ?? undefined),
     schedule.club_id
@@ -95,6 +98,19 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     admin
       .from('schedule_time_overrides')
       .select('id, override_date, new_start_time, new_end_time, reason')
+      .eq('schedule_id', params.id)
+      .eq('override_date', nextDate)
+      .maybeSingle(),
+    admin
+      .from('users')
+      .select('id, name, email')
+      .eq('role', 'coach')
+      .eq('is_active', true)
+      .eq('club_id', schedule.club_id)
+      .order('name'),
+    admin
+      .from('schedule_coach_overrides')
+      .select('id, override_date, new_coach_id, reason, coach:users!schedule_coach_overrides_new_coach_id_fkey(name)')
       .eq('schedule_id', params.id)
       .eq('override_date', nextDate)
       .maybeSingle(),
@@ -210,6 +226,14 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
               nextDate={nextDate}
               nextDateLabel={nextDateLabel}
               existingOverride={timeOverride ?? null}
+            />
+            <CoachOverride
+              scheduleId={params.id}
+              nextDate={nextDate}
+              nextDateLabel={nextDateLabel}
+              coaches={coaches ?? []}
+              existingOverride={coachOverride ?? null}
+              regularCoachId={(schedule as any).coach_id ?? null}
             />
           </div>
           <div className="text-right">

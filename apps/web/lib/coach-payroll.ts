@@ -87,7 +87,9 @@ function durationMinutes(schedule: { start_time: string; end_time: string }): nu
 // calculateCoachMonthlyHours, más preciso pero manual, exclusivo de las
 // urbanizaciones). Cuenta una sesión por cada día que coincide con el día
 // de la semana del horario, dentro del mes en curso y hasta hoy, salvo
-// festivos del club o clases canceladas explícitamente por el club.
+// festivos del club, clases canceladas explícitamente por el club, o días
+// en los que un sustituto puntual (schedule_coach_overrides) cubre la
+// clase — esas horas pasan al sustituto en vez de al titular.
 export async function calculateCoachScheduledMonthlyHours(
   admin: SupabaseClient,
   coachId: string,
@@ -111,6 +113,28 @@ export async function calculateCoachScheduledMonthlyHours(
   const holidaySet = new Set<string>((club as any)?.config?.holidays ?? [])
   const scheduleList = (schedules ?? []) as any[]
   const scheduleIds = scheduleList.map((s) => s.id)
+
+  // Días en los que un sustituto cubre alguna de las propias clases del
+  // titular — esos días no cuentan para él.
+  const { data: outgoingOverrides } = scheduleIds.length
+    ? await admin
+        .from('schedule_coach_overrides')
+        .select('schedule_id, override_date')
+        .in('schedule_id', scheduleIds)
+        .gte('override_date', monthStart)
+    : { data: [] }
+  const substitutedSet = new Set(
+    (outgoingOverrides ?? []).map((o: any) => `${o.schedule_id}|${o.override_date}`)
+  )
+
+  // Días en los que este monitor cubre la clase de otro — cuentan para él.
+  const { data: incomingOverrides } = await admin
+    .from('schedule_coach_overrides')
+    .select('schedule_id, override_date, schedule:schedules!inner(start_time, end_time)')
+    .eq('new_coach_id', coachId)
+    .eq('club_id', clubId)
+    .gte('override_date', monthStart)
+    .lte('override_date', todayMadrid)
 
   // Clases canceladas explícitamente por el club (cancel-session inserta una
   // schedule_exclusion con este motivo exacto para cada alumno inscrito) —
@@ -147,7 +171,11 @@ export async function calculateCoachScheduledMonthlyHours(
 
     if (s.recurrence === 'none') {
       const d = madridFmt.format(new Date(s.start_time))
-      if (d >= monthStart && d <= todayMadrid && !cancelledByScheduleDate.has(`${s.id}|${d}`)) {
+      if (
+        d >= monthStart && d <= todayMadrid &&
+        !cancelledByScheduleDate.has(`${s.id}|${d}`) &&
+        !substitutedSet.has(`${s.id}|${d}`)
+      ) {
         totalMinutes += minutes
         sessionCount++
       }
@@ -167,13 +195,22 @@ export async function calculateCoachScheduledMonthlyHours(
         getDayOfWeek(cursor) === scheduleDow &&
         !holidaySet.has(dateStr) &&
         (!s.recurrence_end_date || dateStr <= s.recurrence_end_date) &&
-        !cancelledByScheduleDate.has(`${s.id}|${dateStr}`)
+        !cancelledByScheduleDate.has(`${s.id}|${dateStr}`) &&
+        !substitutedSet.has(`${s.id}|${dateStr}`)
       ) {
         totalMinutes += minutes
         sessionCount++
       }
       cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000)
     }
+  }
+
+  // Sesiones ajenas que este monitor ha cubierto como sustituto.
+  for (const o of incomingOverrides ?? []) {
+    const sched = (o as any).schedule
+    if (!sched) continue
+    totalMinutes += durationMinutes(sched)
+    sessionCount++
   }
 
   return { hours: totalMinutes / 60, sessionCount }
