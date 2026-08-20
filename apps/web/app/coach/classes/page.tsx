@@ -41,7 +41,7 @@ export default async function CoachClassesPage({
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
   }
 
-  const view = searchParams.view === 'week' ? 'week' : 'list'
+  const view = searchParams.view === 'list' ? 'list' : 'week'
 
   const byDay: Record<number, any[]> = {}
   for (const s of schedules ?? []) {
