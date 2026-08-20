@@ -114,6 +114,11 @@ export async function POST(req: NextRequest) {
     const nextChargeAt = getNextChargeDate(mandate)
     const now = new Date().toISOString()
 
+    // Cobro recurrente: "hoy" está anclado a mandate.day_of_month cada ciclo
+    // (no es un momento arbitrario del mes), así que aquí NO se aplica el
+    // salto de mes de billing-cycle.ts — eso es solo para el primer cobro
+    // puntual de la temporada. Aplicarlo aquí facturaría cada dos meses en
+    // vez de cada mes para cualquier día de cobro cercano a fin de mes.
     const paidUntil = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
     await Promise.all([
       admin.from('payments').update({ status: success ? 'succeeded' : 'failed' }).eq('id', payment!.id),

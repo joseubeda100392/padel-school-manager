@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { verifySignature, parseRedsysResponse, isPaymentSuccessful } from '@/lib/redsys'
 import { sendPushToUsers } from '@/lib/push'
 import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
+import { computePaidUntil, computeBillingCycle } from '@/lib/billing-cycle'
 
 export async function POST(req: NextRequest) {
   const adminSupabase = createClient(
@@ -183,7 +184,7 @@ export async function POST(req: NextRequest) {
 
   } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
     const now = new Date()
-    const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    const paidUntil = computePaidUntil(now)
     const { error: enrollErr } = await adminSupabase
       .from('group_enrollments')
       .update({ paid_until: paidUntil })
@@ -238,8 +239,7 @@ export async function POST(req: NextRequest) {
       .single()
     const dayOfMonth = mandate?.day_of_month ?? 1
     const now = new Date()
-    const nextCharge = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth)
-    const nextChargeAt = nextCharge.toISOString().split('T')[0]
+    const { paidUntil, nextChargeAt } = computeBillingCycle(now, dayOfMonth)
     const { error: mandateErr } = await adminSupabase
       .from('payment_mandates')
       .update({
@@ -256,8 +256,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'mandate_update_failed' }, { status: 500 })
     }
 
-    // Marcar inscripciones activas del alumno como pagadas hasta fin de mes
-    const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    // Marcar inscripciones activas del alumno como pagadas hasta paidUntil
     const { error: mandEnrolErr } = await adminSupabase
       .from('group_enrollments')
       .update({ paid_until: paidUntil })

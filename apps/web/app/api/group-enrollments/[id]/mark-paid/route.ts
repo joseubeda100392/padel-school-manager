@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
+import { computePaidUntil } from '@/lib/billing-cycle'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -29,7 +30,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   }
 
   const now = new Date()
-  const paidUntil = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+  const paidUntil = computePaidUntil(now)
 
   const clubId = enrollment.club_id ?? adminUser.club_id
 
