@@ -20,6 +20,7 @@ import {
   Receipt,
   ClipboardCheck,
   Clock,
+  HelpCircle,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -41,6 +42,7 @@ const baseNavItems = [
   { href: '/dashboard/tarifas', label: 'Tarifas/Normas/Cal.', icon: Receipt, feature: null },
   { href: '/dashboard/notifications', label: 'Notificaciones', icon: Bell, feature: null },
   { href: '/dashboard/settings', label: 'Configuración', icon: Settings, feature: null },
+  { href: '/dashboard/ayuda', label: 'Ayuda', icon: HelpCircle, feature: null },
 ]
 
 const superAdminItems = [

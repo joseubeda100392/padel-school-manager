@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Calendar, CalendarRange, BookOpen, MessageCircle, LogOut, Menu, X, Receipt, Repeat } from 'lucide-react'
+import { Home, Calendar, CalendarRange, BookOpen, MessageCircle, LogOut, Menu, X, Receipt, Repeat, HelpCircle } from 'lucide-react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { staggerContainer, fadeUp } from '@/lib/motion-variants'
@@ -19,6 +19,7 @@ const allNavItems = [
   { href: '/coach/materials', label: 'Materia', icon: BookOpen, exact: false, feature: 'enable_materials' },
   { href: '/coach/tarifas', label: 'Tarifas/Normas/Cal.', icon: Receipt, exact: false, feature: null },
   { href: '/coach/chat', label: 'Chat soporte', icon: MessageCircle, exact: false, feature: 'enable_chat' },
+  { href: '/coach/ayuda', label: 'Ayuda', icon: HelpCircle, exact: false, feature: null },
 ]
 
 export function CoachShell({ children, userName, clubName, features, alsoStudent }: {

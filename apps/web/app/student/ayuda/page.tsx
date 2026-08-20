@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { id: 'menu',           label: 'El menú' },
   { id: 'clases',         label: 'Mis clases' },
   { id: 'recuperar',      label: 'Recuperar clase' },
+  { id: 'pista-viva',     label: 'Pista Viva' },
   { id: 'bolsa',          label: 'Bolsa de clases' },
   { id: 'material',       label: 'Materia' },
   { id: 'notificaciones', label: 'Notificaciones' },
@@ -45,7 +46,7 @@ export default function AyudaPage() {
           <Section id="menu" title="El menú principal">
             <div className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
               {[
-                ['Mi perfil', 'Tus datos personales, resumen de clases y bolsa, próxima clase y cambio de contraseña.'],
+                ['Mi perfil', 'Tus datos personales, resumen de clases y bolsa, próxima clase, Pista Viva y cambio de contraseña.'],
                 ['Mis Clases', 'Tus clases apuntadas, horarios y asistencia.'],
                 ['Mi Progreso', 'Tu nivel actual e historial de progresión.'],
                 ['Huecos', 'Plazas libres en otras clases para recuperar una que hayas perdido.'],
@@ -83,6 +84,18 @@ export default function AyudaPage() {
               'Pulsa Reservar hueco y confirma.',
             ]} />
             <p className="mt-2 text-sm text-gray-500">Las plazas de recuperación son limitadas y dependen de la disponibilidad del club.</p>
+          </Section>
+
+          <Section id="pista-viva" title="Pista Viva">
+            <p>Pista Viva te avisa cuando en el club hay un partido abierto en Playtomic al que le faltan jugadores de tu nivel, para que puedas apuntarte y jugar con otros socios del club.</p>
+            <p className="mt-3 text-sm font-semibold text-gray-800">Cómo activarlo</p>
+            <Steps items={[
+              'Ve a Mi perfil y busca la tarjeta Pista Viva.',
+              'En la app de Playtomic, entra en tu perfil y pulsa Compartir perfil → Copiar enlace.',
+              'Pega ese enlace en la tarjeta de Pista Viva y pulsa Activar avisos. Tu nivel real de Playtomic se guarda automáticamente.',
+            ]} />
+            <p className="mt-3">Una vez activado, verás ahí mismo los partidos abiertos de tu nivel disponibles ahora mismo en el club, con un enlace directo para apuntarte en Playtomic. También puedes elegir en qué días y franjas horarias te interesa recibir avisos, y desactivarlo cuando quieras con el botón <strong>Desactivar</strong>.</p>
+            <Nota>Playtomic solo hace visible un partido abierto cuando ya tiene al menos 2 jugadores apuntados. Si ves un partido con 1 solo jugador, es normal que todavía no aparezca aquí — se mostrará en cuanto se apunte un segundo jugador.</Nota>
           </Section>
 
           <Section id="bolsa" title="Mi bolsa de clases">
@@ -132,6 +145,7 @@ export default function AyudaPage() {
               <FAQ q="¿Puedo usar la aplicación desde el móvil?" a="Sí. Funciona en cualquier navegador (Chrome, Safari, Firefox) y en cualquier dispositivo. Solo necesitas el enlace del club, no hay que instalar ninguna app." />
               <FAQ q="¿Puedo cambiarme a otro grupo o horario?" a="Los cambios de grupo los gestiona el club. Escríbenos por el chat de soporte y te ayudamos." />
               <FAQ q="¿Mis datos están seguros?" a="Sí. La aplicación cumple con el RGPD. Tus datos solo se usan para la gestión del club y nunca se ceden a terceros." />
+              <FAQ q="Veo un partido en Playtomic pero no me sale en Pista Viva, ¿por qué?" a="Playtomic solo hace visible un partido abierto cuando ya tiene al menos 2 jugadores apuntados. Si el partido todavía tiene solo 1 jugador, aparecerá en Pista Viva en cuanto se apunte el segundo." />
             </div>
           </Section>
 
