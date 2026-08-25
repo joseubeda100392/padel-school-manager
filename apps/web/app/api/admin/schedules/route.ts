@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { checkOverlap, checkCoachOverlap } from '@/lib/schedule-overlap'
 import { cookies } from 'next/headers'
 
 const scheduleSchema = z.object({
@@ -21,49 +22,6 @@ const scheduleSchema = z.object({
   price_cents: z.number().int().min(0).nullable().optional(),
   intensivo_group_id: z.string().uuid().nullable().optional(),
 })
-
-function toMinutes(iso: string) {
-  const d = new Date(iso)
-  return d.getUTCHours() * 60 + d.getUTCMinutes()
-}
-
-const TZ = 'Europe/Madrid'
-function dateOnly(iso: string) {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso))
-}
-
-function overlaps(
-  startTime: string, endTime: string, newEndDate: string | null | undefined,
-  existing: { start_time: string; end_time: string; recurrence_end_date: string | null }[]
-) {
-  const dow = new Date(startTime).getUTCDay()
-  const start = toMinutes(startTime)
-  const end = toMinutes(endTime)
-  const newStartDate = dateOnly(startTime)
-
-  return existing.some(s => {
-    if (new Date(s.start_time).getUTCDay() !== dow) return false
-    if (start >= toMinutes(s.end_time) || end <= toMinutes(s.start_time)) return false
-    const sStartDate = dateOnly(s.start_time)
-    // existing starts after new ends → no real overlap
-    if (newEndDate && sStartDate > newEndDate) return false
-    // new starts after existing ends → no real overlap
-    if (s.recurrence_end_date && newStartDate > s.recurrence_end_date) return false
-    return true
-  })
-}
-
-async function checkOverlap(admin: ReturnType<typeof getAdminClient>, courtId: string, startTime: string, endTime: string, newEndDate: string | null | undefined, excludeId?: string) {
-  const query = admin.from('schedules').select('id, start_time, end_time, recurrence_end_date').eq('court_id', courtId).eq('is_active', true)
-  const { data } = await (excludeId ? query.neq('id', excludeId) : query)
-  return overlaps(startTime, endTime, newEndDate, data ?? [])
-}
-
-async function checkCoachOverlap(admin: ReturnType<typeof getAdminClient>, coachId: string, startTime: string, endTime: string, newEndDate: string | null | undefined, excludeId?: string) {
-  const query = admin.from('schedules').select('id, start_time, end_time, recurrence_end_date').eq('coach_id', coachId).eq('is_active', true)
-  const { data } = await (excludeId ? query.neq('id', excludeId) : query)
-  return overlaps(startTime, endTime, newEndDate, data ?? [])
-}
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
