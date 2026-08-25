@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
-import { getDayOfWeek } from '@/lib/utils'
+import { getDayOfWeek, formatTime } from '@/lib/utils'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const RECURRENCE_LABEL: Record<string, string> = { none: 'Ninguna (clase suelta)', weekly: 'Semanal', biweekly: 'Quincenal' }
@@ -43,8 +43,8 @@ export async function GET() {
     'Monitor': s.coach?.name ?? '',
     'Nivel': s.level?.name ?? '',
     'Día': DAYS[getDayOfWeek(s.start_time)],
-    'Hora inicio': new Date(s.start_time).toISOString().slice(11, 16),
-    'Hora fin': new Date(s.end_time).toISOString().slice(11, 16),
+    'Hora inicio': formatTime(s.start_time),
+    'Hora fin': formatTime(s.end_time),
     'Recurrencia': RECURRENCE_LABEL[s.recurrence] ?? s.recurrence,
     'Fin recurrencia': s.recurrence_end_date ?? '',
     'Plazas máx': s.max_students,

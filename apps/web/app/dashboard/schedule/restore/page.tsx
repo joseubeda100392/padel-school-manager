@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
+import { formatTime } from '@/lib/utils'
 
 interface Row {
   pista: string
@@ -223,7 +224,7 @@ export default function RestoreSchedulePage() {
                     <td className="px-4 py-3 text-gray-500">{r.nivel || '—'}</td>
                     <td className="px-4 py-3 text-gray-500">{r.dia}</td>
                     <td className="px-4 py-3 text-gray-500">
-                      {r.start_time ? new Date(r.start_time).toISOString().slice(11, 16) : '—'}
+                      {r.start_time ? formatTime(r.start_time) : '—'}
                     </td>
                   </tr>
                 ))}
