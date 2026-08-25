@@ -165,20 +165,6 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
           >
             Calendario maestro
           </Link>
-          <a
-            href="/api/admin/schedules/export"
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-            title="Copia de seguridad del calendario en Excel"
-          >
-            ↓ Descargar Excel
-          </a>
-          <Link
-            href="/dashboard/schedule/restore"
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-            title="Restaurar clases desde un Excel descargado antes"
-          >
-            ↑ Restaurar Excel
-          </Link>
           <Link
             href="/dashboard/schedule/new"
             className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"

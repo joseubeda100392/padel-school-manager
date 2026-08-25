@@ -54,12 +54,28 @@ export default async function MasterSchedulePage() {
           <h1 className="text-2xl font-bold text-gray-900">Calendario maestro</h1>
           <p className="text-sm text-gray-500">Con alumnos del grupo fijo, monitor y nivel real</p>
         </div>
-        <Link
-          href="/dashboard/schedule"
-          className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-        >
-          ← Volver a Horarios
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="/api/admin/schedules/export"
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            title="Copia de seguridad del calendario en Excel"
+          >
+            ↓ Descargar Excel
+          </a>
+          <Link
+            href="/dashboard/schedule/restore"
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            title="Restaurar clases desde un Excel descargado antes"
+          >
+            ↑ Restaurar Excel
+          </Link>
+          <Link
+            href="/dashboard/schedule"
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            ← Volver a Horarios
+          </Link>
+        </div>
       </div>
 
       <MasterWeeklyCalendar schedules={schedules} />
