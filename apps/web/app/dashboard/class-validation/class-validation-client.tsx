@@ -140,6 +140,16 @@ export function ClassValidationClient({ initialPending, initialPayroll }: { init
         )}
       </div>
 
+      <div className="rounded-xl border-l-4 border-l-brand-500 bg-white p-5 shadow-sm">
+        <p className="text-sm text-gray-500">Total del club en {MONTH_NAMES[new Date().getMonth()]}</p>
+        <p className="mt-2 text-2xl font-bold text-gray-900">
+          {initialPayroll.reduce((acc, c) => acc + c.monthlyHours, 0).toFixed(1)}h
+        </p>
+        <p className="mt-0.5 text-xs text-gray-400">
+          {initialPayroll.reduce((acc, c) => acc + c.monthlySessionCount, 0)} clases entre {initialPayroll.length} monitor{initialPayroll.length !== 1 ? 'es' : ''}
+        </p>
+      </div>
+
       <div className="rounded-xl bg-white shadow-sm">
         <div className="border-b border-gray-100 px-6 py-4">
           <h2 className="font-semibold text-gray-900">Nómina de profesores</h2>

@@ -31,12 +31,20 @@ export default async function CoachHoursPage() {
   )
 
   const monthLabel = MONTH_NAMES[new Date().getMonth()]
+  const totalHours = hours.reduce((acc, c) => acc + c.hours, 0)
+  const totalSessions = hours.reduce((acc, c) => acc + c.sessionCount, 0)
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Horas de monitores</h1>
         <p className="text-sm text-gray-500">Calculadas automáticamente a partir del horario fijo de cada uno — sin que tengan que marcar nada.</p>
+      </div>
+
+      <div className="mb-6 rounded-xl border-l-4 border-l-brand-500 bg-white p-5 shadow-sm">
+        <p className="text-sm text-gray-500">Total del club en {monthLabel}</p>
+        <p className="mt-2 text-2xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
+        <p className="mt-0.5 text-xs text-gray-400">{totalSessions} clase{totalSessions !== 1 ? 's' : ''} entre {hours.length} monitor{hours.length !== 1 ? 'es' : ''}</p>
       </div>
 
       <div className="rounded-xl bg-white shadow-sm">

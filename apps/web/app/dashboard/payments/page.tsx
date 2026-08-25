@@ -61,6 +61,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const total = payments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
 
   const rawUnpaid: any[] = billingActive ? ((unpaidResult.data as any[]) ?? []) : []
+  const pendingAmount = rawUnpaid.reduce((acc, u: any) => acc + (u.monthly_price ?? 0), 0)
+  const generatedAmount = total + pendingAmount
   const billingStart = billingStartDate ? new Date(billingStartDate + 'T00:00:00') : null
   const unpaid = billingStart
     ? rawUnpaid.map((item) => {
@@ -92,20 +94,26 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
         <MonthNavigator year={selectedYear} month={selectedMonth} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border-l-4 border-l-brand-500 bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Total generado en {monthLabel}</p>
+          <p className="mt-2 text-2xl font-bold text-gray-900">{formatCurrency(generatedAmount)}</p>
+          <p className="mt-0.5 text-xs text-gray-400">Cobrado + pendiente</p>
+        </div>
         <div className="rounded-xl border-l-4 border-l-green-500 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Total cobrado en {monthLabel}</p>
           <p className="mt-2 text-2xl font-bold text-gray-900">{formatCurrency(total)}</p>
         </div>
+        <div className="rounded-xl border-l-4 border-l-yellow-500 bg-white p-5 shadow-sm">
+          <p className="text-sm text-gray-500">Pendiente de cobro</p>
+          <p className={`mt-2 text-2xl font-bold ${unpaid.length > 0 ? 'text-yellow-600' : 'text-gray-900'}`}>
+            {formatCurrency(pendingAmount)}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-400">{unpaid.length} alumno{unpaid.length !== 1 ? 's' : ''}</p>
+        </div>
         <div className="rounded-xl border-l-4 border-l-blue-500 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Transacciones</p>
           <p className="mt-2 text-2xl font-bold text-gray-900">{payments?.length ?? 0}</p>
-        </div>
-        <div className="rounded-xl border-l-4 border-l-yellow-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Pendientes de pago</p>
-          <p className={`mt-2 text-2xl font-bold ${unpaid.length > 0 ? 'text-yellow-600' : 'text-gray-900'}`}>
-            {unpaid.length}
-          </p>
         </div>
       </div>
 
