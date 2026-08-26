@@ -147,19 +147,32 @@ export default function GroupEnrollment({
     return is90MinClass ? otherTariffs.claseEntera90 : otherTariffs.claseEntera60
   }
 
-  // Cuántas veces cae esta clase (mismo día de la semana) dentro del mes en
-  // curso, para pasar de "precio por clase" a una cuota mensual real.
-  function occurrencesThisMonth(): number {
-    const dow = getDayOfWeek(scheduleStartTime)
-    const now2 = new Date()
-    const year = now2.getFullYear()
-    const month = now2.getMonth()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
+  function countOccurrences(dow: number, year: number, month0: number, fromDay: number): number {
+    const daysInMonth = new Date(year, month0 + 1, 0).getDate()
     let count = 0
-    for (let d = 1; d <= daysInMonth; d++) {
-      if (getDayOfWeek(new Date(year, month, d, 12)) === dow) count++
+    for (let d = fromDay; d <= daysInMonth; d++) {
+      if (getDayOfWeek(new Date(year, month0, d, 12)) === dow) count++
     }
     return count
+  }
+
+  // Cuántas veces queda esta clase (mismo día de la semana) desde HOY hasta
+  // fin de mes — no el mes completo, que ya podría estar prácticamente
+  // acabado (ej. si el día de la semana de la clase ya no vuelve a caer
+  // este mes, se pasa directamente a contar el mes siguiente completo).
+  function billingTarget(): { count: number; monthLabel: string } {
+    const dow = getDayOfWeek(scheduleStartTime)
+    const todayMadrid = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+    const [ty, tm, td] = todayMadrid.split('-').map(Number)
+    const thisMonth0 = tm - 1
+
+    const remaining = countOccurrences(dow, ty, thisMonth0, td)
+    if (remaining > 0) {
+      return { count: remaining, monthLabel: `${MONTH_NAMES[thisMonth0]} ${ty}` }
+    }
+    const next = new Date(ty, thisMonth0 + 1, 1)
+    const nextCount = countOccurrences(dow, next.getFullYear(), next.getMonth(), 1)
+    return { count: nextCount, monthLabel: `${MONTH_NAMES[next.getMonth()]} ${next.getFullYear()}` }
   }
 
   const enrolledIds = new Set(enrollments.map((e) => e.student.id))
@@ -168,7 +181,7 @@ export default function GroupEnrollment({
   function handleSelectTariff(tariff: TariffChoice) {
     setSelectedTariff(tariff)
     const pricePerClass = tariffPricePerClass(tariff)
-    setMonthlyPrice(pricePerClass * occurrencesThisMonth())
+    setMonthlyPrice(pricePerClass * billingTarget().count)
   }
 
   async function handleAdd() {
@@ -563,6 +576,11 @@ export default function GroupEnrollment({
                 </option>
               ))}
             </select>
+          )}
+          {selectedTariff && (
+            <span className="flex items-center text-xs text-gray-400">
+              Cuota de {billingTarget().monthLabel}
+            </span>
           )}
           {enablePayments && (
             <div className="relative">
