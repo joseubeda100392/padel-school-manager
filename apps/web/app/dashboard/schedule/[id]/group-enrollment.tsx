@@ -9,10 +9,18 @@ interface Enrollment {
   id: string
   monthly_price: number
   price_per_class_cents?: number | null
+  court_pricing?: 'con_pista' | 'sin_pista' | null
   discount_classes_pending?: number
   paid_until: string | null
   status: string
   student: { id: string; name: string; email: string }
+}
+
+interface CourtPricing {
+  withCourt60: number
+  withCourt90: number
+  withoutCourt60: number
+  withoutCourt90: number
 }
 
 interface Student {
@@ -54,6 +62,8 @@ function getNextOccurrence(startTime: string): string {
 export default function GroupEnrollment({
   scheduleId,
   scheduleStartTime,
+  scheduleEndTime,
+  courtPricing,
   initialEnrollments,
   initialExclusions,
   availableStudents,
@@ -64,6 +74,8 @@ export default function GroupEnrollment({
 }: {
   scheduleId: string
   scheduleStartTime: string
+  scheduleEndTime?: string
+  courtPricing?: CourtPricing
   initialEnrollments: Enrollment[]
   initialExclusions: Record<string, Exclusion[]>
   availableStudents: Student[]
@@ -95,6 +107,18 @@ export default function GroupEnrollment({
   const currentMonth = MONTH_NAMES[now.getMonth()]
   const currentYear = now.getFullYear()
   const nextOccurrence = getNextOccurrence(scheduleStartTime)
+
+  // Duración real de la clase, para saber qué tarifa (60/90 min) de
+  // Con pista / Sin pista aplica — el admin no la elige, se deriva sola.
+  const is90MinClass = scheduleEndTime
+    ? (new Date(scheduleEndTime).getTime() - new Date(scheduleStartTime).getTime()) / 60000 >= 80
+    : false
+
+  function courtPricingCents(pricing: 'con_pista' | 'sin_pista'): number {
+    if (!courtPricing) return 0
+    if (pricing === 'con_pista') return is90MinClass ? courtPricing.withCourt90 : courtPricing.withCourt60
+    return is90MinClass ? courtPricing.withoutCourt90 : courtPricing.withoutCourt60
+  }
 
   const enrolledIds = new Set(enrollments.map((e) => e.student.id))
   const unenrolledStudents = availableStudents.filter((s) => !enrolledIds.has(s.id))
@@ -168,6 +192,25 @@ export default function GroupEnrollment({
       prev.map((e) => e.id === id ? { ...e, price_per_class_cents: editingPerClassValue } : e)
     )
     setEditingPerClassId(null)
+  }
+
+  async function handleSetCourtPricing(id: string, pricing: 'con_pista' | 'sin_pista') {
+    const cents = courtPricingCents(pricing)
+    setLoadingId(id)
+    const res = await fetch(`/api/group-enrollments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ court_pricing: pricing, price_per_class_cents: cents }),
+    })
+    setLoadingId(null)
+    if (!res.ok) {
+      toast.error('No se pudo actualizar la tarifa')
+      return
+    }
+    setEnrollments((prev) =>
+      prev.map((e) => e.id === id ? { ...e, court_pricing: pricing, price_per_class_cents: cents } : e)
+    )
+    toast.success(`Tarifa "${pricing === 'con_pista' ? 'Con pista' : 'Sin pista'}" aplicada — ${(cents / 100).toFixed(2)}€/clase`)
   }
 
   async function handleMarkPaid(id: string) {
@@ -318,6 +361,25 @@ export default function GroupEnrollment({
                       {(e.monthly_price / 100).toFixed(2)}€/mes ✎
                     </button>
                   ))}
+
+                  {enableClassValidation && enablePayments && courtPricing && (
+                    <div className="flex items-center overflow-hidden rounded-lg border border-gray-200">
+                      <button
+                        onClick={() => handleSetCourtPricing(e.id, 'con_pista')}
+                        disabled={isLoading}
+                        className={`px-2.5 py-1 text-xs font-medium transition-colors ${e.court_pricing === 'con_pista' ? 'bg-brand-500 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        Con pista
+                      </button>
+                      <button
+                        onClick={() => handleSetCourtPricing(e.id, 'sin_pista')}
+                        disabled={isLoading}
+                        className={`px-2.5 py-1 text-xs font-medium transition-colors ${e.court_pricing === 'sin_pista' ? 'bg-brand-500 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                      >
+                        Sin pista
+                      </button>
+                    </div>
+                  )}
 
                   {enableClassValidation && enablePayments && (editingPerClassId === e.id ? (
                     <div className="flex items-center gap-1">

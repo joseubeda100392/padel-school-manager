@@ -84,7 +84,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       .order('class_date'),
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, price_per_class_cents, discount_classes_pending, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
+      .select('id, monthly_price, price_per_class_cents, court_pricing, discount_classes_pending, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
       .eq('schedule_id', params.id)
       .eq('status', 'active')
       .order('enrolled_at'),
@@ -258,10 +258,18 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
         <GroupEnrollment
           scheduleId={params.id}
           scheduleStartTime={schedule.start_time}
+          scheduleEndTime={schedule.end_time}
+          courtPricing={{
+            withCourt60: (clubRow as any)?.config?.price_per_class_with_court_60 ?? 0,
+            withCourt90: (clubRow as any)?.config?.price_per_class_with_court_90 ?? 0,
+            withoutCourt60: (clubRow as any)?.config?.price_per_class_without_court_60 ?? 0,
+            withoutCourt90: (clubRow as any)?.config?.price_per_class_without_court_90 ?? 0,
+          }}
           initialEnrollments={(groupEnrollments ?? []).map((e: any) => ({
             id: e.id,
             monthly_price: e.monthly_price,
             price_per_class_cents: e.price_per_class_cents,
+            court_pricing: e.court_pricing,
             discount_classes_pending: e.discount_classes_pending,
             paid_until: e.paid_until,
             status: e.status,

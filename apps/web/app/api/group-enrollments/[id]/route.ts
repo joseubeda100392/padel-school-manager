@@ -26,6 +26,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (body.monthly_price !== undefined) updates.monthly_price = body.monthly_price
   if (body.price_per_class_cents !== undefined) updates.price_per_class_cents = body.price_per_class_cents
   if (body.discount_applied !== undefined) updates.discount_applied = body.discount_applied
+  if (body.court_pricing !== undefined) {
+    if (body.court_pricing !== null && !['con_pista', 'sin_pista'].includes(body.court_pricing)) {
+      return NextResponse.json({ error: 'court_pricing inválido' }, { status: 400 })
+    }
+    updates.court_pricing = body.court_pricing
+  }
 
   const { error } = await admin
     .from('group_enrollments')

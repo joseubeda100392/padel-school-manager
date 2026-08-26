@@ -18,6 +18,10 @@ const DEFAULT_CONFIG = {
   school_name: 'Mi Escuela de Pádel',
   billing_start_date: '',
   standard_discount_cents: 4000,
+  price_per_class_with_court_60: 0,
+  price_per_class_with_court_90: 0,
+  price_per_class_without_court_60: 0,
+  price_per_class_without_court_90: 0,
 }
 
 async function getEffectiveCaller() {
@@ -53,7 +57,7 @@ export async function PATCH(req: NextRequest) {
   if (!caller.club_id) return NextResponse.json({ error: 'Sin club asignado' }, { status: 400 })
 
   const body = await req.json()
-  const numericKeys = ['pay_per_class_price_60','pay_per_class_price_90','whole_class_price_60','whole_class_price_90','pack_price_60','classes_per_pack_60','pack_price_90','classes_per_pack_90','cancellation_hours','max_recovery_classes','standard_discount_cents']
+  const numericKeys = ['pay_per_class_price_60','pay_per_class_price_90','whole_class_price_60','whole_class_price_90','pack_price_60','classes_per_pack_60','pack_price_90','classes_per_pack_90','cancellation_hours','max_recovery_classes','standard_discount_cents','price_per_class_with_court_60','price_per_class_with_court_90','price_per_class_without_court_60','price_per_class_without_court_90']
   const updates: Record<string, number | string> = {}
   for (const key of Object.keys(DEFAULT_CONFIG)) {
     if (!(key in body)) continue

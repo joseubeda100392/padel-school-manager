@@ -65,6 +65,10 @@ interface AppConfig {
   max_recovery_classes: number
   billing_start_date: string
   standard_discount_cents: number
+  price_per_class_with_court_60: number
+  price_per_class_with_court_90: number
+  price_per_class_without_court_60: number
+  price_per_class_without_court_90: number
 }
 
 const defaults: AppConfig = {
@@ -81,6 +85,10 @@ const defaults: AppConfig = {
   max_recovery_classes: 0,
   billing_start_date: '',
   standard_discount_cents: 4000,
+  price_per_class_with_court_60: 0,
+  price_per_class_with_court_90: 0,
+  price_per_class_without_court_60: 0,
+  price_per_class_without_court_90: 0,
 }
 
 function intVal(s: string): number {
@@ -788,6 +796,91 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {features.enable_class_validation && (features.enable_60min || features.enable_90min) && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="mb-1 font-semibold text-gray-900">Precio por clase (Validación de clases)</h2>
+              <p className="mb-4 text-xs text-gray-400">
+                Se usa para calcular el descuento de las clases no dadas, según si el alumno usa pista del club o la suya propia.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Con pista</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {features.enable_60min && (
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">1 hora (€)</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            onFocus={e => e.target.select()}
+                            value={displayPrice(config.price_per_class_with_court_60)}
+                            onChange={e => setConfig({ ...config, price_per_class_with_court_60: priceVal(e.target.value) })}
+                            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+                          />
+                          <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+                        </div>
+                      </div>
+                    )}
+                    {features.enable_90min && (
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">1h 30min (€)</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            onFocus={e => e.target.select()}
+                            value={displayPrice(config.price_per_class_with_court_90)}
+                            onChange={e => setConfig({ ...config, price_per_class_with_court_90: priceVal(e.target.value) })}
+                            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+                          />
+                          <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Sin pista</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {features.enable_60min && (
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">1 hora (€)</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            onFocus={e => e.target.select()}
+                            value={displayPrice(config.price_per_class_without_court_60)}
+                            onChange={e => setConfig({ ...config, price_per_class_without_court_60: priceVal(e.target.value) })}
+                            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+                          />
+                          <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+                        </div>
+                      </div>
+                    )}
+                    {features.enable_90min && (
+                      <div>
+                        <label className="mb-1.5 block text-sm font-medium text-gray-700">1h 30min (€)</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            onFocus={e => e.target.select()}
+                            value={displayPrice(config.price_per_class_without_court_90)}
+                            onChange={e => setConfig({ ...config, price_per_class_without_court_90: priceVal(e.target.value) })}
+                            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+                          />
+                          <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
