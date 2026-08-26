@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StudentCombobox } from '@/components/student-combobox'
+import { getDayOfWeek } from '@/lib/utils'
 
 interface Enrollment {
   id: string
@@ -21,6 +22,22 @@ interface CourtPricing {
   withCourt90: number
   withoutCourt60: number
   withoutCourt90: number
+}
+
+interface OtherTariffs {
+  claseSuelta60: number
+  claseSuelta90: number
+  claseEntera60: number
+  claseEntera90: number
+}
+
+type TariffChoice = 'clase_suelta' | 'clase_entera' | 'con_pista' | 'sin_pista'
+
+const TARIFF_LABELS: Record<TariffChoice, string> = {
+  clase_suelta: 'Clase suelta',
+  clase_entera: 'Clase entera',
+  con_pista: 'Con pista',
+  sin_pista: 'Sin pista',
 }
 
 interface Student {
@@ -64,6 +81,7 @@ export default function GroupEnrollment({
   scheduleStartTime,
   scheduleEndTime,
   courtPricing,
+  otherTariffs,
   initialEnrollments,
   initialExclusions,
   availableStudents,
@@ -76,6 +94,7 @@ export default function GroupEnrollment({
   scheduleStartTime: string
   scheduleEndTime?: string
   courtPricing?: CourtPricing
+  otherTariffs?: OtherTariffs
   initialEnrollments: Enrollment[]
   initialExclusions: Record<string, Exclusion[]>
   availableStudents: Student[]
@@ -89,6 +108,7 @@ export default function GroupEnrollment({
   const [exclusions, setExclusions] = useState<Record<string, Exclusion[]>>(initialExclusions)
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [monthlyPrice, setMonthlyPrice] = useState(defaultMonthlyPrice)
+  const [selectedTariff, setSelectedTariff] = useState<TariffChoice | ''>('')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -120,23 +140,59 @@ export default function GroupEnrollment({
     return is90MinClass ? courtPricing.withoutCourt90 : courtPricing.withoutCourt60
   }
 
+  function tariffPricePerClass(tariff: TariffChoice): number {
+    if (tariff === 'con_pista' || tariff === 'sin_pista') return courtPricingCents(tariff)
+    if (!otherTariffs) return 0
+    if (tariff === 'clase_suelta') return is90MinClass ? otherTariffs.claseSuelta90 : otherTariffs.claseSuelta60
+    return is90MinClass ? otherTariffs.claseEntera90 : otherTariffs.claseEntera60
+  }
+
+  // Cuántas veces cae esta clase (mismo día de la semana) dentro del mes en
+  // curso, para pasar de "precio por clase" a una cuota mensual real.
+  function occurrencesThisMonth(): number {
+    const dow = getDayOfWeek(scheduleStartTime)
+    const now2 = new Date()
+    const year = now2.getFullYear()
+    const month = now2.getMonth()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    let count = 0
+    for (let d = 1; d <= daysInMonth; d++) {
+      if (getDayOfWeek(new Date(year, month, d, 12)) === dow) count++
+    }
+    return count
+  }
+
   const enrolledIds = new Set(enrollments.map((e) => e.student.id))
   const unenrolledStudents = availableStudents.filter((s) => !enrolledIds.has(s.id))
+
+  function handleSelectTariff(tariff: TariffChoice) {
+    setSelectedTariff(tariff)
+    const pricePerClass = tariffPricePerClass(tariff)
+    setMonthlyPrice(pricePerClass * occurrencesThisMonth())
+  }
 
   async function handleAdd() {
     if (!selectedStudentId) return
     setAdding(true)
     setAddError('')
+    const isCourtTariff = selectedTariff === 'con_pista' || selectedTariff === 'sin_pista'
     const res = await fetch('/api/group-enrollments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduleId, studentId: selectedStudentId, monthlyPrice }),
+      body: JSON.stringify({
+        scheduleId,
+        studentId: selectedStudentId,
+        monthlyPrice,
+        pricePerClassCents: selectedTariff ? tariffPricePerClass(selectedTariff) : null,
+        courtPricing: isCourtTariff ? selectedTariff : null,
+      }),
     })
     const json = await res.json()
     if (res.ok) {
       const student = availableStudents.find((s) => s.id === selectedStudentId)!
       setEnrollments((prev) => [...prev, { ...json.data, student }])
       setSelectedStudentId('')
+      setSelectedTariff('')
       router.refresh()
     } else {
       setAddError(json.error ?? 'No se pudo añadir al alumno')
@@ -532,6 +588,20 @@ export default function GroupEnrollment({
             onChange={setSelectedStudentId}
             placeholder="Buscar alumno por nombre o email..."
           />
+          {enablePayments && enableClassValidation && (courtPricing || otherTariffs) && (
+            <select
+              value={selectedTariff}
+              onChange={(e) => handleSelectTariff(e.target.value as TariffChoice)}
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+            >
+              <option value="" disabled>Elige tarifa...</option>
+              {(['clase_suelta', 'clase_entera', 'con_pista', 'sin_pista'] as TariffChoice[]).map((tariff) => (
+                <option key={tariff} value={tariff}>
+                  {TARIFF_LABELS[tariff]} ({(tariffPricePerClass(tariff) / 100).toFixed(2)}€/clase)
+                </option>
+              ))}
+            </select>
+          )}
           {enablePayments && (
             <div className="relative">
               <input
@@ -541,7 +611,7 @@ export default function GroupEnrollment({
                 min={0}
                 step={0.5}
                 value={monthlyPrice / 100}
-                onChange={(e) => setMonthlyPrice(Math.round(Number(e.target.value) * 100))}
+                onChange={(e) => { setMonthlyPrice(Math.round(Number(e.target.value) * 100)); setSelectedTariff('') }}
                 className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 placeholder="Precio/mes"
               />

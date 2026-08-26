@@ -14,9 +14,11 @@ export async function POST(req: NextRequest) {
     scheduleId: z.string().uuid(),
     studentId: z.string().uuid(),
     monthlyPrice: z.number().nonnegative().optional(),
+    pricePerClassCents: z.number().nonnegative().nullish(),
+    courtPricing: z.enum(['con_pista', 'sin_pista']).nullish(),
   }))
   if (badRequest) return badRequest
-  const { scheduleId, studentId, monthlyPrice } = body
+  const { scheduleId, studentId, monthlyPrice, pricePerClassCents, courtPricing } = body
 
   const admin = getAdminClient()
 
@@ -110,6 +112,8 @@ export async function POST(req: NextRequest) {
     student_id: studentId,
     club_id: adminUser.club_id,
     monthly_price: monthlyPrice ?? 0,
+    price_per_class_cents: pricePerClassCents ?? null,
+    court_pricing: courtPricing ?? null,
     status: 'active',
     enrolled_by: user.id,
     enrolled_at: new Date().toISOString(),

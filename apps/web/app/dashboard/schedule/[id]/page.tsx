@@ -265,6 +265,12 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
             withoutCourt60: (clubRow as any)?.config?.price_per_class_without_court_60 ?? 0,
             withoutCourt90: (clubRow as any)?.config?.price_per_class_without_court_90 ?? 0,
           }}
+          otherTariffs={{
+            claseSuelta60: (clubRow as any)?.config?.pay_per_class_price_60 ?? 0,
+            claseSuelta90: (clubRow as any)?.config?.pay_per_class_price_90 ?? 0,
+            claseEntera60: (clubRow as any)?.config?.whole_class_price_60 ?? 0,
+            claseEntera90: (clubRow as any)?.config?.whole_class_price_90 ?? 0,
+          }}
           initialEnrollments={(groupEnrollments ?? []).map((e: any) => ({
             id: e.id,
             monthly_price: e.monthly_price,
