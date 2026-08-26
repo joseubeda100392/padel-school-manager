@@ -5,6 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { sanitizeDbError } from '@/lib/sanitize-error'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -39,9 +40,12 @@ export async function POST(req: NextRequest) {
   if (role === 'admin' && caller.role !== 'super_admin') {
     return NextResponse.json({ error: 'Sin permisos para crear administradores' }, { status: 403 })
   }
+  // clubIdOverride es una petición explícita del caller (ej. "Nuevo club"
+  // creando su primer admin) — debe ganar sobre el club que el super admin
+  // tenga activo de fondo en ese momento, no al revés.
   const cookieStore = cookies()
   const clubId = caller.role === 'super_admin'
-    ? (cookieStore.get('sa_active_club')?.value ?? clubIdOverride ?? caller.club_id)
+    ? (clubIdOverride ?? cookieStore.get('sa_active_club')?.value ?? caller.club_id)
     : caller.club_id
 
   if (!clubId) {
@@ -71,8 +75,9 @@ export async function POST(req: NextRequest) {
   })
 
   if (dbError) {
+    console.error('[create-user] users insert failed:', dbError.code, dbError.message)
     await admin.auth.admin.deleteUser(authData.user.id)
-    return NextResponse.json({ error: 'Error al registrar el usuario en la base de datos' }, { status: 400 })
+    return NextResponse.json({ error: sanitizeDbError(dbError) }, { status: 400 })
   }
 
   if (role === 'student') {
