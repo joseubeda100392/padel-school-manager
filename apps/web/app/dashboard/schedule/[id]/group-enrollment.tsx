@@ -250,25 +250,6 @@ export default function GroupEnrollment({
     setEditingPerClassId(null)
   }
 
-  async function handleSetCourtPricing(id: string, pricing: 'con_pista' | 'sin_pista') {
-    const cents = courtPricingCents(pricing)
-    setLoadingId(id)
-    const res = await fetch(`/api/group-enrollments/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ court_pricing: pricing, price_per_class_cents: cents }),
-    })
-    setLoadingId(null)
-    if (!res.ok) {
-      toast.error('No se pudo actualizar la tarifa')
-      return
-    }
-    setEnrollments((prev) =>
-      prev.map((e) => e.id === id ? { ...e, court_pricing: pricing, price_per_class_cents: cents } : e)
-    )
-    toast.success(`Tarifa "${pricing === 'con_pista' ? 'Con pista' : 'Sin pista'}" aplicada — ${(cents / 100).toFixed(2)}€/clase`)
-  }
-
   async function handleMarkPaid(id: string) {
     if (!confirm('¿Registrar el pago en efectivo de este mes? Quedará registrado en el historial de pagos.')) return
     setLoadingId(id)
@@ -417,25 +398,6 @@ export default function GroupEnrollment({
                       {(e.monthly_price / 100).toFixed(2)}€/mes ✎
                     </button>
                   ))}
-
-                  {enableClassValidation && enablePayments && courtPricing && (
-                    <div className="flex items-center overflow-hidden rounded-lg border border-gray-200">
-                      <button
-                        onClick={() => handleSetCourtPricing(e.id, 'con_pista')}
-                        disabled={isLoading}
-                        className={`px-2.5 py-1 text-xs font-medium transition-colors ${e.court_pricing === 'con_pista' ? 'bg-brand-500 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-                      >
-                        Con pista
-                      </button>
-                      <button
-                        onClick={() => handleSetCourtPricing(e.id, 'sin_pista')}
-                        disabled={isLoading}
-                        className={`px-2.5 py-1 text-xs font-medium transition-colors ${e.court_pricing === 'sin_pista' ? 'bg-brand-500 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-                      >
-                        Sin pista
-                      </button>
-                    </div>
-                  )}
 
                   {enableClassValidation && enablePayments && (editingPerClassId === e.id ? (
                     <div className="flex items-center gap-1">
