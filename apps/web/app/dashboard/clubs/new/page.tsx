@@ -4,12 +4,15 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
+const DEFAULT_PASSWORD = 'miclave123'
+
 export default function NewClubPage() {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [plan, setPlan] = useState<'trial' | 'basic' | 'pro'>('trial')
   const [adminEmail, setAdminEmail] = useState('')
   const [adminName, setAdminName] = useState('')
+  const [adminPassword, setAdminPassword] = useState(DEFAULT_PASSWORD)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -63,7 +66,7 @@ export default function NewClubPage() {
     }
 
     if (adminEmail && adminName) {
-      const tempPassword = Math.random().toString(36).slice(-8) + 'A1!'
+      const tempPassword = adminPassword.trim() || DEFAULT_PASSWORD
       const res = await fetch('/api/admin/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,6 +150,16 @@ export default function NewClubPage() {
               className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               placeholder="admin@club.com"
             />
+            <div>
+              <input
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                minLength={6}
+                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                placeholder="Contraseña inicial"
+              />
+              <p className="mt-1 text-xs text-gray-400">Compártesela al admin — podrá cambiarla luego desde su perfil.</p>
+            </div>
           </div>
         </div>
 
