@@ -557,7 +557,7 @@ export default function GroupEnrollment({
               className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
             >
               <option value="" disabled>Elige tarifa...</option>
-              {(['clase_suelta', 'clase_entera', 'con_pista', 'sin_pista'] as TariffChoice[]).map((tariff) => (
+              {(['clase_suelta', 'con_pista', 'sin_pista'] as TariffChoice[]).map((tariff) => (
                 <option key={tariff} value={tariff}>
                   {TARIFF_LABELS[tariff]} ({(tariffPricePerClass(tariff) / 100).toFixed(2)}€/clase)
                 </option>
