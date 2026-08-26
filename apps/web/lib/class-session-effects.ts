@@ -5,8 +5,14 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 // llamador debe garantizar que confirmed_by_admin pasa de null a un valor
 // en la misma operación que invoca esto, para que no se aplique dos veces.
 //
-// - Clase dada: cada alumno marcado ausente genera una recuperación
-//   (tabla makeups ya existente en la app).
+// - Clase dada: los alumnos ausentes marcados aquí son solo el respaldo del
+//   admin para cuando el alumno no canceló a tiempo por su cuenta (el
+//   camino correcto es que el alumno registre su falta dentro del plazo de
+//   cancelación, que ya suma la clase a su bolsa automáticamente en otro
+//   sitio). Por eso esto NO genera ningún crédito ni recuperación
+//   automática — si el admin quiere darle la clase de todos modos, lo hace
+//   a mano desde el ajuste de bolsa del alumno. Aquí solo queda constancia
+//   de la ausencia (class_session_absences), sin más efecto.
 // - Clase no dada: cada inscripción activa de ese grupo suma 1 a su
 //   contador de clases pendientes de descontar del siguiente cobro.
 export async function applySessionEffects(admin: SupabaseClient, sessionId: string): Promise<void> {
@@ -17,33 +23,7 @@ export async function applySessionEffects(admin: SupabaseClient, sessionId: stri
     .single()
   if (!session) return
 
-  if (session.status === 'given') {
-    const { data: absences } = await admin
-      .from('class_session_absences')
-      .select('id, student_id, makeup_id')
-      .eq('class_session_id', sessionId)
-      .is('makeup_id', null)
-
-    for (const absence of absences ?? []) {
-      const { data: makeup, error: makeupErr } = await admin
-        .from('makeups')
-        .insert({
-          student_id: absence.student_id,
-          club_id: session.club_id,
-          original_schedule_id: session.schedule_id,
-          original_date: session.session_date,
-          status: 'pending',
-          notes: 'Generada automáticamente: falta en clase validada',
-        })
-        .select('id')
-        .single()
-      if (makeupErr) {
-        console.error('[class-session-effects] makeup insert failed:', makeupErr.message)
-        continue
-      }
-      await admin.from('class_session_absences').update({ makeup_id: makeup.id }).eq('id', absence.id)
-    }
-  } else if (session.status === 'not_given') {
+  if (session.status === 'not_given') {
     const { data: enrollments } = await admin
       .from('group_enrollments')
       .select('id, discount_classes_pending')
