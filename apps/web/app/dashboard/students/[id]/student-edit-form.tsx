@@ -30,6 +30,11 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
   const [emailError, setEmailError] = useState('')
   const [emailDone, setEmailDone] = useState(false)
 
+  const [newPassword, setNewPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordDone, setPasswordDone] = useState(false)
+
   async function handleSave() {
     if (!form.name.trim()) { setError('El nombre es obligatorio'); return }
     setSaving(true)
@@ -70,6 +75,23 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
     if (!res.ok) { setEmailError(json.error ?? 'Error al cambiar email'); return }
     setEmailDone(true)
     setTimeout(() => { setEmailDone(false); router.refresh() }, 2000)
+  }
+
+  async function handleChangePassword() {
+    if (newPassword.length < 6) { setPasswordError('Mínimo 6 caracteres'); return }
+    setSavingPassword(true)
+    setPasswordError('')
+    const res = await fetch('/api/admin/update-user-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: student.id, password: newPassword }),
+    })
+    const json = await res.json()
+    setSavingPassword(false)
+    if (!res.ok) { setPasswordError(json.error ?? 'Error al cambiar la contraseña'); return }
+    setPasswordDone(true)
+    setNewPassword('')
+    setTimeout(() => setPasswordDone(false), 2000)
   }
 
   async function handleDelete() {
@@ -174,6 +196,31 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
           </button>
         </div>
         {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
+      </div>
+
+      {/* Cambio de contraseña */}
+      <div className="mt-6 border-t border-gray-100 pt-5">
+        <h3 className="mb-1 text-sm font-semibold text-gray-900">Cambiar contraseña</h3>
+        <p className="mb-3 text-xs text-gray-400">
+          Se le pedirá elegir una nueva contraseña propia la próxima vez que entre.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            type="text"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Nueva contraseña (mín. 6 caracteres)"
+            className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+          />
+          <button
+            onClick={handleChangePassword}
+            disabled={savingPassword}
+            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 sm:w-auto"
+          >
+            {savingPassword ? '...' : passwordDone ? '¡Listo!' : 'Cambiar contraseña'}
+          </button>
+        </div>
+        {passwordError && <p className="mt-2 text-sm text-red-600">{passwordError}</p>}
       </div>
 
       <div className="mt-6 border-t border-gray-100 pt-4 space-y-2">
