@@ -13,9 +13,19 @@ export default function NewClubPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const COMBINING_DIACRITICS = new RegExp('[\\u0300-\\u036f]', 'g')
+
+  function slugify(value: string): string {
+    return value
+      .normalize('NFD').replace(COMBINING_DIACRITICS, '') // quita acentos: á→a, ñ→n, etc.
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
   function handleNameChange(value: string) {
     setName(value)
-    setSlug(value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))
+    setSlug(slugify(value))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -25,14 +35,29 @@ export default function NewClubPage() {
 
     const supabase = createClient()
 
-    const { data: club, error: clubError } = await supabase
+    let { data: club, error: clubError } = await supabase
       .from('clubs')
       .insert({ name, slug, plan, is_active: true })
       .select()
       .single()
 
-    if (clubError) {
-      setError(clubError.message)
+    // Si el slug ya existe y es del mismo club (reintento tras un fallo
+    // parcial anterior, ej. el admin no se llegó a crear), se reutiliza en
+    // vez de bloquear el formulario entero por un choque de slug.
+    if (clubError?.code === '23505' && clubError.message.includes('clubs_slug_key')) {
+      const { data: existing } = await supabase
+        .from('clubs')
+        .select('*')
+        .eq('slug', slug)
+        .single()
+      if (existing && existing.name.toLowerCase().trim() === name.toLowerCase().trim()) {
+        club = existing
+        clubError = null
+      }
+    }
+
+    if (clubError || !club) {
+      setError(clubError?.message ?? 'Error al crear el club')
       setLoading(false)
       return
     }
