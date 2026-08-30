@@ -7,7 +7,7 @@ import { formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import CoachWeeklyCalendar from './coach-weekly-calendar'
-import { computeScheduleReviewMap } from '@/lib/schedule-review'
+import { computeScheduleReviewMap, computeScheduleReviewByDate } from '@/lib/schedule-review'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -48,7 +48,13 @@ export default async function CoachClassesPage({
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
   }
 
-  const reviewInfoMap = await computeScheduleReviewMap(admin, ids, todaySpain)
+  // Lista: un aviso por horario, de la semana actual. Semana: por fecha
+  // exacta, sin límite — la misma clase se repite al navegar de semana y cada
+  // columna debe mostrar solo lo suyo (ver comentario en schedule-review.ts).
+  const [reviewInfoMap, reviewByDate] = await Promise.all([
+    computeScheduleReviewMap(admin, ids, todaySpain),
+    computeScheduleReviewByDate(admin, ids, todaySpain),
+  ])
 
   const view = searchParams.view === 'list' ? 'list' : 'week'
 
@@ -64,6 +70,7 @@ export default async function CoachClassesPage({
     ...s,
     enrolled: countBySchedule[s.id] ?? 0,
     review: reviewInfoMap[s.id] ?? null,
+    reviewByDate: reviewByDate[s.id] ?? null,
   }))
 
   return (

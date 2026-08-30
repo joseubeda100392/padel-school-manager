@@ -192,6 +192,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                 )}
                 {classes.map((s: any) => {
                   const override = overrideByKey.get(`${s.id}_${dateStr}`)
+                  const review = s.reviewByDate?.[dateStr] ?? null
                   return (
                   <button
                     key={s.id}
@@ -202,13 +203,13 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                       <p className="flex items-center gap-1 text-xs font-semibold text-gray-900">
                         {timeOnly(override?.new_start_time ?? s.start_time)}
                         {override && <span className="ml-1 text-amber-600">⚠️</span>}
-                        {s.review && (
+                        {review && (
                           <span
                             className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
                             title={
-                              s.review.uncoveredCount > 0
-                                ? `${s.review.uncoveredCount} plaza(s) por cubrir`
-                                : `Sustituye: ${s.review.substituteNames.join(', ')}`
+                              review.uncoveredCount > 0
+                                ? `${review.uncoveredCount} plaza(s) por cubrir`
+                                : `Sustituye: ${review.substituteNames.join(', ')}`
                             }
                           />
                         )}
@@ -239,14 +240,14 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                         {s.bookings_count}/{s.max_students} plazas
                       </p>
                     )}
-                    {s.review && (
+                    {review && (
                       <div className="mt-1 flex flex-col gap-0.5">
-                        {s.review.substituteNames.map((name: string, i: number) => (
+                        {review.substituteNames.map((name: string, i: number) => (
                           <span key={i} className="text-[10px] font-medium text-gray-600 truncate">{name}</span>
                         ))}
-                        {s.review.uncoveredCount > 0 && (
+                        {review.uncoveredCount > 0 && (
                           <span className="text-[10px] font-medium text-red-600">
-                            {s.review.uncoveredCount} plaza{s.review.uncoveredCount > 1 ? 's' : ''} por cubrir
+                            {review.uncoveredCount} plaza{review.uncoveredCount > 1 ? 's' : ''} por cubrir
                           </span>
                         )}
                       </div>

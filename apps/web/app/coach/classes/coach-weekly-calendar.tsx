@@ -15,6 +15,7 @@ type Schedule = {
   court?: { name: string }
   level?: { name: string; color: string }
   review?: { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number } | null
+  reviewByDate?: Record<string, { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number }> | null
 }
 
 function timeOnly(dateStr: string) {
@@ -106,7 +107,9 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                       <p className="text-xs text-gray-300">Sin clases</p>
                     </div>
                   ) : (
-                    classes.map((s) => (
+                    classes.map((s) => {
+                      const review = s.reviewByDate?.[dateStr] ?? null
+                      return (
                       <button
                         key={s.id}
                         onClick={() => router.push(`/coach/classes/${s.id}`)}
@@ -114,13 +117,13 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                       >
                         <div className="flex items-center gap-1">
                           <p className="text-xs font-semibold text-gray-900">{timeOnly(s.start_time)}</p>
-                          {s.review && (
+                          {review && (
                             <span
                               className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
                               title={
-                                s.review.uncoveredCount > 0
-                                  ? `${s.review.uncoveredCount} plaza(s) libre(s) por falta`
-                                  : `Sustituye: ${s.review.substituteNames.join(', ')}`
+                                review.uncoveredCount > 0
+                                  ? `${review.uncoveredCount} plaza(s) libre(s) por falta`
+                                  : `Sustituye: ${review.substituteNames.join(', ')}`
                               }
                             />
                           )}
@@ -136,7 +139,7 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                         )}
                         <p className="mt-1 text-[10px] text-gray-400">{s.enrolled}/{s.max_students} alumnos</p>
                       </button>
-                    ))
+                    )})
                   )}
                 </div>
               </div>

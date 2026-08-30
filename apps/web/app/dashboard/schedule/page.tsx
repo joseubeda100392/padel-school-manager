@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getDayOfWeek } from '@/lib/utils'
-import { computeScheduleReviewMap } from '@/lib/schedule-review'
+import { computeScheduleReviewMap, computeScheduleReviewByDate } from '@/lib/schedule-review'
 import ScheduleTable from './schedule-table'
 import WeeklyCalendar from './weekly-calendar'
 import ScheduleViewToggle from './schedule-view-toggle'
@@ -130,15 +130,21 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     }
   }
 
-  // Faltas futuras (cualquier fecha por venir, no solo la próxima clase) por
-  // horario — para el aviso de "requiere revisión" en Horarios.
-  const reviewInfoMap = await computeScheduleReviewMap(admin, allScheduleIds, todaySpain)
+  // Para Lista: un aviso por horario, de la semana actual (una sola fila por
+  // clase, no repite en otras semanas). Para Semana: por fecha exacta, sin
+  // límite — la misma clase se repite al navegar de semana y cada columna
+  // debe mostrar solo lo suyo, no heredar el aviso de otra semana.
+  const [reviewInfoMap, reviewByDate] = await Promise.all([
+    computeScheduleReviewMap(admin, allScheduleIds, todaySpain),
+    computeScheduleReviewByDate(admin, allScheduleIds, todaySpain),
+  ])
 
   const schedules = (rawSchedules ?? []).filter((s: any) => nextDateMap[s.id] !== undefined).map((s: any) => ({
     ...s,
     bookings_count: (groupAttendingMap[s.id] ?? 0) + (spotCountMap[s.id] ?? 0),
     is_fixed_group: isFixedGroupMap[s.id] ?? false,
     review: reviewInfoMap[s.id] ?? null,
+    reviewByDate: reviewByDate[s.id] ?? null,
     reference_date: nextDateMap[s.id],
   }))
 

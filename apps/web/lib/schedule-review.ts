@@ -85,3 +85,73 @@ export async function computeScheduleReviewMap(
   }
   return reviewInfoMap
 }
+
+// Igual que computeScheduleReviewMap, pero SIN colapsar por horario: un mapa
+// horario → fecha exacta → aviso. Necesario en las vistas de calendario
+// semanal (admin y monitor), donde la MISMA clase se repite en todas las
+// semanas al navegar — si se colapsara por horario, la falta de una semana
+// "se heredaría" visualmente en cualquier otra semana que se navegue. Aquí sí
+// se puede mirar cualquier fecha futura sin límite de semana: al ir por fecha
+// exacta, una falta de dentro de 3 semanas solo aparece en su propia columna,
+// no se mezcla con la de hoy.
+export async function computeScheduleReviewByDate(
+  admin: SupabaseClient,
+  scheduleIds: string[],
+  todaySpain: string,
+): Promise<Record<string, Record<string, ScheduleReviewInfo>>> {
+  if (!scheduleIds.length) return {}
+
+  const { data: enrollments } = await admin
+    .from('group_enrollments')
+    .select('schedule_id, schedule_exclusions(excluded_date)')
+    .in('schedule_id', scheduleIds)
+    .eq('status', 'active')
+
+  const faltaDatesBySchedule: Record<string, string[]> = {}
+  for (const e of enrollments ?? []) {
+    const scheduleId = (e as any).schedule_id
+    for (const x of (e as any).schedule_exclusions ?? []) {
+      if (x.excluded_date >= todaySpain) {
+        if (!faltaDatesBySchedule[scheduleId]) faltaDatesBySchedule[scheduleId] = []
+        faltaDatesBySchedule[scheduleId].push(x.excluded_date)
+      }
+    }
+  }
+  const scheduleIdsWithFaltas = Object.keys(faltaDatesBySchedule)
+  if (!scheduleIdsWithFaltas.length) return {}
+
+  const { data: substituteBookingsRaw } = await admin
+    .from('bookings')
+    .select('schedule_id, class_date, student:users!bookings_student_id_fkey(name)')
+    .in('schedule_id', scheduleIdsWithFaltas)
+    .neq('status', 'cancelled')
+    .gte('class_date', todaySpain)
+
+  const reviewByDate: Record<string, Record<string, ScheduleReviewInfo>> = {}
+  for (const scheduleId of scheduleIdsWithFaltas) {
+    const bookingsForSchedule = (substituteBookingsRaw ?? []).filter((b: any) => b.schedule_id === scheduleId)
+    const remainingBookingsByDate: Record<string, string[]> = {}
+    for (const b of bookingsForSchedule) {
+      const name = (b.student as any)?.name
+      if (!name) continue
+      if (!remainingBookingsByDate[b.class_date]) remainingBookingsByDate[b.class_date] = []
+      remainingBookingsByDate[b.class_date].push(name)
+    }
+    const faltaCountByDate: Record<string, number> = {}
+    for (const date of faltaDatesBySchedule[scheduleId]) {
+      faltaCountByDate[date] = (faltaCountByDate[date] ?? 0) + 1
+    }
+    for (const [date, faltaCount] of Object.entries(faltaCountByDate)) {
+      const available = [...(remainingBookingsByDate[date] ?? [])]
+      const substituteNames: string[] = []
+      let uncoveredCount = 0
+      for (let i = 0; i < faltaCount; i++) {
+        if (available.length > 0) substituteNames.push(available.shift()!)
+        else uncoveredCount++
+      }
+      if (!reviewByDate[scheduleId]) reviewByDate[scheduleId] = {}
+      reviewByDate[scheduleId][date] = { hasFalta: true, substituteNames, uncoveredCount }
+    }
+  }
+  return reviewByDate
+}
