@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getDayOfWeek } from '@/lib/utils'
 
 export interface ScheduleReviewInfo {
   hasFalta: boolean
@@ -6,16 +7,31 @@ export interface ScheduleReviewInfo {
   uncoveredCount: number
 }
 
-// Para cada horario con alguna falta futura (cualquier fecha por venir, no
-// solo la próxima clase): quién ha ocupado ya el hueco libre (nombre) y
-// cuántas plazas quedan sin cubrir todavía — para el aviso de "requiere
-// revisión" tanto en Horarios (admin) como en Mis Clases (monitor).
+// Domingo (fin de semana lunes-domingo) de la semana de "todaySpain", en hora
+// de Madrid. Ancla a mediodía UTC para no toparse con el cambio de hora.
+function endOfWeekMadrid(todaySpain: string): string {
+  const [y, m, d] = todaySpain.split('-').map(Number)
+  const anchor = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+  const jsDay = getDayOfWeek(anchor) // 0=Dom..6=Sáb, hora Madrid
+  const daysUntilSunday = jsDay === 0 ? 0 : 7 - jsDay
+  const end = new Date(Date.UTC(y, m - 1, d + daysUntilSunday, 12, 0, 0))
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(end)
+}
+
+// Para cada horario con alguna falta DENTRO DE LA SEMANA ACTUAL (lunes a
+// domingo, no futuras sin límite — mezclar una falta de hoy con otra de
+// dentro de 3 semanas en el mismo aviso resulta confuso): quién ha ocupado ya
+// el hueco libre (nombre) y cuántas plazas quedan sin cubrir todavía — para
+// el aviso de "requiere revisión" tanto en Horarios (admin) como en Mis
+// Clases (monitor).
 export async function computeScheduleReviewMap(
   admin: SupabaseClient,
   scheduleIds: string[],
   todaySpain: string,
 ): Promise<Record<string, ScheduleReviewInfo>> {
   if (!scheduleIds.length) return {}
+
+  const weekEnd = endOfWeekMadrid(todaySpain)
 
   const { data: enrollments } = await admin
     .from('group_enrollments')
@@ -27,7 +43,7 @@ export async function computeScheduleReviewMap(
   for (const e of enrollments ?? []) {
     const scheduleId = (e as any).schedule_id
     for (const x of (e as any).schedule_exclusions ?? []) {
-      if (x.excluded_date >= todaySpain) {
+      if (x.excluded_date >= todaySpain && x.excluded_date <= weekEnd) {
         if (!futureFaltasByDate[scheduleId]) futureFaltasByDate[scheduleId] = []
         futureFaltasByDate[scheduleId].push(x.excluded_date)
       }
@@ -42,6 +58,7 @@ export async function computeScheduleReviewMap(
     .in('schedule_id', scheduleIdsWithFaltas)
     .neq('status', 'cancelled')
     .gte('class_date', todaySpain)
+    .lte('class_date', weekEnd)
 
   const reviewInfoMap: Record<string, ScheduleReviewInfo> = {}
   for (const scheduleId of scheduleIdsWithFaltas) {
