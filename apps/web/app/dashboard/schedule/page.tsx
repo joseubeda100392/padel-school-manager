@@ -14,19 +14,17 @@ import { DevError } from '@/components/dev-error'
 
 const TZ = 'Europe/Madrid'
 
+// Fecha de referencia del panel de admin para esta clase: HOY si le toca hoy,
+// aunque ya haya empezado o terminado — el admin sigue queriendo ver/gestionar
+// la clase de hoy durante todo el día, no que salte a la semana que viene en
+// cuanto pasa la hora de inicio (eso es correcto para "¿puede el alumno
+// reservar/anular esta ocurrencia?", no para "¿qué día muestro en el panel?").
 function getNextDate(startTime: string): string {
   const classDow = getDayOfWeek(new Date(startTime))
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   const [sy, sm, sd] = todaySpain.split('-').map(Number)
   const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
-  const nowHourSpain = parseInt(
-    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date())
-  )
-  const classHourSpain = parseInt(
-    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date(startTime))
-  )
-  let daysUntil = (classDow - todayDow + 7) % 7
-  if (daysUntil === 0 && nowHourSpain >= classHourSpain) daysUntil = 7
+  const daysUntil = (classDow - todayDow + 7) % 7
   const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
 }
@@ -141,6 +139,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     bookings_count: (groupAttendingMap[s.id] ?? 0) + (spotCountMap[s.id] ?? 0),
     is_fixed_group: isFixedGroupMap[s.id] ?? false,
     review: reviewInfoMap[s.id] ?? null,
+    reference_date: nextDateMap[s.id],
   }))
 
   return (

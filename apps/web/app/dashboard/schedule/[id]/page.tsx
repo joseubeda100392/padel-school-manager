@@ -20,19 +20,14 @@ import { DevError } from '@/components/dev-error'
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
 
+// Igual que en dashboard/schedule/page.tsx: HOY sigue siendo la referencia
+// todo el día si le toca hoy, no solo hasta que empiece la clase.
 function getNextDate(startTime: string): string {
   const classDow = getDayOfWeek(new Date(startTime))
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   const [sy, sm, sd] = todaySpain.split('-').map(Number)
   const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
-  const nowHourSpain = parseInt(
-    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date())
-  )
-  const classHourSpain = parseInt(
-    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date(startTime))
-  )
-  let daysUntil = (classDow - todayDow + 7) % 7
-  if (daysUntil === 0 && nowHourSpain >= classHourSpain) daysUntil = 7
+  const daysUntil = (classDow - todayDow + 7) % 7
   const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
   const next = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
   const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(startTime))

@@ -172,7 +172,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                 <tr
                   key={s.id}
                   className={`cursor-pointer hover:bg-gray-50 ${selected.has(s.id) ? 'bg-red-50' : ''}`}
-                  onClick={() => router.push(`/dashboard/schedule/${s.id}`)}
+                  onClick={() => router.push(`/dashboard/schedule/${s.id}${s.reference_date ? `?date=${s.reference_date}` : ''}`)}
                 >
                   <td
                     className="px-4 py-4"
