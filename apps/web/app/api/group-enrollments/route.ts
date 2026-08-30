@@ -118,7 +118,8 @@ export async function POST(req: NextRequest) {
   // semanas antes de que la clase arranque (ej. temporada nueva). Sin esto,
   // get_pending_payments() usa enrolled_at como respaldo y reclama meses en
   // los que la clase no llegó a dar ni una sola sesión.
-  const startDate = schedule?.start_time ? firstBillableMonth(schedule.start_time) : null
+  const usesPerClassPricing = !!(pricePerClassCents || courtPricing)
+  const startDate = schedule?.start_time ? firstBillableMonth(schedule.start_time, usesPerClassPricing) : null
 
   const { data, error } = await admin.from('group_enrollments').upsert({
     schedule_id: scheduleId,

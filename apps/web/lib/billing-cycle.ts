@@ -36,28 +36,45 @@ export function computeBillingCycle(referenceDate: Date, dayOfMonth: number): { 
 }
 
 // Primer día del mes desde el que debe empezar a facturarse una inscripción
-// de grupo fijo: el mes actual si a la clase (por su día de la semana) le
-// queda alguna sesión desde hoy hasta fin de mes, o si no, el mes que viene
-// entero — el mismo criterio "cuenta desde hoy" que ya se usa para calcular
-// la cuota al dar de alta al alumno (ver billingTarget() en group-enrollment.tsx).
-// Se guarda en group_enrollments.start_date para que get_pending_payments()
-// no confunda "cuándo se dio de alta el alumno en el sistema" (enrolled_at,
-// que puede ser semanas antes de que la clase arranque) con "desde cuándo
-// debe dinero de verdad".
-export function firstBillableMonth(scheduleStartTime: string, referenceDate: Date = new Date()): string {
-  const dow = getDayOfWeek(scheduleStartTime)
+// de grupo fijo. Se guarda en group_enrollments.start_date para que
+// get_pending_payments() no confunda "cuándo se dio de alta el alumno en el
+// sistema" (enrolled_at, que puede ser semanas antes de que la clase arranque)
+// con "desde cuándo debe dinero de verdad".
+//
+// Dos criterios distintos según cómo se calculó el precio:
+// - Tarifa por clase (con/sin pista, clase suelta): el precio YA está
+//   prorrateado por ocurrencias restantes (ver billingTarget() en
+//   group-enrollment.tsx), así que una única sesión que quede este mes es
+//   perfectamente facturable este mes — el criterio es "¿le queda alguna
+//   sesión de esta clase (por su día de la semana) desde hoy a fin de mes?".
+// - Cuota mensual plana (el flujo normal/heredado): el precio es fijo por
+//   mes completo, así que no tiene sentido cobrar el mes entero por una sola
+//   sesión suelta al final de mes — aquí se usa el mismo umbral de días que
+//   ya usa el resto del sistema para mandatos recurrentes (DAYS_THRESHOLD).
+export function firstBillableMonth(
+  scheduleStartTime: string,
+  usesPerClassPricing: boolean,
+  referenceDate: Date = new Date(),
+): string {
   const todayMadrid = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(referenceDate)
   const [ty, tm, td] = todayMadrid.split('-').map(Number)
   const thisMonth0 = tm - 1
   const daysInMonth = new Date(ty, thisMonth0 + 1, 0).getDate()
 
-  let hasRemainingThisMonth = false
-  for (let d = td; d <= daysInMonth; d++) {
-    if (getDayOfWeek(new Date(ty, thisMonth0, d, 12)) === dow) {
-      hasRemainingThisMonth = true
-      break
+  if (usesPerClassPricing) {
+    const dow = getDayOfWeek(scheduleStartTime)
+    let hasRemainingThisMonth = false
+    for (let d = td; d <= daysInMonth; d++) {
+      if (getDayOfWeek(new Date(ty, thisMonth0, d, 12)) === dow) {
+        hasRemainingThisMonth = true
+        break
+      }
     }
+    const targetMonth0 = hasRemainingThisMonth ? thisMonth0 : thisMonth0 + 1
+    return new Date(ty, targetMonth0, 1).toISOString().split('T')[0]
   }
-  const targetMonth0 = hasRemainingThisMonth ? thisMonth0 : thisMonth0 + 1
+
+  const daysRemaining = daysInMonth - td
+  const targetMonth0 = daysRemaining < DAYS_THRESHOLD ? thisMonth0 + 1 : thisMonth0
   return new Date(ty, targetMonth0, 1).toISOString().split('T')[0]
 }
