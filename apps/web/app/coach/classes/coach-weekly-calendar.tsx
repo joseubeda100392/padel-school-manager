@@ -16,6 +16,7 @@ type Schedule = {
   level?: { name: string; color: string }
   review?: { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number } | null
   reviewByDate?: Record<string, { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number }> | null
+  group_size?: number | null
 }
 
 function timeOnly(dateStr: string) {
@@ -109,6 +110,7 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                   ) : (
                     classes.map((s) => {
                       const review = s.reviewByDate?.[dateStr] ?? null
+                      const occupancy = typeof s.group_size === 'number' ? s.group_size - (review?.uncoveredCount ?? 0) : s.enrolled
                       return (
                       <button
                         key={s.id}
@@ -137,7 +139,7 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                             {s.level.name}
                           </span>
                         )}
-                        <p className="mt-1 text-[10px] text-gray-400">{s.enrolled}/{s.max_students} alumnos</p>
+                        <p className="mt-1 text-[10px] text-gray-400">{occupancy}/{s.max_students} alumnos</p>
                       </button>
                     )})
                   )}

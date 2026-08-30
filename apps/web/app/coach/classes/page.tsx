@@ -40,9 +40,12 @@ export default async function CoachClassesPage({
     : { data: [] }
 
   // Cuenta solo a quien no ha registrado falta para hoy — no el total del
-  // grupo fijo, que no refleja quién viene de verdad.
+  // grupo fijo, que no refleja quién viene de verdad. groupSizeMap es el
+  // tamaño total (constante), para recalcular por fecha exacta en Semana.
   const countBySchedule: Record<string, number> = {}
+  const groupSizeMap: Record<string, number> = {}
   for (const e of enrollments ?? []) {
+    groupSizeMap[e.schedule_id] = (groupSizeMap[e.schedule_id] ?? 0) + 1
     const absentToday = ((e as any).schedule_exclusions ?? []).some((x: any) => x.excluded_date === todaySpain)
     if (absentToday) continue
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
@@ -69,6 +72,7 @@ export default async function CoachClassesPage({
   const schedulesWithCount = (schedules ?? []).map((s: any) => ({
     ...s,
     enrolled: countBySchedule[s.id] ?? 0,
+    group_size: groupSizeMap[s.id] ?? null,
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
   }))

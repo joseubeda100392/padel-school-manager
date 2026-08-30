@@ -193,6 +193,9 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                 {classes.map((s: any) => {
                   const override = overrideByKey.get(`${s.id}_${dateStr}`)
                   const review = s.reviewByDate?.[dateStr] ?? null
+                  // Grupo fijo: la ocupación es constante salvo lo que pase ESE día concreto
+                  // (falta sin cubrir) — no el número de "hoy" heredado en cualquier semana.
+                  const occupancy = typeof s.group_size === 'number' ? s.group_size - (review?.uncoveredCount ?? 0) : s.bookings_count
                   return (
                   <button
                     key={s.id}
@@ -235,9 +238,9 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                         {s.level.name}
                       </span>
                     )}
-                    {s.bookings_count !== undefined && (
+                    {occupancy !== undefined && (
                       <p className="mt-1 text-[10px] text-gray-400">
-                        {s.bookings_count}/{s.max_students} plazas
+                        {occupancy}/{s.max_students} plazas
                       </p>
                     )}
                     {review && (

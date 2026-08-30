@@ -89,11 +89,15 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     nextDateMap[s.id] = next
   }
 
-  // Count group members attending on their schedule's next date (no falta that day)
+  // Count group members attending on their schedule's next date (no falta that day),
+  // and el tamaño total del grupo fijo (constante, no depende de la fecha) — se usa en
+  // Semana para recalcular la ocupación de cada columna sin heredar la de otra semana.
   const groupAttendingMap: Record<string, number> = {}
+  const groupSizeMap: Record<string, number> = {}
   const isFixedGroupMap: Record<string, boolean> = {}
   for (const e of enrollmentsRaw ?? []) {
     isFixedGroupMap[e.schedule_id] = true
+    groupSizeMap[e.schedule_id] = (groupSizeMap[e.schedule_id] ?? 0) + 1
     const nextDate = nextDateMap[e.schedule_id]
     const hasFalta = (e.schedule_exclusions as any[])?.some((x: any) => x.excluded_date === nextDate)
     if (!hasFalta) {
@@ -143,6 +147,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     ...s,
     bookings_count: (groupAttendingMap[s.id] ?? 0) + (spotCountMap[s.id] ?? 0),
     is_fixed_group: isFixedGroupMap[s.id] ?? false,
+    group_size: groupSizeMap[s.id] ?? null,
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
     reference_date: nextDateMap[s.id],
