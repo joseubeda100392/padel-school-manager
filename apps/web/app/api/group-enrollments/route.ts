@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { firstBillableMonth } from '@/lib/billing-cycle'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -112,6 +113,13 @@ export async function POST(req: NextRequest) {
     ? new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
     : null
 
+  // start_date marca desde qué mes debe dinero de verdad esta inscripción —
+  // NO cuándo se dio de alta en el sistema (enrolled_at), que puede ser
+  // semanas antes de que la clase arranque (ej. temporada nueva). Sin esto,
+  // get_pending_payments() usa enrolled_at como respaldo y reclama meses en
+  // los que la clase no llegó a dar ni una sola sesión.
+  const startDate = schedule?.start_time ? firstBillableMonth(schedule.start_time) : null
+
   const { data, error } = await admin.from('group_enrollments').upsert({
     schedule_id: scheduleId,
     student_id: studentId,
@@ -122,6 +130,7 @@ export async function POST(req: NextRequest) {
     status: 'active',
     enrolled_by: user.id,
     enrolled_at: new Date().toISOString(),
+    start_date: startDate,
     paid_until: paidUntil,
   }, { onConflict: 'schedule_id,student_id' }).select().single()
 

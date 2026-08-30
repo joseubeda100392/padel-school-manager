@@ -124,8 +124,6 @@ export default function GroupEnrollment({
   const [faltaSuccessMsg, setFaltaSuccessMsg] = useState<string | null>(null)
 
   const now = new Date()
-  const currentMonth = MONTH_NAMES[now.getMonth()]
-  const currentYear = now.getFullYear()
   const nextOccurrence = getNextOccurrence(scheduleStartTime)
 
   // Duración real de la clase, para saber qué tarifa (60/90 min) de
@@ -160,7 +158,7 @@ export default function GroupEnrollment({
   // fin de mes — no el mes completo, que ya podría estar prácticamente
   // acabado (ej. si el día de la semana de la clase ya no vuelve a caer
   // este mes, se pasa directamente a contar el mes siguiente completo).
-  function billingTarget(): { count: number; monthLabel: string } {
+  function billingTarget(): { count: number; monthName: string; year: number; monthLabel: string } {
     const dow = getDayOfWeek(scheduleStartTime)
     const todayMadrid = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
     const [ty, tm, td] = todayMadrid.split('-').map(Number)
@@ -168,11 +166,11 @@ export default function GroupEnrollment({
 
     const remaining = countOccurrences(dow, ty, thisMonth0, td)
     if (remaining > 0) {
-      return { count: remaining, monthLabel: `${MONTH_NAMES[thisMonth0]} ${ty}` }
+      return { count: remaining, monthName: MONTH_NAMES[thisMonth0], year: ty, monthLabel: `${MONTH_NAMES[thisMonth0]} ${ty}` }
     }
     const next = new Date(ty, thisMonth0 + 1, 1)
     const nextCount = countOccurrences(dow, next.getFullYear(), next.getMonth(), 1)
-    return { count: nextCount, monthLabel: `${MONTH_NAMES[next.getMonth()]} ${next.getFullYear()}` }
+    return { count: nextCount, monthName: MONTH_NAMES[next.getMonth()], year: next.getFullYear(), monthLabel: `${MONTH_NAMES[next.getMonth()]} ${next.getFullYear()}` }
   }
 
   const enrolledIds = new Set(enrollments.map((e) => e.student.id))
@@ -358,7 +356,7 @@ export default function GroupEnrollment({
       <div className="border-b border-gray-100 px-6 py-4">
         <h2 className="font-semibold text-gray-900">Grupo fijo</h2>
         <p className="mt-0.5 text-xs text-gray-400">
-          Alumnos con plaza permanente{enablePayments ? ` · Cuota de ${currentMonth} ${currentYear}` : ''}
+          Alumnos con plaza permanente{enablePayments ? ` · Cuota de ${billingTarget().monthLabel}` : ''}
         </p>
       </div>
 
@@ -444,7 +442,7 @@ export default function GroupEnrollment({
 
                   {enablePayments && (
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
-                      {paid ? 'Pagado' : `Pendiente ${currentMonth}`}
+                      {paid ? 'Pagado' : `Pendiente ${billingTarget().monthName}`}
                     </span>
                   )}
 
