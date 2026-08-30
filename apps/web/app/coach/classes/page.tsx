@@ -7,6 +7,7 @@ import { formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import CoachWeeklyCalendar from './coach-weekly-calendar'
+import { computeScheduleReviewMap } from '@/lib/schedule-review'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -41,6 +42,9 @@ export default async function CoachClassesPage({
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
   }
 
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const reviewInfoMap = await computeScheduleReviewMap(admin, ids, todaySpain)
+
   const view = searchParams.view === 'list' ? 'list' : 'week'
 
   const byDay: Record<number, any[]> = {}
@@ -54,6 +58,7 @@ export default async function CoachClassesPage({
   const schedulesWithCount = (schedules ?? []).map((s: any) => ({
     ...s,
     enrolled: countBySchedule[s.id] ?? 0,
+    review: reviewInfoMap[s.id] ?? null,
   }))
 
   return (
@@ -63,6 +68,7 @@ export default async function CoachClassesPage({
         subs={[
           { table: 'group_enrollments' },
           { table: 'schedule_exclusions' },
+          { table: 'bookings' },
         ]}
       />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -103,6 +109,7 @@ export default async function CoachClassesPage({
                   .map((s: any) => {
                     const enrolled = countBySchedule[s.id] ?? 0
                     const pct = Math.min((enrolled / s.max_students) * 100, 100)
+                    const review = reviewInfoMap[s.id] ?? null
                     return (
                       <Link
                         key={s.id}
@@ -122,6 +129,21 @@ export default async function CoachClassesPage({
                               >
                                 {s.level.name}
                               </span>
+                            )}
+                            {review && (
+                              <div className="mt-2 flex items-start gap-1.5">
+                                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-500" title="Hay faltas registradas" />
+                                <div className="flex flex-col gap-0.5">
+                                  {review.substituteNames.map((name: string, i: number) => (
+                                    <span key={i} className="text-xs font-medium text-gray-700">{name} sustituye</span>
+                                  ))}
+                                  {review.uncoveredCount > 0 && (
+                                    <span className="text-xs font-medium text-red-600">
+                                      {review.uncoveredCount} plaza{review.uncoveredCount > 1 ? 's' : ''} libre{review.uncoveredCount > 1 ? 's' : ''} — avisa a los alumnos
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             )}
                           </div>
                           <div className="text-right">

@@ -14,6 +14,7 @@ type Schedule = {
   enrolled: number
   court?: { name: string }
   level?: { name: string; color: string }
+  review?: { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number } | null
 }
 
 function timeOnly(dateStr: string) {
@@ -111,7 +112,19 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                         onClick={() => router.push(`/coach/classes/${s.id}`)}
                         className="w-full rounded-lg bg-white p-2 text-left shadow-sm ring-1 ring-gray-100 transition-all hover:ring-brand-400"
                       >
-                        <p className="text-xs font-semibold text-gray-900">{timeOnly(s.start_time)}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-xs font-semibold text-gray-900">{timeOnly(s.start_time)}</p>
+                          {s.review && (
+                            <span
+                              className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
+                              title={
+                                s.review.uncoveredCount > 0
+                                  ? `${s.review.uncoveredCount} plaza(s) libre(s) por falta`
+                                  : `Sustituye: ${s.review.substituteNames.join(', ')}`
+                              }
+                            />
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500 truncate">{s.court?.name ?? '—'}</p>
                         {s.level && (
                           <span

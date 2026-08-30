@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getDayOfWeek } from '@/lib/utils'
+import { computeScheduleReviewMap } from '@/lib/schedule-review'
 import ScheduleTable from './schedule-table'
 import WeeklyCalendar from './weekly-calendar'
 import ScheduleViewToggle from './schedule-view-toggle'
@@ -133,51 +134,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
 
   // Faltas futuras (cualquier fecha por venir, no solo la próxima clase) por
   // horario — para el aviso de "requiere revisión" en Horarios.
-  const futureFaltasByDate: Record<string, string[]> = {} // scheduleId -> [excluded_date, ...] (una entrada por falta)
-  for (const e of enrollmentsRaw ?? []) {
-    for (const x of (e.schedule_exclusions as any[]) ?? []) {
-      if (x.excluded_date >= todaySpain) {
-        if (!futureFaltasByDate[e.schedule_id]) futureFaltasByDate[e.schedule_id] = []
-        futureFaltasByDate[e.schedule_id].push(x.excluded_date)
-      }
-    }
-  }
-  const scheduleIdsWithFaltas = Object.keys(futureFaltasByDate)
-
-  const { data: substituteBookingsRaw } = scheduleIdsWithFaltas.length
-    ? await admin
-        .from('bookings')
-        .select('schedule_id, class_date, student:users!bookings_student_id_fkey(name)')
-        .in('schedule_id', scheduleIdsWithFaltas)
-        .neq('status', 'cancelled')
-        .gte('class_date', todaySpain)
-    : { data: [] }
-
-  // Por cada horario con faltas futuras: cuántas plazas quedan sin cubrir y
-  // quién ha ocupado las que sí — cruzando falta y sustituto por fecha exacta.
-  const reviewInfoMap: Record<string, { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number }> = {}
-  for (const scheduleId of scheduleIdsWithFaltas) {
-    const faltaDates = futureFaltasByDate[scheduleId]
-    const bookingsForSchedule = (substituteBookingsRaw ?? []).filter((b: any) => b.schedule_id === scheduleId)
-    const remainingBookingsByDate: Record<string, string[]> = {}
-    for (const b of bookingsForSchedule) {
-      const name = (b.student as any)?.name
-      if (!name) continue
-      if (!remainingBookingsByDate[b.class_date]) remainingBookingsByDate[b.class_date] = []
-      remainingBookingsByDate[b.class_date].push(name)
-    }
-    const substituteNames: string[] = []
-    let uncoveredCount = 0
-    for (const date of faltaDates) {
-      const available = remainingBookingsByDate[date] ?? []
-      if (available.length > 0) {
-        substituteNames.push(available.shift()!)
-      } else {
-        uncoveredCount++
-      }
-    }
-    reviewInfoMap[scheduleId] = { hasFalta: true, substituteNames, uncoveredCount }
-  }
+  const reviewInfoMap = await computeScheduleReviewMap(admin, allScheduleIds, todaySpain)
 
   const schedules = (rawSchedules ?? []).filter((s: any) => nextDateMap[s.id] !== undefined).map((s: any) => ({
     ...s,
