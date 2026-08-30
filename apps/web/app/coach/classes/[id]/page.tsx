@@ -13,7 +13,7 @@ import { ClassSessionMarker } from './class-session-marker'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-export default async function CoachClassDetailPage({ params }: { params: { id: string } }) {
+export default async function CoachClassDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { date?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -32,13 +32,20 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
   const today = new Date().toISOString().split('T')[0]
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+  // Si venimos de una celda concreta del calendario semanal (?date=), mostrar
+  // esa fecha en vez de asumir siempre "hoy" — igual que ya hace la ficha de
+  // admin. isViewingRealToday distingue "hoy de verdad" (donde sí tiene
+  // sentido marcar asistencia) de una fecha futura/pasada solo consultada.
+  const isValidDateParam = !!searchParams.date && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date)
+  const resolvedDate = isValidDateParam ? searchParams.date! : todaySpain
+  const isViewingRealToday = resolvedDate === todaySpain
 
   // Stage 1: solo dependen de schedule (ya disponible), en paralelo.
   const [
     { data: groupEnrollments, error: errEnrollments },
     { data: bookings, error: errBookings },
     features,
-    { data: todayOverride },
+    { data: dateOverride },
   ] = await Promise.all([
     admin
       .from('group_enrollments')
@@ -50,7 +57,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
       .from('bookings')
       .select('id, status, source, created_at, student:users!bookings_student_id_fkey(name, email, avatar_url)')
       .eq('schedule_id', params.id)
-      .eq('class_date', todaySpain)
+      .eq('class_date', resolvedDate)
       .neq('status', 'cancelled')
       .order('created_at'),
     getClubFeatures(schedule.club_id ?? undefined),
@@ -58,7 +65,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
       .from('schedule_time_overrides')
       .select('new_start_time, new_end_time')
       .eq('schedule_id', params.id)
-      .eq('override_date', todaySpain)
+      .eq('override_date', resolvedDate)
       .maybeSingle(),
   ])
 
@@ -103,20 +110,20 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
     return m.material_levels.some((ml: any) => ml.level_id === schedule.level_id)
   })
 
-  const start = todayOverride?.new_start_time ?? schedule.start_time
-  const end = todayOverride?.new_end_time ?? schedule.end_time
+  const start = dateOverride?.new_start_time ?? schedule.start_time
+  const end = dateOverride?.new_end_time ?? schedule.end_time
   const groupCount = groupEnrollments?.length ?? 0
-  const absentTodayCount = (groupEnrollments ?? []).filter((e: any) => (exclusionsByEnrollment[e.id] ?? []).includes(todaySpain)).length
-  const groupAttendingToday = groupCount - absentTodayCount
+  const absentOnDateCount = (groupEnrollments ?? []).filter((e: any) => (exclusionsByEnrollment[e.id] ?? []).includes(resolvedDate)).length
+  const groupAttendingOnDate = groupCount - absentOnDateCount
   const bookingCount = bookings?.length ?? 0
-  const enrolled = groupAttendingToday + bookingCount
+  const enrolled = groupAttendingOnDate + bookingCount
 
-  const todayDow = new Date(todaySpain + 'T12:00:00Z').getUTCDay()
+  const resolvedDow = new Date(resolvedDate + 'T12:00:00Z').getUTCDay()
   const scheduleDow = new Date(schedule.start_time).getUTCDay()
-  const isClassDayToday = todayDow === scheduleDow
+  const isClassDayOnResolvedDate = resolvedDow === scheduleDow
 
   let existingSessionData: { status: 'given' | 'not_given'; cancel_reason: string | null; confirmed_by_admin: string | null; absentStudentIds: string[] } | null = null
-  if (features.enable_class_validation && isClassDayToday) {
+  if (features.enable_class_validation && isViewingRealToday && isClassDayOnResolvedDate) {
     const { data: sessionRow } = await admin
       .from('class_sessions')
       .select('id, status, cancel_reason, confirmed_by_admin')
@@ -136,7 +143,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
       }
     }
   }
-  const todayLabel = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ }).format(new Date(todaySpain + 'T12:00:00Z'))
+  const resolvedDateLabel = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ }).format(new Date(resolvedDate + 'T12:00:00Z'))
 
   return (
     <div className="max-w-2xl">
@@ -162,7 +169,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
             <p className="text-lg font-bold text-gray-900">
               {DAYS[getDayOfWeek(start)]} · {formatTime(start)} – {formatTime(end)}
             </p>
-            {todayOverride && <p className="text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual hoy</p>}
+            {dateOverride && <p className="text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual ese día</p>}
             <p className="mt-0.5 text-sm text-gray-500">{schedule.court?.name ?? '—'}</p>
             {schedule.level && (
               <span
@@ -178,6 +185,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
               {enrolled}<span className="text-lg font-normal text-gray-400">/{schedule.max_students}</span>
             </p>
             <p className="text-xs text-gray-400">alumnos</p>
+            <p className="mt-1 text-xs text-gray-400 capitalize">{resolvedDateLabel}</p>
           </div>
         </div>
         <div className="mt-4">
@@ -191,12 +199,12 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
         </div>
       </div>
 
-      {features.enable_class_validation && isClassDayToday && (
+      {features.enable_class_validation && isViewingRealToday && isClassDayOnResolvedDate && (
         <div className="mb-6">
           <ClassSessionMarker
             scheduleId={params.id}
             sessionDate={todaySpain}
-            sessionDateLabel={todayLabel}
+            sessionDateLabel={resolvedDateLabel}
             students={(groupEnrollments ?? [])
               .map((e: any) => ({ id: e.student?.id, name: e.student?.name }))
               .filter((s: any) => s.id)}
@@ -233,8 +241,12 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
                     )}
                   </div>
                   {upcomingFaltas.length > 0 && (
-                    <div className="text-right">
-                      <p className="text-xs text-orange-500">Falta {new Date(upcomingFaltas[0] + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</p>
+                    <div className="flex flex-col items-end gap-0.5 text-right">
+                      {upcomingFaltas.map((date: string) => (
+                        <p key={date} className="text-xs text-orange-500">
+                          Falta {new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                        </p>
+                      ))}
                     </div>
                   )}
                   <Link

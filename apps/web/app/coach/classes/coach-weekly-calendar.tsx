@@ -114,7 +114,7 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                       return (
                       <button
                         key={s.id}
-                        onClick={() => router.push(`/coach/classes/${s.id}`)}
+                        onClick={() => router.push(`/coach/classes/${s.id}?date=${dateStr}`)}
                         className="w-full rounded-lg bg-white p-2 text-left shadow-sm ring-1 ring-gray-100 transition-all hover:ring-brand-400"
                       >
                         <div className="flex items-center gap-1">

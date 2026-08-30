@@ -10,6 +10,19 @@ import CoachWeeklyCalendar from './coach-weekly-calendar'
 import { computeScheduleReviewMap, computeScheduleReviewByDate } from '@/lib/schedule-review'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+const TZ = 'Europe/Madrid'
+
+// Fecha de referencia para el enlace de Lista: hoy si le toca hoy, o si no la
+// próxima fecha futura en que le toque — igual que en Horarios (admin), para
+// que la ficha de clase abra la fecha correcta en vez de asumir siempre hoy.
+function nextClassDate(startTime: string, todaySpain: string): string {
+  const classDow = getDayOfWeek(startTime)
+  const [sy, sm, sd] = todaySpain.split('-').map(Number)
+  const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
+  const daysUntil = (classDow - todayDow + 7) % 7
+  const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
+}
 
 export default async function CoachClassesPage({
   searchParams,
@@ -75,6 +88,7 @@ export default async function CoachClassesPage({
     group_size: groupSizeMap[s.id] ?? null,
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
+    reference_date: nextClassDate(s.start_time, todaySpain),
   }))
 
   return (
@@ -126,10 +140,11 @@ export default async function CoachClassesPage({
                     const enrolled = countBySchedule[s.id] ?? 0
                     const pct = Math.min((enrolled / s.max_students) * 100, 100)
                     const review = reviewInfoMap[s.id] ?? null
+                    const referenceDate = nextClassDate(s.start_time, todaySpain)
                     return (
                       <Link
                         key={s.id}
-                        href={`/coach/classes/${s.id}`}
+                        href={`/coach/classes/${s.id}?date=${referenceDate}`}
                         className="block rounded-xl bg-white p-5 shadow-sm transition hover:shadow-md"
                       >
                         <div className="flex items-start justify-between gap-3">
