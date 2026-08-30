@@ -28,21 +28,26 @@ export default async function CoachClassesPage({
     .eq('coach_id', user.id)
     .eq('is_active', true)
 
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+
   const ids = (schedules ?? []).map((s: any) => s.id)
   const { data: enrollments } = ids.length
     ? await admin
         .from('group_enrollments')
-        .select('schedule_id')
+        .select('schedule_id, schedule_exclusions(excluded_date)')
         .in('schedule_id', ids)
         .eq('status', 'active')
     : { data: [] }
 
+  // Cuenta solo a quien no ha registrado falta para hoy — no el total del
+  // grupo fijo, que no refleja quién viene de verdad.
   const countBySchedule: Record<string, number> = {}
   for (const e of enrollments ?? []) {
+    const absentToday = ((e as any).schedule_exclusions ?? []).some((x: any) => x.excluded_date === todaySpain)
+    if (absentToday) continue
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
   }
 
-  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
   const reviewInfoMap = await computeScheduleReviewMap(admin, ids, todaySpain)
 
   const view = searchParams.view === 'list' ? 'list' : 'week'

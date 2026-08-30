@@ -50,6 +50,7 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
       .from('bookings')
       .select('id, status, source, created_at, student:users!bookings_student_id_fkey(name, email, avatar_url)')
       .eq('schedule_id', params.id)
+      .eq('class_date', todaySpain)
       .neq('status', 'cancelled')
       .order('created_at'),
     getClubFeatures(schedule.club_id ?? undefined),
@@ -105,8 +106,10 @@ export default async function CoachClassDetailPage({ params }: { params: { id: s
   const start = todayOverride?.new_start_time ?? schedule.start_time
   const end = todayOverride?.new_end_time ?? schedule.end_time
   const groupCount = groupEnrollments?.length ?? 0
+  const absentTodayCount = (groupEnrollments ?? []).filter((e: any) => (exclusionsByEnrollment[e.id] ?? []).includes(todaySpain)).length
+  const groupAttendingToday = groupCount - absentTodayCount
   const bookingCount = bookings?.length ?? 0
-  const enrolled = groupCount + bookingCount
+  const enrolled = groupAttendingToday + bookingCount
 
   const todayDow = new Date(todaySpain + 'T12:00:00Z').getUTCDay()
   const scheduleDow = new Date(schedule.start_time).getUTCDay()
