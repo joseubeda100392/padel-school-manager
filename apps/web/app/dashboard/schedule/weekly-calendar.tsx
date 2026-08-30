@@ -195,7 +195,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                   return (
                   <button
                     key={s.id}
-                    onClick={() => router.push(`/dashboard/schedule/${s.id}`)}
+                    onClick={() => router.push(`/dashboard/schedule/${s.id}?date=${dateStr}`)}
                     className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all hover:ring-green-400 ${s.is_fixed_group ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
                   >
                     <div className="flex items-center justify-between gap-1">

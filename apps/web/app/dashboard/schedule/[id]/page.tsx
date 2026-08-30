@@ -39,7 +39,7 @@ function getNextDate(startTime: string): string {
   return next < scheduleStartDate ? scheduleStartDate : next
 }
 
-export default async function ScheduleDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { from?: string } }) {
+export default async function ScheduleDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { from?: string; date?: string } }) {
   const backHref = searchParams.from === 'master' ? '/dashboard/schedule/master' : '/dashboard/schedule'
   const backLabel = searchParams.from === 'master' ? '← Calendario maestro' : '← Horarios'
 
@@ -55,7 +55,13 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
   if (!schedule) notFound()
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
-  const nextDate = getNextDate(schedule.start_time)
+  // Si venimos de una celda concreta del calendario semanal (?date=), respetar
+  // esa fecha en vez de recalcular la "próxima clase" — evita que, al pinchar
+  // en la clase de hoy pasadas las 9:30, la ficha salte directa a la semana
+  // siguiente y pierda el contexto (falta, sustituto, hueco libre) por el que
+  // se pinchó.
+  const isValidDateParam = !!searchParams.date && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date)
+  const nextDate = isValidDateParam ? searchParams.date! : getNextDate(schedule.start_time)
 
   // Independientes entre sí una vez tenemos schedule — en paralelo en vez
   // de en cadena, para no sumar la latencia de cada una por separado.
