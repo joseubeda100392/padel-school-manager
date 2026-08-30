@@ -98,8 +98,8 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
 
       {/* Intensivos de la semana — una tarjeta por grupo */}
       {enableIntensivos && (() => {
-        const weekStart = weekDates[0].toISOString().split('T')[0]
-        const weekEnd = weekDates[6].toISOString().split('T')[0]
+        const weekStart = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(weekDates[0])
+        const weekEnd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(weekDates[6])
         const weekGroups = Object.entries(intensivoGroups)
           .map(([gid, classes]) => {
             const thisWeek = classes.filter(s => {
@@ -155,7 +155,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
         {DAY_NAMES.map((dayName, idx) => {
           const date = weekDates[idx]
           const isToday = date.toDateString() === new Date().toDateString()
-          const dateStr = date.toISOString().split('T')[0]
+          const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(date)
           const isHoliday = holidays.includes(dateStr)
           const classes = isHoliday ? [] : byDay[idx]
             .filter((s: any) => {
@@ -199,9 +199,19 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                     className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all hover:ring-green-400 ${s.is_fixed_group ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <p className="text-xs font-semibold text-gray-900">
+                      <p className="flex items-center gap-1 text-xs font-semibold text-gray-900">
                         {timeOnly(override?.new_start_time ?? s.start_time)}
                         {override && <span className="ml-1 text-amber-600">⚠️</span>}
+                        {s.review && (
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
+                            title={
+                              s.review.uncoveredCount > 0
+                                ? `${s.review.uncoveredCount} plaza(s) por cubrir`
+                                : `Sustituye: ${s.review.substituteNames.join(', ')}`
+                            }
+                          />
+                        )}
                       </p>
                       {s.is_fixed_group && (
                         <span className="shrink-0 rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-semibold text-orange-700">
@@ -228,6 +238,18 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                       <p className="mt-1 text-[10px] text-gray-400">
                         {s.bookings_count}/{s.max_students} plazas
                       </p>
+                    )}
+                    {s.review && (
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        {s.review.substituteNames.map((name: string, i: number) => (
+                          <span key={i} className="text-[10px] font-medium text-gray-600 truncate">{name}</span>
+                        ))}
+                        {s.review.uncoveredCount > 0 && (
+                          <span className="text-[10px] font-medium text-red-600">
+                            {s.review.uncoveredCount} plaza{s.review.uncoveredCount > 1 ? 's' : ''} por cubrir
+                          </span>
+                        )}
+                      </div>
                     )}
                   </button>
                   )

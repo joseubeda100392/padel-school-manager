@@ -84,7 +84,7 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
           {DAY_NAMES.map((dayName, idx) => {
             const date = weekDates[idx]
             const isToday = date.toDateString() === new Date().toDateString()
-            const dateStr = date.toISOString().split('T')[0]
+            const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(date)
             const classes = [...byDay[idx]]
               .filter((s) => {
                 const startDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(s.start_time))
