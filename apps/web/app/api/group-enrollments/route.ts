@@ -28,10 +28,10 @@ export async function POST(req: NextRequest) {
   }
 
   const [{ data: schedule }, { data: student }, { data: existingEnrollments }, { data: studentSchedules }] = await Promise.all([
-    admin.from('schedules').select('level_id, start_time, end_time, recurrence_end_date, club_id').eq('id', scheduleId).single(),
+    admin.from('schedules').select('level_id, start_time, end_time, recurrence_end_date, club_id, max_students').eq('id', scheduleId).single(),
     admin.from('users').select('current_level_id, club_id').eq('id', studentId).single(),
     admin.from('group_enrollments')
-      .select('student:users!group_enrollments_student_id_fkey(current_level_id)')
+      .select('student_id, student:users!group_enrollments_student_id_fkey(current_level_id)')
       .eq('schedule_id', scheduleId)
       .eq('status', 'active'),
     admin.from('group_enrollments')
@@ -40,6 +40,11 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
       .neq('schedule_id', scheduleId),
   ])
+
+  const alreadyEnrolled = (existingEnrollments ?? []).some((e: any) => e.student_id === studentId)
+  if (!alreadyEnrolled && schedule?.max_students && (existingEnrollments?.length ?? 0) >= schedule.max_students) {
+    return NextResponse.json({ error: `La clase ya tiene ${schedule.max_students}/${schedule.max_students} plazas ocupadas.` }, { status: 409 })
+  }
 
   if (adminUser.role !== 'super_admin') {
     if (!schedule || (schedule as any).club_id !== adminUser.club_id) {
