@@ -155,12 +155,13 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Recurrencia</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Ocupación</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Revisión</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {!filtered.length && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
                     {q || day || type ? 'Sin resultados para esa búsqueda.' : 'No hay clases programadas. Crea la primera.'}
                   </td>
                 </tr>
@@ -237,6 +238,25 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                         </div>
                         <span className="text-xs text-gray-500">{s.bookings_count ?? 0}/{s.max_students}</span>
                       </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {s.review ? (
+                      <div className="flex items-start gap-1.5">
+                        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-500" title="Requiere revisión: hay faltas registradas" />
+                        <div className="flex flex-col gap-0.5">
+                          {s.review.substituteNames.map((name: string, i: number) => (
+                            <span key={i} className="text-xs font-medium text-gray-700">{name}</span>
+                          ))}
+                          {s.review.uncoveredCount > 0 && (
+                            <span className="text-xs font-medium text-red-600">
+                              {s.review.uncoveredCount} plaza{s.review.uncoveredCount > 1 ? 's' : ''} por cubrir
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
                     )}
                   </td>
                 </tr>
