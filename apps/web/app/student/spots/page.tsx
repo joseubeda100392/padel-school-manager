@@ -241,6 +241,7 @@ export default async function StudentSpotsPage() {
           enablePayments={features.enable_payments && billingActive}
           enable60min={features.enable_60min}
           enable90min={features.enable_90min}
+          cashOnly={features.cash_only_payments}
         />
       )}
     </div>

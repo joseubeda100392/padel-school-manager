@@ -30,7 +30,7 @@ interface ScheduleItem {
   exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
 }
 
-export function StudentScheduleClient({ item, cancellationHours, enablePayments = true }: { item: ScheduleItem; cancellationHours: number; enablePayments?: boolean }) {
+export function StudentScheduleClient({ item, cancellationHours, enablePayments = true, cashOnly = false }: { item: ScheduleItem; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean }) {
   const router = useRouter()
   const [exclusions, setExclusions] = useState(item.exclusions)
   const [showPicker, setShowPicker] = useState(false)
@@ -122,6 +122,7 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
               enrollmentId={item.enrollmentId}
               label="💳 Pagar cuota"
               className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+              cashOnly={cashOnly}
             />
           )}
 

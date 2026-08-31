@@ -97,6 +97,7 @@ export default async function StudentBagPage() {
                   packType="60"
                   label="💳 Comprar bono"
                   className="mt-4 w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                  cashOnly={features.cash_only_payments}
                 />
               </div>
             )}
@@ -110,6 +111,7 @@ export default async function StudentBagPage() {
                   packType="90"
                   label="💳 Comprar bono"
                   className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  cashOnly={features.cash_only_payments}
                 />
               </div>
             )}

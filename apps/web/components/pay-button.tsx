@@ -16,9 +16,14 @@ interface PayButtonProps {
   label: string
   className?: string
   disabled?: boolean
+  // El club todavía no tiene TPV propio configurado (o cobra en efectivo a
+  // propósito): en vez del botón, se muestra un aviso — el servidor también
+  // lo bloquea (create-order), esto es solo para no dejar al alumno
+  // intentarlo a ciegas.
+  cashOnly?: boolean
 }
 
-export function PayButton({ type, enrollmentId, packType, scheduleId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, label, className, disabled }: PayButtonProps) {
+export function PayButton({ type, enrollmentId, packType, scheduleId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, label, className, disabled, cashOnly }: PayButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -70,6 +75,14 @@ export function PayButton({ type, enrollmentId, packType, scheduleId, wholeClass
       setError('Error de conexión. Inténtalo de nuevo.')
       setLoading(false)
     }
+  }
+
+  if (cashOnly) {
+    return (
+      <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+        💵 Pago por app no disponible todavía — paga en efectivo en el club.
+      </p>
+    )
   }
 
   return (

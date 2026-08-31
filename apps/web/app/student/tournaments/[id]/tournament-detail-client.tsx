@@ -11,6 +11,7 @@ export function TournamentDetailClient({
   maxPlayers,
   registeredCount,
   isRegistered: initialRegistered,
+  cashOnly = false,
 }: {
   tournamentId: string
   status: string
@@ -18,6 +19,7 @@ export function TournamentDetailClient({
   maxPlayers: number
   registeredCount: number
   isRegistered: boolean
+  cashOnly?: boolean
 }) {
   const [registered, setRegistered] = useState(initialRegistered)
   const [count, setCount] = useState(registeredCount)
@@ -91,6 +93,7 @@ export function TournamentDetailClient({
           tournamentId={tournamentId}
           label={`Pagar y apuntarme — ${(priceCents / 100).toFixed(2)} €`}
           className="w-full rounded-lg bg-brand-500 py-3 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+          cashOnly={cashOnly}
         />
         <p className="text-center text-xs text-gray-400">La inscripción no es reembolsable</p>
       </div>

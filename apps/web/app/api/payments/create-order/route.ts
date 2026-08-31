@@ -55,9 +55,16 @@ export async function POST(req: NextRequest) {
   if (clubId) {
     const { data: club } = await admin
       .from('clubs')
-      .select('redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env, config')
+      .select('redsys_merchant_code, redsys_secret_key, redsys_merchant_terminal, redsys_env, config, features')
       .eq('id', clubId)
       .single()
+
+    // Club sin TPV propio configurado (o que cobra en efectivo a propósito):
+    // nunca caer al TPV genérico de variables de entorno, que cargaría el
+    // pago en la cuenta equivocada — se corta aquí, antes de tocar Redsys.
+    if ((club as any)?.features?.cash_only_payments) {
+      return NextResponse.json({ error: 'Este club cobra en efectivo — el pago desde la app no está disponible todavía.' }, { status: 409 })
+    }
 
     if (club?.redsys_merchant_code) merchantCode = club.redsys_merchant_code
     if (club?.redsys_secret_key) secretKey = club.redsys_secret_key

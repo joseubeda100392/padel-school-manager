@@ -133,6 +133,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     enable_tournaments: true, enable_intensivos: true,
     enable_pista_viva: false,
     enable_class_validation: false,
+    cash_only_payments: false,
     enable_terms: false,
     terms_pdf_url: '',
   })
@@ -599,6 +600,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 { key: 'enable_intensivos', label: 'Semanas intensivas', desc: 'Clases intensivas de pago único por semana' },
                 { key: 'enable_terms', label: 'Condiciones de uso', desc: 'Los alumnos deben aceptar las condiciones antes de acceder a la app' },
                 { key: 'enable_class_validation', label: 'Validación de clases', desc: 'El profesor marca si se dio la clase, el admin confirma — cobro por clases realmente dadas y nómina de profesores' },
+                { key: 'cash_only_payments', label: 'Solo efectivo (sin TPV)', desc: 'Bloquea el pago por app (Redsys) y muestra un aviso de pagar en efectivo — para cuando el club aún no tiene su TPV configurado' },
               ] as { key: keyof typeof features; label: string; desc: string }[]).filter(f => f.key !== 'terms_pdf_url').map(({ key, label, desc }) => (
                 <div key={key} className="flex items-center justify-between gap-4 rounded-lg px-3 py-3 hover:bg-gray-50">
                   <div className="min-w-0">

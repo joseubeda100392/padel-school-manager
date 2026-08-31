@@ -26,7 +26,7 @@ const statusColor: Record<string, string> = {
   finished: 'bg-gray-100 text-gray-500',
 }
 
-export function TournamentsClient({ tournaments }: { tournaments: Tournament[] }) {
+export function TournamentsClient({ tournaments, cashOnly = false }: { tournaments: Tournament[]; cashOnly?: boolean }) {
   const [states, setStates] = useState<Record<string, { registered: boolean; count: number; loading: boolean }>>(() =>
     Object.fromEntries(tournaments.map(t => [t.id, { registered: t.isRegistered, count: t.registeredCount, loading: false }]))
   )
@@ -151,6 +151,7 @@ export function TournamentsClient({ tournaments }: { tournaments: Tournament[] }
                         tournamentId={t.id}
                         label={`Pagar y apuntarme — ${(t.price_cents / 100).toFixed(2)} €`}
                         className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+                        cashOnly={cashOnly}
                       />
                       <p className="text-xs text-gray-400">La inscripción no es reembolsable</p>
                     </div>

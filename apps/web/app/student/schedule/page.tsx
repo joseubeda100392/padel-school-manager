@@ -186,6 +186,7 @@ export default async function StudentSchedulePage() {
                 item={item}
                 cancellationHours={cancellationHours}
                 enablePayments={features.enable_payments && billingActive}
+                cashOnly={features.cash_only_payments}
               />
             ))}
           </div>

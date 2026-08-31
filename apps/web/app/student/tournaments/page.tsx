@@ -74,6 +74,7 @@ export default async function StudentTournamentsPage() {
             isRegistered: myTournamentIds.has(t.id),
             allowedLevels: (t.allowed_level_ids ?? []).map((id: string) => levelsMap[id]).filter(Boolean),
           }))}
+          cashOnly={features.cash_only_payments}
         />
       )}
     </div>

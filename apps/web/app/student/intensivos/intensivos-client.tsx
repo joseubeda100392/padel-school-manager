@@ -19,7 +19,7 @@ interface IntensivoPack {
   isFull: boolean
 }
 
-export function IntensivosClient({ packs, enablePayments = true }: { packs: IntensivoPack[]; enablePayments?: boolean }) {
+export function IntensivosClient({ packs, enablePayments = true, cashOnly = false }: { packs: IntensivoPack[]; enablePayments?: boolean; cashOnly?: boolean }) {
   return (
     <div className="space-y-4">
       {packs.map(pack => {
@@ -90,6 +90,7 @@ export function IntensivosClient({ packs, enablePayments = true }: { packs: Inte
                         classDates={pack.classDates}
                         label="Reservar semana"
                         className="rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                        cashOnly={cashOnly}
                       />
                     ) : (
                       <p className="text-xs text-gray-400">Contacta con tu club para inscribirte</p>

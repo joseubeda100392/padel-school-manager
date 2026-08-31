@@ -143,6 +143,7 @@ export default async function StudentTournamentDetailPage({ params }: { params: 
             maxPlayers={tournament.max_players}
             registeredCount={registeredCount}
             isRegistered={isRegistered}
+            cashOnly={features.cash_only_payments}
           />
         </div>
       </div>

@@ -118,7 +118,7 @@ export default async function StudentIntensivosPage() {
           <p className="mt-1 text-xs text-gray-400">Tu club publicará los intensivos de verano próximamente.</p>
         </div>
       ) : (
-        <IntensivosClient packs={packs} enablePayments={features.enable_payments && billingActive} />
+        <IntensivosClient packs={packs} enablePayments={features.enable_payments && billingActive} cashOnly={features.cash_only_payments} />
       )}
     </div>
   )

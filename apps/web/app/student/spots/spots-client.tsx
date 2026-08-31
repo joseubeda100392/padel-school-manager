@@ -22,7 +22,7 @@ interface Spot {
   enrolledCount: number | null
 }
 
-function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true }: { spot: Spot; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean }) {
+function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true, cashOnly = false }: { spot: Spot; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean; cashOnly?: boolean }) {
   const router = useRouter()
   const [booking, setBooking] = useState(false)
   const [booked, setBooked] = useState(false)
@@ -122,6 +122,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
                 classDate={spot.excludedDate}
                 label="💳 Pagar mi plaza"
                 className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                cashOnly={cashOnly}
               />
               {/* Solo clase suelta de verdad: sin ningún alumno de grupo fijo ya
                   inscrito. Si hubiera alumnos fijos, ellos ya pagan su cuota
@@ -135,6 +136,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
                   wholeClass
                   label="💳 Pagar la clase entera"
                   className="rounded-lg border border-brand-500 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
+                  cashOnly={cashOnly}
                 />
               )}
             </>
@@ -155,7 +157,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
   )
 }
 
-export function SpotsClient({ spots, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true }: { spots: Spot[]; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean }) {
+export function SpotsClient({ spots, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true, cashOnly = false }: { spots: Spot[]; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean; cashOnly?: boolean }) {
   const visibleBalance = (enable60min ? balance60 : 0) + (enable90min ? balance90 : 0)
   return (
     <div className="space-y-4">
@@ -179,6 +181,7 @@ export function SpotsClient({ spots, balance60, balance90, enablePayments = true
           enablePayments={enablePayments}
           enable60min={enable60min}
           enable90min={enable90min}
+          cashOnly={cashOnly}
         />
       ))}
     </div>
