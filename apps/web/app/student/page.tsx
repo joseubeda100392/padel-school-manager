@@ -53,7 +53,7 @@ export default async function StudentHomePage() {
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, paid_until, schedule:schedules(id, start_time, end_time, court:courts(name))')
+      .select('id, monthly_price, paid_until, start_date, schedule:schedules(id, start_time, end_time, court:courts(name))')
       .eq('student_id', user.id)
       .eq('status', 'active'),
     admin
@@ -96,7 +96,13 @@ export default async function StudentHomePage() {
 
   const bagBalance = (bag?.balance_60 ?? 0) + (bag?.balance_90 ?? 0)
   const activeEnrollments = enrollments ?? []
-  const pendingEnrollments = activeEnrollments.filter((e: any) => !isPaidThisMonth(e.paid_until))
+  // No contar como "pendiente" una inscripción cuya facturación todavía no
+  // ha arrancado (start_date en el futuro) — si no, un alumno recién
+  // matriculado para una clase que aún no ha dado ni una sesión vería un
+  // aviso de cuota pendiente sin deber nada todavía.
+  const pendingEnrollments = activeEnrollments.filter((e: any) =>
+    (!e.start_date || e.start_date <= todaySpain) && !isPaidThisMonth(e.paid_until)
+  )
 
   const enrolledScheduleIds = activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean)
   const { data: timeOverrides } = enrolledScheduleIds.length
@@ -274,7 +280,7 @@ export default async function StudentHomePage() {
                 <p className="mt-1 text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual solo este día</p>
               )}
             </div>
-            {nextClass.monthly_price > 0 && billingActive && (
+            {nextClass.monthly_price > 0 && billingActive && (!nextClass.start_date || nextClass.start_date <= todaySpain) && (
               <div className="text-right">
                 {features.enable_payments && (
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isPaidThisMonth(nextClass.paid_until) ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>

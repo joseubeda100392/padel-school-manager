@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
+import { currentBillingMonth } from '@/lib/billing-cycle'
 
 interface Enrollment {
   id: string
@@ -40,8 +41,7 @@ export function StudentEnrollments({
   const [saving, setSaving] = useState(false)
   const [discountLoadingId, setDiscountLoadingId] = useState<string | null>(null)
 
-  const now = new Date()
-  const currentMonth = MONTHS[now.getMonth()]
+  const currentMonth = MONTHS[currentBillingMonth().month0]
 
   async function saveEnrollment(id: string, updates: { monthly_price: number; discount_applied?: boolean }): Promise<boolean> {
     try {

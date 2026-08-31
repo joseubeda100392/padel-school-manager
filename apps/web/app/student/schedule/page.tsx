@@ -61,7 +61,7 @@ export default async function StudentSchedulePage() {
     getAdminClient()
       .from('group_enrollments')
       .select(`
-        id, monthly_price, paid_until, enrolled_at,
+        id, monthly_price, paid_until, enrolled_at, start_date,
         schedule:schedules(id, start_time, end_time, max_students,
           court:courts(name),
           level:levels(name, color),
@@ -139,7 +139,10 @@ export default async function StudentSchedulePage() {
       enrollmentId: e.id,
       monthlyPrice: e.monthly_price,
       paidUntil: e.paid_until,
-      isPaid: isPaidThisMonth(e.paid_until),
+      // Si la facturación de esta inscripción todavía no ha arrancado
+      // (start_date en el futuro), no mostrarla como pendiente de pago —
+      // la clase no ha dado ni una sesión todavía, no debe nada.
+      isPaid: (e.start_date && e.start_date > todaySpain) || isPaidThisMonth(e.paid_until),
       upcomingOccurrences,
       schedule: {
         id: schedule?.id,
