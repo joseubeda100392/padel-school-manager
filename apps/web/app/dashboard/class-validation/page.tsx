@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation'
 import { calculateCoachPending, calculateCoachMonthlyHours } from '@/lib/coach-payroll'
 import { ClassValidationClient } from './class-validation-client'
 
-export default async function ClassValidationPage() {
+export default async function ClassValidationPage({ searchParams }: { searchParams: { month?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -17,6 +17,14 @@ export default async function ClassValidationPage() {
   const clubId = await getClubId()
   const features = await getClubFeatures(clubId ?? undefined)
   if (!features.enable_class_validation) redirect('/dashboard')
+
+  // Horas trabajadas: el límite para "Siguiente" es el mes de calendario
+  // real de hoy, no se puede adelantar a un mes que aún no ha pasado.
+  const todayMadrid = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const [todayYear, todayMonth0] = [Number(todayMadrid.slice(0, 4)), Number(todayMadrid.slice(5, 7)) - 1]
+  const parsedMonth = searchParams.month ? new Date(searchParams.month + '-01') : null
+  const selectedYear = parsedMonth && !isNaN(parsedMonth.getTime()) ? parsedMonth.getFullYear() : todayYear
+  const selectedMonth0 = parsedMonth && !isNaN(parsedMonth.getTime()) ? parsedMonth.getMonth() : todayMonth0
 
   // pendingRaw y coaches dependen solo de clubId, ninguno del otro: en paralelo.
   const [{ data: pendingRaw }, { data: coaches }] = await Promise.all([
@@ -54,11 +62,20 @@ export default async function ClassValidationPage() {
     (coaches ?? []).map(async (coach) => {
       const [pendingPay, monthly] = await Promise.all([
         calculateCoachPending(admin, coach.id, clubId ?? ''),
-        calculateCoachMonthlyHours(admin, coach.id, clubId ?? ''),
+        calculateCoachMonthlyHours(admin, coach.id, clubId ?? '', { year: selectedYear, month0: selectedMonth0 }),
       ])
       return { id: coach.id, name: coach.name, email: coach.email, ...pendingPay, monthlyHours: monthly.hours, monthlySessionCount: monthly.sessionCount }
     })
   )
 
-  return <ClassValidationClient initialPending={pending} initialPayroll={payroll} />
+  return (
+    <ClassValidationClient
+      initialPending={pending}
+      initialPayroll={payroll}
+      selectedYear={selectedYear}
+      selectedMonth={selectedMonth0}
+      maxYear={todayYear}
+      maxMonth={todayMonth0}
+    />
+  )
 }

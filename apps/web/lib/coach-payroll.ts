@@ -54,9 +54,13 @@ export async function calculateCoachMonthlyHours(
   admin: SupabaseClient,
   coachId: string,
   clubId: string,
+  target?: { year: number; month0: number },
 ): Promise<{ hours: number; sessionCount: number }> {
   const todayMadrid = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
-  const monthStart = todayMadrid.slice(0, 7) + '-01'
+  const year = target?.year ?? Number(todayMadrid.slice(0, 4))
+  const month0 = target?.month0 ?? Number(todayMadrid.slice(5, 7)) - 1
+  const monthStart = `${year}-${String(month0 + 1).padStart(2, '0')}-01`
+  const monthEnd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(year, month0 + 1, 0, 12))
 
   const { data: sessions } = await admin
     .from('class_sessions')
@@ -66,6 +70,7 @@ export async function calculateCoachMonthlyHours(
     .not('confirmed_by_admin', 'is', null)
     .eq('schedule.coach_id', coachId)
     .gte('session_date', monthStart)
+    .lte('session_date', monthEnd)
 
   let totalMinutes = 0
   for (const s of sessions ?? []) {

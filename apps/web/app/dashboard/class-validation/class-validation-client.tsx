@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { MonthNavigator } from '../payments/month-navigator'
 
 interface PendingSession {
   id: string
@@ -38,7 +39,21 @@ function euros(cents: number) {
   return (cents / 100).toFixed(2) + ' €'
 }
 
-export function ClassValidationClient({ initialPending, initialPayroll }: { initialPending: PendingSession[]; initialPayroll: CoachPayroll[] }) {
+export function ClassValidationClient({
+  initialPending,
+  initialPayroll,
+  selectedYear,
+  selectedMonth,
+  maxYear,
+  maxMonth,
+}: {
+  initialPending: PendingSession[]
+  initialPayroll: CoachPayroll[]
+  selectedYear: number
+  selectedMonth: number
+  maxYear: number
+  maxMonth: number
+}) {
   const router = useRouter()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -141,7 +156,10 @@ export function ClassValidationClient({ initialPending, initialPayroll }: { init
       </div>
 
       <div className="rounded-xl border-l-4 border-l-brand-500 bg-white p-5 shadow-sm">
-        <p className="text-sm text-gray-500">Total del club en {MONTH_NAMES[new Date().getMonth()]}</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="text-sm text-gray-500">Total del club en {MONTH_NAMES[selectedMonth]}</p>
+          <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/class-validation" maxYear={maxYear} maxMonth={maxMonth} />
+        </div>
         <p className="mt-2 text-2xl font-bold text-gray-900">
           {initialPayroll.reduce((acc, c) => acc + c.monthlyHours, 0).toFixed(1)}h
         </p>
@@ -167,7 +185,7 @@ export function ClassValidationClient({ initialPending, initialPayroll }: { init
                     {c.hours.toFixed(1)}h pendientes ({c.sessionCount} sesiones) {c.periodStart ? `desde ${formatDate(c.periodStart)}` : '(histórico completo)'}
                   </p>
                   <p className="mt-0.5 text-xs text-gray-400">
-                    {c.monthlyHours.toFixed(1)}h en {MONTH_NAMES[new Date().getMonth()]} ({c.monthlySessionCount} sesiones)
+                    {c.monthlyHours.toFixed(1)}h en {MONTH_NAMES[selectedMonth]} ({c.monthlySessionCount} sesiones)
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
