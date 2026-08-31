@@ -158,12 +158,30 @@ export default function GroupEnrollment({
   // fin de mes — no el mes completo, que ya podría estar prácticamente
   // acabado (ej. si el día de la semana de la clase ya no vuelve a caer
   // este mes, se pasa directamente a contar el mes siguiente completo).
-  function billingTarget(): { count: number; monthName: string; year: number; monthLabel: string } {
-    const dow = getDayOfWeek(scheduleStartTime)
+  // usesPerClassPricing=true (con/sin pista, clase suelta): el precio ya está
+  // prorrateado por ocurrencia, así que una sola sesión que quede este mes es
+  // facturable este mes. usesPerClassPricing=false (cuota plana, el caso
+  // normal/heredado): no tiene sentido cobrar el mes entero por un solo día
+  // suelto a final de mes — se usa el mismo umbral de días que en
+  // lib/billing-cycle.ts (firstBillableMonth) para que esta etiqueta
+  // coincida con lo que get_pending_payments() considera real.
+  function billingTarget(usesPerClassPricing = true): { count: number; monthName: string; year: number; monthLabel: string } {
     const todayMadrid = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
     const [ty, tm, td] = todayMadrid.split('-').map(Number)
     const thisMonth0 = tm - 1
 
+    if (!usesPerClassPricing) {
+      const daysInMonth = new Date(ty, thisMonth0 + 1, 0).getDate()
+      const daysRemaining = daysInMonth - td
+      const DAYS_THRESHOLD = 5
+      if (daysRemaining >= DAYS_THRESHOLD) {
+        return { count: 0, monthName: MONTH_NAMES[thisMonth0], year: ty, monthLabel: `${MONTH_NAMES[thisMonth0]} ${ty}` }
+      }
+      const next = new Date(ty, thisMonth0 + 1, 1)
+      return { count: 0, monthName: MONTH_NAMES[next.getMonth()], year: next.getFullYear(), monthLabel: `${MONTH_NAMES[next.getMonth()]} ${next.getFullYear()}` }
+    }
+
+    const dow = getDayOfWeek(scheduleStartTime)
     const remaining = countOccurrences(dow, ty, thisMonth0, td)
     if (remaining > 0) {
       return { count: remaining, monthName: MONTH_NAMES[thisMonth0], year: ty, monthLabel: `${MONTH_NAMES[thisMonth0]} ${ty}` }
@@ -356,7 +374,7 @@ export default function GroupEnrollment({
       <div className="border-b border-gray-100 px-6 py-4">
         <h2 className="font-semibold text-gray-900">Grupo fijo</h2>
         <p className="mt-0.5 text-xs text-gray-400">
-          Alumnos con plaza permanente{enablePayments ? ` · Cuota de ${billingTarget().monthLabel}` : ''}
+          Alumnos con plaza permanente{enablePayments ? ` · Cuota de ${billingTarget(false).monthLabel}` : ''}
         </p>
       </div>
 
@@ -442,7 +460,7 @@ export default function GroupEnrollment({
 
                   {enablePayments && (
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
-                      {paid ? 'Pagado' : `Pendiente ${billingTarget().monthName}`}
+                      {paid ? 'Pagado' : `Pendiente ${billingTarget(!!(e.court_pricing || e.price_per_class_cents)).monthName}`}
                     </span>
                   )}
 
