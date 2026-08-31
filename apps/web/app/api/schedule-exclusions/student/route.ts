@@ -190,8 +190,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Alguien ya ha reservado tu plaza, no puedes cancelar la falta' }, { status: 409 })
   }
 
-  await admin.from('schedule_exclusions').delete().eq('id', exclusionId)
-
   // Revertir el crédito de bolsa
   const { data: originalTx } = await admin
     .from('bag_transactions')
@@ -214,6 +212,20 @@ export async function DELETE(req: NextRequest) {
   }
 
   const { data: bag } = await admin.from('class_bag').select('id, balance_60, balance_90').eq('user_id', user.id).single()
+
+  // Si el crédito que dio esta falta ya se gastó (el saldo de ese tipo está
+  // a 0), no se puede recuperar la plaza — si no, el alumno se quedaría con
+  // la clase que ya usó en otro sitio GRATIS, además de recuperar esta.
+  // Solo se puede deshacer mientras el crédito siga sin gastar.
+  if (bag) {
+    const currentBalance = durationType === '60' ? bag.balance_60 : bag.balance_90
+    if (currentBalance < 1) {
+      return NextResponse.json({ error: 'No puedes cancelar esta falta: ya has usado esa clase de tu bolsa en otra reserva.' }, { status: 409 })
+    }
+  }
+
+  await admin.from('schedule_exclusions').delete().eq('id', exclusionId)
+
   if (bag) {
     const newBal60 = durationType === '60' ? Math.max(0, bag.balance_60 - 1) : bag.balance_60
     const newBal90 = durationType === '90' ? Math.max(0, bag.balance_90 - 1) : bag.balance_90
