@@ -86,7 +86,7 @@ export function TimeOverride({ scheduleId, nextDate, nextDateLabel, existingOver
   return (
     <form onSubmit={handleSave} className="mt-3 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
       <p className="text-xs font-medium text-gray-600">Nueva hora solo para el {nextDateLabel}</p>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs text-gray-500">Hora inicio</label>
           <input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)}
