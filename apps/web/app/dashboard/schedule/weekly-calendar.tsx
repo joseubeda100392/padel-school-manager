@@ -204,7 +204,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                   >
                     <div className="flex items-center justify-between gap-1">
                       <p className="flex items-center gap-1 text-xs font-semibold text-gray-900">
-                        {timeOnly(override?.new_start_time ?? s.start_time)}
+                        {timeOnly(override?.new_start_time ?? s.start_time)}–{timeOnly(override?.new_end_time ?? s.end_time)}
                         {override && <span className="ml-1 text-amber-600">⚠️</span>}
                         {review && (
                           <span

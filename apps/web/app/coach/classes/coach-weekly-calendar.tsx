@@ -118,7 +118,7 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                         className="w-full rounded-lg bg-white p-2 text-left shadow-sm ring-1 ring-gray-100 transition-all hover:ring-brand-400"
                       >
                         <div className="flex items-center gap-1">
-                          <p className="text-xs font-semibold text-gray-900">{timeOnly(s.start_time)}</p>
+                          <p className="text-xs font-semibold text-gray-900">{timeOnly(s.start_time)}–{timeOnly(s.end_time)}</p>
                           {review && (
                             <span
                               className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
