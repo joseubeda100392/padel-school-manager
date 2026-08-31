@@ -1,15 +1,30 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { currentBillingMonth } from '@/lib/billing-cycle'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
-export function MonthNavigator({ year, month }: { year: number; month: number }) {
+// Genérico: basePath decide a qué pantalla navega, maxYear/maxMonth decide
+// hasta qué mes se puede avanzar (distinto según la pantalla — en Pagos es
+// el mes de facturación efectivo, en horas de monitores es el mes de
+// calendario real, no se puede ver un mes que aún no ha pasado).
+export function MonthNavigator({
+  year,
+  month,
+  basePath,
+  maxYear,
+  maxMonth,
+}: {
+  year: number
+  month: number
+  basePath: string
+  maxYear: number
+  maxMonth: number
+}) {
   const router = useRouter()
 
   function go(y: number, m: number) {
-    router.push(`/dashboard/payments?month=${y}-${String(m + 1).padStart(2, '0')}`)
+    router.push(`${basePath}?month=${y}-${String(m + 1).padStart(2, '0')}`)
   }
 
   function prev() {
@@ -17,19 +32,13 @@ export function MonthNavigator({ year, month }: { year: number; month: number })
     else go(year, month - 1)
   }
 
-  // "Mes actual" aquí es el mes de facturación efectivo, no el de calendario
-  // — a menos de 5 días de fin de mes ya se considera el mes siguiente (ver
-  // currentBillingMonth), si no "Siguiente" se queda bloqueado justo al
-  // llegar al mes que realmente toca ver.
-  const billing = currentBillingMonth()
-
   function next() {
-    if (year > billing.year || (year === billing.year && month >= billing.month0)) return
+    if (year > maxYear || (year === maxYear && month >= maxMonth)) return
     if (month === 11) go(year + 1, 0)
     else go(year, month + 1)
   }
 
-  const isCurrentMonth = year === billing.year && month === billing.month0
+  const isCurrentMonth = year === maxYear && month === maxMonth
 
   return (
     <div className="flex items-center gap-3">

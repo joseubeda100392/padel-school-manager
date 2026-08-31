@@ -90,14 +90,26 @@ function durationMinutes(schedule: { start_time: string; end_time: string }): nu
 // festivos del club, clases canceladas explícitamente por el club, o días
 // en los que un sustituto puntual (schedule_coach_overrides) cubre la
 // clase — esas horas pasan al sustituto en vez de al titular.
+// target, si se pasa, es {year, month0} para consultar un mes concreto (ej.
+// desde el selector de mes de la pantalla) — por defecto, el mes en curso
+// hasta hoy. Para un mes ya cerrado se cuenta el mes completo; para el mes
+// en curso, solo hasta hoy (no se puede contar lo que aún no ha pasado).
 export async function calculateCoachScheduledMonthlyHours(
   admin: SupabaseClient,
   coachId: string,
   clubId: string,
+  target?: { year: number; month0: number },
 ): Promise<{ hours: number; sessionCount: number }> {
   const madridFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' })
   const todayMadrid = madridFmt.format(new Date())
-  const monthStart = todayMadrid.slice(0, 7) + '-01'
+  const [todayYear, todayMonth0] = [Number(todayMadrid.slice(0, 4)), Number(todayMadrid.slice(5, 7)) - 1]
+  const year = target?.year ?? todayYear
+  const month0 = target?.month0 ?? todayMonth0
+  const monthStart = `${year}-${String(month0 + 1).padStart(2, '0')}-01`
+  const isCurrentMonth = year === todayYear && month0 === todayMonth0
+  const rangeEnd = isCurrentMonth
+    ? todayMadrid
+    : madridFmt.format(new Date(year, month0 + 1, 0, 12))
 
   const [{ data: schedules }, { data: club }] = await Promise.all([
     admin
@@ -122,6 +134,7 @@ export async function calculateCoachScheduledMonthlyHours(
         .select('schedule_id, override_date')
         .in('schedule_id', scheduleIds)
         .gte('override_date', monthStart)
+        .lte('override_date', rangeEnd)
     : { data: [] }
   const substitutedSet = new Set(
     (outgoingOverrides ?? []).map((o: any) => `${o.schedule_id}|${o.override_date}`)
@@ -134,7 +147,7 @@ export async function calculateCoachScheduledMonthlyHours(
     .eq('new_coach_id', coachId)
     .eq('club_id', clubId)
     .gte('override_date', monthStart)
-    .lte('override_date', todayMadrid)
+    .lte('override_date', rangeEnd)
 
   // Clases canceladas explícitamente por el club (cancel-session inserta una
   // schedule_exclusion con este motivo exacto para cada alumno inscrito) —
@@ -156,6 +169,7 @@ export async function calculateCoachScheduledMonthlyHours(
         .in('group_enrollment_id', enrollmentIds)
         .eq('reason', 'Clase cancelada por el club')
         .gte('excluded_date', monthStart)
+        .lte('excluded_date', rangeEnd)
       for (const c of cancellations ?? []) {
         const scheduleId = scheduleByEnrollment[(c as any).group_enrollment_id]
         if (scheduleId) cancelledByScheduleDate.add(`${scheduleId}|${(c as any).excluded_date}`)
@@ -172,7 +186,7 @@ export async function calculateCoachScheduledMonthlyHours(
     if (s.recurrence === 'none') {
       const d = madridFmt.format(new Date(s.start_time))
       if (
-        d >= monthStart && d <= todayMadrid &&
+        d >= monthStart && d <= rangeEnd &&
         !cancelledByScheduleDate.has(`${s.id}|${d}`) &&
         !substitutedSet.has(`${s.id}|${d}`)
       ) {
@@ -184,11 +198,11 @@ export async function calculateCoachScheduledMonthlyHours(
 
     const scheduleStartDate = madridFmt.format(new Date(s.start_time))
     const rangeStart = scheduleStartDate > monthStart ? scheduleStartDate : monthStart
-    if (rangeStart > todayMadrid) continue
+    if (rangeStart > rangeEnd) continue
 
     const scheduleDow = getDayOfWeek(s.start_time)
     let cursor = new Date(rangeStart + 'T12:00:00Z')
-    const end = new Date(todayMadrid + 'T12:00:00Z')
+    const end = new Date(rangeEnd + 'T12:00:00Z')
     while (cursor.getTime() <= end.getTime()) {
       const dateStr = madridFmt.format(cursor)
       if (

@@ -98,7 +98,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
           <h1 className="text-2xl font-bold text-gray-900">Pagos</h1>
           <p className="text-sm text-gray-500">{payments?.length ?? 0} transacciones en {monthLabel}</p>
         </div>
-        <MonthNavigator year={selectedYear} month={selectedMonth} />
+        <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/payments" maxYear={defaultBilling.year} maxMonth={defaultBilling.month0} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
