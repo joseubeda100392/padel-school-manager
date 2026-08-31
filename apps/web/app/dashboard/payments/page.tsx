@@ -10,6 +10,7 @@ import { UnpaidList } from './unpaid-list'
 import { MonthNavigator } from './month-navigator'
 import { DevError } from '@/components/dev-error'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { currentBillingMonth } from '@/lib/billing-cycle'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -28,9 +29,15 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const billingStartDate: string | null = (clubConfigRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
-  const now = new Date()
+  // Por defecto (sin ?month=) no abrir en el mes de calendario real, sino en
+  // el mes que ya toca facturar — a menos de 5 días de fin de mes, el mes de
+  // calendario actual deja de ser relevante para cobros (ver
+  // currentBillingMonth en lib/billing-cycle.ts).
+  const defaultBilling = currentBillingMonth()
   const parsedDate = searchParams.month ? new Date(searchParams.month + '-01') : null
-  const selectedDate = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : now
+  const selectedDate = parsedDate && !isNaN(parsedDate.getTime())
+    ? parsedDate
+    : new Date(defaultBilling.year, defaultBilling.month0, 1)
   const selectedYear = selectedDate.getFullYear()
   const selectedMonth = selectedDate.getMonth()
   const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`

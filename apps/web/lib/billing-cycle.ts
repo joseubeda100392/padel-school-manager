@@ -78,3 +78,21 @@ export function firstBillableMonth(
   const targetMonth0 = daysRemaining < DAYS_THRESHOLD ? thisMonth0 + 1 : thisMonth0
   return new Date(ty, targetMonth0, 1).toISOString().split('T')[0]
 }
+
+// Mes de facturación "efectivo" para vistas que por defecto muestran el mes
+// actual (ej. Pagos): con menos de DAYS_THRESHOLD días de mes, ya se
+// considera que estamos facturando el mes siguiente — igual que
+// firstBillableMonth() para cuota plana. Sin esto, esas vistas abren por
+// defecto en un mes de calendario que, a efectos de cobro, ya no existe.
+export function currentBillingMonth(referenceDate: Date = new Date()): { year: number; month0: number } {
+  const todayMadrid = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(referenceDate)
+  const [ty, tm, td] = todayMadrid.split('-').map(Number)
+  const thisMonth0 = tm - 1
+  const daysInMonth = new Date(ty, thisMonth0 + 1, 0).getDate()
+  const daysRemaining = daysInMonth - td
+  if (daysRemaining < DAYS_THRESHOLD) {
+    const next = new Date(ty, thisMonth0 + 1, 1)
+    return { year: next.getFullYear(), month0: next.getMonth() }
+  }
+  return { year: ty, month0: thisMonth0 }
+}
