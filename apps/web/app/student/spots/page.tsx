@@ -169,18 +169,52 @@ export default async function StudentSpotsPage() {
     return nextDate
   }
 
+  // Fecha calculada una sola vez por horario — se usa tanto para decidir
+  // elegibilidad como para el conteo real de asistentes de esa fecha.
+  const classDateBySchedule: Record<string, string | null> = {}
+  for (const s of schedulesRaw ?? []) classDateBySchedule[s.id] = getClassDate(s)
+
+  const candidateIds = (schedulesRaw ?? [])
+    .filter((s: any) => classDateBySchedule[s.id] && !absenceScheduleIds.has(s.id))
+    .map((s: any) => s.id)
+
+  // Conteo real de asistentes de la fecha concreta: activos del grupo fijo
+  // MENOS quien tiene falta registrada justo ese día, MÁS reservas puntuales
+  // ya confirmadas para esa fecha — el mismo criterio que usan las funciones
+  // de reserva atómica (book_capacity_spot), para no anunciar como libre una
+  // plaza que en realidad ya está completa, ni bloquear una que sí está libre.
+  const [{ data: exclusionsForCapacity }, { data: bookingsForCapacity }] = await Promise.all([
+    candidateIds.length
+      ? admin.from('group_enrollments').select('id, schedule_id, schedule_exclusions(excluded_date)').in('schedule_id', candidateIds).eq('status', 'active')
+      : { data: [] },
+    candidateIds.length
+      ? admin.from('bookings').select('schedule_id, class_date').eq('status', 'confirmed').in('schedule_id', candidateIds)
+      : { data: [] },
+  ])
+
+  function realAttendingCount(scheduleId: string, activeCount: number, classDate: string): number {
+    const absentCount = (exclusionsForCapacity ?? []).filter((e: any) =>
+      e.schedule_id === scheduleId && (e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === classDate)
+    ).length
+    const bookedCount = (bookingsForCapacity ?? []).filter((b: any) =>
+      b.schedule_id === scheduleId && b.class_date === classDate
+    ).length
+    return activeCount - absentCount + bookedCount
+  }
+
   const eligibleCapacity = (schedulesRaw ?? []).filter(s => {
     const enrollments = (s.enrollments ?? []) as any[]
     const active = enrollments.filter((e: any) => e.status === 'active')
     const alreadyIn = active.some((e: any) => e.student_id === user.id)
     const levelId = (s.level as any)?.id ?? null
     const levelOk = !myLevelId || !levelId || levelId === myLevelId
-    const classDate = getClassDate(s)
+    const classDate = classDateBySchedule[s.id]
     if (!classDate) return false
     const alreadyBooked = (mySpotBookings ?? []).some(
       b => b.schedule_id === s.id && b.class_date === classDate
     )
-    return !alreadyIn && active.length < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
+    const realCount = realAttendingCount(s.id, active.length, classDate)
+    return !alreadyIn && realCount < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
   })
 
   // Intensivos are handled in /student/intensivos — exclude them here
@@ -191,7 +225,7 @@ export default async function StudentSpotsPage() {
     const activeCount = enrollments.filter((e: any) => e.status === 'active').length
     const startDt = new Date(s.start_time)
     const endDt = new Date(s.end_time)
-    const computedDate = getClassDate(s) ?? today
+    const computedDate = classDateBySchedule[s.id] ?? today
     return {
       spotType: 'capacity' as const,
       exclusionId: null,
@@ -207,7 +241,7 @@ export default async function StudentSpotsPage() {
       coachName: (s.coach as any)?.name ?? null,
       maxStudents: s.max_students,
       level: s.level as any,
-      enrolledCount: activeCount,
+      enrolledCount: realAttendingCount(s.id, activeCount, computedDate),
     }
   }).sort((a, b) => a.excludedDate.localeCompare(b.excludedDate))
 
