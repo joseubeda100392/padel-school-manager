@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 
 type ChecklistItem = {
   id: string
@@ -25,6 +26,7 @@ export function StudentObjectives({
   studentId: string
   initialChecklists: Checklist[]
 }) {
+  const router = useRouter()
   const [checklists, setChecklists] = useState<Checklist[]>(initialChecklists)
   const [newTitle, setNewTitle] = useState('')
   const [creatingChecklist, setCreatingChecklist] = useState(false)
@@ -51,6 +53,7 @@ export function StudentObjectives({
       setChecklists(prev => [{ ...json.data, items: [] }, ...prev])
       setNewTitle('')
       setShowForm(false)
+      router.refresh()
     }
     setCreatingChecklist(false)
   }
@@ -67,6 +70,7 @@ export function StudentObjectives({
       setChecklists(prev => prev.map(c =>
         c.id !== checklistId ? c : { ...c, completed_at: json.data.completed_at }
       ))
+      router.refresh()
     }
     setTogglingChecklist(null)
   }
@@ -77,6 +81,7 @@ export function StudentObjectives({
     await fetch(`/api/student-checklists/${checklistId}`, { method: 'DELETE' })
     setChecklists(prev => prev.filter(c => c.id !== checklistId))
     setDeletingChecklist(null)
+    router.refresh()
   }
 
   async function handleToggleItem(checklistId: string, itemId: string, currentlyCompleted: boolean) {
@@ -96,6 +101,7 @@ export function StudentObjectives({
           ),
         }
       ))
+      router.refresh()
     }
     setTogglingItem(null)
   }
@@ -107,6 +113,7 @@ export function StudentObjectives({
       c.id !== checklistId ? c : { ...c, items: c.items.filter(it => it.id !== itemId) }
     ))
     setDeletingItem(null)
+    router.refresh()
   }
 
   async function handleAddItem(e: React.FormEvent, checklistId: string) {
@@ -125,6 +132,7 @@ export function StudentObjectives({
         c.id !== checklistId ? c : { ...c, items: [...c.items, json.data] }
       ))
       setNewItemText(prev => ({ ...prev, [checklistId]: '' }))
+      router.refresh()
     }
     setAddingItem(null)
   }
