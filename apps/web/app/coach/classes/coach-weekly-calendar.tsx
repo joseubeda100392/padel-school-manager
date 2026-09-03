@@ -19,6 +19,14 @@ type Schedule = {
   group_size?: number | null
 }
 
+// Minutos desde medianoche en hora de Madrid — para ordenar por hora real del
+// día, no por el navegador ni por la fecha que arrastra start_time.
+function madridMinutesOfDay(dateStr: string): number {
+  const [h, m] = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Madrid' })
+    .format(new Date(dateStr)).split(':').map(Number)
+  return h * 60 + m
+}
+
 function timeOnly(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
@@ -92,7 +100,7 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                 const startDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(s.start_time))
                 return dateStr >= startDate
               })
-              .sort((a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours())
+              .sort((a, b) => madridMinutesOfDay(a.start_time) - madridMinutesOfDay(b.start_time))
 
             return (
               <div key={idx}>

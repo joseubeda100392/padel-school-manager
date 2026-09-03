@@ -12,6 +12,16 @@ function timeOnly(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
 }
 
+// Minutos desde medianoche en hora de Madrid — para ordenar por hora real del
+// día, no por el navegador del que abre la página ni por la fecha que
+// arrastra start_time (los horarios recurrentes conservan la fecha en la que
+// se crearon).
+function madridMinutesOfDay(dateStr: string): number {
+  const [h, m] = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Madrid' })
+    .format(new Date(dateStr)).split(':').map(Number)
+  return h * 60 + m
+}
+
 function getWeekDates(offset: number) {
   const now = new Date()
   const day = now.getDay()
@@ -166,7 +176,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
               const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(s.start_time))
               return dateStr >= scheduleStartDate && (!s.recurrence_end_date || dateStr <= s.recurrence_end_date)
             })
-            .sort((a, b) => new Date(a.start_time).getHours() - new Date(b.start_time).getHours())
+            .sort((a, b) => madridMinutesOfDay(a.start_time) - madridMinutesOfDay(b.start_time))
 
           return (
             <div key={idx}>

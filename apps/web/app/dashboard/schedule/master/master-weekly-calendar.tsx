@@ -17,8 +17,16 @@ export default function MasterWeeklyCalendar({ schedules, readOnly = false }: { 
       const idx = JS_DAY_TO_IDX[getDayOfWeek(s.start_time)]
       if (idx !== undefined) map[idx].push(s)
     })
+    // Ordenar por hora del día, no por la marca de tiempo completa — los
+    // horarios recurrentes conservan la fecha en la que se crearon dentro de
+    // start_time, así que comparar el timestamp entero mezclaba el orden
+    // según cuándo se dio de alta cada clase en vez de por su hora real.
+    const minutesOfDay = (iso: string) => {
+      const d = new Date(iso)
+      return d.getUTCHours() * 60 + d.getUTCMinutes()
+    }
     for (const idx of Object.keys(map)) {
-      map[Number(idx)].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+      map[Number(idx)].sort((a, b) => minutesOfDay(a.start_time) - minutesOfDay(b.start_time))
     }
     return map
   }, [schedules])
