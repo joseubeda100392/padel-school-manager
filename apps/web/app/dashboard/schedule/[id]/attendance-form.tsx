@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Booking {
   id: string
@@ -19,6 +19,15 @@ interface Booking {
 export default function AttendanceForm({ bookings: initial, scheduleId }: { bookings: Booking[]; scheduleId: string }) {
   const [bookings, setBookings] = useState(initial)
   const [saving, setSaving] = useState<string | null>(null)
+
+  // useState(initial) solo se lee al montar — tras un router.refresh() (ej.
+  // al añadir un alumno a un hueco libre) el Server Component vuelve a
+  // renderizar con una lista nueva, pero este componente cliente seguía
+  // mostrando la suya propia hasta recargar la página a mano. Sincronizar
+  // cuando cambian los props.
+  useEffect(() => {
+    setBookings(initial)
+  }, [initial])
 
   async function markStatus(bookingId: string, status: 'confirmed' | 'no_show') {
     setSaving(bookingId)

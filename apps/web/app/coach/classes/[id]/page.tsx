@@ -11,6 +11,7 @@ import { DevError } from '@/components/dev-error'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { ClassSessionMarker } from './class-session-marker'
 import { AdminAddSpotBooking } from '@/app/dashboard/schedule/[id]/add-spot-booking'
+import { SpotBookingsList } from '@/app/dashboard/schedule/[id]/spot-bookings-list'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -79,11 +80,12 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
       .order('name'),
     admin
       .from('bookings')
-      .select('student_id, class_date')
+      .select('id, source, class_date, student_id, student:users!bookings_student_id_fkey(name, email)')
       .eq('schedule_id', params.id)
       .neq('status', 'cancelled')
       .not('class_date', 'is', null)
-      .gte('class_date', todaySpain),
+      .gte('class_date', todaySpain)
+      .order('class_date'),
   ])
 
   const levelIds = [...new Set((groupEnrollments ?? []).map((e: any) => e.student?.current_level_id).filter(Boolean))]
@@ -329,6 +331,24 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Reservas puntuales (huecos) */}
+      {features.enable_spots && (futureBookings ?? []).length > 0 && (
+        <div className="mb-6 rounded-xl bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-6 py-4">
+            <h2 className="font-semibold text-gray-900">Reservas puntuales</h2>
+            <p className="mt-0.5 text-xs text-gray-400">Alumnos apuntados a un hueco libre en una fecha concreta</p>
+          </div>
+          <SpotBookingsList
+            bookings={(futureBookings ?? []).map((b: any) => ({
+              id: b.id,
+              source: b.source,
+              class_date: b.class_date,
+              student: b.student ? { name: b.student.name, email: b.student.email } : null,
+            }))}
+          />
         </div>
       )}
 
