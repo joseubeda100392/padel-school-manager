@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface Props {
-  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string; also_student?: boolean }
+  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string; also_student?: boolean; is_external?: boolean; is_premium_private_coach?: boolean }
   isSuperAdmin?: boolean
+  enablePrivateLessons?: boolean
 }
 
-export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
+export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLessons = false }: Props) {
   const router = useRouter()
   const [form, setForm] = useState({
     name: student.name ?? '',
@@ -19,6 +20,8 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
     start_date: student.start_date ?? '',
     end_date: student.end_date ?? '',
     also_student: student.also_student ?? false,
+    is_external: student.is_external ?? false,
+    is_premium_private_coach: student.is_premium_private_coach ?? false,
   })
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -48,6 +51,8 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
       start_date: form.start_date || null,
       end_date: form.end_date || null,
       also_student: form.role === 'coach' ? form.also_student : false,
+      is_external: form.role === 'student' ? form.is_external : false,
+      is_premium_private_coach: form.role === 'coach' ? form.is_premium_private_coach : false,
     }).eq('id', student.id)
     if (!err && !student.is_active && form.is_active) {
       // Se acaba de reactivar: levantar el bloqueo de acceso (requiere service role)
@@ -142,6 +147,26 @@ export function StudentEditForm({ student, isSuperAdmin = false }: Props) {
               className="h-4 w-4 rounded border-gray-300 text-brand-500" />
             <label htmlFor="also_student_edit" className="text-sm font-medium text-gray-700">
               También es alumno <span className="font-normal text-gray-400">(puede entrar también al panel de alumno, apuntarse a clases y tener cuota)</span>
+            </label>
+          </div>
+        )}
+        {enablePrivateLessons && form.role === 'coach' && (
+          <div className="flex items-center gap-3">
+            <input type="checkbox" id="is_premium_private_coach_edit" checked={form.is_premium_private_coach}
+              onChange={(e) => setForm({ ...form, is_premium_private_coach: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500" />
+            <label htmlFor="is_premium_private_coach_edit" className="text-sm font-medium text-gray-700">
+              Tarifa particular premium <span className="font-normal text-gray-400">(sus clases particulares cobran el precio premium configurado en Tarifas)</span>
+            </label>
+          </div>
+        )}
+        {enablePrivateLessons && form.role === 'student' && (
+          <div className="flex items-center gap-3">
+            <input type="checkbox" id="is_external_edit" checked={form.is_external}
+              onChange={(e) => setForm({ ...form, is_external: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500" />
+            <label htmlFor="is_external_edit" className="text-sm font-medium text-gray-700">
+              Alumno externo <span className="font-normal text-gray-400">(paga las tarifas de externo y no ve los huecos libres de las clases fijas de la escuela)</span>
             </label>
           </div>
         )}

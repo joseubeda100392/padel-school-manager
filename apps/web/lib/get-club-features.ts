@@ -16,6 +16,7 @@ export type ClubFeatures = {
   enable_pista_viva: boolean
   enable_class_validation: boolean
   cash_only_payments: boolean
+  enable_private_lessons: boolean
   enable_terms: boolean
   terms_pdf_url: string
   tarifas_pdf_url: string
@@ -36,6 +37,7 @@ export const DEFAULT_FEATURES: ClubFeatures = {
   enable_pista_viva: false,
   enable_class_validation: false,
   cash_only_payments: false,
+  enable_private_lessons: false,
   enable_terms: false,
   terms_pdf_url: '',
   tarifas_pdf_url: '',

@@ -49,11 +49,14 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
 
   const { data: userRow } = await admin
     .from('users')
-    .select('current_level_id, club_id')
+    .select('current_level_id, club_id, is_external')
     .eq('id', user.id)
     .single()
   const myLevelId: string | null = userRow?.current_level_id ?? null
   const myClubId: string | null = (userRow as any)?.club_id ?? null
+  // Alumno externo: no ve los huecos libres de las clases fijas de la
+  // escuela — el enlace ya se oculta en el menú, esto cubre entrar por URL.
+  if ((userRow as any)?.is_external === true) redirect('/student')
 
   // features y clubRow dependen solo de myClubId, ninguno del otro: en paralelo.
   const [features, { data: clubRow }] = await Promise.all([

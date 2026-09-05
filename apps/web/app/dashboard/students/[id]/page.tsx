@@ -75,7 +75,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   ] = await Promise.all([
     admin
       .from('users')
-      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url, start_date, end_date, also_student')
+      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url, start_date, end_date, also_student, is_external, is_premium_private_coach')
       .eq('id', params.id)
       .single(),
     clubId
@@ -227,7 +227,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           start_date: (student as any).start_date ?? (student.created_at as string).split('T')[0],
           end_date: (student as any).end_date ?? '',
           also_student: (student as any).also_student ?? false,
-        }} isSuperAdmin={viewerRole === 'super_admin'} />
+          is_external: (student as any).is_external ?? false,
+          is_premium_private_coach: (student as any).is_premium_private_coach ?? false,
+        }} isSuperAdmin={viewerRole === 'super_admin'} enablePrivateLessons={features.enable_private_lessons} />
       </div>
 
       {actsAsStudent && (

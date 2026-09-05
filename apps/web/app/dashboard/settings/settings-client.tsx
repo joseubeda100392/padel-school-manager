@@ -136,6 +136,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
     enable_pista_viva: false,
     enable_class_validation: false,
     cash_only_payments: false,
+    enable_private_lessons: false,
     enable_terms: false,
     terms_pdf_url: '',
   })
@@ -603,6 +604,7 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                 { key: 'enable_terms', label: 'Condiciones de uso', desc: 'Los alumnos deben aceptar las condiciones antes de acceder a la app' },
                 { key: 'enable_class_validation', label: 'Validación de clases', desc: 'El profesor marca si se dio la clase, el admin confirma — cobro por clases realmente dadas y nómina de profesores' },
                 { key: 'cash_only_payments', label: 'Solo efectivo (sin TPV)', desc: 'Bloquea el pago por app (Redsys) y muestra un aviso de pagar en efectivo — para cuando el club aún no tiene su TPV configurado' },
+                { key: 'enable_private_lessons', label: 'Clases particulares y tarifas de alumno externo', desc: 'Añade en Tarifas los precios de clase particular, clase/bono para alumnos externos, y en la ficha de alumno el marcador de "externo"' },
               ] as { key: keyof typeof features; label: string; desc: string }[]).filter(f => f.key !== 'terms_pdf_url').map(({ key, label, desc }) => (
                 <div key={key} className="flex items-center justify-between gap-4 rounded-lg px-3 py-3 hover:bg-gray-50">
                   <div className="min-w-0">

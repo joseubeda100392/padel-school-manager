@@ -23,6 +23,43 @@ const DEFAULT_CONFIG = {
   price_per_class_with_court_90: 0,
   price_per_class_without_court_60: 0,
   price_per_class_without_court_90: 0,
+  // Módulo enable_private_lessons (exclusivo R3) — clase suelta y bono para
+  // alumnos marcados como "externo" (misma escuela, sin cuota fija).
+  pay_per_class_price_60_external: 0,
+  pay_per_class_price_90_external: 0,
+  pack_price_60_external: 0,
+  classes_per_pack_60_external: 0,
+  pack_price_90_external: 0,
+  classes_per_pack_90_external: 0,
+  // Clase particular (1 a 1) — 4 combinaciones: alumno interno/externo ×
+  // monitor normal/premium. El monitor premium se marca en su ficha
+  // (is_premium_private_coach), el alumno externo en la suya (is_external).
+  private_lesson_price_60: 0,
+  private_lesson_price_90: 0,
+  private_lesson_price_60_external: 0,
+  private_lesson_price_90_external: 0,
+  private_lesson_price_60_premium: 0,
+  private_lesson_price_90_premium: 0,
+  private_lesson_price_60_premium_external: 0,
+  private_lesson_price_90_premium_external: 0,
+  // Bono de clases particulares — mismas 4 combinaciones, con nº de clases
+  // por bono además del precio.
+  private_lesson_pack_price_60: 0,
+  private_lesson_pack_classes_60: 0,
+  private_lesson_pack_price_90: 0,
+  private_lesson_pack_classes_90: 0,
+  private_lesson_pack_price_60_external: 0,
+  private_lesson_pack_classes_60_external: 0,
+  private_lesson_pack_price_90_external: 0,
+  private_lesson_pack_classes_90_external: 0,
+  private_lesson_pack_price_60_premium: 0,
+  private_lesson_pack_classes_60_premium: 0,
+  private_lesson_pack_price_90_premium: 0,
+  private_lesson_pack_classes_90_premium: 0,
+  private_lesson_pack_price_60_premium_external: 0,
+  private_lesson_pack_classes_60_premium_external: 0,
+  private_lesson_pack_price_90_premium_external: 0,
+  private_lesson_pack_classes_90_premium_external: 0,
 }
 
 async function getEffectiveCaller() {
@@ -58,7 +95,11 @@ export async function PATCH(req: NextRequest) {
   if (!caller.club_id) return NextResponse.json({ error: 'Sin club asignado' }, { status: 400 })
 
   const body = await req.json()
-  const numericKeys = ['pay_per_class_price_60','pay_per_class_price_90','whole_class_price_60','whole_class_price_90','pack_price_60','classes_per_pack_60','pack_price_90','classes_per_pack_90','cancellation_hours','falta_advance_months','max_recovery_classes','standard_discount_cents','price_per_class_with_court_60','price_per_class_with_court_90','price_per_class_without_court_60','price_per_class_without_court_90']
+  // Todas las claves de DEFAULT_CONFIG son numéricas salvo estas dos strings
+  // — se deriva la lista en vez de mantener un array literal que hay que
+  // recordar de ampliar cada vez que se añade un precio nuevo.
+  const stringKeys = new Set(['school_name', 'billing_start_date'])
+  const numericKeys = Object.keys(DEFAULT_CONFIG).filter(key => !stringKeys.has(key))
   const updates: Record<string, number | string> = {}
   for (const key of Object.keys(DEFAULT_CONFIG)) {
     if (!(key in body)) continue

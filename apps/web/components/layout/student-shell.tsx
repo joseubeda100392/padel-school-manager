@@ -38,7 +38,7 @@ const allNavItems = [
   { href: '/student/ayuda', label: 'Ayuda', icon: HelpCircle, exact: false, feature: null },
 ]
 
-export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features, isAlsoCoach }: {
+export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features, isAlsoCoach, hideSpots = false }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
@@ -46,6 +46,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
   unreadCount?: number
   features?: ClubFeatures
   isAlsoCoach?: boolean
+  hideSpots?: boolean
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -75,6 +76,9 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
     : 'A'
 
   const navItems = allNavItems.filter(item => {
+    // Alumno externo: no ve huecos libres de las clases fijas de la escuela
+    // (no forma parte de esos grupos, no tiene sentido que le aparezcan).
+    if (hideSpots && item.href === '/student/spots') return false
     if (!item.feature || !features) return true
     return features[item.feature as keyof ClubFeatures]
   })
