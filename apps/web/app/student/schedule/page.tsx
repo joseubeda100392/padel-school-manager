@@ -196,17 +196,12 @@ export default async function StudentSchedulePage() {
             <p className="mt-1 text-xs text-gray-400">Habla con tu administrador para inscribirte.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {items.map(item => (
-              <StudentScheduleClient
-                key={item.enrollmentId}
-                item={item}
-                cancellationHours={cancellationHours}
-                enablePayments={features.enable_payments && billingActive}
-                cashOnly={features.cash_only_payments}
-              />
-            ))}
-          </div>
+          <StudentScheduleClient
+            items={items}
+            cancellationHours={cancellationHours}
+            enablePayments={features.enable_payments && billingActive}
+            cashOnly={features.cash_only_payments}
+          />
         )}
       </div>
 
