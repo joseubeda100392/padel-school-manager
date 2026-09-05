@@ -1,9 +1,10 @@
-﻿'use client'
+'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
+import { MonthCalendar } from '@/components/month-calendar'
 
 interface Occurrence {
   dateStr: string
@@ -33,11 +34,17 @@ interface ScheduleItem {
 export function StudentScheduleClient({ item, cancellationHours, enablePayments = true, cashOnly = false }: { item: ScheduleItem; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean }) {
   const router = useRouter()
   const [exclusions, setExclusions] = useState(item.exclusions)
-  const [showPicker, setShowPicker] = useState(false)
   const [registering, setRegistering] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [canceling, setCanceling] = useState<string | null>(null)
   const [cancelError, setCancelError] = useState('')
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const [todayYear, todayMonth0] = [Number(todayStr.slice(0, 4)), Number(todayStr.slice(5, 7)) - 1]
+  const [view, setView] = useState({ year: todayYear, month0: todayMonth0 })
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    item.upcomingOccurrences.find(o => o.dateStr >= todayStr)?.dateStr ?? null
+  )
 
   async function handleRegistrar(occ: Occurrence) {
     if (!occ.canRegister) return
@@ -52,7 +59,6 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
     const json = await res.json()
     if (res.ok) {
       setExclusions(prev => [...prev, { id: json.data.id, excluded_date: occ.dateStr, publish_spot: true }])
-      setShowPicker(false)
       router.refresh()
     } else {
       setError(json.error ?? 'Error al registrar la falta')
@@ -79,9 +85,27 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
     setCanceling(null)
   }
 
-  const todayStr = new Date().toISOString().split('T')[0]
-  const registeredDates = new Set(exclusions.map(x => x.excluded_date))
-  const hasAnyAvailable = item.upcomingOccurrences.some(o => o.canRegister && !registeredDates.has(o.dateStr))
+  const registeredByDate = useMemo(() => {
+    const map: Record<string, { id: string; publish_spot: boolean }> = {}
+    for (const x of exclusions) map[x.excluded_date] = { id: x.id, publish_spot: x.publish_spot }
+    return map
+  }, [exclusions])
+
+  const eventCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const occ of item.upcomingOccurrences) counts[occ.dateStr] = 1
+    return counts
+  }, [item.upcomingOccurrences])
+
+  const lastOccurrence = item.upcomingOccurrences[item.upcomingOccurrences.length - 1]
+  const maxYear = lastOccurrence ? Number(lastOccurrence.dateStr.slice(0, 4)) : todayYear
+  const maxMonth0 = lastOccurrence ? Number(lastOccurrence.dateStr.slice(5, 7)) - 1 : todayMonth0
+
+  const selectedOccurrence = selectedDate ? item.upcomingOccurrences.find(o => o.dateStr === selectedDate) : undefined
+  const selectedRegistered = selectedDate ? registeredByDate[selectedDate] : undefined
+  const selectedLabel = selectedDate
+    ? new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+    : null
 
   return (
     <div className="rounded-xl bg-white shadow-sm">
@@ -115,8 +139,8 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {enablePayments && !item.isPaid && (
+        {enablePayments && !item.isPaid && (
+          <div className="mt-4">
             <PayButton
               type="fixed_group_month"
               enrollmentId={item.enrollmentId}
@@ -124,80 +148,87 @@ export function StudentScheduleClient({ item, cancellationHours, enablePayments 
               className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
               cashOnly={cashOnly}
             />
-          )}
+          </div>
+        )}
 
-          <button
-            onClick={() => { setShowPicker(v => !v); setError('') }}
-            disabled={!hasAnyAvailable}
-            title={!hasAnyAvailable ? `Sin fechas disponibles (mínimo ${cancellationHours}h de antelación)` : ''}
-            className="rounded-lg border border-orange-200 px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            📋 Registrar falta
-          </button>
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold text-gray-500">Marca los días que vas a faltar:</p>
+          <MonthCalendar
+            year={view.year}
+            month0={view.month0}
+            onNavigate={(year, month0) => setView({ year, month0 })}
+            eventCounts={eventCounts}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            todayStr={todayStr}
+            maxYear={maxYear}
+            maxMonth0={maxMonth0}
+            minYear={todayYear}
+            minMonth0={todayMonth0}
+          />
+
+          {selectedDate && (
+            <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
+              <p className="mb-2 text-sm font-medium capitalize text-gray-700">
+                {selectedLabel}
+                {selectedOccurrence?.overrideTime && (
+                  <span className="ml-1.5 text-xs font-normal text-amber-600">⚠️ excepcionalmente a las {selectedOccurrence.overrideTime}</span>
+                )}
+              </p>
+              {selectedRegistered ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-brand-500">✓ Falta registrada{selectedRegistered.publish_spot ? ' · plaza libre publicada' : ''}</span>
+                  {selectedDate >= todayStr && (
+                    <button
+                      onClick={() => handleCancelarFalta(selectedRegistered.id)}
+                      disabled={canceling === selectedRegistered.id}
+                      className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 hover:bg-white disabled:opacity-40"
+                    >
+                      {canceling === selectedRegistered.id ? '...' : 'Cancelar falta'}
+                    </button>
+                  )}
+                </div>
+              ) : selectedOccurrence ? (
+                selectedOccurrence.canRegister ? (
+                  <button
+                    onClick={() => handleRegistrar(selectedOccurrence)}
+                    disabled={registering === selectedOccurrence.dateStr}
+                    className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+                  >
+                    {registering === selectedOccurrence.dateStr ? '...' : '📋 Registrar falta este día'}
+                  </button>
+                ) : (
+                  <p className="text-xs text-gray-400">Muy pronto — mínimo {cancellationHours}h de antelación</p>
+                )
+              ) : (
+                <p className="text-xs text-gray-400">Ese día no tienes esta clase</p>
+              )}
+              {cancelError && <p className="mt-2 text-xs text-red-600">{cancelError}</p>}
+            </div>
+          )}
         </div>
 
         {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-
-        {showPicker && (
-          <div className="mt-4 rounded-lg border border-orange-100 bg-orange-50 p-3">
-            <p className="mb-3 text-xs font-semibold text-orange-700">Selecciona la fecha de la falta:</p>
-            <div className="space-y-2">
-              {item.upcomingOccurrences.map(occ => {
-                const isRegistered = registeredDates.has(occ.dateStr)
-                return (
-                  <div key={occ.dateStr} className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm">
-                    <span className={`capitalize ${!occ.canRegister && !isRegistered ? 'text-gray-400' : 'text-gray-700'}`}>
-                      {occ.label}
-                      {occ.overrideTime && (
-                        <span className="ml-1.5 font-normal text-amber-600">⚠️ excepcionalmente a las {occ.overrideTime}</span>
-                      )}
-                    </span>
-                    {isRegistered ? (
-                      <span className="text-xs font-medium text-brand-500">✓ Registrada</span>
-                    ) : occ.canRegister ? (
-                      <button
-                        onClick={() => handleRegistrar(occ)}
-                        disabled={registering === occ.dateStr}
-                        className="rounded-md bg-orange-500 px-3 py-1 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
-                      >
-                        {registering === occ.dateStr ? '...' : 'Registrar'}
-                      </button>
-                    ) : (
-                      <span className="text-xs text-gray-400">Muy pronto</span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {exclusions.length > 0 && (
         <div className="border-t border-gray-100 px-5 py-3">
           <p className="mb-2 text-xs font-medium text-gray-500">Faltas registradas (próximas)</p>
           <div className="flex flex-wrap gap-2">
-            {exclusions.map(x => {
-              const isFuture = x.excluded_date >= todayStr
-              return (
-                <span key={x.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600">
-                  {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                  {x.publish_spot && <span className="text-brand-500">● Plaza libre</span>}
-                  {isFuture && (
-                    <button
-                      onClick={() => handleCancelarFalta(x.id)}
-                      disabled={canceling === x.id}
-                      title="Cancelar falta"
-                      className="ml-0.5 text-gray-400 hover:text-red-500 disabled:opacity-40"
-                    >
-                      {canceling === x.id ? '…' : '×'}
-                    </button>
-                  )}
-                </span>
-              )
-            })}
+            {[...exclusions].sort((a, b) => a.excluded_date.localeCompare(b.excluded_date)).map(x => (
+              <button
+                key={x.id}
+                onClick={() => {
+                  setSelectedDate(x.excluded_date)
+                  setView({ year: Number(x.excluded_date.slice(0, 4)), month0: Number(x.excluded_date.slice(5, 7)) - 1 })
+                }}
+                className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600 hover:bg-gray-100"
+              >
+                {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                {x.publish_spot && <span className="text-brand-500">● Plaza libre</span>}
+              </button>
+            ))}
           </div>
-          {cancelError && <p className="mt-2 text-xs text-red-600">{cancelError}</p>}
         </div>
       )}
     </div>

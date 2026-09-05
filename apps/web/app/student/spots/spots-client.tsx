@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { PayButton } from '@/components/pay-button'
-import { MonthCalendar } from './month-calendar'
+import { MonthCalendar } from '@/components/month-calendar'
 
 interface Spot {
   spotType: 'absence' | 'capacity'
