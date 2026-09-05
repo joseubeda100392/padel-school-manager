@@ -227,7 +227,11 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                         {registering === `${ev.enrollmentId}-${ev.dateStr}` ? '...' : '📋 Registrar falta este día'}
                       </button>
                     ) : (
-                      <p className="text-xs text-gray-400">Muy pronto para faltar — mínimo {cancellationHours}h de antelación</p>
+                      <p className="text-xs text-gray-400">
+                        {ev.dateStr === todayStr
+                          ? `Ya no puedes registrar falta para hoy (mínimo ${cancellationHours}h de antelación)`
+                          : `Debes avisar con al menos ${cancellationHours}h de antelación`}
+                      </p>
                     )}
                   </div>
                 </div>
