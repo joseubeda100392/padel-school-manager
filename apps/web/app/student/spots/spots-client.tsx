@@ -1,8 +1,9 @@
 ﻿'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { PayButton } from '@/components/pay-button'
+import { MonthCalendar } from './month-calendar'
 
 interface Spot {
   spotType: 'absence' | 'capacity'
@@ -157,8 +158,51 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
   )
 }
 
-export function SpotsClient({ spots, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true, cashOnly = false }: { spots: Spot[]; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean; cashOnly?: boolean }) {
+export function SpotsClient({
+  spots,
+  balance60,
+  balance90,
+  enablePayments = true,
+  enable60min = true,
+  enable90min = true,
+  cashOnly = false,
+  year,
+  month0,
+  todayStr,
+  maxYear,
+  maxMonth0,
+}: {
+  spots: Spot[]
+  balance60: number
+  balance90: number
+  enablePayments?: boolean
+  enable60min?: boolean
+  enable90min?: boolean
+  cashOnly?: boolean
+  year: number
+  month0: number
+  todayStr: string
+  maxYear: number
+  maxMonth0: number
+}) {
   const visibleBalance = (enable60min ? balance60 : 0) + (enable90min ? balance90 : 0)
+
+  const eventCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of spots) counts[s.excludedDate] = (counts[s.excludedDate] ?? 0) + 1
+    return counts
+  }, [spots])
+
+  const defaultDate = useMemo(() => {
+    const isCurrentMonth = year === Number(todayStr.slice(0, 4)) && month0 === Number(todayStr.slice(5, 7)) - 1
+    if (isCurrentMonth && eventCounts[todayStr]) return todayStr
+    const firstWithEvents = spots.map(s => s.excludedDate).sort()[0]
+    return firstWithEvents ?? (isCurrentMonth ? todayStr : `${year}-${String(month0 + 1).padStart(2, '0')}-01`)
+  }, [spots, eventCounts, year, month0, todayStr])
+
+  const [selectedDate, setSelectedDate] = useState(defaultDate)
+  const daySpots = spots.filter(s => s.excludedDate === selectedDate)
+
   return (
     <div className="space-y-4">
       {visibleBalance > 0 && (
@@ -172,18 +216,37 @@ export function SpotsClient({ spots, balance60, balance90, enablePayments = true
           </p>
         </div>
       )}
-      {spots.map(spot => (
-        <SpotCard
-          key={`${spot.spotType}-${spot.exclusionId ?? spot.scheduleId}-${spot.excludedDate}`}
-          spot={spot}
-          balance60={balance60}
-          balance90={balance90}
-          enablePayments={enablePayments}
-          enable60min={enable60min}
-          enable90min={enable90min}
-          cashOnly={cashOnly}
-        />
-      ))}
+
+      <MonthCalendar
+        year={year}
+        month0={month0}
+        basePath="/student/spots"
+        eventCounts={eventCounts}
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        todayStr={todayStr}
+        maxYear={maxYear}
+        maxMonth0={maxMonth0}
+      />
+
+      {daySpots.length === 0 ? (
+        <div className="rounded-xl bg-white p-6 text-center shadow-sm">
+          <p className="text-sm text-gray-400">Sin huecos libres ese día.</p>
+        </div>
+      ) : (
+        daySpots.map(spot => (
+          <SpotCard
+            key={`${spot.spotType}-${spot.exclusionId ?? spot.scheduleId}-${spot.excludedDate}`}
+            spot={spot}
+            balance60={balance60}
+            balance90={balance90}
+            enablePayments={enablePayments}
+            enable60min={enable60min}
+            enable90min={enable90min}
+            cashOnly={cashOnly}
+          />
+        ))
+      )}
     </div>
   )
 }

@@ -9,33 +9,36 @@ import { getClubFeatures } from '@/lib/get-club-features'
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
 
-function getNextDate(startTime: string): string {
-  const classDow = getDayOfWeek(new Date(startTime))
-
-  // Today's date in Spain timezone — used as the arithmetic base
-  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
-  const [sy, sm, sd] = todaySpain.split('-').map(Number)
-  // Use 10:00 UTC (= noon Spain) so getDayOfWeek gives the correct Spain weekday
-  const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
-
-  const nowHourSpain = parseInt(
-    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date())
-  )
-  const classHourSpain = parseInt(
-    new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date(startTime))
-  )
-
-  let daysUntil = (classDow - todayDow + 7) % 7
-  if (daysUntil === 0 && nowHourSpain >= classHourSpain) {
-    daysUntil = 7
+// Todas las ocurrencias de un horario dentro de [rangeStart, rangeEnd] — a
+// diferencia de la versión anterior (solo "la próxima"), esto es lo que
+// necesita el calendario de mes: puede haber varias fechas de la misma clase
+// visibles a la vez.
+function getMonthOccurrences(s: any, rangeStart: string, rangeEnd: string, holidaySet: Set<string>): string[] {
+  if (s.recurrence === 'none') {
+    const d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
+    return d >= rangeStart && d <= rangeEnd ? [d] : []
   }
 
-  // Add days to Spain's today (UTC noon base keeps the Spain date stable)
-  const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
+  const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
+  const effectiveStart = scheduleStartDate > rangeStart ? scheduleStartDate : rangeStart
+  const effectiveEnd = s.recurrence_end_date && s.recurrence_end_date < rangeEnd ? s.recurrence_end_date : rangeEnd
+  if (effectiveStart > effectiveEnd) return []
+
+  const dow = getDayOfWeek(s.start_time)
+  let cursor = new Date(effectiveStart + 'T12:00:00Z')
+  while (getDayOfWeek(cursor) !== dow) cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000)
+  const endCursor = new Date(effectiveEnd + 'T12:00:00Z')
+
+  const dates: string[] = []
+  while (cursor.getTime() <= endCursor.getTime()) {
+    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(cursor)
+    if (!holidaySet.has(dateStr)) dates.push(dateStr)
+    cursor = new Date(cursor.getTime() + 7 * 24 * 60 * 60 * 1000)
+  }
+  return dates
 }
 
-export default async function StudentSpotsPage() {
+export default async function StudentSpotsPage({ searchParams }: { searchParams: { month?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -65,6 +68,25 @@ export default async function StudentSpotsPage() {
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || today >= billingStartDate
 
+  // Mes que se está viendo — por defecto el actual. La navegación no puede
+  // pasar de la misma ventana de antelación que ya limita el registro de
+  // faltas (Configuración → "Antelación para registrar falta"), porque más
+  // allá no hay datos por diseño.
+  const [todayYear, todayMonth0] = [Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1]
+  const parsedMonth = searchParams.month ? new Date(searchParams.month + '-01') : null
+  const year = parsedMonth && !isNaN(parsedMonth.getTime()) ? parsedMonth.getFullYear() : todayYear
+  const month0 = parsedMonth && !isNaN(parsedMonth.getTime()) ? parsedMonth.getMonth() : todayMonth0
+
+  const advanceMonthsConfig = (clubRow as any)?.config?.falta_advance_months ?? 0
+  const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
+  const maxDateObj = new Date(todayYear, todayMonth0 + effectiveAdvanceMonths, 1)
+  const maxYear = maxDateObj.getFullYear()
+  const maxMonth0 = maxDateObj.getMonth()
+
+  const monthStart = `${year}-${String(month0 + 1).padStart(2, '0')}-01`
+  const monthEnd = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(year, month0 + 1, 0, 12))
+  const rangeStart = monthStart > today ? monthStart : today
+
   const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }, { data: mySpotBookings }] = await Promise.all([
     admin
       .from('schedule_exclusions')
@@ -81,7 +103,8 @@ export default async function StudentSpotsPage() {
         )
       `)
       .eq('publish_spot', true)
-      .gte('excluded_date', today)
+      .gte('excluded_date', rangeStart)
+      .lte('excluded_date', monthEnd)
       .order('excluded_date'),
     admin
       .from('group_enrollments')
@@ -148,40 +171,22 @@ export default async function StudentSpotsPage() {
       }
     })
 
-  // Capacity spots: classes with open spots where student is not enrolled
+  // Capacity spots: classes with open spots where student is not enrolled —
+  // ahora por cada fecha del mes visible, no solo "la próxima".
   const absenceScheduleIds = new Set(absenceSpots.map(s => s.scheduleId))
 
-  function getClassDate(s: any): string | null {
-    if (s.recurrence === 'none') {
-      // One-off class: use the actual date from start_time
-      const d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
-      return d < today ? null : d // null if past
-    }
-    let nextDate = getNextDate(s.start_time)
-    for (let i = 0; i < 52 && holidaySet.has(nextDate); i++) {
-      const d = new Date(nextDate + 'T12:00:00Z')
-      d.setUTCDate(d.getUTCDate() + 7)
-      nextDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
-    }
-    const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
-    if (nextDate < scheduleStartDate) return null
-    if (s.recurrence_end_date && nextDate > s.recurrence_end_date) return null
-    return nextDate
+  const occurrencesBySchedule: Record<string, string[]> = {}
+  for (const s of schedulesRaw ?? []) {
+    if (absenceScheduleIds.has(s.id)) continue
+    occurrencesBySchedule[s.id] = getMonthOccurrences(s, rangeStart, monthEnd, holidaySet)
   }
 
-  // Fecha calculada una sola vez por horario — se usa tanto para decidir
-  // elegibilidad como para el conteo real de asistentes de esa fecha.
-  const classDateBySchedule: Record<string, string | null> = {}
-  for (const s of schedulesRaw ?? []) classDateBySchedule[s.id] = getClassDate(s)
+  const candidateIds = Object.keys(occurrencesBySchedule).filter(id => occurrencesBySchedule[id].length > 0)
 
-  const candidateIds = (schedulesRaw ?? [])
-    .filter((s: any) => classDateBySchedule[s.id] && !absenceScheduleIds.has(s.id))
-    .map((s: any) => s.id)
-
-  // Conteo real de asistentes de la fecha concreta: activos del grupo fijo
-  // MENOS quien tiene falta registrada justo ese día, MÁS reservas puntuales
-  // ya confirmadas para esa fecha — el mismo criterio que usan las funciones
-  // de reserva atómica (book_capacity_spot), para no anunciar como libre una
+  // Conteo real de asistentes de cada fecha: activos del grupo fijo MENOS
+  // quien tiene falta registrada justo ese día, MÁS reservas puntuales ya
+  // confirmadas para esa fecha — el mismo criterio que usan las funciones de
+  // reserva atómica (book_capacity_spot), para no anunciar como libre una
   // plaza que en realidad ya está completa, ni bloquear una que sí está libre.
   const [{ data: exclusionsForCapacity }, { data: bookingsForCapacity }] = await Promise.all([
     candidateIds.length
@@ -202,47 +207,46 @@ export default async function StudentSpotsPage() {
     return activeCount - absentCount + bookedCount
   }
 
-  const eligibleCapacity = (schedulesRaw ?? []).filter(s => {
+  const schedulesById: Record<string, any> = {}
+  for (const s of schedulesRaw ?? []) schedulesById[s.id] = s
+
+  const capacitySpots = candidateIds.flatMap((scheduleId) => {
+    const s = schedulesById[scheduleId]
+    if (!s || s.type === 'intensivo') return [] // Intensivos are handled in /student/intensivos
     const enrollments = (s.enrollments ?? []) as any[]
     const active = enrollments.filter((e: any) => e.status === 'active')
     const alreadyIn = active.some((e: any) => e.student_id === user.id)
+    if (alreadyIn) return []
     const levelId = (s.level as any)?.id ?? null
     const levelOk = !myLevelId || !levelId || levelId === myLevelId
-    const classDate = classDateBySchedule[s.id]
-    if (!classDate) return false
-    const alreadyBooked = (mySpotBookings ?? []).some(
-      b => b.schedule_id === s.id && b.class_date === classDate
-    )
-    const realCount = realAttendingCount(s.id, active.length, classDate)
-    return !alreadyIn && realCount < s.max_students && !absenceScheduleIds.has(s.id) && levelOk && !alreadyBooked
-  })
+    if (!levelOk) return []
 
-  // Intensivos are handled in /student/intensivos — exclude them here
-  const regularCapacity = eligibleCapacity.filter((s: any) => s.type !== 'intensivo')
-
-  const capacitySpots = regularCapacity.map(s => {
-    const enrollments = (s.enrollments ?? []) as any[]
-    const activeCount = enrollments.filter((e: any) => e.status === 'active').length
     const startDt = new Date(s.start_time)
     const endDt = new Date(s.end_time)
-    const computedDate = classDateBySchedule[s.id] ?? today
-    return {
-      spotType: 'capacity' as const,
-      exclusionId: null,
-      excludedDate: computedDate,
-      scheduleId: s.id,
-      scheduleType: (s.type ?? 'regular') as 'regular' | 'intensivo',
-      schedulePriceCents: (s.price_cents as number | null) ?? null,
-      dayLabel: DAYS[getDayOfWeek(startDt)],
-      startTime: formatTime(startDt),
-      endTime: formatTime(endDt),
-      durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
-      courtName: (s.court as any)?.name ?? '—',
-      coachName: (s.coach as any)?.name ?? null,
-      maxStudents: s.max_students,
-      level: s.level as any,
-      enrolledCount: realAttendingCount(s.id, activeCount, computedDate),
-    }
+
+    return occurrencesBySchedule[scheduleId]
+      .filter((classDate) => {
+        const alreadyBooked = (mySpotBookings ?? []).some(b => b.schedule_id === scheduleId && b.class_date === classDate)
+        const realCount = realAttendingCount(scheduleId, active.length, classDate)
+        return realCount < s.max_students && !alreadyBooked
+      })
+      .map((classDate) => ({
+        spotType: 'capacity' as const,
+        exclusionId: null,
+        excludedDate: classDate,
+        scheduleId,
+        scheduleType: (s.type ?? 'regular') as 'regular' | 'intensivo',
+        schedulePriceCents: (s.price_cents as number | null) ?? null,
+        dayLabel: DAYS[getDayOfWeek(startDt)],
+        startTime: formatTime(startDt),
+        endTime: formatTime(endDt),
+        durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
+        courtName: (s.court as any)?.name ?? '—',
+        coachName: (s.coach as any)?.name ?? null,
+        maxStudents: s.max_students,
+        level: s.level as any,
+        enrolledCount: realAttendingCount(scheduleId, active.length, classDate),
+      }))
   }).sort((a, b) => a.excludedDate.localeCompare(b.excludedDate))
 
   const allSpots = [...absenceSpots, ...capacitySpots]
@@ -261,23 +265,20 @@ export default async function StudentSpotsPage() {
         <p className="text-sm text-gray-500">Plazas disponibles por ausencia de otro alumno o por capacidad libre</p>
       </div>
 
-      {allSpots.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-2xl mb-2">🎾</p>
-          <p className="text-gray-400">No hay huecos libres disponibles ahora mismo.</p>
-          <p className="mt-1 text-xs text-gray-400">Vuelve a consultar más adelante.</p>
-        </div>
-      ) : (
-        <SpotsClient
-          spots={allSpots}
-          balance60={balance60}
-          balance90={balance90}
-          enablePayments={features.enable_payments && billingActive}
-          enable60min={features.enable_60min}
-          enable90min={features.enable_90min}
-          cashOnly={features.cash_only_payments}
-        />
-      )}
+      <SpotsClient
+        spots={allSpots}
+        balance60={balance60}
+        balance90={balance90}
+        enablePayments={features.enable_payments && billingActive}
+        enable60min={features.enable_60min}
+        enable90min={features.enable_90min}
+        cashOnly={features.cash_only_payments}
+        year={year}
+        month0={month0}
+        todayStr={today}
+        maxYear={maxYear}
+        maxMonth0={maxMonth0}
+      />
     </div>
   )
 }
