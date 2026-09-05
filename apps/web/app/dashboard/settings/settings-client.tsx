@@ -62,6 +62,7 @@ interface AppConfig {
   classes_per_pack_90: number
   school_name: string
   cancellation_hours: number
+  falta_advance_months: number
   max_recovery_classes: number
   billing_start_date: string
   standard_discount_cents: number
@@ -82,6 +83,7 @@ const defaults: AppConfig = {
   classes_per_pack_90: 10,
   school_name: 'Mi Escuela de Pádel',
   cancellation_hours: 24,
+  falta_advance_months: 0,
   max_recovery_classes: 0,
   billing_start_date: '',
   standard_discount_cents: 4000,
@@ -977,6 +979,26 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                   className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
                 />
                 <span className="text-sm text-gray-500">horas antes del inicio</span>
+              </div>
+            </div>
+          )}
+
+          {features.enable_bag && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="mb-1 font-semibold text-gray-900">Antelación para registrar falta</h2>
+              <p className="mb-4 text-xs text-gray-400">
+                Con cuántos meses de adelanto puede un alumno registrar su falta y sumar la clase a su bolsa ya. En 0, se queda como ahora (~2 meses vista).
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  onFocus={e => e.target.select()}
+                  value={displayInt(config.falta_advance_months)}
+                  onChange={e => setConfig({ ...config, falta_advance_months: intVal(e.target.value) })}
+                  className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+                />
+                <span className="text-sm text-gray-500">meses vista (0 = actual)</span>
               </div>
             </div>
           )}

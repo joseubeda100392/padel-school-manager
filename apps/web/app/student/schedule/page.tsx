@@ -14,6 +14,7 @@ function getUpcomingOccurrences(
   cancellationHours: number,
   overrides: { override_date: string; new_start_time: string }[],
   count = 8,
+  maxDateStr: string | null = null,
 ): { dateStr: string; label: string; canRegister: boolean; overrideTime: string | null }[] {
   const base = new Date(startTime)
   const now = new Date()
@@ -35,7 +36,8 @@ function getUpcomingOccurrences(
     const overrideTime = override
       ? new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' }).format(new Date(override.new_start_time))
       : null
-    return { dateStr, label, canRegister: hoursUntil >= cancellationHours, overrideTime }
+    const withinAdvanceLimit = !maxDateStr || dateStr <= maxDateStr
+    return { dateStr, label, canRegister: hoursUntil >= cancellationHours && withinAdvanceLimit, overrideTime }
   })
 }
 
@@ -127,10 +129,19 @@ export default async function StudentSchedulePage() {
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
+  // Igual que la comprobación del servidor en /api/schedule-exclusions/student:
+  // por defecto (módulo apagado) se mantiene la ventana equivalente a la
+  // actual (~2 meses) — un club puede ampliarla desde Configuración.
+  const advanceMonthsConfig = (clubRow as any)?.config?.falta_advance_months ?? 0
+  const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
+  const [tySchedule, tmSchedule, tdSchedule] = todaySpain.split('-').map(Number)
+  const maxDateStr = new Date(tySchedule, tmSchedule - 1 + effectiveAdvanceMonths, tdSchedule).toISOString().split('T')[0]
+  const occurrenceCount = Math.ceil((effectiveAdvanceMonths * 31) / 7) + 1
+
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
     const myOverrides = (timeOverrides ?? []).filter((o: any) => o.schedule_id === schedule?.id)
-    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides)
+    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides, occurrenceCount, maxDateStr)
     const myExclusions = (exclusionsRaw ?? [])
       .filter((x: any) => x.group_enrollment_id === e.id)
       .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))

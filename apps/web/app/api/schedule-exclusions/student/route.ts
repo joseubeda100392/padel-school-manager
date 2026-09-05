@@ -61,6 +61,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Debes avisar con al menos ${cancellationHours} horas de antelación` }, { status: 400 })
   }
 
+  // Tope máximo de antelación — nunca existía en el servidor (solo el
+  // desplegable del cliente limitaba a 8 ocurrencias, saltable llamando a la
+  // API directamente). Por defecto (módulo apagado, falta_advance_months=0)
+  // se mantiene una ventana equivalente a la actual (~2 meses); un club puede
+  // ampliarla desde Configuración sin tocar código.
+  const advanceMonthsConfig = (clubRow as any)?.config?.falta_advance_months ?? 0
+  const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const [ty, tm, td] = todaySpain.split('-').map(Number)
+  const maxDateStr = new Date(ty, tm - 1 + effectiveAdvanceMonths, td).toISOString().split('T')[0]
+  if (dateStr > maxDateStr) {
+    return NextResponse.json({ error: `Solo puedes registrar faltas hasta ${effectiveAdvanceMonths} ${effectiveAdvanceMonths === 1 ? 'mes' : 'meses'} vista.` }, { status: 400 })
+  }
+
   const { data: existing } = await admin
     .from('schedule_exclusions')
     .select('id')
