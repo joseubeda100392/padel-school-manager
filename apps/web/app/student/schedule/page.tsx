@@ -64,7 +64,7 @@ export default async function StudentSchedulePage() {
       .from('group_enrollments')
       .select(`
         id, monthly_price, paid_until, enrolled_at, start_date,
-        schedule:schedules(id, start_time, end_time, max_students,
+        schedule:schedules(id, start_time, end_time, max_students, recurrence_end_date,
           court:courts(name),
           level:levels(name, color),
           coach:users!schedules_coach_id_fkey(name)
@@ -135,13 +135,19 @@ export default async function StudentSchedulePage() {
   const advanceMonthsConfig = (clubRow as any)?.config?.falta_advance_months ?? 0
   const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
   const [tySchedule, tmSchedule, tdSchedule] = todaySpain.split('-').map(Number)
-  const maxDateStr = new Date(tySchedule, tmSchedule - 1 + effectiveAdvanceMonths, tdSchedule).toISOString().split('T')[0]
+  const monthsBasedMax = new Date(tySchedule, tmSchedule - 1 + effectiveAdvanceMonths, tdSchedule).toISOString().split('T')[0]
   const occurrenceCount = Math.ceil((effectiveAdvanceMonths * 31) / 7) + 1
+  // El fin real de temporada de cada clase (recurrence_end_date) manda si es
+  // más cercano que el tope por meses — ver la misma lógica en
+  // /api/schedule-exclusions/student.
+  function maxDateFor(scheduleEndDate: string | null | undefined): string {
+    return scheduleEndDate && scheduleEndDate < monthsBasedMax ? scheduleEndDate : monthsBasedMax
+  }
 
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
     const myOverrides = (timeOverrides ?? []).filter((o: any) => o.schedule_id === schedule?.id)
-    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides, occurrenceCount, maxDateStr)
+    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides, occurrenceCount, maxDateFor(schedule?.recurrence_end_date))
     const myExclusions = (exclusionsRaw ?? [])
       .filter((x: any) => x.group_enrollment_id === e.id)
       .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))

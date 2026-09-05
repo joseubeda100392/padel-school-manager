@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       .eq('student_id', user.id)
       .eq('status', 'active')
       .single(),
-    admin.from('schedules').select('start_time, end_time, level_id, court:courts(name), level:levels(name)').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time, level_id, recurrence_end_date, court:courts(name), level:levels(name)').eq('id', scheduleId).single(),
     clubId
       ? admin.from('clubs').select('config').eq('id', clubId).single()
       : { data: null },
@@ -70,9 +70,16 @@ export async function POST(req: NextRequest) {
   const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
   const [ty, tm, td] = todaySpain.split('-').map(Number)
-  const maxDateStr = new Date(ty, tm - 1 + effectiveAdvanceMonths, td).toISOString().split('T')[0]
+  const monthsBasedMax = new Date(ty, tm - 1 + effectiveAdvanceMonths, td).toISOString().split('T')[0]
+  // El fin real de temporada de la clase (recurrence_end_date) manda si es
+  // más cercano que el tope por meses — así un club no tiene que ir
+  // recalculando el número de meses según pasan las semanas para que
+  // siga llegando justo a fin de temporada.
+  const scheduleEndDate = (schedule as any).recurrence_end_date as string | null
+  const maxDateStr = scheduleEndDate && scheduleEndDate < monthsBasedMax ? scheduleEndDate : monthsBasedMax
   if (dateStr > maxDateStr) {
-    return NextResponse.json({ error: `Solo puedes registrar faltas hasta ${effectiveAdvanceMonths} ${effectiveAdvanceMonths === 1 ? 'mes' : 'meses'} vista.` }, { status: 400 })
+    const reason = scheduleEndDate === maxDateStr ? 'esta clase termina esa fecha' : `${effectiveAdvanceMonths} ${effectiveAdvanceMonths === 1 ? 'mes' : 'meses'} vista`
+    return NextResponse.json({ error: `Solo puedes registrar faltas hasta ${maxDateStr} (${reason}).` }, { status: 400 })
   }
 
   const { data: existing } = await admin
