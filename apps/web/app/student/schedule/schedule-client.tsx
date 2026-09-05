@@ -31,64 +31,9 @@ interface ScheduleItem {
   exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
 }
 
-// Solo la info de la clase (horario, cuota, pago) — sin calendario, ese va
-// aparte y es uno solo para todas las clases del alumno.
-function ClassSummaryCard({ item, enablePayments, cashOnly }: { item: ScheduleItem; enablePayments: boolean; cashOnly: boolean }) {
-  return (
-    <div className="rounded-xl bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-lg font-bold text-gray-900">
-            {item.schedule.dayLabel} · {item.schedule.startTime} – {item.schedule.endTime}
-          </p>
-          <p className="mt-0.5 text-sm text-gray-500">
-            {item.schedule.courtName}{item.schedule.coachName ? ` · Monitor: ${item.schedule.coachName}` : ''}
-          </p>
-          {item.schedule.level && (
-            <span
-              className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-              style={{ backgroundColor: item.schedule.level.color }}
-            >
-              {item.schedule.level.name}
-            </span>
-          )}
-        </div>
-        {enablePayments && (
-          <div className="text-right">
-            <p className="text-lg font-bold text-gray-900">
-              {formatCurrency(item.monthlyPrice)}<span className="text-sm font-normal text-gray-400">/mes</span>
-            </p>
-            <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${item.isPaid ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
-              {item.isPaid ? '✓ Pagado' : 'Pendiente de pago'}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {enablePayments && !item.isPaid && (
-        <div className="mt-4">
-          <PayButton
-            type="fixed_group_month"
-            enrollmentId={item.enrollmentId}
-            label="💳 Pagar cuota"
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-            cashOnly={cashOnly}
-          />
-        </div>
-      )}
-    </div>
-  )
-}
-
 interface CalendarEvent extends Occurrence {
   enrollmentId: string
   scheduleId: string
-  dayLabel: string
-  startTime: string
-  endTime: string
-  courtName: string
-  coachName: string | null
-  level: { name: string; color: string } | null
 }
 
 export function StudentScheduleClient({ items, cancellationHours, enablePayments = true, cashOnly = false }: { items: ScheduleItem[]; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean }) {
@@ -101,6 +46,8 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
   const [canceling, setCanceling] = useState<string | null>(null)
   const [cancelError, setCancelError] = useState('')
 
+  const itemsByEnrollment = useMemo(() => Object.fromEntries(items.map(i => [i.enrollmentId, i])), [items])
+
   const todayStr = new Date().toISOString().split('T')[0]
   const [todayYear, todayMonth0] = [Number(todayStr.slice(0, 4)), Number(todayStr.slice(5, 7)) - 1]
   const [view, setView] = useState({ year: todayYear, month0: todayMonth0 })
@@ -109,17 +56,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
   // calendario no distingue de qué clase es cada una hasta que se selecciona
   // un día concreto.
   const events: CalendarEvent[] = useMemo(() => items.flatMap(item =>
-    item.upcomingOccurrences.map(occ => ({
-      ...occ,
-      enrollmentId: item.enrollmentId,
-      scheduleId: item.schedule.id,
-      dayLabel: item.schedule.dayLabel,
-      startTime: item.schedule.startTime,
-      endTime: item.schedule.endTime,
-      courtName: item.schedule.courtName,
-      coachName: item.schedule.coachName,
-      level: item.schedule.level,
-    }))
+    item.upcomingOccurrences.map(occ => ({ ...occ, enrollmentId: item.enrollmentId, scheduleId: item.schedule.id }))
   ), [items])
 
   const [selectedDate, setSelectedDate] = useState<string | null>(
@@ -193,13 +130,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
 
   return (
     <div className="space-y-4">
-      {items.map(item => (
-        <ClassSummaryCard key={item.enrollmentId} item={item} enablePayments={enablePayments} cashOnly={cashOnly} />
-      ))}
-
       <div className="rounded-xl bg-white p-5 shadow-sm">
-        <p className="mb-3 text-sm font-semibold text-gray-700">Marca los días que vas a faltar</p>
-
         <MonthCalendar
           year={view.year}
           month0={view.month0}
@@ -213,66 +144,100 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
           minYear={todayYear}
           minMonth0={todayMonth0}
         />
+      </div>
 
-        {selectedDate && (
-          <div className="mt-3 space-y-2">
-            <p className="text-sm font-medium capitalize text-gray-700">{selectedLabel}</p>
-            {selectedEvents.length === 0 ? (
-              <p className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs text-gray-400">Ese día no tienes ninguna clase.</p>
-            ) : (
-              selectedEvents.map(ev => {
-                const registered = (exclusionsByEnrollment[ev.enrollmentId] ?? []).find(x => x.excluded_date === ev.dateStr)
-                return (
-                  <div key={`${ev.enrollmentId}-${ev.dateStr}`} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{ev.startTime} – {ev.endTime} · {ev.courtName}</p>
-                        {ev.level && (
-                          <span
-                            className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-                            style={{ backgroundColor: ev.level.color }}
-                          >
-                            {ev.level.name}
-                          </span>
-                        )}
-                        {ev.overrideTime && (
-                          <span className="ml-1.5 text-xs font-normal text-amber-600">⚠️ excepcionalmente a las {ev.overrideTime}</span>
-                        )}
-                      </div>
-                      {registered ? (
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-xs font-medium text-brand-500">✓ Registrada</span>
-                          {ev.dateStr >= todayStr && (
-                            <button
-                              onClick={() => handleCancelarFalta(ev.enrollmentId, registered.id)}
-                              disabled={canceling === registered.id}
-                              className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 hover:bg-white disabled:opacity-40"
-                            >
-                              {canceling === registered.id ? '...' : 'Cancelar falta'}
-                            </button>
-                          )}
-                        </div>
-                      ) : ev.canRegister ? (
-                        <button
-                          onClick={() => handleRegistrar(ev)}
-                          disabled={registering === `${ev.enrollmentId}-${ev.dateStr}`}
-                          className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+      {selectedDate && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold capitalize text-gray-500">{selectedLabel}</p>
+          {selectedEvents.length === 0 ? (
+            <div className="rounded-xl bg-white p-6 text-center shadow-sm">
+              <p className="text-sm text-gray-400">Ese día no tienes ninguna clase.</p>
+            </div>
+          ) : (
+            selectedEvents.map(ev => {
+              const item = itemsByEnrollment[ev.enrollmentId]
+              if (!item) return null
+              const registered = (exclusionsByEnrollment[ev.enrollmentId] ?? []).find(x => x.excluded_date === ev.dateStr)
+              return (
+                <div key={`${ev.enrollmentId}-${ev.dateStr}`} className="rounded-xl bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-bold text-gray-900">
+                        {item.schedule.dayLabel} · {item.schedule.startTime} – {item.schedule.endTime}
+                      </p>
+                      <p className="mt-0.5 text-sm text-gray-500">
+                        {item.schedule.courtName}{item.schedule.coachName ? ` · Monitor: ${item.schedule.coachName}` : ''}
+                      </p>
+                      {item.schedule.level && (
+                        <span
+                          className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+                          style={{ backgroundColor: item.schedule.level.color }}
                         >
-                          {registering === `${ev.enrollmentId}-${ev.dateStr}` ? '...' : '📋 Registrar falta'}
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-400">Muy pronto — mín. {cancellationHours}h</span>
+                          {item.schedule.level.name}
+                        </span>
+                      )}
+                      {ev.overrideTime && (
+                        <p className="mt-1 text-xs font-medium text-amber-600">⚠️ excepcionalmente a las {ev.overrideTime}</p>
                       )}
                     </div>
+                    {enablePayments && (
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-gray-900">
+                          {formatCurrency(item.monthlyPrice)}<span className="text-sm font-normal text-gray-400">/mes</span>
+                        </p>
+                        <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${item.isPaid ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
+                          {item.isPaid ? '✓ Pagado' : 'Pendiente de pago'}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )
-              })
-            )}
-            {cancelError && <p className="text-xs text-red-600">{cancelError}</p>}
-            {error && <p className="text-xs text-red-600">{error}</p>}
-          </div>
-        )}
-      </div>
+
+                  {enablePayments && !item.isPaid && (
+                    <div className="mt-4">
+                      <PayButton
+                        type="fixed_group_month"
+                        enrollmentId={item.enrollmentId}
+                        label="💳 Pagar cuota"
+                        className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                        cashOnly={cashOnly}
+                      />
+                    </div>
+                  )}
+
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    {registered ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-brand-500">✓ Falta registrada este día{registered.publish_spot ? ' · plaza libre publicada' : ''}</span>
+                        {ev.dateStr >= todayStr && (
+                          <button
+                            onClick={() => handleCancelarFalta(ev.enrollmentId, registered.id)}
+                            disabled={canceling === registered.id}
+                            className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+                          >
+                            {canceling === registered.id ? '...' : 'Cancelar falta'}
+                          </button>
+                        )}
+                      </div>
+                    ) : ev.canRegister ? (
+                      <button
+                        onClick={() => handleRegistrar(ev)}
+                        disabled={registering === `${ev.enrollmentId}-${ev.dateStr}`}
+                        className="rounded-lg border border-orange-200 px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-50 disabled:opacity-50"
+                      >
+                        {registering === `${ev.enrollmentId}-${ev.dateStr}` ? '...' : '📋 Registrar falta este día'}
+                      </button>
+                    ) : (
+                      <p className="text-xs text-gray-400">Muy pronto para faltar — mínimo {cancellationHours}h de antelación</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+          {cancelError && <p className="text-xs text-red-600">{cancelError}</p>}
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </div>
+      )}
 
       {allExclusions.length > 0 && (
         <div className="rounded-xl bg-white p-5 shadow-sm">
