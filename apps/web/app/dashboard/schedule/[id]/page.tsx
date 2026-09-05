@@ -57,6 +57,10 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
   // se pinchó.
   const isValidDateParam = !!searchParams.date && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date)
   const nextDate = isValidDateParam ? searchParams.date! : getNextDate(schedule.start_time)
+  // Si la fecha que se está viendo (?date=) ya pasó, hay que traer también
+  // sus reservas/faltas — si no, ni el conteo ni "quién faltó"/"quién se
+  // apuntó" reflejan lo que de verdad pasó ese día.
+  const queryLowerBound = nextDate < todaySpain ? nextDate : todaySpain
 
   // Independientes entre sí una vez tenemos schedule — en paralelo en vez
   // de en cadena, para no sumar la latencia de cada una por separado.
@@ -81,7 +85,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       .eq('schedule_id', params.id)
       .neq('status', 'cancelled')
       .not('class_date', 'is', null)
-      .gte('class_date', todaySpain)
+      .gte('class_date', queryLowerBound)
       .order('class_date'),
     admin
       .from('group_enrollments')
@@ -127,7 +131,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
         .from('schedule_exclusions')
         .select('id, group_enrollment_id, excluded_date, publish_spot')
         .in('group_enrollment_id', enrollmentIds)
-        .gte('excluded_date', todaySpain)
+        .gte('excluded_date', queryLowerBound)
         .order('excluded_date')
     : { data: [] }
 
