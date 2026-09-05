@@ -73,19 +73,19 @@ export default async function StudentSchedulePage() {
       .eq('student_id', user.id)
       .eq('status', 'active')
       .order('enrolled_at'),
-    getAdminClient().from('users').select('club_id').eq('id', user.id).single(),
+    getAdminClient().from('users').select('club_id, is_external').eq('id', user.id).single(),
     getAdminClient()
       .from('bookings')
       .select(`
         id, class_date, status, source,
-        schedule:schedules(id, start_time, end_time, max_students,
+        schedule:schedules(id, start_time, end_time, max_students, is_private,
           court:courts(name),
           level:levels(name, color),
-          coach:users!schedules_coach_id_fkey(name)
+          coach:users!schedules_coach_id_fkey(name, is_premium_private_coach)
         )
       `)
       .eq('student_id', user.id)
-      .eq('status', 'confirmed')
+      .in('status', ['confirmed', 'pending'])
       .not('class_date', 'is', null)
       .gte('class_date', (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })())
       .order('class_date'),
@@ -174,6 +174,18 @@ export default async function StudentSchedulePage() {
     }
   })
 
+  // Precio de una clase particular pendiente de pago — misma matriz que
+  // /api/payments/create-order (alumno interno/externo × monitor normal/
+  // premium), aquí solo para MOSTRAR el importe antes de pagar.
+  const isExternal = (userRow as any)?.is_external === true
+  function privateLessonPriceCents(schedule: any): number {
+    const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
+    const dur = durationMin >= 80 ? '90' : '60'
+    const isPremium = schedule.coach?.is_premium_private_coach === true
+    const suffix = `${isPremium ? '_premium' : ''}${isExternal ? '_external' : ''}`
+    return (clubRow as any)?.config?.[`private_lesson_price_${dur}${suffix}`] ?? 0
+  }
+
   return (
     <div className="max-w-2xl space-y-8">
       <RealtimeRefresh
@@ -212,18 +224,28 @@ export default async function StudentSchedulePage() {
             <p className="text-sm text-gray-500">Huecos libres en los que estás apuntado</p>
           </div>
           <div className="space-y-3">
-            {(spotBookings ?? []).map(b => (
-              <SpotBookingCard
-                key={b.id}
-                booking={{
-                  id: b.id,
-                  class_date: b.class_date as string,
-                  source: b.source as string,
-                  schedule: b.schedule as any,
-                }}
-                cancellationHours={cancellationHours}
-              />
-            ))}
+            {(spotBookings ?? []).map(b => {
+              const schedule = b.schedule as any
+              const isPendingPrivate = b.status === 'pending' && schedule?.is_private === true
+              return (
+                <SpotBookingCard
+                  key={b.id}
+                  booking={{
+                    id: b.id,
+                    class_date: b.class_date as string,
+                    source: b.source as string,
+                    schedule,
+                    isPrivate: schedule?.is_private === true,
+                  }}
+                  cancellationHours={cancellationHours}
+                  pendingPayment={isPendingPrivate ? {
+                    priceCents: privateLessonPriceCents(schedule),
+                    enablePayments: features.enable_payments && billingActive,
+                    cashOnly: features.cash_only_payments,
+                  } : null}
+                />
+              )
+            })}
           </div>
         </div>
       )}

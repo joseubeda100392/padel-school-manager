@@ -48,6 +48,14 @@ export async function POST(req: NextRequest) {
     classes_per_pack_60: 10,
     pack_price_90: 12000,
     classes_per_pack_90: 10,
+    private_lesson_price_60: 0,
+    private_lesson_price_90: 0,
+    private_lesson_price_60_external: 0,
+    private_lesson_price_90_external: 0,
+    private_lesson_price_60_premium: 0,
+    private_lesson_price_90_premium: 0,
+    private_lesson_price_60_premium_external: 0,
+    private_lesson_price_90_premium_external: 0,
   }
 
   let cfg = { ...DEFAULT_CFG }
@@ -80,6 +88,7 @@ export async function POST(req: NextRequest) {
   const { data: orderBody, error: badRequest } = await parseBody(req, z.object({
     type: z.enum(['single_class', 'class_pack', 'fixed_group_month', 'tournament', 'intensivo_group']),
     scheduleId: z.string().uuid().optional(),
+    bookingId: z.string().uuid().optional(),
     wholeClass: z.boolean().optional(),
     packType: z.enum(['60', '90']).optional(),
     enrollmentId: z.string().uuid().optional(),
@@ -90,20 +99,42 @@ export async function POST(req: NextRequest) {
     classDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
   }))
   if (badRequest) return badRequest
-  const { type, scheduleId, wholeClass, packType, enrollmentId, exclusionId, classDate, tournamentId, intensivoGroupId, classDates } = orderBody
+  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates } = orderBody
+  let scheduleId = bodyScheduleId
+  let classDate = bodyClassDate
 
   let amount: number
   let productDesc: string
   let classesToAdd = 0
 
+  // Pagar una reserva ya creada por el admin (clase particular en 'pending')
+  // — el schedule/fecha se leen de LA RESERVA, nunca de lo que mande el
+  // cliente, para que nadie pueda pagar el hueco de otro por este camino.
+  let pendingBooking: { schedule_id: string; class_date: string | null } | null = null
+  if (type === 'single_class' && bookingId) {
+    const { data: booking } = await admin
+      .from('bookings')
+      .select('id, schedule_id, class_date, status, student_id')
+      .eq('id', bookingId)
+      .eq('student_id', user.id)
+      .eq('status', 'pending')
+      .single()
+    if (!booking) return NextResponse.json({ error: 'Reserva no encontrada o ya pagada' }, { status: 404 })
+    pendingBooking = booking
+    scheduleId = booking.schedule_id
+    classDate = booking.class_date ?? undefined
+  }
+
   if (type === 'single_class') {
     let durationMin = 60
     let scheduleType = 'regular'
     let schedulePriceCents: number | null = null
+    let isPrivateLesson = false
+    let privateLessonPriceCents: number | null = null
     if (scheduleId) {
       const { data: schedule } = await admin
         .from('schedules')
-        .select('start_time, end_time, type, price_cents, max_students')
+        .select('start_time, end_time, type, price_cents, max_students, is_private, coach_id')
         .eq('id', scheduleId)
         .single()
       if (schedule) {
@@ -112,8 +143,31 @@ export async function POST(req: NextRequest) {
         )
         scheduleType = (schedule as any).type ?? 'regular'
         schedulePriceCents = (schedule as any).price_cents ?? null
+        isPrivateLesson = (schedule as any).is_private === true
 
-        if (classDate) {
+        // Solo se permite pagar un schedule marcado is_private a través de la
+        // reserva concreta que el admin creó para ese alumno — nunca en
+        // autoservicio, es una plaza pactada con una persona, no un hueco
+        // abierto a cualquiera con el nivel adecuado.
+        if (isPrivateLesson && !pendingBooking) {
+          return NextResponse.json({ error: 'Esta clase particular debe pagarse desde la reserva asignada' }, { status: 403 })
+        }
+
+        if (isPrivateLesson) {
+          const [{ data: callerRow }, { data: coachRow }] = await Promise.all([
+            admin.from('users').select('is_external').eq('id', user.id).single(),
+            (schedule as any).coach_id
+              ? admin.from('users').select('is_premium_private_coach').eq('id', (schedule as any).coach_id).single()
+              : Promise.resolve({ data: null }),
+          ])
+          const isExternal = (callerRow as any)?.is_external === true
+          const isPremiumCoach = (coachRow as any)?.is_premium_private_coach === true
+          const suffix = `${isPremiumCoach ? '_premium' : ''}${isExternal ? '_external' : ''}`
+          const priceKey = `private_lesson_price_${durationMin >= 80 ? '90' : '60'}${suffix}` as keyof typeof cfg
+          privateLessonPriceCents = cfg[priceKey] ?? 0
+        }
+
+        if (classDate && !pendingBooking) {
           const { data: existingOnDate } = await admin
             .from('bookings')
             .select('schedule_id, schedules(start_time, end_time)')
@@ -155,7 +209,10 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-    if (schedulePriceCents && schedulePriceCents > 0) {
+    if (isPrivateLesson) {
+      amount = privateLessonPriceCents ?? 0
+      productDesc = durationMin >= 80 ? 'Clase particular de pádel 1h 30min' : 'Clase particular de pádel 1h'
+    } else if (schedulePriceCents && schedulePriceCents > 0) {
       amount = schedulePriceCents
       productDesc = scheduleType === 'intensivo' ? 'Clase intensivo pádel' : 'Clase de pádel'
     } else if (wholeClass) {
@@ -293,6 +350,7 @@ export async function POST(req: NextRequest) {
     status: 'pending',
     metadata: {
       schedule_id: scheduleId ?? null,
+      booking_id: bookingId ?? null,
       whole_class: wholeClass ?? false,
       classes_per_pack: classesToAdd,
       pack_type: packType ?? null,

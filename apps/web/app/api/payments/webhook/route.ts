@@ -85,7 +85,22 @@ export async function POST(req: NextRequest) {
 
   const meta = payment.metadata ?? {}
 
-  if (payment.type === 'single_class' && meta.schedule_id) {
+  if (payment.type === 'single_class' && meta.booking_id) {
+    // Clase particular: la reserva ya existe (la creó el admin en 'pending'),
+    // el pago solo la confirma — nunca se crea una reserva nueva aquí, así
+    // que no hace falta re-chequear aforo (era 1 plaza para esta persona).
+    const { error: confirmErr } = await adminSupabase
+      .from('bookings')
+      .update({ status: 'confirmed', source: 'pay_per_class' })
+      .eq('id', meta.booking_id)
+      .eq('status', 'pending')
+    if (confirmErr) {
+      console.error('[webhook] private lesson booking confirm failed:', confirmErr.message)
+      await revertToPending()
+      return NextResponse.json({ error: 'booking_failed' }, { status: 500 })
+    }
+
+  } else if (payment.type === 'single_class' && meta.schedule_id) {
     if (meta.exclusion_id) {
       await adminSupabase
         .from('schedule_exclusions')

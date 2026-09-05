@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatTime } from '@/lib/utils'
+import { formatTime, formatCurrency } from '@/lib/utils'
+import { PayButton } from '@/components/pay-button'
 
 interface SpotBooking {
   id: string
   class_date: string
   source: string
+  isPrivate?: boolean
   schedule: {
     start_time: string
     end_time: string
@@ -17,7 +19,13 @@ interface SpotBooking {
   } | null
 }
 
-export function SpotBookingCard({ booking, cancellationHours }: { booking: SpotBooking; cancellationHours: number }) {
+interface PendingPayment {
+  priceCents: number
+  enablePayments: boolean
+  cashOnly: boolean
+}
+
+export function SpotBookingCard({ booking, cancellationHours, pendingPayment = null }: { booking: SpotBooking; cancellationHours: number; pendingPayment?: PendingPayment | null }) {
   const router = useRouter()
   const [cancelling, setCancelling] = useState(false)
   const [error, setError] = useState('')
@@ -67,12 +75,38 @@ export function SpotBookingCard({ booking, cancellationHours }: { booking: SpotB
               {s.level.name}
             </span>
           )}
+          {booking.isPrivate && (
+            <span className="mt-2 ml-2 inline-block rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+              Clase particular
+            </span>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
-          <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 shrink-0">
-            Reservado
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${pendingPayment ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+            {pendingPayment ? 'Pendiente de pago' : 'Reservado'}
           </span>
-          {canCancel ? (
+          {pendingPayment ? (
+            <>
+              {pendingPayment.enablePayments ? (
+                <PayButton
+                  type="single_class"
+                  bookingId={booking.id}
+                  label={`💳 Pagar ${formatCurrency(pendingPayment.priceCents)}`}
+                  className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                  cashOnly={pendingPayment.cashOnly}
+                />
+              ) : (
+                <span className="text-xs text-gray-400">Habla con tu escuela para pagarla</span>
+              )}
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="text-xs text-gray-400 hover:text-red-600 disabled:opacity-50"
+              >
+                {cancelling ? '...' : 'No la quiero, cancelar'}
+              </button>
+            </>
+          ) : canCancel ? (
             <button
               onClick={handleCancel}
               disabled={cancelling}

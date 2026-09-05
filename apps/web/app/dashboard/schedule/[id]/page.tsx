@@ -208,6 +208,11 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
               {schedule.recurrence === 'weekly' ? 'Semanal' : schedule.recurrence === 'biweekly' ? 'Quincenal' : 'Clase única'} · Inicio: {formatDate(schedule.start_time)}{schedule.recurrence_end_date ? ` · Fin: ${formatDate(schedule.recurrence_end_date)}` : ''}
             </p>
             <div className="mt-2 flex items-center gap-2">
+              {(schedule as any).is_private && (
+                <span className="inline-block rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+                  Clase particular
+                </span>
+              )}
               {schedule.level ? (
                 <span
                   className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
@@ -257,7 +262,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
         </div>
       </div>
 
-      {/* Grupo fijo */}
+      {/* Grupo fijo — no aplica a una clase particular (1 a 1, sin grupo) */}
+      {!(schedule as any).is_private && (
       <div className="mb-6">
         <GroupEnrollment
           scheduleId={params.id}
@@ -293,6 +299,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           enableClassValidation={features.enable_class_validation}
         />
       </div>
+      )}
 
       {/* Material de clase */}
       {features.enable_materials && (

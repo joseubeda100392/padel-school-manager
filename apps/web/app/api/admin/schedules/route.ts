@@ -21,6 +21,7 @@ const scheduleSchema = z.object({
   type: z.enum(['regular', 'intensivo']).optional(),
   price_cents: z.number().int().min(0).nullable().optional(),
   intensivo_group_id: z.string().uuid().nullable().optional(),
+  is_private: z.boolean().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -76,6 +77,7 @@ export async function POST(req: NextRequest) {
     type: body.type ?? 'regular',
     price_cents: body.price_cents ?? null,
     intensivo_group_id: body.intensivo_group_id ?? null,
+    is_private: body.recurrence === 'none' ? (body.is_private ?? false) : false,
   }).select('id').single()
 
   if (error) return NextResponse.json({ error: 'Error al crear el horario' }, { status: 500 })

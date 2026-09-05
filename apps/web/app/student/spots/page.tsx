@@ -118,7 +118,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
     admin
       .from('schedules')
       .select(`
-        id, start_time, end_time, max_students, recurrence_end_date, type, price_cents, recurrence, intensivo_group_id,
+        id, start_time, end_time, max_students, recurrence_end_date, type, price_cents, recurrence, intensivo_group_id, is_private,
         court:courts(name),
         level:levels(id, name, color),
         coach:users!schedules_coach_id_fkey(name),
@@ -216,6 +216,10 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   const capacitySpots = candidateIds.flatMap((scheduleId) => {
     const s = schedulesById[scheduleId]
     if (!s || s.type === 'intensivo') return [] // Intensivos are handled in /student/intensivos
+    // Una clase particular es una plaza pactada con un alumno concreto — el
+    // admin la asigna a mano (ver /api/admin/bookings/spot), nunca debe
+    // aparecer aquí como hueco abierto a cualquiera.
+    if ((s as any).is_private) return []
     const enrollments = (s.enrollments ?? []) as any[]
     const active = enrollments.filter((e: any) => e.status === 'active')
     const alreadyIn = active.some((e: any) => e.student_id === user.id)

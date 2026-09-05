@@ -7,6 +7,9 @@ interface PayButtonProps {
   enrollmentId?: string
   packType?: '60' | '90'
   scheduleId?: string
+  // Pagar una reserva ya creada (ej. clase particular asignada por el admin,
+  // en estado 'pending') en vez de crear una nueva al confirmar el pago.
+  bookingId?: string
   wholeClass?: boolean
   exclusionId?: string
   classDate?: string
@@ -23,7 +26,7 @@ interface PayButtonProps {
   cashOnly?: boolean
 }
 
-export function PayButton({ type, enrollmentId, packType, scheduleId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, label, className, disabled, cashOnly }: PayButtonProps) {
+export function PayButton({ type, enrollmentId, packType, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, label, className, disabled, cashOnly }: PayButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -34,7 +37,7 @@ export function PayButton({ type, enrollmentId, packType, scheduleId, wholeClass
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, enrollmentId, packType, scheduleId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates }),
+        body: JSON.stringify({ type, enrollmentId, packType, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates }),
       })
 
       let json: any

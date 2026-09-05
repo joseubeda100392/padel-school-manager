@@ -20,11 +20,13 @@ export default function NewSchedulePage() {
     max_students: 4,
     type: 'regular' as 'regular' | 'intensivo',
     price_cents: 0,
+    is_private: false,
   })
   const [intensivoDays, setIntensivoDays] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [enableIntensivos, setEnableIntensivos] = useState(true)
+  const [enablePrivateLessons, setEnablePrivateLessons] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -37,8 +39,11 @@ export default function NewSchedulePage() {
       if (coachesData.coaches) setCoaches(coachesData.coaches)
       if (levelsData.levels) setLevels(levelsData.levels)
       if (featData?.features?.enable_intensivos === false) setEnableIntensivos(false)
+      if (featData?.features?.enable_private_lessons) setEnablePrivateLessons(true)
     })
   }, [])
+
+  const canBePrivate = enablePrivateLessons && form.type === 'regular' && form.recurrence === 'none'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -81,11 +86,12 @@ export default function NewSchedulePage() {
           end_time: endDateTime.toISOString(),
           recurrence: form.type === 'intensivo' ? 'none' : form.recurrence,
           recurrence_end_date: form.type !== 'intensivo' && form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
-          max_students: form.max_students,
+          max_students: canBePrivate && form.is_private ? 1 : form.max_students,
 
           type: form.type,
           price_cents: form.price_cents > 0 ? form.price_cents : null,
           intensivo_group_id: intensivoGroupId,
+          is_private: canBePrivate && form.is_private,
         }),
       })
       const json = await res.json().catch(() => ({}))
@@ -218,12 +224,24 @@ export default function NewSchedulePage() {
               onFocus={e => e.target.select()}
               min={1}
               max={20}
-              value={form.max_students}
+              disabled={canBePrivate && form.is_private}
+              value={canBePrivate && form.is_private ? 1 : form.max_students}
               onChange={(e) => setForm({ ...form, max_students: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:bg-gray-50 disabled:text-gray-400"
             />
           </div>
         </div>
+
+        {canBePrivate && (
+          <div className="flex items-center gap-3 rounded-lg bg-amber-50 px-4 py-3">
+            <input type="checkbox" id="is_private" checked={form.is_private}
+              onChange={(e) => setForm({ ...form, is_private: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500" />
+            <label htmlFor="is_private" className="text-sm font-medium text-gray-700">
+              Es clase particular <span className="font-normal text-gray-400">(1 a 1 — máx. alumnos pasa a 1 y se cobra con las tarifas de particular)</span>
+            </label>
+          </div>
+        )}
 
         <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">Tipo de clase</label>

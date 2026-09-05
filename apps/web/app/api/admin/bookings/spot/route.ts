@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   const effectiveClubId = caller.role === 'super_admin' ? (clubId ?? caller.club_id) : caller.club_id
 
   // Overlap check
-  const { data: newSched } = await admin.from('schedules').select('start_time, end_time').eq('id', scheduleId).single()
+  const { data: newSched } = await admin.from('schedules').select('start_time, end_time, is_private').eq('id', scheduleId).single()
   if (newSched) {
     const { data: existing } = await admin
       .from('bookings')
@@ -104,6 +104,21 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Una clase particular es 1 a 1 — si esa fecha ya tiene a alguien
+  // asignado (pagado o pendiente de pago), no se puede meter a otro alumno más.
+  if ((newSched as any)?.is_private) {
+    const { data: otherBooking } = await admin
+      .from('bookings')
+      .select('id')
+      .eq('schedule_id', scheduleId)
+      .eq('class_date', classDate)
+      .neq('status', 'cancelled')
+      .maybeSingle()
+    if (otherBooking) {
+      return NextResponse.json({ error: 'Esta clase particular ya tiene un alumno asignado ese día' }, { status: 409 })
+    }
+  }
+
   // Limpiar fila cancelada previa si existe (legacy antes de borrado directo)
   await admin
     .from('bookings')
@@ -113,12 +128,18 @@ export async function POST(req: NextRequest) {
     .eq('class_date', classDate)
     .eq('status', 'cancelled')
 
+  // Una clase particular no se da por hecha al asignarla — el alumno tiene
+  // que pagarla desde su app antes de que cuente como confirmada. El resto
+  // de asignaciones manuales (cubrir una falta, hueco normal) siguen siendo
+  // gratis/inmediatas como hasta ahora.
+  const isPrivateLesson = (newSched as any)?.is_private === true
+
   const { data, error } = await admin
     .from('bookings')
     .insert({
       schedule_id: scheduleId,
       student_id: studentId,
-      status: 'confirmed',
+      status: isPrivateLesson ? 'pending' : 'confirmed',
       source: 'admin',
       class_date: classDate,
       club_id: effectiveClubId ?? null,
