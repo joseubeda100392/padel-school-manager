@@ -64,6 +64,23 @@ export default async function CoachClassesPage({
     countBySchedule[e.schedule_id] = (countBySchedule[e.schedule_id] ?? 0) + 1
   }
 
+  // Reservas puntuales (huecos libres cubiertos con bolsa/pago) — el grupo
+  // fijo por sí solo no llega a max_students en muchas clases, así que estas
+  // plazas extra no salían en el conteo aunque sí contaran en la ficha de
+  // detalle de la clase.
+  const { data: bookingsRaw } = ids.length
+    ? await admin.from('bookings').select('schedule_id, class_date').eq('status', 'confirmed').in('schedule_id', ids)
+    : { data: [] }
+
+  const referenceDateBySchedule: Record<string, string> = {}
+  for (const s of schedules ?? []) referenceDateBySchedule[s.id] = nextClassDate(s.start_time, todaySpain)
+
+  for (const b of bookingsRaw ?? []) {
+    if (b.class_date === referenceDateBySchedule[b.schedule_id]) {
+      countBySchedule[b.schedule_id] = (countBySchedule[b.schedule_id] ?? 0) + 1
+    }
+  }
+
   // Lista: un aviso por horario, de la semana actual. Semana: por fecha
   // exacta, sin límite — la misma clase se repite al navegar de semana y cada
   // columna debe mostrar solo lo suyo (ver comentario en schedule-review.ts).
@@ -82,13 +99,20 @@ export default async function CoachClassesPage({
   }
   const orderedDays = [1, 2, 3, 4, 5, 6, 0].filter(d => byDay[d])
 
+  const bookedDatesBySchedule: Record<string, string[]> = {}
+  for (const b of bookingsRaw ?? []) {
+    if (!bookedDatesBySchedule[b.schedule_id]) bookedDatesBySchedule[b.schedule_id] = []
+    bookedDatesBySchedule[b.schedule_id].push(b.class_date)
+  }
+
   const schedulesWithCount = (schedules ?? []).map((s: any) => ({
     ...s,
     enrolled: countBySchedule[s.id] ?? 0,
     group_size: groupSizeMap[s.id] ?? null,
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
-    reference_date: nextClassDate(s.start_time, todaySpain),
+    bookedDates: bookedDatesBySchedule[s.id] ?? [],
+    reference_date: referenceDateBySchedule[s.id],
   }))
 
   return (
@@ -140,7 +164,7 @@ export default async function CoachClassesPage({
                     const enrolled = countBySchedule[s.id] ?? 0
                     const pct = Math.min((enrolled / s.max_students) * 100, 100)
                     const review = reviewInfoMap[s.id] ?? null
-                    const referenceDate = nextClassDate(s.start_time, todaySpain)
+                    const referenceDate = referenceDateBySchedule[s.id]
                     return (
                       <Link
                         key={s.id}

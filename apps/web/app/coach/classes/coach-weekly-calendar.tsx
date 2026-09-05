@@ -17,6 +17,7 @@ type Schedule = {
   review?: { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number } | null
   reviewByDate?: Record<string, { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number }> | null
   group_size?: number | null
+  bookedDates?: string[]
 }
 
 // Minutos desde medianoche en hora de Madrid — para ordenar por hora real del
@@ -118,7 +119,15 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                   ) : (
                     classes.map((s) => {
                       const review = s.reviewByDate?.[dateStr] ?? null
-                      const occupancy = typeof s.group_size === 'number' ? s.group_size - (review?.uncoveredCount ?? 0) : s.enrolled
+                      // Ocupación real = fijos que vienen ese día (grupo menos
+                      // ausentes) + reservas puntuales de esa fecha exacta —
+                      // sean sustitutos de una falta o plaza extra de aforo
+                      // sin relación con ninguna falta (ej. grupo de 3 en
+                      // clase de 4). Antes solo restaba faltas no cubiertas,
+                      // así que una reserva de "plaza extra" nunca se sumaba.
+                      const absentCount = review ? review.uncoveredCount + review.substituteNames.length : 0
+                      const bookingsThatDate = (s.bookedDates ?? []).filter((d) => d === dateStr).length
+                      const occupancy = typeof s.group_size === 'number' ? s.group_size - absentCount + bookingsThatDate : s.enrolled
                       return (
                       <button
                         key={s.id}
