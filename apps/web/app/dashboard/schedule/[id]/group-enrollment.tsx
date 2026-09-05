@@ -393,7 +393,11 @@ export default function GroupEnrollment({
           {enrollments.map((e) => {
             const paid = isPaidThisMonth(e.paid_until)
             const isLoading = loadingId === e.id
-            const myExclusions = (exclusions[e.id] ?? []).filter(x => x.excluded_date >= now.toISOString().split('T')[0])
+            // El servidor ya limita las faltas al rango relevante (desde la
+            // fecha que se está viendo, o desde hoy si se ve el futuro) — no
+            // volver a filtrar aquí por "hoy real", o una falta del día que
+            // se está consultando (si ya pasó) desaparecería de la vista.
+            const myExclusions = exclusions[e.id] ?? []
             const showFaltaForm = faltaFormId === e.id
 
             return (
