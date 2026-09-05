@@ -27,11 +27,17 @@ export async function POST(req: NextRequest) {
 
   if (caller.role !== 'super_admin') {
     const [{ data: scheduleCheck }, { data: studentCheck }] = await Promise.all([
-      admin.from('schedules').select('club_id').eq('id', scheduleId).single(),
+      admin.from('schedules').select('club_id, coach_id').eq('id', scheduleId).single(),
       admin.from('users').select('club_id').eq('id', studentId).single(),
     ])
     if (!scheduleCheck || !caller.club_id || (scheduleCheck as any).club_id !== caller.club_id) {
       return NextResponse.json({ error: 'Sin permisos para esta clase' }, { status: 403 })
+    }
+    // Un monitor solo puede rellenar huecos de SUS propias clases — la
+    // comprobación de club de arriba no basta, dejaría meter alumnos en
+    // clases de otros monitores del mismo club.
+    if (caller.role === 'coach' && (scheduleCheck as any).coach_id !== user.id) {
+      return NextResponse.json({ error: 'Esta clase no es tuya' }, { status: 403 })
     }
     if (!studentCheck || !caller.club_id || (studentCheck as any).club_id !== caller.club_id) {
       return NextResponse.json({ error: 'Sin permisos para este alumno' }, { status: 403 })

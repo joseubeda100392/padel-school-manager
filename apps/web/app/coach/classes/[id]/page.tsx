@@ -10,6 +10,7 @@ import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { ClassSessionMarker } from './class-session-marker'
+import { AdminAddSpotBooking } from '@/app/dashboard/schedule/[id]/add-spot-booking'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -46,6 +47,8 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
     { data: bookings, error: errBookings },
     features,
     { data: dateOverride },
+    { data: allStudents },
+    { data: futureBookings },
   ] = await Promise.all([
     admin
       .from('group_enrollments')
@@ -67,6 +70,20 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
       .eq('schedule_id', params.id)
       .eq('override_date', resolvedDate)
       .maybeSingle(),
+    admin
+      .from('users')
+      .select('id, name, email')
+      .or('role.eq.student,and(role.eq.coach,also_student.eq.true)')
+      .eq('is_active', true)
+      .eq('club_id', schedule.club_id)
+      .order('name'),
+    admin
+      .from('bookings')
+      .select('student_id, class_date')
+      .eq('schedule_id', params.id)
+      .neq('status', 'cancelled')
+      .not('class_date', 'is', null)
+      .gte('class_date', todaySpain),
   ])
 
   const levelIds = [...new Set((groupEnrollments ?? []).map((e: any) => e.student?.current_level_id).filter(Boolean))]
@@ -109,6 +126,17 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
     if (!schedule.level_id) return true
     return m.material_levels.some((ml: any) => ml.level_id === schedule.level_id)
   })
+
+  // Alumnos que el monitor puede meter en un hueco libre de ESTA clase suya —
+  // el propio schedule ya viene filtrado por coach_id arriba, así que
+  // cualquier scheduleId que llegue aquí es siempre una clase propia.
+  const enrolledStudentIds = new Set((groupEnrollments ?? []).map((e: any) => e.student?.id).filter(Boolean))
+  const spotAvailableStudents = (allStudents ?? [])
+    .map((s: any) => ({ id: s.id, name: s.name, email: s.email }))
+    .filter((s: any) => !enrolledStudentIds.has(s.id))
+  const existingSpotBookings = (futureBookings ?? [])
+    .filter((b: any) => b.student_id)
+    .map((b: any) => ({ studentId: b.student_id as string, classDate: b.class_date as string }))
 
   const start = dateOverride?.new_start_time ?? schedule.start_time
   const end = dateOverride?.new_end_time ?? schedule.end_time
@@ -320,6 +348,13 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
               currentLevel: null,
             },
           }))}
+        />
+        <AdminAddSpotBooking
+          scheduleId={params.id}
+          nextDate={resolvedDate}
+          availableStudents={spotAvailableStudents}
+          clubId={schedule.club_id ?? null}
+          existingBookings={existingSpotBookings}
         />
       </div>
     </div>
