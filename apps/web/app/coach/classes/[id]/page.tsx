@@ -104,7 +104,11 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
           .from('schedule_exclusions')
           .select('group_enrollment_id, excluded_date')
           .in('group_enrollment_id', enrollmentIds)
-          .gte('excluded_date', today)
+          // Si se está viendo una fecha pasada (?date= de un día ya dado),
+          // hay que traer también la falta de ESE día — si no, el conteo de
+          // asistentes no descuenta al ausente y "quién faltó" no se puede
+          // mostrar, aunque el hueco sí se cubriera con un sustituto.
+          .gte('excluded_date', resolvedDate < todaySpain ? resolvedDate : todaySpain)
           .order('excluded_date')
       : { data: [] },
     features.enable_materials
