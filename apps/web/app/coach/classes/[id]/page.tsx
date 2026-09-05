@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek, formatDate } from '@/lib/utils'
-import AttendanceForm from '@/app/dashboard/schedule/[id]/attendance-form'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
@@ -352,27 +351,8 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
         </div>
       )}
 
-      {/* Asistencia (bookings puntuales) */}
+      {/* Añadir alumno a un hueco libre */}
       <div className="rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-5 py-4">
-          <h2 className="font-semibold text-gray-900">Lista de asistencia</h2>
-          <p className="mt-0.5 text-xs text-gray-400">Marca ✓ o ✗ para registrar la asistencia</p>
-        </div>
-        <AttendanceForm
-          scheduleId={params.id}
-          bookings={(bookings ?? []).map((b: any) => ({
-            id: b.id,
-            status: b.status,
-            source: b.source ?? null,
-            scheduleId: params.id,
-            student: {
-              name: b.student?.name,
-              email: b.student?.email,
-              avatar_url: b.student?.avatar_url,
-              currentLevel: null,
-            },
-          }))}
-        />
         <AdminAddSpotBooking
           scheduleId={params.id}
           nextDate={resolvedDate}

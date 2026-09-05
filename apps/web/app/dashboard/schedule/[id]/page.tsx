@@ -5,7 +5,6 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { formatDate, formatTime, getDayOfWeek, mostCommonMonthlyPrice } from '@/lib/utils'
 import { ScheduleActions } from './schedule-actions'
-import AttendanceForm from './attendance-form'
 import GroupEnrollment from './group-enrollment'
 import ScheduleMaterials from './schedule-materials'
 import { AdminAddSpotBooking } from './add-spot-booking'
@@ -327,28 +326,6 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
         </div>
       )}
 
-      {/* Lista de alumnos + asistencia */}
-      <div className="rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Alumnos apuntados</h2>
-          <p className="mt-0.5 text-xs text-gray-400">Marca ✓ o ✗ para registrar la asistencia</p>
-        </div>
-        <AttendanceForm
-          scheduleId={params.id}
-          bookings={nextDateSpots.map((b: any) => ({
-            id: b.id,
-            status: b.status,
-            source: b.source ?? null,
-            scheduleId: params.id,
-            student: {
-              name: b.student?.name,
-              email: b.student?.email,
-              avatar_url: b.student?.avatar_url,
-              currentLevel: null,
-            }
-          }))}
-        />
-      </div>
     </div>
   )
 }
