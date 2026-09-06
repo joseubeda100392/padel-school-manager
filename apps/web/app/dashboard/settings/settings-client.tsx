@@ -70,6 +70,37 @@ interface AppConfig {
   price_per_class_with_court_90: number
   price_per_class_without_court_60: number
   price_per_class_without_court_90: number
+  // Módulo enable_private_lessons (exclusivo R3)
+  pay_per_class_price_60_external: number
+  pay_per_class_price_90_external: number
+  pack_price_60_external: number
+  classes_per_pack_60_external: number
+  pack_price_90_external: number
+  classes_per_pack_90_external: number
+  private_lesson_price_60: number
+  private_lesson_price_90: number
+  private_lesson_price_60_external: number
+  private_lesson_price_90_external: number
+  private_lesson_price_60_premium: number
+  private_lesson_price_90_premium: number
+  private_lesson_price_60_premium_external: number
+  private_lesson_price_90_premium_external: number
+  private_lesson_pack_price_60: number
+  private_lesson_pack_classes_60: number
+  private_lesson_pack_price_90: number
+  private_lesson_pack_classes_90: number
+  private_lesson_pack_price_60_external: number
+  private_lesson_pack_classes_60_external: number
+  private_lesson_pack_price_90_external: number
+  private_lesson_pack_classes_90_external: number
+  private_lesson_pack_price_60_premium: number
+  private_lesson_pack_classes_60_premium: number
+  private_lesson_pack_price_90_premium: number
+  private_lesson_pack_classes_90_premium: number
+  private_lesson_pack_price_60_premium_external: number
+  private_lesson_pack_classes_60_premium_external: number
+  private_lesson_pack_price_90_premium_external: number
+  private_lesson_pack_classes_90_premium_external: number
 }
 
 const defaults: AppConfig = {
@@ -91,6 +122,36 @@ const defaults: AppConfig = {
   price_per_class_with_court_90: 0,
   price_per_class_without_court_60: 0,
   price_per_class_without_court_90: 0,
+  pay_per_class_price_60_external: 0,
+  pay_per_class_price_90_external: 0,
+  pack_price_60_external: 0,
+  classes_per_pack_60_external: 0,
+  pack_price_90_external: 0,
+  classes_per_pack_90_external: 0,
+  private_lesson_price_60: 0,
+  private_lesson_price_90: 0,
+  private_lesson_price_60_external: 0,
+  private_lesson_price_90_external: 0,
+  private_lesson_price_60_premium: 0,
+  private_lesson_price_90_premium: 0,
+  private_lesson_price_60_premium_external: 0,
+  private_lesson_price_90_premium_external: 0,
+  private_lesson_pack_price_60: 0,
+  private_lesson_pack_classes_60: 0,
+  private_lesson_pack_price_90: 0,
+  private_lesson_pack_classes_90: 0,
+  private_lesson_pack_price_60_external: 0,
+  private_lesson_pack_classes_60_external: 0,
+  private_lesson_pack_price_90_external: 0,
+  private_lesson_pack_classes_90_external: 0,
+  private_lesson_pack_price_60_premium: 0,
+  private_lesson_pack_classes_60_premium: 0,
+  private_lesson_pack_price_90_premium: 0,
+  private_lesson_pack_classes_90_premium: 0,
+  private_lesson_pack_price_60_premium_external: 0,
+  private_lesson_pack_classes_60_premium_external: 0,
+  private_lesson_pack_price_90_premium_external: 0,
+  private_lesson_pack_classes_90_premium_external: 0,
 }
 
 function intVal(s: string): number {
@@ -106,6 +167,41 @@ function displayPrice(cents: number): string {
 }
 function displayInt(n: number): string {
   return n === 0 ? '' : n.toString()
+}
+
+function PriceField({ label, value, onChange }: { label: string; value: number; onChange: (cents: number) => void }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          inputMode="decimal"
+          onFocus={e => e.target.select()}
+          value={displayPrice(value)}
+          onChange={e => onChange(priceVal(e.target.value))}
+          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+        />
+        <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+      </div>
+    </div>
+  )
+}
+
+function CountField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+      <input
+        type="text"
+        inputMode="numeric"
+        onFocus={e => e.target.select()}
+        value={displayInt(value)}
+        onChange={e => onChange(intVal(e.target.value))}
+        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+      />
+    </div>
+  )
 }
 
 export function SettingsClient({ clubId, userId }: { clubId: string | null; userId: string }) {
@@ -964,6 +1060,108 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
                   </p>
                 </>
               )}
+            </div>
+          )}
+
+          {features.enable_private_lessons && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="mb-1 font-semibold text-gray-900">Alumno externo</h2>
+              <p className="mb-4 text-xs text-gray-400">
+                Tarifas para alumnos marcados como "externo" en su ficha — no ven los huecos libres de las clases fijas de la escuela.
+              </p>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">Clase suelta externa</p>
+              <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {features.enable_60min && (
+                  <PriceField label="Clase 1 hora (€)" value={config.pay_per_class_price_60_external} onChange={v => setConfig({ ...config, pay_per_class_price_60_external: v })} />
+                )}
+                {features.enable_90min && (
+                  <PriceField label="Clase 1h 30min (€)" value={config.pay_per_class_price_90_external} onChange={v => setConfig({ ...config, pay_per_class_price_90_external: v })} />
+                )}
+              </div>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">Bono externo</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {features.enable_60min && (
+                  <>
+                    <CountField label="Bono 1h — clases por bono" value={config.classes_per_pack_60_external} onChange={v => setConfig({ ...config, classes_per_pack_60_external: v })} />
+                    <PriceField label="Bono 1h — precio (€)" value={config.pack_price_60_external} onChange={v => setConfig({ ...config, pack_price_60_external: v })} />
+                  </>
+                )}
+                {features.enable_90min && (
+                  <>
+                    <CountField label="Bono 1h30 — clases por bono" value={config.classes_per_pack_90_external} onChange={v => setConfig({ ...config, classes_per_pack_90_external: v })} />
+                    <PriceField label="Bono 1h30 — precio (€)" value={config.pack_price_90_external} onChange={v => setConfig({ ...config, pack_price_90_external: v })} />
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {features.enable_private_lessons && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="mb-1 font-semibold text-gray-900">Clase particular</h2>
+              <p className="mb-4 text-xs text-gray-400">
+                Clase 1 a 1 con un monitor. Cualquier alumno puede pedirla, de la escuela o externo. Si el monitor tiene marcada la tarifa premium en su ficha, se aplica el precio premium.
+              </p>
+              {(['60', '90'] as const).map(dur => (
+                <div key={dur} className={dur === '60' ? 'mb-5' : ''}>
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">{dur === '60' ? 'Clase particular 1 hora' : 'Clase particular 1h 30min'}</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <PriceField
+                      label="Alumno de la escuela (€)"
+                      value={config[`private_lesson_price_${dur}` as keyof AppConfig] as number}
+                      onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}`]: v })}
+                    />
+                    <PriceField
+                      label="Alumno externo (€)"
+                      value={config[`private_lesson_price_${dur}_external` as keyof AppConfig] as number}
+                      onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_external`]: v })}
+                    />
+                    <PriceField
+                      label="Alumno de la escuela · monitor premium (€)"
+                      value={config[`private_lesson_price_${dur}_premium` as keyof AppConfig] as number}
+                      onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_premium`]: v })}
+                    />
+                    <PriceField
+                      label="Alumno externo · monitor premium (€)"
+                      value={config[`private_lesson_price_${dur}_premium_external` as keyof AppConfig] as number}
+                      onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_premium_external`]: v })}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {features.enable_private_lessons && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="mb-1 font-semibold text-gray-900">Bono de clase particular</h2>
+              <p className="mb-4 text-xs text-gray-400">
+                Pack de créditos que solo valen para clases particulares.
+              </p>
+              {(['60', '90'] as const).map(dur => (
+                <div key={dur} className={dur === '60' ? 'mb-6' : ''}>
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">{dur === '60' ? 'Bono particular 1 hora' : 'Bono particular 1h 30min'}</p>
+                  {([
+                    { suffix: '', label: 'Alumno de la escuela' },
+                    { suffix: '_external', label: 'Alumno externo' },
+                    { suffix: '_premium', label: 'Alumno de la escuela · monitor premium' },
+                    { suffix: '_premium_external', label: 'Alumno externo · monitor premium' },
+                  ] as const).map(({ suffix, label }) => (
+                    <div key={suffix} className="mb-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <CountField
+                        label={`${label} — clases por bono`}
+                        value={config[`private_lesson_pack_classes_${dur}${suffix}` as keyof AppConfig] as number}
+                        onChange={v => setConfig({ ...config, [`private_lesson_pack_classes_${dur}${suffix}`]: v })}
+                      />
+                      <PriceField
+                        label={`${label} — precio (€)`}
+                        value={config[`private_lesson_pack_price_${dur}${suffix}` as keyof AppConfig] as number}
+                        onChange={v => setConfig({ ...config, [`private_lesson_pack_price_${dur}${suffix}`]: v })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           )}
 
