@@ -19,8 +19,12 @@ export default async function StudentBagPage() {
 
   const clubId = (bagProfile as any)?.club_id ?? null
 
-  const [{ data: bag }, { data: transactions }, { data: clubRow }] = await Promise.all([
-    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
+  const [{ data: bag }, { data: transactions }, { data: clubRow }, { count: premiumCoachCount }] = await Promise.all([
+    admin
+      .from('class_bag')
+      .select('balance_60, balance_90, balance_private_60, balance_private_90, balance_private_60_external, balance_private_90_external, balance_private_60_premium, balance_private_90_premium, balance_private_60_premium_external, balance_private_90_premium_external')
+      .eq('user_id', user.id)
+      .single(),
     admin
       .from('bag_transactions')
       .select('id, delta, type, reason, class_duration, created_at')
@@ -30,6 +34,9 @@ export default async function StudentBagPage() {
     clubId
       ? admin.from('clubs').select('config').eq('id', clubId).single()
       : { data: null },
+    clubId
+      ? admin.from('users').select('id', { count: 'exact', head: true }).eq('club_id', clubId).eq('role', 'coach').eq('is_premium_private_coach', true)
+      : Promise.resolve({ count: 0 }),
   ])
 
   const balance60 = bag?.balance_60 ?? 0
@@ -37,6 +44,14 @@ export default async function StudentBagPage() {
   const DEFAULT_CFG = {
     pack_price_60: 9000, classes_per_pack_60: 10, pack_price_90: 12000, classes_per_pack_90: 10,
     pack_price_60_external: 0, classes_per_pack_60_external: 0, pack_price_90_external: 0, classes_per_pack_90_external: 0,
+    private_lesson_pack_price_60: 0, private_lesson_pack_classes_60: 0,
+    private_lesson_pack_price_90: 0, private_lesson_pack_classes_90: 0,
+    private_lesson_pack_price_60_external: 0, private_lesson_pack_classes_60_external: 0,
+    private_lesson_pack_price_90_external: 0, private_lesson_pack_classes_90_external: 0,
+    private_lesson_pack_price_60_premium: 0, private_lesson_pack_classes_60_premium: 0,
+    private_lesson_pack_price_90_premium: 0, private_lesson_pack_classes_90_premium: 0,
+    private_lesson_pack_price_60_premium_external: 0, private_lesson_pack_classes_60_premium_external: 0,
+    private_lesson_pack_price_90_premium_external: 0, private_lesson_pack_classes_90_premium_external: 0,
   }
   const cfg = { ...DEFAULT_CFG, ...((clubRow as any)?.config ?? {}) }
 
@@ -46,6 +61,20 @@ export default async function StudentBagPage() {
   const pack60Classes = isExternal ? cfg.classes_per_pack_60_external : cfg.classes_per_pack_60
   const pack90Price = isExternal ? cfg.pack_price_90_external : cfg.pack_price_90
   const pack90Classes = isExternal ? cfg.classes_per_pack_90_external : cfg.classes_per_pack_90
+
+  // Bono de clase particular: sufijo según si el alumno es externo, y si
+  // hay al menos un monitor premium en el club (si no, no tiene sentido
+  // ofrecer esa tarifa todavía).
+  const hasPremiumCoach = (premiumCoachCount ?? 0) > 0
+  function privatePackFor(dur: '60' | '90', premium: boolean) {
+    const suffix = `${premium ? '_premium' : ''}${isExternal ? '_external' : ''}`
+    return {
+      price: cfg[`private_lesson_pack_price_${dur}${suffix}` as keyof typeof cfg] as number,
+      classes: cfg[`private_lesson_pack_classes_${dur}${suffix}` as keyof typeof cfg] as number,
+    }
+  }
+  const balanceKey = (dur: '60' | '90', premium: boolean) =>
+    `balance_private_${dur}${premium ? '_premium' : ''}${isExternal ? '_external' : ''}` as const
 
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
@@ -125,6 +154,63 @@ export default async function StudentBagPage() {
               <p className="text-sm text-gray-400">La escuela todavía no ha configurado el bono para alumnos externos.</p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Bono de clase particular */}
+      {features.enable_private_lessons && (
+        <div className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Bono de clase particular</h2>
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {features.enable_60min && (
+              <div className="rounded-xl bg-white p-5 shadow-sm">
+                <p className="text-xs font-medium uppercase text-gray-500">Particulares de 1h disponibles</p>
+                <p className="mt-1 text-3xl font-bold text-purple-600">{(bag as any)?.[balanceKey('60', false)] ?? 0}</p>
+                {hasPremiumCoach && (
+                  <p className="mt-1 text-xs text-gray-400">+ {(bag as any)?.[balanceKey('60', true)] ?? 0} con monitor premium</p>
+                )}
+              </div>
+            )}
+            {features.enable_90min && (
+              <div className="rounded-xl bg-white p-5 shadow-sm">
+                <p className="text-xs font-medium uppercase text-gray-500">Particulares de 1h30 disponibles</p>
+                <p className="mt-1 text-3xl font-bold text-purple-600">{(bag as any)?.[balanceKey('90', false)] ?? 0}</p>
+                {hasPremiumCoach && (
+                  <p className="mt-1 text-xs text-gray-400">+ {(bag as any)?.[balanceKey('90', true)] ?? 0} con monitor premium</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {features.enable_payments && billingActive && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {(['60', '90'] as const).flatMap(dur => {
+                if (dur === '60' && !features.enable_60min) return []
+                if (dur === '90' && !features.enable_90min) return []
+                return [false, ...(hasPremiumCoach ? [true] : [])].map(premium => {
+                  const pack = privatePackFor(dur, premium)
+                  if (!pack.classes || pack.classes <= 0) return null
+                  return (
+                    <div key={`${dur}-${premium}`} className="rounded-xl bg-white p-5 shadow-sm">
+                      <p className="text-lg font-bold text-gray-900">
+                        Particular {dur === '60' ? '1 hora' : '1h 30min'}{premium ? ' · monitor premium' : ''}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-500">{pack.classes} clase{pack.classes === 1 ? '' : 's'}</p>
+                      <p className="mt-3 text-2xl font-bold text-purple-600">{formatCurrency(pack.price)}</p>
+                      <PayButton
+                        type="private_lesson_pack"
+                        packType={dur}
+                        privatePremium={premium}
+                        label="💳 Comprar bono"
+                        className="mt-4 w-full rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                        cashOnly={features.cash_only_payments}
+                      />
+                    </div>
+                  )
+                })
+              })}
+            </div>
+          )}
         </div>
       )}
 

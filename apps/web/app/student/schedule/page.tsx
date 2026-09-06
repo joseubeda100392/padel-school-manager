@@ -59,6 +59,7 @@ export default async function StudentSchedulePage() {
     { data: enrollments },
     { data: userRow },
     { data: spotBookings },
+    { data: privateBag },
   ] = await Promise.all([
     getAdminClient()
       .from('group_enrollments')
@@ -89,6 +90,11 @@ export default async function StudentSchedulePage() {
       .not('class_date', 'is', null)
       .gte('class_date', (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0] })())
       .order('class_date'),
+    getAdminClient()
+      .from('class_bag')
+      .select('balance_private_60, balance_private_90, balance_private_60_external, balance_private_90_external, balance_private_60_premium, balance_private_90_premium, balance_private_60_premium_external, balance_private_90_premium_external')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   const clubId = (userRow as any)?.club_id ?? null
@@ -191,6 +197,18 @@ export default async function StudentSchedulePage() {
     return (clubRow as any)?.config?.[`pay_per_class_price_${dur}_external`] ?? 0
   }
 
+  // Saldo de bono particular disponible para ESTA reserva concreta (misma
+  // duración + mismo tipo de monitor + mismo tipo de alumno) — solo aplica
+  // a clases particulares, no a huecos normales de externo.
+  function privateBagBalance(schedule: any): number {
+    if (!schedule?.is_private) return 0
+    const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
+    const dur = durationMin >= 80 ? '90' : '60'
+    const isPremium = schedule.coach?.is_premium_private_coach === true
+    const key = `balance_private_${dur}${isPremium ? '_premium' : ''}${isExternal ? '_external' : ''}`
+    return (privateBag as any)?.[key] ?? 0
+  }
+
   return (
     <div className="max-w-2xl space-y-8">
       <RealtimeRefresh
@@ -247,6 +265,7 @@ export default async function StudentSchedulePage() {
                     priceCents: pendingBookingPriceCents(schedule),
                     enablePayments: features.enable_payments && billingActive,
                     cashOnly: features.cash_only_payments,
+                    bagBalance: privateBagBalance(schedule),
                   } : null}
                 />
               )

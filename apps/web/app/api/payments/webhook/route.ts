@@ -180,6 +180,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
+  } else if (payment.type === 'private_lesson_pack') {
+    const classesToAdd = meta.classes_per_pack ?? 0
+    const dur: '60' | '90' = meta.pack_type === '90' ? '90' : '60'
+    const { data: buyerRow } = await adminSupabase.from('users').select('is_external').eq('id', payment.user_id).single()
+    const isExternal = (buyerRow as any)?.is_external === true
+    const bucket = `${dur}${meta.private_premium ? '_premium' : ''}${isExternal ? '_external' : ''}`
+
+    const { data: rpcResult, error: rpcErr } = await adminSupabase.rpc('credit_private_bag', {
+      p_user_id: payment.user_id,
+      p_club_id: payment.club_id ?? null,
+      p_delta: classesToAdd,
+      p_bucket: bucket,
+      p_reason: `Compra de bono de particular — ${classesToAdd} clases`,
+    })
+    if (rpcErr || rpcResult?.error) {
+      console.error('[webhook] private_lesson_pack credit failed:', rpcErr?.message ?? rpcResult?.error)
+      await revertToPending()
+      return NextResponse.json({ error: 'credit_failed' }, { status: 500 })
+    }
+
   } else if (payment.type === 'class_pack') {
     const classesToAdd = meta.classes_per_pack ?? 10
     const packType: '60' | '90' = meta.pack_type === '90' ? '90' : '60'

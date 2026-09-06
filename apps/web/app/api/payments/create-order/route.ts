@@ -12,7 +12,7 @@ import {
 } from '@/lib/redsys'
 import { rateLimit } from '@/lib/rate-limit'
 
-type PaymentType = 'single_class' | 'class_pack' | 'fixed_group_month' | 'tournament' | 'intensivo_group'
+type PaymentType = 'single_class' | 'class_pack' | 'private_lesson_pack' | 'fixed_group_month' | 'tournament' | 'intensivo_group'
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -62,6 +62,22 @@ export async function POST(req: NextRequest) {
     private_lesson_price_90_premium: 0,
     private_lesson_price_60_premium_external: 0,
     private_lesson_price_90_premium_external: 0,
+    private_lesson_pack_price_60: 0,
+    private_lesson_pack_classes_60: 0,
+    private_lesson_pack_price_90: 0,
+    private_lesson_pack_classes_90: 0,
+    private_lesson_pack_price_60_external: 0,
+    private_lesson_pack_classes_60_external: 0,
+    private_lesson_pack_price_90_external: 0,
+    private_lesson_pack_classes_90_external: 0,
+    private_lesson_pack_price_60_premium: 0,
+    private_lesson_pack_classes_60_premium: 0,
+    private_lesson_pack_price_90_premium: 0,
+    private_lesson_pack_classes_90_premium: 0,
+    private_lesson_pack_price_60_premium_external: 0,
+    private_lesson_pack_classes_60_premium_external: 0,
+    private_lesson_pack_price_90_premium_external: 0,
+    private_lesson_pack_classes_90_premium_external: 0,
   }
 
   let cfg = { ...DEFAULT_CFG }
@@ -92,11 +108,14 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: orderBody, error: badRequest } = await parseBody(req, z.object({
-    type: z.enum(['single_class', 'class_pack', 'fixed_group_month', 'tournament', 'intensivo_group']),
+    type: z.enum(['single_class', 'class_pack', 'private_lesson_pack', 'fixed_group_month', 'tournament', 'intensivo_group']),
     scheduleId: z.string().uuid().optional(),
     bookingId: z.string().uuid().optional(),
     wholeClass: z.boolean().optional(),
     packType: z.enum(['60', '90']).optional(),
+    // Bono de clase particular: qué tarifa comprar — coincide con si el
+    // monitor lleva la tarifa premium marcada en su ficha.
+    privatePremium: z.boolean().optional(),
     enrollmentId: z.string().uuid().optional(),
     exclusionId: z.string().uuid().optional(),
     classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -105,7 +124,7 @@ export async function POST(req: NextRequest) {
     classDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
   }))
   if (badRequest) return badRequest
-  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates } = orderBody
+  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, privatePremium, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates } = orderBody
   let scheduleId = bodyScheduleId
   let classDate = bodyClassDate
 
@@ -328,6 +347,15 @@ export async function POST(req: NextRequest) {
     amount = totalPrice
     productDesc = `Semana intensivo pádel (${schedules.length} clases)`
 
+  } else if (type === 'private_lesson_pack') {
+    const is90 = packType === '90'
+    const { data: callerRow } = await admin.from('users').select('is_external').eq('id', user.id).single()
+    const isExternal = (callerRow as any)?.is_external === true
+    const suffix = `${privatePremium ? '_premium' : ''}${isExternal ? '_external' : ''}`
+    amount = cfg[`private_lesson_pack_price_${is90 ? '90' : '60'}${suffix}` as keyof typeof cfg]
+    classesToAdd = cfg[`private_lesson_pack_classes_${is90 ? '90' : '60'}${suffix}` as keyof typeof cfg]
+    productDesc = `Bono clase particular${privatePremium ? ' (monitor premium)' : ''} ${is90 ? '1h 30min' : '1h'}`
+
   } else {
     const is90 = packType === '90'
     const { data: callerRow } = await admin.from('users').select('is_external').eq('id', user.id).single()
@@ -372,6 +400,7 @@ export async function POST(req: NextRequest) {
       whole_class: wholeClass ?? false,
       classes_per_pack: classesToAdd,
       pack_type: packType ?? null,
+      private_premium: privatePremium ?? false,
       enrollment_id: enrollmentId ?? null,
       exclusion_id: exclusionId ?? null,
       class_date: classDate ?? null,

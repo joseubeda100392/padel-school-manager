@@ -23,12 +23,35 @@ interface PendingPayment {
   priceCents: number
   enablePayments: boolean
   cashOnly: boolean
+  // Saldo de bono de particular que vale para ESTA reserva concreta (misma
+  // duración + mismo tipo de monitor + mismo tipo de alumno). 0 si no aplica
+  // (huecos normales de externo no tienen bono propio).
+  bagBalance: number
 }
 
 export function SpotBookingCard({ booking, cancellationHours, pendingPayment = null }: { booking: SpotBooking; cancellationHours: number; pendingPayment?: PendingPayment | null }) {
   const router = useRouter()
   const [cancelling, setCancelling] = useState(false)
+  const [payingWithBag, setPayingWithBag] = useState(false)
   const [error, setError] = useState('')
+
+  async function handlePayWithBag() {
+    if (!confirm('¿Pagar esta clase particular con 1 clase de tu bono?')) return
+    setPayingWithBag(true)
+    setError('')
+    const res = await fetch('/api/bookings/pay-private-with-bag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId: booking.id }),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (res.ok) {
+      router.refresh()
+    } else {
+      setError(json.error ?? 'Error al pagar con bono')
+      setPayingWithBag(false)
+    }
+  }
 
   const s = booking.schedule
   const startTimeOfDay = s?.start_time ? new Date(s.start_time).toTimeString().slice(0, 8) : '00:00:00'
@@ -87,6 +110,15 @@ export function SpotBookingCard({ booking, cancellationHours, pendingPayment = n
           </span>
           {pendingPayment ? (
             <>
+              {pendingPayment.bagBalance > 0 && (
+                <button
+                  onClick={handlePayWithBag}
+                  disabled={payingWithBag}
+                  className="rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
+                >
+                  {payingWithBag ? '...' : `🎟️ Usar bono (te quedan ${pendingPayment.bagBalance})`}
+                </button>
+              )}
               {pendingPayment.enablePayments ? (
                 <PayButton
                   type="single_class"
