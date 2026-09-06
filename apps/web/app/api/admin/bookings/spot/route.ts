@@ -46,7 +46,10 @@ export async function POST(req: NextRequest) {
   const effectiveClubId = caller.role === 'super_admin' ? (clubId ?? caller.club_id) : caller.club_id
 
   // Overlap check
-  const { data: newSched } = await admin.from('schedules').select('start_time, end_time, is_private').eq('id', scheduleId).single()
+  const [{ data: newSched }, { data: studentExternalCheck }] = await Promise.all([
+    admin.from('schedules').select('start_time, end_time, is_private').eq('id', scheduleId).single(),
+    admin.from('users').select('is_external').eq('id', studentId).single(),
+  ])
   if (newSched) {
     const { data: existing } = await admin
       .from('bookings')
@@ -129,17 +132,21 @@ export async function POST(req: NextRequest) {
     .eq('status', 'cancelled')
 
   // Una clase particular no se da por hecha al asignarla — el alumno tiene
-  // que pagarla desde su app antes de que cuente como confirmada. El resto
-  // de asignaciones manuales (cubrir una falta, hueco normal) siguen siendo
-  // gratis/inmediatas como hasta ahora.
+  // que pagarla desde su app antes de que cuente como confirmada. Lo mismo
+  // para un alumno externo en un hueco normal: no es un compañero cubriendo
+  // gratis una falta, tiene que pagar la tarifa de externo. El resto de
+  // asignaciones manuales (alumno de la escuela en un hueco normal) siguen
+  // siendo gratis/inmediatas como hasta ahora.
   const isPrivateLesson = (newSched as any)?.is_private === true
+  const isExternalStudent = (studentExternalCheck as any)?.is_external === true
+  const requiresPayment = isPrivateLesson || isExternalStudent
 
   const { data, error } = await admin
     .from('bookings')
     .insert({
       schedule_id: scheduleId,
       student_id: studentId,
-      status: isPrivateLesson ? 'pending' : 'confirmed',
+      status: requiresPayment ? 'pending' : 'confirmed',
       source: 'admin',
       class_date: classDate,
       club_id: effectiveClubId ?? null,

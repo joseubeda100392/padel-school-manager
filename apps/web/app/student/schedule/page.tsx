@@ -174,16 +174,21 @@ export default async function StudentSchedulePage() {
     }
   })
 
-  // Precio de una clase particular pendiente de pago — misma matriz que
-  // /api/payments/create-order (alumno interno/externo × monitor normal/
-  // premium), aquí solo para MOSTRAR el importe antes de pagar.
+  // Precio de una reserva pendiente de pago — misma lógica que
+  // /api/payments/create-order, aquí solo para MOSTRAR el importe antes de
+  // pagar. Dos casos posibles: clase particular (matriz interno/externo ×
+  // monitor normal/premium) o clase normal asignada a un alumno externo
+  // (tarifa de clase suelta externa).
   const isExternal = (userRow as any)?.is_external === true
-  function privateLessonPriceCents(schedule: any): number {
+  function pendingBookingPriceCents(schedule: any): number {
     const durationMin = Math.round((new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000)
     const dur = durationMin >= 80 ? '90' : '60'
-    const isPremium = schedule.coach?.is_premium_private_coach === true
-    const suffix = `${isPremium ? '_premium' : ''}${isExternal ? '_external' : ''}`
-    return (clubRow as any)?.config?.[`private_lesson_price_${dur}${suffix}`] ?? 0
+    if (schedule.is_private) {
+      const isPremium = schedule.coach?.is_premium_private_coach === true
+      const suffix = `${isPremium ? '_premium' : ''}${isExternal ? '_external' : ''}`
+      return (clubRow as any)?.config?.[`private_lesson_price_${dur}${suffix}`] ?? 0
+    }
+    return (clubRow as any)?.config?.[`pay_per_class_price_${dur}_external`] ?? 0
   }
 
   return (
@@ -226,7 +231,7 @@ export default async function StudentSchedulePage() {
           <div className="space-y-3">
             {(spotBookings ?? []).map(b => {
               const schedule = b.schedule as any
-              const isPendingPrivate = b.status === 'pending' && schedule?.is_private === true
+              const isPending = b.status === 'pending'
               return (
                 <SpotBookingCard
                   key={b.id}
@@ -238,8 +243,8 @@ export default async function StudentSchedulePage() {
                     isPrivate: schedule?.is_private === true,
                   }}
                   cancellationHours={cancellationHours}
-                  pendingPayment={isPendingPrivate ? {
-                    priceCents: privateLessonPriceCents(schedule),
+                  pendingPayment={isPending ? {
+                    priceCents: pendingBookingPriceCents(schedule),
                     enablePayments: features.enable_payments && billingActive,
                     cashOnly: features.cash_only_payments,
                   } : null}

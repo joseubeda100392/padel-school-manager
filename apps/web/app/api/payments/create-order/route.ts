@@ -48,6 +48,12 @@ export async function POST(req: NextRequest) {
     classes_per_pack_60: 10,
     pack_price_90: 12000,
     classes_per_pack_90: 10,
+    pay_per_class_price_60_external: 0,
+    pay_per_class_price_90_external: 0,
+    pack_price_60_external: 0,
+    classes_per_pack_60_external: 0,
+    pack_price_90_external: 0,
+    classes_per_pack_90_external: 0,
     private_lesson_price_60: 0,
     private_lesson_price_90: 0,
     private_lesson_price_60_external: 0,
@@ -165,6 +171,16 @@ export async function POST(req: NextRequest) {
           const suffix = `${isPremiumCoach ? '_premium' : ''}${isExternal ? '_external' : ''}`
           const priceKey = `private_lesson_price_${durationMin >= 80 ? '90' : '60'}${suffix}` as keyof typeof cfg
           privateLessonPriceCents = cfg[priceKey] ?? 0
+        } else if (pendingBooking) {
+          // Reserva pendiente en una clase normal (no particular): el único
+          // motivo por el que /api/admin/bookings/spot deja una reserva así
+          // en vez de confirmarla gratis es que el alumno está marcado como
+          // externo — le toca la tarifa de externo, no la normal.
+          const { data: callerRow } = await admin.from('users').select('is_external').eq('id', user.id).single()
+          if ((callerRow as any)?.is_external === true) {
+            const priceKey = `pay_per_class_price_${durationMin >= 80 ? '90' : '60'}_external` as keyof typeof cfg
+            schedulePriceCents = cfg[priceKey] ?? 0
+          }
         }
 
         if (classDate && !pendingBooking) {
@@ -314,8 +330,10 @@ export async function POST(req: NextRequest) {
 
   } else {
     const is90 = packType === '90'
-    amount = cfg[is90 ? 'pack_price_90' : 'pack_price_60']
-    classesToAdd = cfg[is90 ? 'classes_per_pack_90' : 'classes_per_pack_60']
+    const { data: callerRow } = await admin.from('users').select('is_external').eq('id', user.id).single()
+    const extSuffix = (callerRow as any)?.is_external === true ? '_external' : ''
+    amount = cfg[`pack_price_${is90 ? '90' : '60'}${extSuffix}` as keyof typeof cfg]
+    classesToAdd = cfg[`classes_per_pack_${is90 ? '90' : '60'}${extSuffix}` as keyof typeof cfg]
     productDesc = is90 ? 'Bono clases de pádel 1h 30min' : 'Bono clases de pádel 1h'
   }
 

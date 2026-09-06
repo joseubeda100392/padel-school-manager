@@ -12,9 +12,10 @@ export default async function StudentBagPage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: bagProfile } = await admin.from('users').select('club_id').eq('id', user.id).single()
+  const { data: bagProfile } = await admin.from('users').select('club_id, is_external').eq('id', user.id).single()
   const features = await getClubFeatures((bagProfile as any)?.club_id)
   if (!features.enable_bag) redirect('/student')
+  const isExternal = (bagProfile as any)?.is_external === true
 
   const clubId = (bagProfile as any)?.club_id ?? null
 
@@ -33,13 +34,18 @@ export default async function StudentBagPage() {
 
   const balance60 = bag?.balance_60 ?? 0
   const balance90 = bag?.balance_90 ?? 0
-  const DEFAULT_CFG = { pack_price_60: 9000, classes_per_pack_60: 10, pack_price_90: 12000, classes_per_pack_90: 10 }
+  const DEFAULT_CFG = {
+    pack_price_60: 9000, classes_per_pack_60: 10, pack_price_90: 12000, classes_per_pack_90: 10,
+    pack_price_60_external: 0, classes_per_pack_60_external: 0, pack_price_90_external: 0, classes_per_pack_90_external: 0,
+  }
   const cfg = { ...DEFAULT_CFG, ...((clubRow as any)?.config ?? {}) }
 
-  const pack60Price = cfg.pack_price_60
-  const pack60Classes = cfg.classes_per_pack_60
-  const pack90Price = cfg.pack_price_90
-  const pack90Classes = cfg.classes_per_pack_90
+  // Mismo saldo de siempre (balance_60/90) — un alumno externo solo paga
+  // una tarifa distinta por el mismo bono, no lleva un saldo aparte.
+  const pack60Price = isExternal ? cfg.pack_price_60_external : cfg.pack_price_60
+  const pack60Classes = isExternal ? cfg.classes_per_pack_60_external : cfg.classes_per_pack_60
+  const pack90Price = isExternal ? cfg.pack_price_90_external : cfg.pack_price_90
+  const pack90Classes = isExternal ? cfg.classes_per_pack_90_external : cfg.classes_per_pack_90
 
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
@@ -87,9 +93,9 @@ export default async function StudentBagPage() {
         <div className="mb-6">
           <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Comprar bono</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {features.enable_60min && (
+            {features.enable_60min && pack60Classes > 0 && (
               <div className="rounded-xl bg-white p-5 shadow-sm">
-                <p className="text-lg font-bold text-gray-900">Bono 1 hora</p>
+                <p className="text-lg font-bold text-gray-900">Bono 1 hora{isExternal ? ' · externo' : ''}</p>
                 <p className="mt-1 text-sm text-gray-500">{pack60Classes} clases · solo clases de 60 min</p>
                 <p className="mt-3 text-2xl font-bold text-brand-500">{formatCurrency(pack60Price)}</p>
                 <PayButton
@@ -101,9 +107,9 @@ export default async function StudentBagPage() {
                 />
               </div>
             )}
-            {features.enable_90min && (
+            {features.enable_90min && pack90Classes > 0 && (
               <div className="rounded-xl bg-white p-5 shadow-sm">
-                <p className="text-lg font-bold text-gray-900">Bono 1h 30min</p>
+                <p className="text-lg font-bold text-gray-900">Bono 1h 30min{isExternal ? ' · externo' : ''}</p>
                 <p className="mt-1 text-sm text-gray-500">{pack90Classes} clases · vale para 1h y 1h 30min</p>
                 <p className="mt-3 text-2xl font-bold text-blue-600">{formatCurrency(pack90Price)}</p>
                 <PayButton
@@ -114,6 +120,9 @@ export default async function StudentBagPage() {
                   cashOnly={features.cash_only_payments}
                 />
               </div>
+            )}
+            {isExternal && pack60Classes === 0 && pack90Classes === 0 && (
+              <p className="text-sm text-gray-400">La escuela todavía no ha configurado el bono para alumnos externos.</p>
             )}
           </div>
         </div>
