@@ -150,15 +150,25 @@ export async function POST(req: NextRequest) {
   // El autoservicio del propio alumno (/api/bookings/spot) ya hacía esto;
   // esta herramienta de admin/monitor no lo hacía nunca.
   async function unpublishMatchingFalta() {
-    const { data: matchingExclusion } = await admin
+    const { data: activeEnrollmentIds, error: enrollErr } = await admin
+      .from('group_enrollments')
+      .select('id')
+      .eq('schedule_id', scheduleId)
+      .eq('status', 'active')
+    if (enrollErr || !activeEnrollmentIds?.length) return
+
+    const { data: matchingExclusion, error: exclErr } = await admin
       .from('schedule_exclusions')
-      .select('id, group_enrollment:group_enrollments!inner(schedule_id, status)')
+      .select('id')
+      .in('group_enrollment_id', activeEnrollmentIds.map((e: any) => e.id))
       .eq('excluded_date', classDate)
       .eq('publish_spot', true)
-      .eq('group_enrollment.schedule_id', scheduleId)
-      .eq('group_enrollment.status', 'active')
       .limit(1)
       .maybeSingle()
+    if (exclErr) {
+      console.error('[bookings/spot] unpublishMatchingFalta lookup failed:', exclErr.message)
+      return
+    }
     if (matchingExclusion) {
       await admin.from('schedule_exclusions').update({ publish_spot: false }).eq('id', matchingExclusion.id)
     }
