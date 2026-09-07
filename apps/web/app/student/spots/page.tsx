@@ -277,7 +277,12 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
         channelName={`student-spots-${user.id}`}
         subs={[
           { table: 'schedule_exclusions' },
-          { table: 'bookings', filter: `student_id=eq.${user.id}` },
+          // Antes solo escuchaba las reservas del propio alumno — si el
+          // admin metía a OTRO alumno y llenaba la clase, esta pantalla
+          // (si ya estaba abierta) no se enteraba y seguía mostrando el
+          // hueco como libre hasta recargar a mano. Con el club entero
+          // sí se entera de cualquier reserva que cambie el aforo.
+          { table: 'bookings', filter: myClubId ? `club_id=eq.${myClubId}` : undefined },
         ]}
       />
       <div className="mb-6">
