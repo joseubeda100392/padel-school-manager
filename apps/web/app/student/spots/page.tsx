@@ -138,7 +138,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   const balance90 = bag?.balance_90 ?? 0
 
   // Absence spots (existing logic)
-  const absenceSpots = (spotsRaw ?? [])
+  const absenceCandidates = (spotsRaw ?? [])
     .filter(s => {
       const ge = s.group_enrollment as any
       const schedule = ge?.schedule as any
@@ -176,7 +176,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
 
   // Capacity spots: classes with open spots where student is not enrolled —
   // ahora por cada fecha del mes visible, no solo "la próxima".
-  const absenceScheduleIds = new Set(absenceSpots.map(s => s.scheduleId))
+  const absenceScheduleIds = new Set(absenceCandidates.map(s => s.scheduleId))
 
   const occurrencesBySchedule: Record<string, string[]> = {}
   for (const s of schedulesRaw ?? []) {
@@ -185,6 +185,11 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   }
 
   const candidateIds = Object.keys(occurrencesBySchedule).filter(id => occurrencesBySchedule[id].length > 0)
+  // Para el recuento real hacen falta también los horarios que tienen algún
+  // "hueco por falta" (candidateIds los excluye para no duplicar el tipo de
+  // hueco que se genera) — si no, no se puede comprobar si esa falta sigue
+  // teniendo de verdad una plaza libre o si ya se cubrió por otro lado.
+  const idsForRealCount = [...new Set([...candidateIds, ...absenceScheduleIds])]
 
   // Conteo real de asistentes de cada fecha: activos del grupo fijo MENOS
   // quien tiene falta registrada justo ese día, MÁS reservas puntuales ya
@@ -192,11 +197,11 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   // reserva atómica (book_capacity_spot), para no anunciar como libre una
   // plaza que en realidad ya está completa, ni bloquear una que sí está libre.
   const [{ data: exclusionsForCapacity }, { data: bookingsForCapacity }] = await Promise.all([
-    candidateIds.length
-      ? admin.from('group_enrollments').select('id, schedule_id, schedule_exclusions(excluded_date, publish_spot)').in('schedule_id', candidateIds).eq('status', 'active')
+    idsForRealCount.length
+      ? admin.from('group_enrollments').select('id, schedule_id, schedule_exclusions(excluded_date, publish_spot)').in('schedule_id', idsForRealCount).eq('status', 'active')
       : { data: [] },
-    candidateIds.length
-      ? admin.from('bookings').select('schedule_id, class_date').eq('status', 'confirmed').in('schedule_id', candidateIds)
+    idsForRealCount.length
+      ? admin.from('bookings').select('schedule_id, class_date').eq('status', 'confirmed').in('schedule_id', idsForRealCount)
       : { data: [] },
   ])
 
@@ -225,6 +230,17 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
 
   const schedulesById: Record<string, any> = {}
   for (const s of schedulesRaw ?? []) schedulesById[s.id] = s
+
+  // Puede haber más de un alumno del grupo fijo ausente el mismo día —
+  // cada falta publicada genera su propia card, y eso está bien mientras
+  // sigan quedando plazas de verdad. Pero si ya se rellenaron todas por
+  // otra vía (ej. el admin metió a alguien a mano en la OTRA falta), esta
+  // card no debe seguir anunciándose solo porque su publish_spot no se
+  // haya actualizado — se revalida contra el aforo real, no solo el flag.
+  const absenceSpots = absenceCandidates.filter(spot => {
+    const activeCount = ((schedulesById[spot.scheduleId]?.enrollments ?? []) as any[]).filter((e: any) => e.status === 'active').length
+    return realAttendingCount(spot.scheduleId, activeCount, spot.excludedDate) < spot.maxStudents
+  })
 
   const capacitySpots = candidateIds.flatMap((scheduleId) => {
     const s = schedulesById[scheduleId]
