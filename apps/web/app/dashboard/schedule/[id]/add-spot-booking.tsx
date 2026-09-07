@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 interface Student { id: string; name: string; email: string }
 
@@ -59,6 +60,9 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
       setError(json.error ?? 'Error al añadir la reserva')
       setSaving(false)
       return
+    }
+    if (typeof json.newBalance === 'number') {
+      toast.success(`Clase descontada de su bolsa · saldo restante: ${json.newBalance}`)
     }
     setQ('')
     setSelectedStudent(null)

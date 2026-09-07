@@ -156,20 +156,48 @@ export async function POST(req: NextRequest) {
   // Una clase particular no se da por hecha al asignarla — el alumno tiene
   // que pagarla desde su app antes de que cuente como confirmada. Lo mismo
   // para un alumno externo en un hueco normal: no es un compañero cubriendo
-  // gratis una falta, tiene que pagar la tarifa de externo. El resto de
-  // asignaciones manuales (alumno de la escuela en un hueco normal) siguen
-  // siendo gratis/inmediatas como hasta ahora.
+  // gratis una falta, tiene que pagar la tarifa de externo.
   const isPrivateLesson = (newSched as any)?.is_private === true
   const isExternalStudent = (studentExternalCheck as any)?.is_external === true
   const requiresPayment = isPrivateLesson || isExternalStudent
+
+  if (requiresPayment) {
+    const { data, error } = await admin
+      .from('bookings')
+      .insert({
+        schedule_id: scheduleId,
+        student_id: studentId,
+        status: 'pending',
+        source: 'admin',
+        class_date: classDate,
+        club_id: effectiveClubId ?? null,
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        return NextResponse.json({ error: 'Este alumno ya tiene una reserva para esta fecha' }, { status: 409 })
+      }
+      return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, bookingId: data.id })
+  }
+
+  // Alumno de la escuela en un hueco normal: esto SÍ tiene que gastar una
+  // clase de su bolsa, igual que si él mismo hubiera cogido el hueco desde
+  // la app — nunca se le regala en silencio. Si no tiene crédito, se corta
+  // aquí con un aviso claro en vez de dejar entrar al admin/monitor igual.
+  const durationMin = Math.round((new Date(newSched!.end_time).getTime() - new Date(newSched!.start_time).getTime()) / 60000)
+  const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
 
   const { data, error } = await admin
     .from('bookings')
     .insert({
       schedule_id: scheduleId,
       student_id: studentId,
-      status: requiresPayment ? 'pending' : 'confirmed',
-      source: 'admin',
+      status: 'confirmed',
+      source: 'bag',
       class_date: classDate,
       club_id: effectiveClubId ?? null,
     })
@@ -183,5 +211,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, bookingId: data.id })
+  const { data: debitResult, error: debitErr } = await admin.rpc('debit_class_bag_for_booking', {
+    p_user_id: studentId,
+    p_duration_type: durationType,
+    p_reason: `Plaza libre del ${classDate} (añadida por ${caller.role === 'coach' ? 'monitor' : 'admin'})`,
+    p_booking_id: data.id,
+  })
+
+  if (debitErr || debitResult?.error) {
+    await admin.from('bookings').delete().eq('id', data.id)
+    return NextResponse.json({ error: debitResult?.error ?? 'Este alumno no tiene clases disponibles en su bolsa' }, { status: 409 })
+  }
+
+  return NextResponse.json({ ok: true, bookingId: data.id, newBalance: debitResult.new_balance })
 }
