@@ -193,7 +193,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   // plaza que en realidad ya está completa, ni bloquear una que sí está libre.
   const [{ data: exclusionsForCapacity }, { data: bookingsForCapacity }] = await Promise.all([
     candidateIds.length
-      ? admin.from('group_enrollments').select('id, schedule_id, schedule_exclusions(excluded_date)').in('schedule_id', candidateIds).eq('status', 'active')
+      ? admin.from('group_enrollments').select('id, schedule_id, schedule_exclusions(excluded_date, publish_spot)').in('schedule_id', candidateIds).eq('status', 'active')
       : { data: [] },
     candidateIds.length
       ? admin.from('bookings').select('schedule_id, class_date').eq('status', 'confirmed').in('schedule_id', candidateIds)
@@ -208,6 +208,19 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
       b.schedule_id === scheduleId && b.class_date === classDate
     ).length
     return activeCount - absentCount + bookedCount
+  }
+
+  // Si el hueco de esa fecha lo abre una falta que el admin marcó como "no
+  // publicada" (la está gestionando él a mano, ej. metiendo a alguien
+  // concreto), no debe aparecer TAMPOCO por la vía de "capacidad libre" —
+  // antes solo se ocultaba de la lista de "ausencias", pero el cálculo
+  // numérico de plazas libres lo volvía a sacar igualmente, dejando que
+  // cualquiera se apuntara a una plaza que el admin ya había resuelto.
+  function hasUnpublishedOpening(scheduleId: string, classDate: string): boolean {
+    return (exclusionsForCapacity ?? []).some((e: any) =>
+      e.schedule_id === scheduleId &&
+      (e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === classDate && x.publish_spot === false)
+    )
   }
 
   const schedulesById: Record<string, any> = {}
@@ -235,7 +248,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
       .filter((classDate) => {
         const alreadyBooked = (mySpotBookings ?? []).some(b => b.schedule_id === scheduleId && b.class_date === classDate)
         const realCount = realAttendingCount(scheduleId, active.length, classDate)
-        return realCount < s.max_students && !alreadyBooked
+        return realCount < s.max_students && !alreadyBooked && !hasUnpublishedOpening(scheduleId, classDate)
       })
       .map((classDate) => ({
         spotType: 'capacity' as const,

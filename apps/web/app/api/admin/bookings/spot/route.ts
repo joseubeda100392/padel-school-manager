@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   // Overlap check
   const [{ data: newSched }, { data: studentExternalCheck }] = await Promise.all([
-    admin.from('schedules').select('start_time, end_time, is_private').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time, is_private, max_students').eq('id', scheduleId).single(),
     admin.from('users').select('is_external').eq('id', studentId).single(),
   ])
   if (newSched) {
@@ -119,6 +119,28 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
     if (otherBooking) {
       return NextResponse.json({ error: 'Esta clase particular ya tiene un alumno asignado ese día' }, { status: 409 })
+    }
+  } else {
+    // Aforo real de esa fecha: grupo fijo activo, menos quien falta ese día,
+    // más reservas puntuales ya confirmadas/pendientes — este endpoint no lo
+    // comprobaba en absoluto, dejando meter alumnos por encima de max_students
+    // sin avisar (ver incidente del 5/4 en un 4 plazas).
+    const maxStudents = (newSched as any)?.max_students as number | undefined
+    if (maxStudents) {
+      const [{ count: activeGroupCount }, { data: exclusionsThatDate }, { count: existingSpotCount }] = await Promise.all([
+        admin.from('group_enrollments').select('id', { count: 'exact', head: true }).eq('schedule_id', scheduleId).eq('status', 'active'),
+        admin
+          .from('schedule_exclusions')
+          .select('id, group_enrollment:group_enrollments!inner(schedule_id, status)')
+          .eq('excluded_date', classDate)
+          .eq('group_enrollment.schedule_id', scheduleId)
+          .eq('group_enrollment.status', 'active'),
+        admin.from('bookings').select('id', { count: 'exact', head: true }).eq('schedule_id', scheduleId).eq('class_date', classDate).neq('status', 'cancelled'),
+      ])
+      const realCount = (activeGroupCount ?? 0) - (exclusionsThatDate ?? []).length + (existingSpotCount ?? 0)
+      if (realCount >= maxStudents) {
+        return NextResponse.json({ error: 'Esta clase ya está completa ese día' }, { status: 409 })
+      }
     }
   }
 
