@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation'
 import { formatDate, formatCurrency, mostCommonMonthlyPrice } from '@/lib/utils'
 import { StudentLevelForm } from './student-level-form'
 import { BagAdjustForm } from './bag-adjust-form'
+import { BagHistoryList } from './bag-history-list'
 import { StudentEditForm } from './student-edit-form'
 import { StudentEnrollments } from './student-enrollments'
 import { StudentMakeups } from './student-makeups'
@@ -284,21 +285,10 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             </div>
             <BagAdjustForm studentId={student.id as string} balance60={bag?.balance_60 ?? 0} balance90={bag?.balance_90 ?? 0} />
 
-            {bagHistory && bagHistory.length > 0 && (
-              <div className="mt-4 border-t border-gray-100 pt-4">
-                <p className="mb-2 text-xs font-medium uppercase text-gray-400">Últimos movimientos</p>
-                <ul className="space-y-1.5">
-                  {bagHistory.map((t: any) => (
-                    <li key={t.id} className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600">{t.reason || 'Sin motivo'}</span>
-                      <span className={t.delta > 0 ? 'font-medium text-brand-500' : 'font-medium text-red-600'}>
-                        {t.delta > 0 ? '+' : ''}{t.delta}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <BagHistoryList
+              initial={(bagHistory ?? []).map((t: any) => ({ id: t.id, delta: t.delta, reason: t.reason }))}
+              canDelete={viewerRole === 'super_admin'}
+            />
           </div>
         )}
       </div>
