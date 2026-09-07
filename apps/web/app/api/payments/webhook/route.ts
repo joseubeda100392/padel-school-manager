@@ -89,15 +89,24 @@ export async function POST(req: NextRequest) {
     // Clase particular: la reserva ya existe (la creó el admin en 'pending'),
     // el pago solo la confirma — nunca se crea una reserva nueva aquí, así
     // que no hace falta re-chequear aforo (era 1 plaza para esta persona).
-    const { error: confirmErr } = await adminSupabase
+    const { data: confirmedRows, error: confirmErr } = await adminSupabase
       .from('bookings')
       .update({ status: 'confirmed', source: 'pay_per_class' })
       .eq('id', meta.booking_id)
       .eq('status', 'pending')
+      .select('id')
     if (confirmErr) {
       console.error('[webhook] private lesson booking confirm failed:', confirmErr.message)
       await revertToPending()
       return NextResponse.json({ error: 'booking_failed' }, { status: 500 })
+    }
+    // 0 filas afectadas = la reserva ya estaba confirmada (ej. el alumno
+    // pagó dos veces desde dos pestañas/sesiones de Redsys distintas). El
+    // dinero ya se ha cobrado igual en ambos casos — no se puede rechazar
+    // el pago a estas alturas — pero queda constancia para que el club
+    // revise si hay que reembolsar el duplicado.
+    if (!confirmedRows || confirmedRows.length === 0) {
+      console.error('[webhook] private lesson booking already confirmed — possible double payment, payment', payment.id, 'booking', meta.booking_id)
     }
 
   } else if (payment.type === 'single_class' && meta.schedule_id) {

@@ -63,6 +63,12 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Una clase particular es 1 a 1 siempre — el resto de la app (asignación
+  // de plazas, cálculo de precio) ya lo asume así independientemente de lo
+  // que llegue en max_students; se fuerza aquí también para que el dato
+  // guardado no diga otra cosa.
+  const isPrivate = body.recurrence === 'none' ? (body.is_private ?? false) : false
+
   const { data, error } = await admin.from('schedules').insert({
     court_id: body.court_id,
     coach_id: body.coach_id,
@@ -71,13 +77,13 @@ export async function POST(req: NextRequest) {
     end_time: body.end_time,
     recurrence: body.recurrence,
     recurrence_end_date: body.recurrence_end_date ?? null,
-    max_students: body.max_students,
+    max_students: isPrivate ? 1 : body.max_students,
     is_active: true,
     club_id: effectiveClubId,
     type: body.type ?? 'regular',
     price_cents: body.price_cents ?? null,
     intensivo_group_id: body.intensivo_group_id ?? null,
-    is_private: body.recurrence === 'none' ? (body.is_private ?? false) : false,
+    is_private: isPrivate,
   }).select('id').single()
 
   if (error) return NextResponse.json({ error: 'Error al crear el horario' }, { status: 500 })

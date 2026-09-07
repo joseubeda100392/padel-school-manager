@@ -107,73 +107,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Una clase particular es 1 a 1 — si esa fecha ya tiene a alguien
-  // asignado (pagado o pendiente de pago), no se puede meter a otro alumno más.
-  if ((newSched as any)?.is_private) {
-    const { data: otherBooking } = await admin
-      .from('bookings')
-      .select('id')
-      .eq('schedule_id', scheduleId)
-      .eq('class_date', classDate)
-      .neq('status', 'cancelled')
-      .maybeSingle()
-    if (otherBooking) {
-      return NextResponse.json({ error: 'Esta clase particular ya tiene un alumno asignado ese día' }, { status: 409 })
-    }
-  } else {
-    // Aforo real de esa fecha: grupo fijo activo, menos quien falta ese día,
-    // más reservas puntuales ya confirmadas/pendientes — este endpoint no lo
-    // comprobaba en absoluto, dejando meter alumnos por encima de max_students
-    // sin avisar (ver incidente del 5/4 en un 4 plazas).
-    const maxStudents = (newSched as any)?.max_students as number | undefined
-    if (maxStudents) {
-      const [{ count: activeGroupCount }, { data: exclusionsThatDate }, { count: existingSpotCount }] = await Promise.all([
-        admin.from('group_enrollments').select('id', { count: 'exact', head: true }).eq('schedule_id', scheduleId).eq('status', 'active'),
-        admin
-          .from('schedule_exclusions')
-          .select('id, group_enrollment:group_enrollments!inner(schedule_id, status)')
-          .eq('excluded_date', classDate)
-          .eq('group_enrollment.schedule_id', scheduleId)
-          .eq('group_enrollment.status', 'active'),
-        admin.from('bookings').select('id', { count: 'exact', head: true }).eq('schedule_id', scheduleId).eq('class_date', classDate).neq('status', 'cancelled'),
-      ])
-      const realCount = (activeGroupCount ?? 0) - (exclusionsThatDate ?? []).length + (existingSpotCount ?? 0)
-      if (realCount >= maxStudents) {
-        return NextResponse.json({ error: 'Esta clase ya está completa ese día' }, { status: 409 })
-      }
-    }
-  }
-
-  // Si este hueco lo abrió la falta (publicada) de otro alumno del grupo
-  // fijo, hay que marcarla como cubierta — si no, "Huecos Libres" la sigue
-  // anunciando a todo el mundo aunque ya la hayas rellenado tú a mano.
-  // El autoservicio del propio alumno (/api/bookings/spot) ya hacía esto;
-  // esta herramienta de admin/monitor no lo hacía nunca.
-  async function unpublishMatchingFalta() {
-    const { data: activeEnrollmentIds, error: enrollErr } = await admin
-      .from('group_enrollments')
-      .select('id')
-      .eq('schedule_id', scheduleId)
-      .eq('status', 'active')
-    if (enrollErr || !activeEnrollmentIds?.length) return
-
-    const { data: matchingExclusion, error: exclErr } = await admin
-      .from('schedule_exclusions')
-      .select('id')
-      .in('group_enrollment_id', activeEnrollmentIds.map((e: any) => e.id))
-      .eq('excluded_date', classDate)
-      .eq('publish_spot', true)
-      .limit(1)
-      .maybeSingle()
-    if (exclErr) {
-      console.error('[bookings/spot] unpublishMatchingFalta lookup failed:', exclErr.message)
-      return
-    }
-    if (matchingExclusion) {
-      await admin.from('schedule_exclusions').update({ publish_spot: false }).eq('id', matchingExclusion.id)
-    }
-  }
-
   // Limpiar fila cancelada previa si existe (legacy antes de borrado directo)
   await admin
     .from('bookings')
@@ -186,74 +119,32 @@ export async function POST(req: NextRequest) {
   // Una clase particular no se da por hecha al asignarla — el alumno tiene
   // que pagarla desde su app antes de que cuente como confirmada. Lo mismo
   // para un alumno externo en un hueco normal: no es un compañero cubriendo
-  // gratis una falta, tiene que pagar la tarifa de externo.
+  // gratis una falta, tiene que pagar la tarifa de externo. En cualquier
+  // otro caso, se cobra 1 clase de su bolsa — nunca se regala en silencio.
   const isPrivateLesson = (newSched as any)?.is_private === true
   const isExternalStudent = (studentExternalCheck as any)?.is_external === true
   const requiresPayment = isPrivateLesson || isExternalStudent
 
-  if (requiresPayment) {
-    const { data, error } = await admin
-      .from('bookings')
-      .insert({
-        schedule_id: scheduleId,
-        student_id: studentId,
-        status: 'pending',
-        source: 'admin',
-        class_date: classDate,
-        club_id: effectiveClubId ?? null,
-      })
-      .select('id')
-      .single()
-
-    if (error) {
-      if (error.code === '23505') {
-        return NextResponse.json({ error: 'Este alumno ya tiene una reserva para esta fecha' }, { status: 409 })
-      }
-      return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
-    }
-    await unpublishMatchingFalta()
-    return NextResponse.json({ ok: true, bookingId: data.id })
-  }
-
-  // Alumno de la escuela en un hueco normal: esto SÍ tiene que gastar una
-  // clase de su bolsa, igual que si él mismo hubiera cogido el hueco desde
-  // la app — nunca se le regala en silencio. Si no tiene crédito, se corta
-  // aquí con un aviso claro en vez de dejar entrar al admin/monitor igual.
-  const durationMin = Math.round((new Date(newSched!.end_time).getTime() - new Date(newSched!.start_time).getTime()) / 60000)
-  const durationType: '60' | '90' = durationMin >= 80 ? '90' : '60'
-
-  const { data, error } = await admin
-    .from('bookings')
-    .insert({
-      schedule_id: scheduleId,
-      student_id: studentId,
-      status: 'confirmed',
-      source: 'bag',
-      class_date: classDate,
-      club_id: effectiveClubId ?? null,
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    if (error.code === '23505') {
-      return NextResponse.json({ error: 'Este alumno ya tiene una reserva para esta fecha' }, { status: 409 })
-    }
-    return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
-  }
-
-  const { data: debitResult, error: debitErr } = await admin.rpc('debit_class_bag_for_booking', {
-    p_user_id: studentId,
-    p_duration_type: durationType,
+  // Aforo + inserción + cobro de bolsa + despublicar la falta cubierta, todo
+  // en una única transacción con bloqueo de fila — evita la carrera que
+  // dejaba pasar dos reservas simultáneas por encima de max_students (ver
+  // incidente del 5/4 en una clase de 4).
+  const { data: result, error: rpcErr } = await admin.rpc('admin_assign_spot_booking', {
+    p_schedule_id: scheduleId,
+    p_student_id: studentId,
+    p_class_date: classDate,
+    p_club_id: effectiveClubId ?? null,
+    p_charge_bag: !requiresPayment,
     p_reason: `Plaza libre del ${classDate} (añadida por ${caller.role === 'coach' ? 'monitor' : 'admin'})`,
-    p_booking_id: data.id,
   })
 
-  if (debitErr || debitResult?.error) {
-    await admin.from('bookings').delete().eq('id', data.id)
-    return NextResponse.json({ error: debitResult?.error ?? 'Este alumno no tiene clases disponibles en su bolsa' }, { status: 409 })
+  if (rpcErr) {
+    console.error('[bookings/spot] admin_assign_spot_booking failed:', rpcErr.message)
+    return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
+  }
+  if (result?.error) {
+    return NextResponse.json({ error: result.error }, { status: 409 })
   }
 
-  await unpublishMatchingFalta()
-  return NextResponse.json({ ok: true, bookingId: data.id, newBalance: debitResult.new_balance })
+  return NextResponse.json({ ok: true, bookingId: result.booking_id, newBalance: result.new_balance ?? undefined })
 }
