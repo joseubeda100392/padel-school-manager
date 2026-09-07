@@ -144,6 +144,26 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Si este hueco lo abrió la falta (publicada) de otro alumno del grupo
+  // fijo, hay que marcarla como cubierta — si no, "Huecos Libres" la sigue
+  // anunciando a todo el mundo aunque ya la hayas rellenado tú a mano.
+  // El autoservicio del propio alumno (/api/bookings/spot) ya hacía esto;
+  // esta herramienta de admin/monitor no lo hacía nunca.
+  async function unpublishMatchingFalta() {
+    const { data: matchingExclusion } = await admin
+      .from('schedule_exclusions')
+      .select('id, group_enrollment:group_enrollments!inner(schedule_id, status)')
+      .eq('excluded_date', classDate)
+      .eq('publish_spot', true)
+      .eq('group_enrollment.schedule_id', scheduleId)
+      .eq('group_enrollment.status', 'active')
+      .limit(1)
+      .maybeSingle()
+    if (matchingExclusion) {
+      await admin.from('schedule_exclusions').update({ publish_spot: false }).eq('id', matchingExclusion.id)
+    }
+  }
+
   // Limpiar fila cancelada previa si existe (legacy antes de borrado directo)
   await admin
     .from('bookings')
@@ -181,6 +201,7 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
     }
+    await unpublishMatchingFalta()
     return NextResponse.json({ ok: true, bookingId: data.id })
   }
 
@@ -223,5 +244,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: debitResult?.error ?? 'Este alumno no tiene clases disponibles en su bolsa' }, { status: 409 })
   }
 
+  await unpublishMatchingFalta()
   return NextResponse.json({ ok: true, bookingId: data.id, newBalance: debitResult.new_balance })
 }
