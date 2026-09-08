@@ -47,6 +47,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `La clase ya tiene ${schedule.max_students}/${schedule.max_students} plazas ocupadas.` }, { status: 409 })
   }
 
+  // Este chequeo de arriba solo mira cuántos fijos hay — no ve las reservas
+  // puntuales ya confirmadas para fechas concretas. Incidente real: una
+  // clase con 3 fijos tenía un hueco puntual ya cubierto por un alumno
+  // suelto (source 'bag') un día concreto; al meter a un 4º fijo (3 < 4,
+  // pasaba el chequeo de arriba) la clase quedó en 5 ese día sin que nadie
+  // se diera cuenta. Se comprueba también contra cualquier reserva puntual
+  // futura ya existente en este horario.
+  if (!alreadyEnrolled && schedule?.max_students) {
+    const TZ = 'Europe/Madrid'
+    const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
+    const { data: upcomingSpotBookings } = await admin
+      .from('bookings')
+      .select('class_date, student:users!bookings_student_id_fkey(name)')
+      .eq('schedule_id', scheduleId)
+      .neq('status', 'cancelled')
+      .not('class_date', 'is', null)
+      .gte('class_date', todaySpain)
+    if (upcomingSpotBookings?.length) {
+      const activeEnrollmentIds = (existingEnrollments ?? []).map((e: any) => e.student_id)
+      const { data: exclusionsForActive } = activeEnrollmentIds.length
+        ? await admin
+            .from('group_enrollments')
+            .select('id, schedule_exclusions(excluded_date)')
+            .eq('schedule_id', scheduleId)
+            .eq('status', 'active')
+        : { data: [] }
+      const newFixedCount = (existingEnrollments?.length ?? 0) + 1
+      for (const b of upcomingSpotBookings) {
+        const absentThatDate = (exclusionsForActive ?? []).filter((e: any) =>
+          (e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === b.class_date)
+        ).length
+        const bookedThatDate = upcomingSpotBookings.filter((x: any) => x.class_date === b.class_date).length
+        const realCount = newFixedCount - absentThatDate + bookedThatDate
+        if (realCount > schedule.max_students) {
+          return NextResponse.json({
+            error: `No se puede añadir como fijo: el ${b.class_date} ya hay una reserva puntual (${(b as any).student?.name ?? 'un alumno'}) que dejaría la clase en ${realCount}/${schedule.max_students}.`,
+          }, { status: 409 })
+        }
+      }
+    }
+  }
+
   if (adminUser.role !== 'super_admin') {
     if (!schedule || (schedule as any).club_id !== adminUser.club_id) {
       return NextResponse.json({ error: 'Sin permisos: clase no pertenece a tu club' }, { status: 403 })
