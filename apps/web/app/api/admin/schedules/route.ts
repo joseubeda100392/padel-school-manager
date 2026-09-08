@@ -130,6 +130,20 @@ export async function PATCH(req: NextRequest) {
   if (courtBusy) return NextResponse.json({ error: 'Ya existe una clase activa en esa pista a esa hora.' }, { status: 409 })
   if (coachBusy) return NextResponse.json({ error: 'El monitor ya tiene otra clase a esa hora.' }, { status: 409 })
 
+  // Bajar max_students por debajo de los fijos que ya hay dejaría la clase
+  // sobre-ocupada al instante, sin avisar a nadie — mismo tipo de fallo que
+  // ya hemos cerrado en "añadir alumno" y "añadir alumno fijo".
+  const { count: activeEnrollmentCount } = await admin
+    .from('group_enrollments')
+    .select('id', { count: 'exact', head: true })
+    .eq('schedule_id', body.id)
+    .eq('status', 'active')
+  if ((activeEnrollmentCount ?? 0) > body.max_students) {
+    return NextResponse.json({
+      error: `No se puede bajar a ${body.max_students} plazas: ya hay ${activeEnrollmentCount} alumnos fijos en esta clase.`,
+    }, { status: 409 })
+  }
+
   const { error } = await admin.from('schedules').update({
     court_id: body.court_id,
     coach_id: body.coach_id,
