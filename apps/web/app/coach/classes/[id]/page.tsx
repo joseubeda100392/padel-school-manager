@@ -145,7 +145,6 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
 
   const start = dateOverride?.new_start_time ?? schedule.start_time
   const end = dateOverride?.new_end_time ?? schedule.end_time
-  const groupCount = groupEnrollments?.length ?? 0
   const groupActiveOnDate = (groupEnrollments ?? []).filter((e: any) => {
     if (e.start_date && e.start_date > resolvedDate) return false
     if (e.end_date && e.end_date < resolvedDate) return false
@@ -243,7 +242,7 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
             scheduleId={params.id}
             sessionDate={todaySpain}
             sessionDateLabel={resolvedDateLabel}
-            students={(groupEnrollments ?? [])
+            students={groupActiveOnDate
               .map((e: any) => ({ id: e.student?.id, name: e.student?.name }))
               .filter((s: any) => s.id)}
             existingSession={existingSessionData}
@@ -251,14 +250,16 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
         </div>
       )}
 
-      {/* Grupo fijo */}
-      {groupCount > 0 && (
+      {/* Grupo fijo — solo quien está activo en la fecha que se está viendo:
+          un sustituto que aún no arranca o una baja ya efectiva ese día no
+          deben aparecer mezclados con quien sí va a esa clase en concreto. */}
+      {groupActiveOnDate.length > 0 && (
         <div className="mb-6 rounded-xl bg-white shadow-sm">
           <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="font-semibold text-gray-900">Grupo fijo <span className="ml-1 text-sm font-normal text-gray-400">({groupCount})</span></h2>
+            <h2 className="font-semibold text-gray-900">Grupo fijo <span className="ml-1 text-sm font-normal text-gray-400">({groupActiveOnDate.length})</span></h2>
           </div>
           <div className="divide-y divide-gray-50">
-            {(groupEnrollments ?? []).map((e: any) => {
+            {groupActiveOnDate.map((e: any) => {
               const s = e.student
               const initials = (s?.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
               const upcomingFaltas = exclusionsByEnrollment[e.id] ?? []

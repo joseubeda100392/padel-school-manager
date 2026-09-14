@@ -168,8 +168,19 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ,
   })
 
+  // El "Grupo fijo" que se muestra abajo tiene que ser el de la fecha que se
+  // está viendo (nextDate) — si no, un alumno con baja ya efectiva antes de
+  // esa fecha o un sustituto que aún no ha arrancado aparecen mezclados con
+  // los que sí van a esa clase en concreto, aunque el contador de arriba ya
+  // esté bien calculado.
+  const groupEnrollmentsForRoster = (groupEnrollments ?? []).filter((e: any) => {
+    if (e.start_date && e.start_date > nextDate) return false
+    if (e.end_date && e.end_date < nextDate) return false
+    return true
+  })
+
   const enrolledStudentIds = new Set(
-    (groupEnrollments ?? []).map((e: any) => e.student?.id).filter(Boolean)
+    groupEnrollmentsForRoster.map((e: any) => e.student?.id).filter(Boolean)
   )
   const spotAvailableStudents = (allStudents ?? [])
     .map((s: any) => ({ id: s.id, name: s.name, email: s.email }))
@@ -283,7 +294,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
             claseEntera60: (clubRow as any)?.config?.whole_class_price_60 ?? 0,
             claseEntera90: (clubRow as any)?.config?.whole_class_price_90 ?? 0,
           }}
-          initialEnrollments={(groupEnrollments ?? []).map((e: any) => ({
+          initialEnrollments={groupEnrollmentsForRoster.map((e: any) => ({
             id: e.id,
             monthly_price: e.monthly_price,
             price_per_class_cents: e.price_per_class_cents,
@@ -297,7 +308,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           }))}
           initialExclusions={exclusionsByEnrollment}
           availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
-          defaultMonthlyPrice={mostCommonMonthlyPrice(groupEnrollments ?? [])}
+          defaultMonthlyPrice={mostCommonMonthlyPrice(groupEnrollmentsForRoster)}
           enablePayments={paymentsActive}
           enableSpots={features.enable_spots}
           enableClassValidation={features.enable_class_validation}
