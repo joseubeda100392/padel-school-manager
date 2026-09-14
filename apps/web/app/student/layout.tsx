@@ -14,7 +14,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const admin = getAdminClient()
   const { data: userData, error: userError } = await admin
     .from('users')
-    .select('role, also_student, is_external, name, club_id, clubs(name), force_password_change')
+    .select('role, also_student, is_external, name, club_id, clubs(name, slug), force_password_change')
     .eq('id', user.id)
     .single()
 
@@ -38,6 +38,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   ])
 
   const clubName = (userData as any)?.clubs?.name ?? 'Tu Club'
+  const clubSlug = (userData as any)?.clubs?.slug ?? null
 
   if ((userData as any)?.force_password_change) {
     return <PasswordChangeGate clubName={clubName} />
@@ -66,6 +67,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       features={features}
       isAlsoCoach={role === 'coach'}
       hideSpots={(userData as any)?.is_external === true}
+      clubSlug={clubSlug}
     >
       {children}
     </StudentShell>

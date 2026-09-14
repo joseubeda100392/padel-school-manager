@@ -38,7 +38,7 @@ const allNavItems = [
   { href: '/student/ayuda', label: 'Ayuda', icon: HelpCircle, exact: false, feature: null },
 ]
 
-export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features, isAlsoCoach, hideSpots = false }: {
+export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features, isAlsoCoach, hideSpots = false, clubSlug = null }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
@@ -47,6 +47,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
   features?: ClubFeatures
   isAlsoCoach?: boolean
   hideSpots?: boolean
+  clubSlug?: string | null
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -160,6 +161,12 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-court-400 transition hover:bg-court-800 hover:text-white">
             Privacidad y datos
           </Link>
+          {clubSlug && (
+            <Link href={`/legal/${clubSlug}/aviso-legal`} target="_blank"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs text-court-400 transition hover:bg-court-800 hover:text-white">
+              Información legal
+            </Link>
+          )}
           <button onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-court-300 transition hover:bg-court-800 hover:text-white">
             <LogOut className="h-4 w-4" />
