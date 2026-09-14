@@ -53,8 +53,20 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
     .order('created_at', { ascending: false })
     .limit(200)
 
-  const [{ data: payments, error: errPayments }, unpaidResult] = await Promise.all([
+  // El total cobrado/nº de transacciones NO puede salir de la lista limitada
+  // a 200 filas de arriba (esa solo es para pintar la tabla) — un club con
+  // más de 200 pagos en el mes (caso real: 338 en R3 Mejorada) se quedaba
+  // corto en el total mostrado, sin avisar de que faltaban transacciones
+  // por sumar. Se calcula aparte, sin límite.
+  const totalsQuery = admin
+    .from('payments')
+    .select('amount, status', { count: 'exact' })
+    .gte('created_at', startOfMonth)
+    .lte('created_at', endOfMonth)
+
+  const [{ data: payments, error: errPayments }, { data: allPayments, count: totalCount }, unpaidResult] = await Promise.all([
     clubId ? baseQuery.eq('club_id', clubId) : baseQuery,
+    clubId ? totalsQuery.eq('club_id', clubId) : totalsQuery,
     billingActive
       ? admin.rpc('get_pending_payments', {
           p_club_id: clubId ?? null,
@@ -65,7 +77,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   ])
 
   const errUnpaid = (unpaidResult as any).error ?? null
-  const total = payments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
+  const total = allPayments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
+  const transactionCount = totalCount ?? payments?.length ?? 0
+  const listIsTruncated = transactionCount > (payments?.length ?? 0)
 
   const rawUnpaid: any[] = billingActive ? ((unpaidResult.data as any[]) ?? []) : []
   const pendingAmount = rawUnpaid.reduce((acc, u: any) => acc + (u.monthly_price ?? 0), 0)
@@ -96,7 +110,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Pagos</h1>
-          <p className="text-sm text-gray-500">{payments?.length ?? 0} transacciones en {monthLabel}</p>
+          <p className="text-sm text-gray-500">{transactionCount} transacciones en {monthLabel}</p>
         </div>
         <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/payments" maxYear={defaultBilling.year} maxMonth={defaultBilling.month0} />
       </div>
@@ -120,7 +134,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
         </div>
         <div className="rounded-xl border-l-4 border-l-blue-500 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Transacciones</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{payments?.length ?? 0}</p>
+          <p className="mt-2 text-2xl font-bold text-gray-900">{transactionCount}</p>
         </div>
       </div>
 
@@ -141,6 +155,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
 
       <div>
         <h2 className="mb-4 font-semibold text-gray-900">Transacciones — {monthLabel}</h2>
+        {listIsTruncated && (
+          <p className="mb-3 rounded-lg bg-yellow-50 px-4 py-2 text-xs text-yellow-800">
+            Mostrando las {payments?.length ?? 0} más recientes de {transactionCount} — los totales de arriba sí cuentan todas.
+          </p>
+        )}
         <PaymentsTable payments={payments ?? []} />
       </div>
     </div>
