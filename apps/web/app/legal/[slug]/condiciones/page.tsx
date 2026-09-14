@@ -58,9 +58,14 @@ export default async function CondicionesPage({ params }: { params: { slug: stri
 
       <LegalSection title="Bajas de alumnos fijos">
         <p>
-          Un alumno inscrito en un grupo fijo puede solicitar su baja para el mes siguiente en cualquier momento. La
-          cuota ya abonada del mes en curso no es reembolsable, salvo circunstancias excepcionales que el club valorará
-          de forma individual.
+          Un alumno inscrito en un grupo fijo puede solicitar su baja comunicándolo antes del día 15 del mes en curso,
+          y la baja será efectiva a partir del mes siguiente. Si la solicitud se realiza el día 15 o después, la baja
+          será efectiva a partir del segundo mes siguiente (es decir, se debe abonar también la cuota del mes
+          inmediatamente posterior).
+        </p>
+        <p>
+          La cuota ya abonada del mes en curso no es reembolsable, salvo circunstancias excepcionales que el club
+          valorará de forma individual.
         </p>
       </LegalSection>
 
