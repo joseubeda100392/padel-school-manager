@@ -88,7 +88,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       .order('class_date'),
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, price_per_class_cents, court_pricing, discount_classes_pending, paid_until, status, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
+      .select('id, monthly_price, price_per_class_cents, court_pricing, discount_classes_pending, paid_until, status, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
       .eq('schedule_id', params.id)
       .eq('status', 'active')
       .order('enrolled_at'),
@@ -157,6 +157,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
   // For the counter: only the next occurrence, excluding group members with falta that day
   const nextDateSpots = spotBookings.filter((b: any) => b.class_date === nextDate)
   const groupAttendingNextDate = (groupEnrollments ?? []).filter((e: any) => {
+    if (e.start_date && e.start_date > nextDate) return false
+    if (e.end_date && e.end_date < nextDate) return false
     const excls = exclusionsByEnrollment[e.id] ?? []
     return !excls.some((x: any) => x.excluded_date === nextDate)
   }).length

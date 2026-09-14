@@ -122,7 +122,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
         court:courts(name),
         level:levels(id, name, color),
         coach:users!schedules_coach_id_fkey(name),
-        enrollments:group_enrollments(student_id, status)
+        enrollments:group_enrollments(student_id, status, start_date, end_date)
       `)
       .eq('club_id', myClubId ?? ''),
     admin
@@ -205,7 +205,13 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
       : { data: [] },
   ])
 
-  function realAttendingCount(scheduleId: string, activeCount: number, classDate: string): number {
+  // activeEnrollments se filtra por start_date/end_date respecto a
+  // classDate — un sustituto con alta futura o una baja ya efectiva ese día
+  // no deben contar como ocupando plaza esa fecha concreta.
+  function realAttendingCount(scheduleId: string, activeEnrollments: any[], classDate: string): number {
+    const activeCount = activeEnrollments.filter((e: any) =>
+      (!e.start_date || e.start_date <= classDate) && (!e.end_date || e.end_date >= classDate)
+    ).length
     const absentCount = (exclusionsForCapacity ?? []).filter((e: any) =>
       e.schedule_id === scheduleId && (e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === classDate)
     ).length
@@ -238,8 +244,8 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   // card no debe seguir anunciándose solo porque su publish_spot no se
   // haya actualizado — se revalida contra el aforo real, no solo el flag.
   const absenceSpots = absenceCandidates.filter(spot => {
-    const activeCount = ((schedulesById[spot.scheduleId]?.enrollments ?? []) as any[]).filter((e: any) => e.status === 'active').length
-    return realAttendingCount(spot.scheduleId, activeCount, spot.excludedDate) < spot.maxStudents
+    const active = ((schedulesById[spot.scheduleId]?.enrollments ?? []) as any[]).filter((e: any) => e.status === 'active')
+    return realAttendingCount(spot.scheduleId, active, spot.excludedDate) < spot.maxStudents
   })
 
   const capacitySpots = candidateIds.flatMap((scheduleId) => {
@@ -263,7 +269,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
     return occurrencesBySchedule[scheduleId]
       .filter((classDate) => {
         const alreadyBooked = (mySpotBookings ?? []).some(b => b.schedule_id === scheduleId && b.class_date === classDate)
-        const realCount = realAttendingCount(scheduleId, active.length, classDate)
+        const realCount = realAttendingCount(scheduleId, active, classDate)
         return realCount < s.max_students && !alreadyBooked && !hasUnpublishedOpening(scheduleId, classDate)
       })
       .map((classDate) => ({
@@ -281,7 +287,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
         coachName: (s.coach as any)?.name ?? null,
         maxStudents: s.max_students,
         level: s.level as any,
-        enrolledCount: realAttendingCount(scheduleId, active.length, classDate),
+        enrolledCount: realAttendingCount(scheduleId, active, classDate),
       }))
   }).sort((a, b) => a.excludedDate.localeCompare(b.excludedDate))
 

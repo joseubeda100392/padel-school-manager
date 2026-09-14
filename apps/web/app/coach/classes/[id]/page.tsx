@@ -52,7 +52,7 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
   ] = await Promise.all([
     admin
       .from('group_enrollments')
-      .select('id, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
+      .select('id, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
       .eq('schedule_id', params.id)
       .eq('status', 'active')
       .order('enrolled_at'),
@@ -146,8 +146,13 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
   const start = dateOverride?.new_start_time ?? schedule.start_time
   const end = dateOverride?.new_end_time ?? schedule.end_time
   const groupCount = groupEnrollments?.length ?? 0
-  const absentOnDateCount = (groupEnrollments ?? []).filter((e: any) => (exclusionsByEnrollment[e.id] ?? []).includes(resolvedDate)).length
-  const groupAttendingOnDate = groupCount - absentOnDateCount
+  const groupActiveOnDate = (groupEnrollments ?? []).filter((e: any) => {
+    if (e.start_date && e.start_date > resolvedDate) return false
+    if (e.end_date && e.end_date < resolvedDate) return false
+    return true
+  })
+  const absentOnDateCount = groupActiveOnDate.filter((e: any) => (exclusionsByEnrollment[e.id] ?? []).includes(resolvedDate)).length
+  const groupAttendingOnDate = groupActiveOnDate.length - absentOnDateCount
   const bookingCount = bookings?.length ?? 0
   const enrolled = groupAttendingOnDate + bookingCount
 

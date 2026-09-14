@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     admin.from('schedules').select('level_id, start_time, end_time, recurrence_end_date, club_id, max_students').eq('id', scheduleId).single(),
     admin.from('users').select('current_level_id, club_id').eq('id', studentId).single(),
     admin.from('group_enrollments')
-      .select('student_id, student:users!group_enrollments_student_id_fkey(current_level_id)')
+      .select('student_id, start_date, end_date, student:users!group_enrollments_student_id_fkey(current_level_id)')
       .eq('schedule_id', scheduleId)
       .eq('status', 'active'),
     admin.from('group_enrollments')
@@ -42,8 +42,18 @@ export async function POST(req: NextRequest) {
       .neq('schedule_id', scheduleId),
   ])
 
+  // Un enrollment 'active' con baja programada (end_date en el pasado ya
+  // procesado no debería existir, pero uno con end_date futuro sigue
+  // ocupando su plaza hasta que el cron lo quite) o con start_date futuro
+  // (sustituto aún no arrancado) no debe contarse fuera de su ventana real —
+  // se filtra por "hoy" para el aforo inmediato.
+  const TZ0 = 'Europe/Madrid'
+  const todaySpain0 = new Intl.DateTimeFormat('en-CA', { timeZone: TZ0 }).format(new Date())
+  const activeTodayEnrollments = (existingEnrollments ?? []).filter((e: any) =>
+    (!e.start_date || e.start_date <= todaySpain0) && (!e.end_date || e.end_date >= todaySpain0)
+  )
   const alreadyEnrolled = (existingEnrollments ?? []).some((e: any) => e.student_id === studentId)
-  if (!alreadyEnrolled && schedule?.max_students && (existingEnrollments?.length ?? 0) >= schedule.max_students) {
+  if (!alreadyEnrolled && schedule?.max_students && activeTodayEnrollments.length >= schedule.max_students) {
     return NextResponse.json({ error: `La clase ya tiene ${schedule.max_students}/${schedule.max_students} plazas ocupadas.` }, { status: 409 })
   }
 
@@ -69,17 +79,23 @@ export async function POST(req: NextRequest) {
       const { data: exclusionsForActive } = activeEnrollmentIds.length
         ? await admin
             .from('group_enrollments')
-            .select('id, schedule_exclusions(excluded_date)')
+            .select('id, start_date, end_date, schedule_exclusions(excluded_date)')
             .eq('schedule_id', scheduleId)
             .eq('status', 'active')
         : { data: [] }
-      const newFixedCount = (existingEnrollments?.length ?? 0) + 1
       for (const b of upcomingSpotBookings) {
+        // Fijos activos justo en la fecha de esta reserva puntual (respeta
+        // start_date/end_date — un sustituto que aún no arranca o una baja
+        // ya efectiva ese día no deben contar).
+        const fixedActiveThatDate = (exclusionsForActive ?? []).filter((e: any) =>
+          (!e.start_date || e.start_date <= b.class_date) && (!e.end_date || e.end_date >= b.class_date)
+        ).length
         const absentThatDate = (exclusionsForActive ?? []).filter((e: any) =>
+          (!e.start_date || e.start_date <= b.class_date) && (!e.end_date || e.end_date >= b.class_date) &&
           (e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === b.class_date)
         ).length
         const bookedThatDate = upcomingSpotBookings.filter((x: any) => x.class_date === b.class_date).length
-        const realCount = newFixedCount - absentThatDate + bookedThatDate
+        const realCount = fixedActiveThatDate + 1 - absentThatDate + bookedThatDate
         if (realCount > schedule.max_students) {
           return NextResponse.json({
             error: `No se puede añadir como fijo: el ${b.class_date} ya hay una reserva puntual (${(b as any).student?.name ?? 'un alumno'}) que dejaría la clase en ${realCount}/${schedule.max_students}.`,

@@ -132,13 +132,19 @@ export async function PATCH(req: NextRequest) {
 
   // Bajar max_students por debajo de los fijos que ya hay dejaría la clase
   // sobre-ocupada al instante, sin avisar a nadie — mismo tipo de fallo que
-  // ya hemos cerrado en "añadir alumno" y "añadir alumno fijo".
-  const { count: activeEnrollmentCount } = await admin
+  // ya hemos cerrado en "añadir alumno" y "añadir alumno fijo". Solo cuentan
+  // los fijos activos hoy (un sustituto con start_date futuro o una baja ya
+  // con end_date pasado no deben contar como ocupando plaza ahora mismo).
+  const { data: enrollmentsForGuard } = await admin
     .from('group_enrollments')
-    .select('id', { count: 'exact', head: true })
+    .select('start_date, end_date')
     .eq('schedule_id', body.id)
     .eq('status', 'active')
-  if ((activeEnrollmentCount ?? 0) > body.max_students) {
+  const todaySpainGuard = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const activeEnrollmentCount = (enrollmentsForGuard ?? []).filter((e: any) =>
+    (!e.start_date || e.start_date <= todaySpainGuard) && (!e.end_date || e.end_date >= todaySpainGuard)
+  ).length
+  if (activeEnrollmentCount > body.max_students) {
     return NextResponse.json({
       error: `No se puede bajar a ${body.max_students} plazas: ya hay ${activeEnrollmentCount} alumnos fijos en esta clase.`,
     }, { status: 409 })

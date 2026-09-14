@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: '*/15 * * * *'
     - cron: '0 3 * * *'
+    - cron: '0 4 * * *'
   workflow_dispatch: {}
 
 jobs:
@@ -23,4 +24,13 @@ jobs:
       - name: Call sync-playtomic-levels
         run: |
           curl -sf -X POST "https://epadelschool.app/api/cron/sync-playtomic-levels" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  process-bajas:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 4 * * *'
+    steps:
+      - name: Call process-bajas
+        run: |
+          curl -sf -X POST "https://epadelschool.app/api/cron/process-bajas" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

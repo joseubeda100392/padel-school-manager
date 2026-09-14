@@ -11,6 +11,7 @@ import { BagAdjustForm } from './bag-adjust-form'
 import { BagHistoryList } from './bag-history-list'
 import { StudentEditForm } from './student-edit-form'
 import { StudentEnrollments } from './student-enrollments'
+import { CausarBajaButton } from './causar-baja-button'
 import { StudentMakeups } from './student-makeups'
 import { NotificationList } from '@/app/student/notifications/notification-list'
 import { StudentObjectives } from './student-objectives'
@@ -73,6 +74,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     { data: checklists },
     features,
     { data: clubRow },
+    { data: otherStudents },
   ] = await Promise.all([
     admin
       .from('users')
@@ -127,6 +129,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     clubId
       ? admin.from('clubs').select('config').eq('id', clubId).single()
       : Promise.resolve({ data: null }),
+    (clubId
+      ? admin.from('users').select('id, name, email').eq('role', 'student').eq('is_active', true).neq('id', params.id).eq('club_id', clubId).order('name')
+      : admin.from('users').select('id, name, email').eq('role', 'student').eq('is_active', true).neq('id', params.id).order('name')),
   ])
 
   if (studentError || !student) {
@@ -174,6 +179,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     )
   }
   const discountCents = (clubRow as any)?.config?.standard_discount_cents ?? 4000
+  const pendingBajaDate = (enrollments ?? []).find((e: any) => e.end_date)?.end_date ?? null
 
   return (
     <div className="max-w-4xl">
@@ -232,6 +238,17 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           is_premium_private_coach: (student as any).is_premium_private_coach ?? false,
         }} isSuperAdmin={viewerRole === 'super_admin'} enablePrivateLessons={features.enable_private_lessons} />
       </div>
+
+      {actsAsStudent && (student as any).role === 'student' && (
+        <div className="mb-6 flex justify-end">
+          <CausarBajaButton
+            studentId={student.id as string}
+            hasFixedEnrollments={(enrollments ?? []).length > 0}
+            pendingBajaDate={pendingBajaDate}
+            availableStudents={(otherStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
+          />
+        </div>
+      )}
 
       {actsAsStudent && (
         <div className="mb-6">
