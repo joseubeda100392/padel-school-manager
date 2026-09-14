@@ -823,7 +823,15 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
                     ['Cookies', 'cookies'],
                   ].map(([label, path]) => (
                     <li key={path}>
-                      {label}: <span className="font-mono text-gray-600">https://epadelschool.app/legal/{clubSlug}/{path}</span>
+                      {label}:{' '}
+                      <a
+                        href={`https://epadelschool.app/legal/${clubSlug}/${path}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-brand-600 underline hover:text-brand-700"
+                      >
+                        https://epadelschool.app/legal/{clubSlug}/{path}
+                      </a>
                     </li>
                   ))}
                 </ul>
