@@ -291,6 +291,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
             discount_classes_pending: e.discount_classes_pending,
             paid_until: e.paid_until,
             status: e.status,
+            start_date: e.start_date,
+            end_date: e.end_date,
             student: { id: e.student?.id, name: e.student?.name, email: e.student?.email },
           }))}
           initialExclusions={exclusionsByEnrollment}

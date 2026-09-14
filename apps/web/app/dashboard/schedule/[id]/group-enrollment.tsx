@@ -14,6 +14,8 @@ interface Enrollment {
   discount_classes_pending?: number
   paid_until: string | null
   status: string
+  start_date?: string | null
+  end_date?: string | null
   student: { id: string; name: string; email: string }
 }
 
@@ -399,6 +401,9 @@ export default function GroupEnrollment({
             // se está consultando (si ya pasó) desaparecería de la vista.
             const myExclusions = exclusions[e.id] ?? []
             const showFaltaForm = faltaFormId === e.id
+            const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+            const isPendingBaja = !!e.end_date
+            const isPendingAlta = !!e.start_date && e.start_date > todayStr
 
             return (
               <div key={e.id} className="px-6 py-4">
@@ -406,6 +411,20 @@ export default function GroupEnrollment({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{e.student.name}</p>
                     <p className="text-xs text-gray-400">{e.student.email}</p>
+                    {(isPendingBaja || isPendingAlta) && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {isPendingBaja && (
+                          <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                            Baja programada: {new Date(e.end_date + 'T12:00:00').toLocaleDateString('es-ES')}
+                          </span>
+                        )}
+                        {isPendingAlta && (
+                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
+                            Sustituto — entra el {new Date(e.start_date + 'T12:00:00').toLocaleDateString('es-ES')}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {enablePayments && (editingPriceId === e.id ? (
