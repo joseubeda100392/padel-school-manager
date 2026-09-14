@@ -60,6 +60,13 @@ const DEFAULT_CONFIG = {
   private_lesson_pack_classes_60_premium_external: 0,
   private_lesson_pack_price_90_premium_external: 0,
   private_lesson_pack_classes_90_premium_external: 0,
+  // Datos legales del club — para las páginas públicas /legal/[slug]/... que
+  // pide el banco al dar de alta el TPV (razón social, CIF, políticas).
+  legal_company_name: '',
+  legal_cif: '',
+  legal_address: '',
+  legal_email: '',
+  legal_phone: '',
 }
 
 async function getEffectiveCaller() {
@@ -98,7 +105,10 @@ export async function PATCH(req: NextRequest) {
   // Todas las claves de DEFAULT_CONFIG son numéricas salvo estas dos strings
   // — se deriva la lista en vez de mantener un array literal que hay que
   // recordar de ampliar cada vez que se añade un precio nuevo.
-  const stringKeys = new Set(['school_name', 'billing_start_date'])
+  const stringKeys = new Set([
+    'school_name', 'billing_start_date',
+    'legal_company_name', 'legal_cif', 'legal_address', 'legal_email', 'legal_phone',
+  ])
   const numericKeys = Object.keys(DEFAULT_CONFIG).filter(key => !stringKeys.has(key))
   const updates: Record<string, number | string> = {}
   for (const key of Object.keys(DEFAULT_CONFIG)) {

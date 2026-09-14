@@ -101,6 +101,11 @@ interface AppConfig {
   private_lesson_pack_classes_60_premium_external: number
   private_lesson_pack_price_90_premium_external: number
   private_lesson_pack_classes_90_premium_external: number
+  legal_company_name: string
+  legal_cif: string
+  legal_address: string
+  legal_email: string
+  legal_phone: string
 }
 
 const defaults: AppConfig = {
@@ -152,6 +157,11 @@ const defaults: AppConfig = {
   private_lesson_pack_classes_60_premium_external: 0,
   private_lesson_pack_price_90_premium_external: 0,
   private_lesson_pack_classes_90_premium_external: 0,
+  legal_company_name: '',
+  legal_cif: '',
+  legal_address: '',
+  legal_email: '',
+  legal_phone: '',
 }
 
 function intVal(s: string): number {
@@ -204,7 +214,7 @@ function CountField({ label, value, onChange }: { label: string; value: number; 
   )
 }
 
-export function SettingsClient({ clubId, userId }: { clubId: string | null; userId: string }) {
+export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | null; userId: string; clubSlug: string | null }) {
   const router = useRouter()
   const [config, setConfig] = useState<AppConfig>(defaults)
   const [loading, setLoading] = useState(true)
@@ -762,6 +772,67 @@ export function SettingsClient({ clubId, userId }: { clubId: string | null; user
       )}
 
       {/* Tab: Pagos */}
+      {activeTab === 'pagos' && (
+        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="mb-1 font-semibold text-gray-900">Datos legales</h2>
+          <p className="mb-5 text-xs text-gray-400">
+            Tu banco los pide al dar de alta el TPV: razón social, CIF y contacto para las páginas públicas de política de devolución/cancelación, privacidad y cookies.
+          </p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Razón social</label>
+                <input type="text" value={config.legal_company_name} onChange={e => setConfig({ ...config, legal_company_name: e.target.value })}
+                  placeholder="Ej: PAD&FIT SERVICIES S.L" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">CIF / NIF</label>
+                <input type="text" value={config.legal_cif} onChange={e => setConfig({ ...config, legal_cif: e.target.value })}
+                  placeholder="Ej: B-86289824" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Dirección</label>
+              <input type="text" value={config.legal_address} onChange={e => setConfig({ ...config, legal_address: e.target.value })}
+                placeholder="Calle, número, código postal, localidad" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Email de contacto</label>
+                <input type="email" value={config.legal_email} onChange={e => setConfig({ ...config, legal_email: e.target.value })}
+                  placeholder="contacto@tuclub.com" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Teléfono</label>
+                <input type="text" value={config.legal_phone} onChange={e => setConfig({ ...config, legal_phone: e.target.value })}
+                  placeholder="620108533" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+              </div>
+            </div>
+            {saveError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{saveError}</p>}
+            <button onClick={saveConfig} disabled={saving} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
+              {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar datos legales'}
+            </button>
+            {clubSlug && (
+              <div className="rounded-lg bg-gray-50 p-4 text-xs text-gray-500">
+                <p className="mb-1.5 font-medium text-gray-700">Enlaces para el banco:</p>
+                <ul className="space-y-1">
+                  {[
+                    ['Aviso legal', 'aviso-legal'],
+                    ['Condiciones de compra, cancelación y devolución', 'condiciones'],
+                    ['Privacidad', 'privacidad'],
+                    ['Cookies', 'cookies'],
+                  ].map(([label, path]) => (
+                    <li key={path}>
+                      {label}: <span className="font-mono text-gray-600">https://epadelschool.app/legal/{clubSlug}/{path}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {activeTab === 'pagos' && (
         <div className="rounded-xl bg-white p-6 shadow-sm">
           <h2 className="mb-1 font-semibold text-gray-900">TPV Redsys</h2>
