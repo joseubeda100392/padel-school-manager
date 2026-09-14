@@ -80,14 +80,16 @@ export async function DELETE(req: NextRequest) {
   const { data: callerProfile } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
   const isAdmin = ['admin', 'super_admin', 'coach'].includes(callerProfile?.role ?? '')
 
-  // Admins can cancel any booking; students only their own
+  // Admins can cancel any booking; students only their own. NOTA: no se
+  // filtra por bookings.club_id aquí — se descubrió que varias vías de
+  // reserva puntual lo dejaban NULL, lo que hacía que un admin normal (no
+  // super_admin) nunca encontrase esas reservas para cancelarlas. El club
+  // real y fiable de una reserva es el de su horario, se comprueba aparte.
   let bookingQuery = admin.from('bookings').select('id, source, schedule_id, student_id, club_id, class_date').neq('status', 'cancelled')
   if (bookingId) {
     bookingQuery = bookingQuery.eq('id', bookingId)
     if (!isAdmin) {
       bookingQuery = bookingQuery.eq('student_id', user.id)
-    } else if (callerProfile?.role !== 'super_admin' && callerProfile?.club_id) {
-      bookingQuery = bookingQuery.eq('club_id', callerProfile.club_id)
     }
   } else {
     bookingQuery = bookingQuery.eq('schedule_id', scheduleId).eq('student_id', user.id)
@@ -96,25 +98,37 @@ export async function DELETE(req: NextRequest) {
 
   if (!booking) return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 })
 
-  // Coaches can only cancel bookings for classes they teach
-  if (callerProfile?.role === 'coach') {
+  // Coaches solo pueden cancelar reservas de sus propias clases; un admin
+  // normal (no super_admin) solo de clases de su club — ambos se comprueban
+  // contra el horario real, no contra bookings.club_id.
+  if (callerProfile?.role === 'coach' || (isAdmin && callerProfile?.role !== 'super_admin')) {
     const { data: scheduleOwner } = await admin
       .from('schedules')
-      .select('coach_id')
+      .select('coach_id, club_id')
       .eq('id', booking.schedule_id)
       .single()
-    if (!scheduleOwner || scheduleOwner.coach_id !== user.id) {
+    if (callerProfile?.role === 'coach' && (!scheduleOwner || scheduleOwner.coach_id !== user.id)) {
       return NextResponse.json({ error: 'Solo puedes cancelar reservas de tus propias clases' }, { status: 403 })
+    }
+    if (callerProfile?.role === 'admin' && (!scheduleOwner || scheduleOwner.club_id !== callerProfile.club_id)) {
+      return NextResponse.json({ error: 'Sin permisos para cancelar esta reserva' }, { status: 403 })
     }
   }
 
   const studentId = booking.student_id ?? user.id
 
+  // Igual que en la comprobación de permisos: si booking.club_id viniera
+  // NULL por cualquier motivo, se cae al club real del horario en vez de
+  // perder la cuota/reembolso en silencio.
+  const effectiveClubId = booking.club_id ?? (
+    await admin.from('schedules').select('club_id').eq('id', booking.schedule_id).single()
+  ).data?.club_id ?? null
+
   // Plazo de cancelación: solo autoservicio (no admin/coach) y solo reservas con fecha concreta
   if (!isAdmin && (booking as any).class_date) {
     const [{ data: sched }, { data: clubRow }] = await Promise.all([
       admin.from('schedules').select('start_time').eq('id', booking.schedule_id).single(),
-      admin.from('clubs').select('config').eq('id', booking.club_id).single(),
+      admin.from('clubs').select('config').eq('id', effectiveClubId).single(),
     ])
     if (sched) {
       const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
@@ -190,7 +204,7 @@ export async function DELETE(req: NextRequest) {
     // Crédito atómico — crea la fila de bolsa si no existía (antes el reembolso se perdía en silencio)
     const { data: creditResult, error: creditErr } = await admin.rpc('credit_class_bag', {
       p_user_id: studentId,
-      p_club_id: booking.club_id ?? null,
+      p_club_id: effectiveClubId,
       p_delta: 1,
       p_pack_type: durationType,
       p_reason: 'Cancelación de clase',

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 type SpotBooking = {
   id: string
@@ -22,12 +23,23 @@ export function SpotBookingsList({ bookings }: { bookings: SpotBooking[] }) {
   async function handleDelete(bookingId: string) {
     if (!confirm('¿Cancelar esta reserva puntual? Se devolverá el crédito al alumno.')) return
     setDeleting(bookingId)
-    await fetch('/api/bookings', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookingId, refundBag: true }),
-    })
-    window.location.reload()
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, refundBag: true }),
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        toast.error(json.error ?? 'No se pudo cancelar la reserva')
+        setDeleting(null)
+        return
+      }
+      window.location.reload()
+    } catch {
+      toast.error('Error de conexión')
+      setDeleting(null)
+    }
   }
 
   if (bookings.length === 0) return null

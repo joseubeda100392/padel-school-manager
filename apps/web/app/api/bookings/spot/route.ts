@@ -109,13 +109,13 @@ export async function POST(req: NextRequest) {
   if (existingBooking) {
     await admin
       .from('bookings')
-      .update({ status: 'confirmed', source: 'bag', updated_at: new Date().toISOString() })
+      .update({ status: 'confirmed', source: 'bag', club_id: (schedule as any).club_id, updated_at: new Date().toISOString() })
       .eq('id', existingBooking.id)
     bookingId = existingBooking.id
   } else {
     const { data: newBooking, error: bookErr } = await admin
       .from('bookings')
-      .insert({ schedule_id: scheduleId, student_id: user.id, status: 'confirmed', source: 'bag', class_date: exclusion.excluded_date })
+      .insert({ schedule_id: scheduleId, student_id: user.id, status: 'confirmed', source: 'bag', class_date: exclusion.excluded_date, club_id: (schedule as any).club_id })
       .select('id')
       .single()
 
