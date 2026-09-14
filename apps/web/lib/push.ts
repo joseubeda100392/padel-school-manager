@@ -26,10 +26,16 @@ export async function sendPushToUsers(
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
+  // club_id de cada destinatario — sin esto la notificación quedaba
+  // huérfana (nunca se limpiaba si algún día se borraba el club entero).
+  const { data: recipients } = await admin.from('users').select('id, club_id').in('id', userIds)
+  const clubIdByUser = new Map((recipients ?? []).map(r => [r.id, r.club_id]))
+
   // Persistir notificación en DB para cada usuario
   await admin.from('notifications').insert(
     userIds.map(userId => ({
       user_id: userId,
+      club_id: clubIdByUser.get(userId) ?? null,
       type: notificationType,
       title: payload.title,
       body: payload.body,
