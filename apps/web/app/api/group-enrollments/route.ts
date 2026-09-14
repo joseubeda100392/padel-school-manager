@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     .from('payments')
     .select('amount')
     .eq('user_id', studentId)
-    .eq('club_id', adminUser.club_id)
+    .eq('club_id', (schedule as any)?.club_id ?? null)
     .eq('type', 'fixed_group_month')
     .eq('status', 'succeeded')
     .gte('created_at', startOfMonth)
@@ -179,10 +179,14 @@ export async function POST(req: NextRequest) {
   const usesPerClassPricing = !!(pricePerClassCents || courtPricing)
   const startDate = schedule?.start_time ? firstBillableMonth(schedule.start_time, usesPerClassPricing) : null
 
+  // El club de la inscripción es el del propio horario, no el del admin
+  // logueado — para un super_admin gestionando otro club, adminUser.club_id
+  // suele ser NULL (no está atado a un club), y esto dejaba la inscripción
+  // sin club_id, huérfana para cualquier consulta que sí filtre por club.
   const { data, error } = await admin.from('group_enrollments').upsert({
     schedule_id: scheduleId,
     student_id: studentId,
-    club_id: adminUser.club_id,
+    club_id: (schedule as any)?.club_id ?? null,
     monthly_price: monthlyPrice ?? 0,
     price_per_class_cents: pricePerClassCents ?? null,
     court_pricing: courtPricing ?? null,

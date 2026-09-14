@@ -17,16 +17,17 @@ export async function POST(req: NextRequest) {
   const { studentId, title } = await req.json()
   if (!studentId || !title?.trim()) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
 
-  if (caller.role !== 'super_admin') {
-    const { data: student } = await admin.from('users').select('club_id').eq('id', studentId).single()
-    if (!student || student.club_id !== caller.club_id) {
-      return NextResponse.json({ error: 'Alumno no pertenece a tu club' }, { status: 403 })
-    }
+  const { data: student } = await admin.from('users').select('club_id').eq('id', studentId).single()
+  if (caller.role !== 'super_admin' && (!student || student.club_id !== caller.club_id)) {
+    return NextResponse.json({ error: 'Alumno no pertenece a tu club' }, { status: 403 })
   }
 
+  // El club del checklist es el del propio alumno, no el del que lo crea —
+  // para un super_admin (sin club propio) esto evitaba que quedara con
+  // club_id NULL.
   const { data, error } = await admin
     .from('student_checklists')
-    .insert({ student_id: studentId, coach_id: user.id, club_id: caller.club_id, title: title.trim() })
+    .insert({ student_id: studentId, coach_id: user.id, club_id: student?.club_id ?? null, title: title.trim() })
     .select('id, title, created_at')
     .single()
 
