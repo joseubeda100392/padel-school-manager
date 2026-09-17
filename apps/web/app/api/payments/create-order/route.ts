@@ -370,7 +370,13 @@ export async function POST(req: NextRequest) {
   }
 
   const orderId = generateOrderId()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://padel-school-manager-production.up.railway.app'
+  // El dominio real por el que ha entrado el usuario (req.nextUrl.origin),
+  // no la variable de entorno — si NEXT_PUBLIC_APP_URL apunta a un dominio
+  // distinto del que se usó para iniciar sesión (ej. el dominio interno de
+  // Railway en vez de epadelschool.app), Redsys devuelve al alumno a un
+  // dominio donde su cookie de sesión no existe y parece que se ha
+  // "desconectado" justo después de pagar.
+  const appUrl = req.nextUrl.origin
 
   const merchantParams = buildMerchantParameters({
     DS_MERCHANT_MERCHANTCODE: merchantCode,
@@ -383,6 +389,11 @@ export async function POST(req: NextRequest) {
     DS_MERCHANT_URLOK: `${appUrl}/pay/success`,
     DS_MERCHANT_URLKO: `${appUrl}/pay/error`,
     DS_MERCHANT_PRODUCTDESCRIPTION: productDesc,
+    // "z" minúscula = ofrecer Bizum como alternativa a la tarjeta en la
+    // página de pago de Redsys (no sustituye la tarjeta, la complementa).
+    // No se aplica al alta de domiciliación (payment-mandates/mandate page)
+    // porque esa necesita tokenizar una tarjeta (COF), no vale con Bizum.
+    DS_MERCHANT_PAYMETHODS: 'z',
   })
 
   const signature = generateSignature(secretKey, orderId, merchantParams)

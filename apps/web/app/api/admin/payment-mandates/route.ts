@@ -107,7 +107,11 @@ export async function POST(req: NextRequest) {
   const env = club?.redsys_env ?? null
 
   const orderId = generateOrderId()
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://padelschoolmanager.com'
+  // Dominio real de la petición, no la variable de entorno — mismo motivo
+  // que en create-order: si NEXT_PUBLIC_APP_URL no coincide con el dominio
+  // donde el admin tiene la sesión iniciada, Redsys le devuelve a un sitio
+  // sin su cookie y parece que se ha desconectado.
+  const baseUrl = req.nextUrl.origin
 
   // Guardar el payment como pending para que el webhook lo identifique
   await admin.from('payments').insert({

@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 import {
   generateOrderId,
   buildMerchantParameters,
@@ -38,7 +39,12 @@ export default async function MandatePayPage({ params }: { params: { mandateId: 
     .contains('metadata', { mandate_id: mandate.id })
 
   const orderId = generateOrderId()
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  // Dominio real por el que se accedió a este enlace, no la variable de
+  // entorno — mismo motivo que en create-order.
+  const headersList = headers()
+  const host = headersList.get('x-forwarded-host') ?? headersList.get('host')
+  const proto = headersList.get('x-forwarded-proto') ?? 'https'
+  const baseUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL ?? '')
 
   await admin.from('payments').insert({
     user_id: mandate.user_id,
