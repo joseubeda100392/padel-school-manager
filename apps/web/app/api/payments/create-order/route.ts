@@ -389,11 +389,6 @@ export async function POST(req: NextRequest) {
     DS_MERCHANT_URLOK: `${appUrl}/pay/success`,
     DS_MERCHANT_URLKO: `${appUrl}/pay/error`,
     DS_MERCHANT_PRODUCTDESCRIPTION: productDesc,
-    // "z" minúscula = ofrecer Bizum como alternativa a la tarjeta en la
-    // página de pago de Redsys (no sustituye la tarjeta, la complementa).
-    // No se aplica al alta de domiciliación (payment-mandates/mandate page)
-    // porque esa necesita tokenizar una tarjeta (COF), no vale con Bizum.
-    DS_MERCHANT_PAYMETHODS: 'z',
   })
 
   const signature = generateSignature(secretKey, orderId, merchantParams)
