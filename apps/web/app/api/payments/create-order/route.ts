@@ -370,13 +370,14 @@ export async function POST(req: NextRequest) {
   }
 
   const orderId = generateOrderId()
-  // El dominio real por el que ha entrado el usuario (req.nextUrl.origin),
-  // no la variable de entorno — si NEXT_PUBLIC_APP_URL apunta a un dominio
-  // distinto del que se usó para iniciar sesión (ej. el dominio interno de
-  // Railway en vez de epadelschool.app), Redsys devuelve al alumno a un
-  // dominio donde su cookie de sesión no existe y parece que se ha
-  // "desconectado" justo después de pagar.
-  const appUrl = req.nextUrl.origin
+  // El dominio público real, leído de las cabeceras que pone el proxy de
+  // Railway (x-forwarded-host/proto) — NO req.nextUrl.origin, que detrás de
+  // ese proxy resuelve a la dirección interna del contenedor (localhost:8080,
+  // inalcanzable desde el navegador), ni NEXT_PUBLIC_APP_URL, que apunta a
+  // un dominio de Railway distinto del real (epadelschool.app).
+  const forwardedHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host')
+  const forwardedProto = req.headers.get('x-forwarded-proto') ?? 'https'
+  const appUrl = forwardedHost ? `${forwardedProto}://${forwardedHost}` : req.nextUrl.origin
 
   const merchantParams = buildMerchantParameters({
     DS_MERCHANT_MERCHANTCODE: merchantCode,

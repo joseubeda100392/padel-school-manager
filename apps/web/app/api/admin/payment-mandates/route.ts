@@ -107,11 +107,12 @@ export async function POST(req: NextRequest) {
   const env = club?.redsys_env ?? null
 
   const orderId = generateOrderId()
-  // Dominio real de la petición, no la variable de entorno — mismo motivo
-  // que en create-order: si NEXT_PUBLIC_APP_URL no coincide con el dominio
-  // donde el admin tiene la sesión iniciada, Redsys le devuelve a un sitio
-  // sin su cookie y parece que se ha desconectado.
-  const baseUrl = req.nextUrl.origin
+  // Dominio público real vía cabeceras del proxy — req.nextUrl.origin detrás
+  // de Railway resuelve a la dirección interna del contenedor (localhost),
+  // inalcanzable desde el navegador. Mismo fix que en create-order.
+  const forwardedHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host')
+  const forwardedProto = req.headers.get('x-forwarded-proto') ?? 'https'
+  const baseUrl = forwardedHost ? `${forwardedProto}://${forwardedHost}` : req.nextUrl.origin
 
   // Guardar el payment como pending para que el webhook lo identifique
   await admin.from('payments').insert({
