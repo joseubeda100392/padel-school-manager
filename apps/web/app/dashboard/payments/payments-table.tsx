@@ -43,9 +43,11 @@ function isPaid(p: any) {
   return p.status === 'completed' || p.status === 'succeeded'
 }
 
-// Códigos de respuesta de Redsys más comunes — para distinguir de un
-// vistazo un rechazo real del banco (0101-0913) de un fallo técnico/de
-// configuración nuestro (9xxx, "SIS...").
+// Códigos de respuesta de Redsys más comunes. Ojo: dentro del rango 9xxx
+// ("SIS...") hay de todo — desde errores técnicos/de configuración reales
+// (9064, 9093, 9104, 9912...) hasta estados totalmente normales que no son
+// culpa de nadie (9915 = el propio alumno canceló el pago). No se puede
+// asumir "9xxx = revisar configuración" sin más.
 const REDSYS_REASON: Record<string, string> = {
   '0101': 'Tarjeta caducada',
   '0102': 'Tarjeta en excepción transitoria',
@@ -59,13 +61,32 @@ const REDSYS_REASON: Record<string, string> = {
   '0190': 'Denegación sin motivo especificado',
   '0191': 'Fecha de caducidad errónea',
   '0202': 'Tarjeta en excepción transitoria o bajo sospecha de fraude',
+  '9064': 'Número de posiciones de la tarjeta incorrecto',
+  '9078': 'No existe método de pago válido para esa tarjeta',
+  '9093': 'Tarjeta no existente',
+  '9094': 'Rechazo de servidores internacionales',
+  '9104': 'El comercio tiene restricciones de titular seguro — revisar configuración',
+  '9218': 'El comercio no permite operaciones seguras por entrada — revisar configuración',
+  '9253': 'La tarjeta no cumple el check-digit',
+  '9256': 'El comercio no puede realizar preautorizaciones — revisar configuración',
+  '9257': 'Esta tarjeta no permite preautorizaciones',
+  '9261': 'Operación detenida por control de restricciones',
+  '9912': 'Emisor no disponible — reintentar más tarde',
+  '9913': 'Error en la confirmación del comercio',
+  '9914': 'Confirmación rechazada por el comercio',
+  '9915': 'El alumno canceló el pago antes de terminarlo',
+  '9928': 'Anulado automáticamente (proceso de Redsys)',
+  '9929': 'Anulado por el comercio',
+  '9997': 'Ya había otra operación en curso con esa misma tarjeta',
+  '9998': 'Operación en proceso de solicitud de datos de tarjeta',
+  '9999': 'Operación redirigida al banco para autenticar',
 }
 function redsysReason(code: string | undefined): string {
   if (!code) return ''
   if (REDSYS_REASON[code]) return REDSYS_REASON[code]
   const n = parseInt(code, 10)
-  if (n >= 900) return `Error técnico de la pasarela (código ${code}) — revisar configuración`
-  return `Rechazado por el banco (código ${code})`
+  if (n >= 100 && n < 900) return `Rechazado por el banco (código ${code})`
+  return `Código de Redsys ${code} (sin descripción registrada)`
 }
 
 export default function PaymentsTable({ payments }: { payments: any[] }) {
