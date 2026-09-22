@@ -64,9 +64,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, already_processed: true })
   }
 
+  // Se guarda el código de respuesta de Redsys siempre (éxito o fallo) — sin
+  // esto, ante un pago fallido no hay forma de saber después si fue un
+  // rechazo real del banco (fondos, CVV...) o un error técnico/de
+  // configuración nuestro (firma, parámetro mal enviado...): ambos casos se
+  // veían igual, solo como "failed".
   const { data: claimed } = await adminSupabase
     .from('payments')
-    .update({ status: success ? 'succeeded' : 'failed' })
+    .update({
+      status: success ? 'succeeded' : 'failed',
+      metadata: { ...(payment.metadata ?? {}), redsys_response_code: responseCode },
+    })
     .eq('id', payment.id)
     .eq('status', 'pending')
     .select('id')

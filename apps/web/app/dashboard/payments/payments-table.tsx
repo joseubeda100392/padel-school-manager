@@ -43,6 +43,31 @@ function isPaid(p: any) {
   return p.status === 'completed' || p.status === 'succeeded'
 }
 
+// Códigos de respuesta de Redsys más comunes — para distinguir de un
+// vistazo un rechazo real del banco (0101-0913) de un fallo técnico/de
+// configuración nuestro (9xxx, "SIS...").
+const REDSYS_REASON: Record<string, string> = {
+  '0101': 'Tarjeta caducada',
+  '0102': 'Tarjeta en excepción transitoria',
+  '0104': 'Operación no permitida para esa tarjeta',
+  '0116': 'Fondos insuficientes',
+  '0118': 'Tarjeta no registrada',
+  '0125': 'Tarjeta no efectiva',
+  '0129': 'Código de seguridad (CVV) incorrecto',
+  '0180': 'Tarjeta ajena al servicio',
+  '0184': 'Error en la autenticación del titular',
+  '0190': 'Denegación sin motivo especificado',
+  '0191': 'Fecha de caducidad errónea',
+  '0202': 'Tarjeta en excepción transitoria o bajo sospecha de fraude',
+}
+function redsysReason(code: string | undefined): string {
+  if (!code) return ''
+  if (REDSYS_REASON[code]) return REDSYS_REASON[code]
+  const n = parseInt(code, 10)
+  if (n >= 900) return `Error técnico de la pasarela (código ${code}) — revisar configuración`
+  return `Rechazado por el banco (código ${code})`
+}
+
 export default function PaymentsTable({ payments }: { payments: any[] }) {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
@@ -158,7 +183,10 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
                       {formatCurrency(p.amount, p.currency ?? 'EUR')}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                      <span
+                        title={p.status === 'failed' ? redsysReason(p.metadata?.redsys_response_code) : undefined}
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'} ${p.status === 'failed' && p.metadata?.redsys_response_code ? 'cursor-help' : ''}`}
+                      >
                         {statusLabel[p.status] ?? p.status}
                       </span>
                     </td>
