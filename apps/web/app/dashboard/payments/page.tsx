@@ -10,7 +10,7 @@ import { UnpaidList } from './unpaid-list'
 import { MonthNavigator } from './month-navigator'
 import { DevError } from '@/components/dev-error'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
-import { currentBillingMonth } from '@/lib/billing-cycle'
+import { currentBillingMonth, lastDayOfMonthStr } from '@/lib/billing-cycle'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -44,29 +44,41 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
 
   const startOfMonth = new Date(selectedYear, selectedMonth, 1).toISOString()
   const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999).toISOString()
+  // Cuota mensual: se contabiliza en el mes que CUBRE (metadata.paid_until),
+  // no en el mes en que se pagó — con adelantos, o un pago normal hecho en
+  // los últimos días de mes que ya salta al siguiente, pagar en junio la
+  // cuota de julio no debe inflar junio ni vaciar julio en el panel. Pagos
+  // antiguos sin ese campo (antes de este cambio) caen al criterio de
+  // siempre (created_at) como respaldo.
+  const targetPaidUntil = lastDayOfMonthStr(selectedYear, selectedMonth)
 
-  const baseQuery = admin
-    .from('payments')
-    .select('*, user:users(name, email)')
-    .gte('created_at', startOfMonth)
-    .lte('created_at', endOfMonth)
-    .order('created_at', { ascending: false })
-    .limit(200)
+  function withClub<T extends { eq: (col: string, val: string) => T }>(query: T): T {
+    return clubId ? query.eq('club_id', clubId) : query
+  }
 
-  // El total cobrado/nº de transacciones NO puede salir de la lista limitada
-  // a 200 filas de arriba (esa solo es para pintar la tabla) — un club con
-  // más de 200 pagos en el mes (caso real: 338 en R3 Mejorada) se quedaba
-  // corto en el total mostrado, sin avisar de que faltaban transacciones
-  // por sumar. Se calcula aparte, sin límite.
-  const totalsQuery = admin
-    .from('payments')
-    .select('amount, status', { count: 'exact' })
-    .gte('created_at', startOfMonth)
-    .lte('created_at', endOfMonth)
+  const cuotaByCoverageQuery = withClub(
+    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
+      .eq('type', 'fixed_group_month')
+      .eq('metadata->>paid_until', targetPaidUntil)
+  )
+  const cuotaLegacyQuery = withClub(
+    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
+      .eq('type', 'fixed_group_month')
+      .is('metadata->paid_until', null)
+      .gte('created_at', startOfMonth)
+      .lte('created_at', endOfMonth)
+  )
+  const otherTypesQuery = withClub(
+    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
+      .neq('type', 'fixed_group_month')
+      .gte('created_at', startOfMonth)
+      .lte('created_at', endOfMonth)
+  )
 
-  const [{ data: payments, error: errPayments }, { data: allPayments, count: totalCount }, unpaidResult] = await Promise.all([
-    clubId ? baseQuery.eq('club_id', clubId) : baseQuery,
-    clubId ? totalsQuery.eq('club_id', clubId) : totalsQuery,
+  const [cuotaByCoverageRes, cuotaLegacyRes, otherTypesRes, unpaidResult] = await Promise.all([
+    cuotaByCoverageQuery,
+    cuotaLegacyQuery,
+    otherTypesQuery,
     billingActive
       ? admin.rpc('get_pending_payments', {
           p_club_id: clubId ?? null,
@@ -76,10 +88,19 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
       : Promise.resolve({ data: [] as any[], error: null }),
   ])
 
+  const errPayments = cuotaByCoverageRes.error ?? cuotaLegacyRes.error ?? otherTypesRes.error
+  const allPayments = [
+    ...(cuotaByCoverageRes.data ?? []),
+    ...(cuotaLegacyRes.data ?? []),
+    ...(otherTypesRes.data ?? []),
+  ]
+  const totalCount = (cuotaByCoverageRes.count ?? 0) + (cuotaLegacyRes.count ?? 0) + (otherTypesRes.count ?? 0)
+  const payments = [...allPayments].sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200)
+
   const errUnpaid = (unpaidResult as any).error ?? null
-  const total = allPayments?.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0) ?? 0
-  const transactionCount = totalCount ?? payments?.length ?? 0
-  const listIsTruncated = transactionCount > (payments?.length ?? 0)
+  const total = allPayments.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0)
+  const transactionCount = totalCount
+  const listIsTruncated = transactionCount > payments.length
 
   const rawUnpaid: any[] = billingActive ? ((unpaidResult.data as any[]) ?? []) : []
   const pendingAmount = rawUnpaid.reduce((acc, u: any) => acc + (u.monthly_price ?? 0), 0)

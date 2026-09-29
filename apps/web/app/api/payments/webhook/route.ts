@@ -262,6 +262,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'enrollment_update_failed' }, { status: 500 })
     }
 
+    // Guardar qué mes cubre este pago en concreto (no solo en el enrollment,
+    // que puede cambiar con pagos posteriores) — el panel de Pagos lo usa
+    // para contabilizar la cuota en el mes que corresponde de verdad, no en
+    // el mes en que se pagó (relevante con adelantos, o con un pago normal
+    // hecho en los últimos días de mes que ya salta al siguiente).
+    await adminSupabase.from('payments').update({ metadata: { ...meta, paid_until: paidUntil } }).eq('id', payment.id)
+
     // Descuento puntual, no permanente: se cobró este mes ya con el precio
     // rebajado, se resetea para que el siguiente vuelva al precio normal.
     // Nunca debe tirar abajo la confirmación de un pago ya cobrado — si
