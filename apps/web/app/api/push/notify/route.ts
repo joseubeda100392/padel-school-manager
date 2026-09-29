@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { rateLimit } from '@/lib/rate-limit'
+import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 
 export async function POST(req: NextRequest) {
   const rl = rateLimit(req, 'push-notify', { limit: 5, windowMs: 10 * 60 * 1000 })
@@ -54,8 +55,9 @@ export async function POST(req: NextRequest) {
       userIds = (data ?? []).map((u: any) => u.id)
 
     } else if (target === 'payment_pending') {
-      const now = new Date()
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+      const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+      const [y, m] = todaySpain.split('-').map(Number)
+      const endOfMonth = lastDayOfMonthStr(y, m - 1)
 
       let q = admin
         .from('group_enrollments')

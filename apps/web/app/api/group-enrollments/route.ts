@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
-import { firstBillableMonth } from '@/lib/billing-cycle'
+import { firstBillableMonth, lastDayOfMonthStr } from '@/lib/billing-cycle'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -152,8 +152,18 @@ export async function POST(req: NextRequest) {
   // Solo se respeta si la cuota nueva es igual o más barata que lo ya
   // pagado — si es más cara, no se da por buena automáticamente para no
   // dejar de cobrar la diferencia (queda "sin pagar" y se marca a mano).
-  const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  // Fechas por texto ('YYYY-MM-DD'), nunca por Date().toISOString() — ese
+  // método serializa en UTC, y en un servidor con hora local por delante de
+  // UTC (Madrid en verano, UTC+2) "medianoche del día 1" se convierte al
+  // día anterior. Ver el mismo caso arreglado en create-order/route.ts.
+  const [nowYearStr, nowMonthStr] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()).split('-')
+  const nowYear = Number(nowYearStr)
+  const nowMonth0 = Number(nowMonthStr) - 1
+  // Margen de un par de horas alrededor de la medianoche del día 1 es
+  // aceptable aquí (solo decide si se respeta un pago ya hecho "este mes");
+  // lo importante es no fijar un offset +02:00 fijo que estaría mal medio
+  // año (horario de invierno es +01:00) — se deja en UTC sin más.
+  const startOfMonth = `${nowYear}-${nowMonthStr}-01`
   const { data: recentPayment } = await admin
     .from('payments')
     .select('amount')
@@ -168,7 +178,7 @@ export async function POST(req: NextRequest) {
 
   const alreadyCoversNewPrice = !!recentPayment && recentPayment.amount >= (monthlyPrice ?? 0)
   const paidUntil = alreadyCoversNewPrice
-    ? new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    ? lastDayOfMonthStr(nowYear, nowMonth0 + 1)
     : null
 
   // start_date marca desde qué mes debe dinero de verdad esta inscripción —

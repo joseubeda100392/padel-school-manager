@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
 
 const TZ = 'Europe/Madrid'
 
@@ -11,14 +12,19 @@ function todayInMadrid(): { year: number; month0: number; day: number } {
   return { year, month0: month - 1, day }
 }
 
+// Bug real encontrado: esta función ya calculaba bien el "hoy en Madrid",
+// pero luego lo tiraba por la ventana pasándolo por
+// new Date(...).toISOString() — ese método serializa en UTC, y en un
+// servidor con hora local por delante de UTC (Madrid en verano, UTC+2)
+// pierde un día. lastDayOfMonthStr/dateStr nunca pasan por UTC.
 function lastDayOfThisMonth(): string {
   const { year, month0 } = todayInMadrid()
-  return new Date(year, month0 + 1, 0).toISOString().split('T')[0]
+  return lastDayOfMonthStr(year, month0)
 }
 
 function firstDayOfNextMonth(): string {
   const { year, month0 } = todayInMadrid()
-  return new Date(year, month0 + 1, 1).toISOString().split('T')[0]
+  return dateStr(year, month0 + 1, 1)
 }
 
 // Causar baja para el mes que viene: al alumno saliente se le pone

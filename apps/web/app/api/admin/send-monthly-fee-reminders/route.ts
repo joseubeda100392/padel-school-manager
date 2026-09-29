@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { formatTime } from '@/lib/utils'
-import { currentBillingMonth } from '@/lib/billing-cycle'
+import { currentBillingMonth, lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
   // Mes de facturación efectivo, no el de calendario — a menos de 5 días de
   // fin de mes ya se considera el mes siguiente (ver lib/billing-cycle.ts).
   const billing = currentBillingMonth()
-  const endOfMonth = new Date(billing.year, billing.month0 + 1, 0).toISOString().split('T')[0]
-  const targetMonthStart = new Date(billing.year, billing.month0, 1).toISOString().split('T')[0]
+  const endOfMonth = lastDayOfMonthStr(billing.year, billing.month0)
+  const targetMonthStart = dateStr(billing.year, billing.month0, 1)
   const monthName = MONTH_NAMES[billing.month0]
   const year = billing.year
 

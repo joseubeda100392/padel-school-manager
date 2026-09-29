@@ -18,6 +18,21 @@ export function lastDayOfMonthStr(year: number, month0: number): string {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
+// Igual que lastDayOfMonthStr pero para un día cualquiera del mes (no solo
+// el último) — mismo motivo: nunca pasar por toISOString(). Si el día pedido
+// no existe en ese mes (ej. día 31 en un mes de 30), Date lo desborda al mes
+// siguiente solo/a; se recorta al último día real del mes en su lugar, para
+// que un "cobrar el día 31" en abril cobre el 30 de abril, no el 1 de mayo.
+export function dateStr(year: number, month0: number, day: number): string {
+  const maxDay = new Date(year, month0 + 1, 0).getDate()
+  const clampedDay = Math.min(day, maxDay)
+  const d = new Date(year, month0, clampedDay)
+  const y2 = d.getFullYear()
+  const m2 = d.getMonth()
+  const d2 = d.getDate()
+  return `${y2}-${String(m2 + 1).padStart(2, '0')}-${String(d2).padStart(2, '0')}`
+}
+
 // "Fin de mes actual" se rompe cuando un cobro cae en los últimos días del
 // mes (ej. inicio de temporada el 31/08): paid_until quedaría prácticamente
 // caducado el mismo día, y el siguiente cobro programado casi inmediato.
@@ -34,11 +49,16 @@ function monthsAheadFrom(referenceDate: Date): number {
 }
 
 // Hasta qué fecha queda cubierta una cuota pagada en referenceDate.
+// Bug real encontrado (y corregido en toda la función): usaba
+// new Date(...).toISOString().split('T')[0] para serializar — ese método
+// pasa por UTC antes de cortar la fecha, y en un servidor con hora local
+// por delante de UTC (Madrid en verano, UTC+2) pierde un día. Se usa
+// lastDayOfMonthStr/dateStr en su lugar, que nunca convierten a UTC.
 export function computePaidUntil(referenceDate: Date = new Date()): string {
   const year = referenceDate.getFullYear()
   const month = referenceDate.getMonth()
   const offset = monthsAheadFrom(referenceDate)
-  return new Date(year, month + offset, 0).toISOString().split('T')[0]
+  return lastDayOfMonthStr(year, month + offset - 1)
 }
 
 // Para mandatos recurrentes: fecha cubierta (paidUntil) y próximo cobro
@@ -48,8 +68,8 @@ export function computeBillingCycle(referenceDate: Date, dayOfMonth: number): { 
   const month = referenceDate.getMonth()
   const offset = monthsAheadFrom(referenceDate)
   return {
-    paidUntil: new Date(year, month + offset, 0).toISOString().split('T')[0],
-    nextChargeAt: new Date(year, month + offset, dayOfMonth).toISOString().split('T')[0],
+    paidUntil: lastDayOfMonthStr(year, month + offset - 1),
+    nextChargeAt: dateStr(year, month + offset, dayOfMonth),
   }
 }
 
@@ -89,12 +109,12 @@ export function firstBillableMonth(
       }
     }
     const targetMonth0 = hasRemainingThisMonth ? thisMonth0 : thisMonth0 + 1
-    return new Date(ty, targetMonth0, 1).toISOString().split('T')[0]
+    return dateStr(ty, targetMonth0, 1)
   }
 
   const daysRemaining = daysInMonth - td
   const targetMonth0 = daysRemaining < DAYS_THRESHOLD ? thisMonth0 + 1 : thisMonth0
-  return new Date(ty, targetMonth0, 1).toISOString().split('T')[0]
+  return dateStr(ty, targetMonth0, 1)
 }
 
 // Mes de facturación "efectivo" para vistas que por defecto muestran el mes

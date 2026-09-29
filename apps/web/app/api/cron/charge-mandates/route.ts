@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { generateOrderId, chargeMit } from '@/lib/redsys'
+import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
 import { timingSafeEqual } from 'crypto'
 
 const MAX_AMOUNT_CENTS = 99_999
@@ -119,7 +120,8 @@ export async function POST(req: NextRequest) {
     // salto de mes de billing-cycle.ts — eso es solo para el primer cobro
     // puntual de la temporada. Aplicarlo aquí facturaría cada dos meses en
     // vez de cada mes para cualquier día de cobro cercano a fin de mes.
-    const paidUntil = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    const nowForPaidUntil = new Date()
+    const paidUntil = lastDayOfMonthStr(nowForPaidUntil.getFullYear(), nowForPaidUntil.getMonth() + 1)
     await Promise.all([
       admin.from('payments').update({ status: success ? 'succeeded' : 'failed' }).eq('id', payment!.id),
       admin.from('payment_mandates').update({
@@ -146,6 +148,5 @@ export async function POST(req: NextRequest) {
 
 function getNextChargeDate(mandate: { day_of_month: number }): string {
   const now = new Date()
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, mandate.day_of_month)
-  return next.toISOString().split('T')[0]
+  return dateStr(now.getFullYear(), now.getMonth() + 1, mandate.day_of_month)
 }

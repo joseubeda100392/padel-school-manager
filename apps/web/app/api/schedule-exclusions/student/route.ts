@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
+import { dateStr as buildDateStr } from '@/lib/billing-cycle'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
   const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
   const [ty, tm, td] = todaySpain.split('-').map(Number)
-  const monthsBasedMax = new Date(ty, tm - 1 + effectiveAdvanceMonths, td).toISOString().split('T')[0]
+  const monthsBasedMax = buildDateStr(ty, tm - 1 + effectiveAdvanceMonths, td)
   // El fin real de temporada de la clase (recurrence_end_date) manda si es
   // más cercano que el tope por meses — así un club no tiene que ir
   // recalculando el número de meses según pasan las semanas para que

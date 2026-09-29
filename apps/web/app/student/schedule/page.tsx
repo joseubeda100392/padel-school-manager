@@ -6,7 +6,7 @@ import { StudentScheduleClient } from './schedule-client'
 import { SpotBookingCard } from './spot-booking-card'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
-import { lastDayOfMonthStr } from '@/lib/billing-cycle'
+import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -44,8 +44,12 @@ function getUpcomingOccurrences(
 
 function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
-  const now = new Date()
-  return new Date(paidUntil) >= new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  // Comparación por texto ('YYYY-MM-DD'), no por objetos Date — comparar un
+  // paid_until parseado en UTC contra un Date construido en hora local
+  // puede desplazar el resultado unas horas justo en el cambio de mes.
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const [y, m] = todaySpain.split('-').map(Number)
+  return paidUntil >= lastDayOfMonthStr(y, m - 1)
 }
 
 // Solo se puede adelantar el mes siguiente si el actual ya está pagado y el
@@ -163,7 +167,7 @@ export default async function StudentSchedulePage() {
   const advanceMonthsConfig = (clubRow as any)?.config?.falta_advance_months ?? 0
   const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
   const [tySchedule, tmSchedule, tdSchedule] = todaySpain.split('-').map(Number)
-  const monthsBasedMax = new Date(tySchedule, tmSchedule - 1 + effectiveAdvanceMonths, tdSchedule).toISOString().split('T')[0]
+  const monthsBasedMax = dateStr(tySchedule, tmSchedule - 1 + effectiveAdvanceMonths, tdSchedule)
   const occurrenceCount = Math.ceil((effectiveAdvanceMonths * 31) / 7) + 1
   // El fin real de temporada de cada clase (recurrence_end_date) manda si es
   // más cercano que el tope por meses — ver la misma lógica en

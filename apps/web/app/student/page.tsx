@@ -5,6 +5,7 @@ import { formatCurrency, formatTime, getDayOfWeek, matchesDayTimePreference } fr
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 import { PasswordForm } from './password-form'
 import { PistaVivaOptin } from './pista-viva-optin'
 
@@ -25,8 +26,9 @@ function getNextOccurrence(startTime: string): Date | null {
 
 function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
-  const now = new Date()
-  return new Date(paidUntil) >= new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const [y, m] = todaySpain.split('-').map(Number)
+  return paidUntil >= lastDayOfMonthStr(y, m - 1)
 }
 
 export default async function StudentHomePage() {
