@@ -61,6 +61,36 @@ export function computePaidUntil(referenceDate: Date = new Date()): string {
   return lastDayOfMonthStr(year, month + offset - 1)
 }
 
+// Hasta qué fecha cubre un pago de cuota de un alumno YA inscrito — se basa
+// en el propio historial de LA INSCRIPCIÓN (paid_until si ya pagó antes, o
+// start_date si es su primer pago), nunca en qué día del mes se hace el
+// pago. Úsese esta función (no computePaidUntil) para cualquier pago de
+// cuota de una inscripción existente.
+//
+// Bug real encontrado: computePaidUntil(hoy) aplicaba el salto de mes
+// "quedan pocos días" a CUALQUIER pago, incluido el primer pago de alguien
+// que llevaba todo el mes dado de alta (start_date a día 1) y simplemente
+// pagó tarde el día 28 — lo saltaba directo al mes siguiente sin cobrarle
+// nunca el mes en curso, aunque hubiera dado clase todo el mes (caso real:
+// 3 alumnos de R3 Mejorada, 204€ de septiembre nunca cobrados). El salto de
+// mes solo tiene sentido para una inscripción que empieza de verdad cerca de
+// fin de mes — eso ya lo decide firstBillableMonth() al fijar start_date,
+// no hace falta (ni es correcto) volver a adivinarlo aquí mirando la fecha
+// de pago.
+export function nextPaidUntilForEnrollment(currentPaidUntil: string | null, startDate: string | null): string {
+  if (currentPaidUntil) {
+    const base = new Date(currentPaidUntil)
+    return lastDayOfMonthStr(base.getFullYear(), base.getMonth() + 1)
+  }
+  if (startDate) {
+    const base = new Date(startDate)
+    return lastDayOfMonthStr(base.getFullYear(), base.getMonth())
+  }
+  // Sin paid_until ni start_date (no debería pasar en la práctica) —
+  // respaldo con el criterio antiguo basado en la fecha de hoy.
+  return computePaidUntil(new Date())
+}
+
 // Para mandatos recurrentes: fecha cubierta (paidUntil) y próximo cobro
 // (dayOfMonth del mes siguiente al cubierto), consistentes entre sí.
 export function computeBillingCycle(referenceDate: Date, dayOfMonth: number): { paidUntil: string; nextChargeAt: string } {

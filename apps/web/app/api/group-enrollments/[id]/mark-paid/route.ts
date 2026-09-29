@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
-import { computePaidUntil } from '@/lib/billing-cycle'
+import { nextPaidUntilForEnrollment } from '@/lib/billing-cycle'
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -18,7 +18,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const { data: enrollment, error: enrollmentErr } = await admin
     .from('group_enrollments')
-    .select('student_id, monthly_price, club_id, price_per_class_cents, discount_classes_pending')
+    .select('student_id, monthly_price, club_id, price_per_class_cents, discount_classes_pending, paid_until, start_date')
     .eq('id', params.id)
     .single()
 
@@ -29,8 +29,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const now = new Date()
-  const paidUntil = computePaidUntil(now)
+  const paidUntil = nextPaidUntilForEnrollment(enrollment.paid_until, enrollment.start_date)
 
   const clubId = enrollment.club_id ?? adminUser.club_id
 
