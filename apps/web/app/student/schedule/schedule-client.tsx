@@ -18,6 +18,8 @@ interface ScheduleItem {
   monthlyPrice: number
   paidUntil: string | null
   isPaid: boolean
+  canAdvance: boolean
+  nextMonthLabel: string
   upcomingOccurrences: Occurrence[]
   schedule: {
     id: string
@@ -199,6 +201,19 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                         enrollmentId={item.enrollmentId}
                         label="💳 Pagar cuota"
                         className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                        cashOnly={cashOnly}
+                      />
+                    </div>
+                  )}
+
+                  {enablePayments && item.canAdvance && (
+                    <div className="mt-4">
+                      <PayButton
+                        type="fixed_group_month"
+                        enrollmentId={item.enrollmentId}
+                        advance
+                        label={`📅 Adelantar cuota de ${item.nextMonthLabel}`}
+                        className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
                         cashOnly={cashOnly}
                       />
                     </div>

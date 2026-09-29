@@ -6,6 +6,7 @@ import { StudentScheduleClient } from './schedule-client'
 import { SpotBookingCard } from './spot-booking-card'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -45,6 +46,27 @@ function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
   const now = new Date()
   return new Date(paidUntil) >= new Date(now.getFullYear(), now.getMonth() + 1, 0)
+}
+
+// Solo se puede adelantar el mes siguiente si el actual ya está pagado y el
+// siguiente todavía no (evita ofrecer el botón cuando no pintaría nada, o
+// cuando ya se adelantó antes). Comparación por texto, no por Date — ver
+// el mismo razonamiento en create-order/route.ts.
+function canAdvanceNextMonth(paidUntil: string | null) {
+  if (!isPaidThisMonth(paidUntil)) return false
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const [y, m] = todaySpain.split('-').map(Number)
+  const endOfNextMonth = lastDayOfMonthStr(y, m) // m ya es "mes siguiente" en 0-index (m = mes actual 1-index)
+  return !paidUntil || paidUntil < endOfNextMonth
+}
+
+const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+function nextMonthLabel() {
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+  const [y, m] = todaySpain.split('-').map(Number)
+  const nextMonth0 = m > 11 ? 0 : m // m es 1-index del mes actual, así que ya es el índice 0 del siguiente
+  const nextYear = m > 11 ? y + 1 : y
+  return `${MONTH_NAMES[nextMonth0]} ${nextYear}`
 }
 
 export default async function StudentSchedulePage() {
@@ -166,6 +188,8 @@ export default async function StudentSchedulePage() {
       // (start_date en el futuro), no mostrarla como pendiente de pago —
       // la clase no ha dado ni una sesión todavía, no debe nada.
       isPaid: (e.start_date && e.start_date > todaySpain) || isPaidThisMonth(e.paid_until),
+      canAdvance: canAdvanceNextMonth(e.paid_until),
+      nextMonthLabel: nextMonthLabel(),
       upcomingOccurrences,
       schedule: {
         id: schedule?.id,

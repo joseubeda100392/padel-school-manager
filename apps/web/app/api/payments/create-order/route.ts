@@ -11,6 +11,7 @@ import {
   getRedsysUrl,
 } from '@/lib/redsys'
 import { rateLimit } from '@/lib/rate-limit'
+import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 
 type PaymentType = 'single_class' | 'class_pack' | 'private_lesson_pack' | 'fixed_group_month' | 'tournament' | 'intensivo_group'
 
@@ -122,9 +123,13 @@ export async function POST(req: NextRequest) {
     tournamentId: z.string().uuid().optional(),
     intensivoGroupId: z.string().uuid().optional(),
     classDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+    // Adelantar la cuota del mes siguiente (ej. antes de irse de vacaciones
+    // en julio) — solo válido si el mes actual ya está pagado y el
+    // siguiente todavía no; ver comprobación más abajo.
+    advance: z.boolean().optional(),
   }))
   if (badRequest) return badRequest
-  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, privatePremium, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates } = orderBody
+  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, privatePremium, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates, advance } = orderBody
   let scheduleId = bodyScheduleId
   let classDate = bodyClassDate
 
@@ -264,14 +269,40 @@ export async function POST(req: NextRequest) {
     if (!enrollmentId) return NextResponse.json({ error: 'enrollmentId requerido' }, { status: 400 })
     const { data: enrollment } = await admin
       .from('group_enrollments')
-      .select('monthly_price, student_id')
+      .select('monthly_price, student_id, paid_until')
       .eq('id', enrollmentId)
       .eq('student_id', user.id)
       .single()
     if (!enrollment) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
     amount = enrollment.monthly_price
     const now = new Date()
-    productDesc = `Cuota grupo fijo ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
+    // "Hoy" en Madrid, no en la zona horaria del servidor — un servidor por
+    // delante de UTC podría creer que ya es el mes siguiente unas horas
+    // antes de que lo sea de verdad en España.
+    const [todayY, todayM] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now).split('-').map(Number)
+    const todayMonth0 = todayM - 1
+
+    if (advance) {
+      // Adelanto de la cuota del mes siguiente: solo tiene sentido si el
+      // alumno ya tiene pagado el mes en curso y todavía no ha adelantado
+      // el siguiente — nunca se confía en lo que decida mostrar el botón
+      // en el cliente, se repite aquí la misma comprobación. Comparación
+      // por texto ('YYYY-MM-DD'), no por objetos Date — mezclar una fecha
+      // parseada en UTC (paid_until) con una construida en hora local
+      // desplaza la comparación un día cerca del cambio de mes.
+      const endOfThisMonth = lastDayOfMonthStr(todayY, todayMonth0)
+      const endOfNextMonth = lastDayOfMonthStr(todayY, todayMonth0 + 1)
+      const paidUntil = enrollment.paid_until
+      const currentMonthPaid = !!paidUntil && paidUntil >= endOfThisMonth
+      const nextMonthAlreadyPaid = !!paidUntil && paidUntil >= endOfNextMonth
+      if (!currentMonthPaid) return NextResponse.json({ error: 'Todavía no tienes pagado el mes actual' }, { status: 409 })
+      if (nextMonthAlreadyPaid) return NextResponse.json({ error: 'Ya tienes adelantado el mes siguiente' }, { status: 409 })
+      const nextMonth0 = todayMonth0 + 1 > 11 ? 0 : todayMonth0 + 1
+      const nextMonthYear = todayMonth0 + 1 > 11 ? todayY + 1 : todayY
+      productDesc = `Cuota grupo fijo ${MONTH_NAMES[nextMonth0]} ${nextMonthYear} (adelantada)`
+    } else {
+      productDesc = `Cuota grupo fijo ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
+    }
 
   } else if (type === 'tournament') {
     if (!tournamentId) return NextResponse.json({ error: 'tournamentId requerido' }, { status: 400 })
@@ -414,6 +445,7 @@ export async function POST(req: NextRequest) {
       tournament_id: tournamentId ?? null,
       intensivo_group_id: intensivoGroupId ?? null,
       class_dates: classDates ?? null,
+      advance: advance ?? false,
     },
   })
   if (insertErr) {

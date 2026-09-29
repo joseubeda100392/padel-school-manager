@@ -1,5 +1,23 @@
 import { getDayOfWeek } from './utils'
 
+// Último día de un mes como string 'YYYY-MM-DD', sin pasar por
+// Date.toISOString() — ese método convierte a UTC antes de cortar la fecha,
+// así que en un servidor con zona horaria por delante de UTC (ej. Madrid en
+// verano, UTC+2) "31 de octubre a las 00:00 hora local" se convierte a "30
+// de octubre 22:00 UTC", y el string resultante pierde un día. Aquí solo se
+// lee el número de día con el getter local, nunca se serializa a UTC.
+// Acepta month0 fuera de 0-11 (ej. 12 para "diciembre + 1 mes") — se deja
+// que el propio constructor de Date normalice el desbordamiento a
+// año/mes, y se leen year/month/date ya normalizados con getters locales
+// (nunca getFullYear/getMonth de una fecha pasada por toISOString).
+export function lastDayOfMonthStr(year: number, month0: number): string {
+  const lastDay = new Date(year, month0 + 1, 0)
+  const y = lastDay.getFullYear()
+  const m = lastDay.getMonth()
+  const d = lastDay.getDate()
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
+
 // "Fin de mes actual" se rompe cuando un cobro cae en los últimos días del
 // mes (ej. inicio de temporada el 31/08): paid_until quedaría prácticamente
 // caducado el mismo día, y el siguiente cobro programado casi inmediato.

@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { verifySignature, parseRedsysResponse, isPaymentSuccessful } from '@/lib/redsys'
 import { sendPushToUsers } from '@/lib/push'
 import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
-import { computePaidUntil, computeBillingCycle } from '@/lib/billing-cycle'
+import { computePaidUntil, computeBillingCycle, lastDayOfMonthStr } from '@/lib/billing-cycle'
 
 export async function POST(req: NextRequest) {
   const adminSupabase = createClient(
@@ -235,8 +235,22 @@ export async function POST(req: NextRequest) {
     }
 
   } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
-    const now = new Date()
-    const paidUntil = computePaidUntil(now)
+    let paidUntil: string
+    if (meta.advance) {
+      // Adelanto: un mes más a partir de lo que YA tiene cubierto, nunca a
+      // partir de la fecha de hoy — así da igual qué día del mes se pague,
+      // siempre suma exactamente un mes encima sin saltarse ni repetir
+      // ninguno (ver la explicación en create-order/route.ts).
+      const { data: currentEnrollment } = await adminSupabase
+        .from('group_enrollments')
+        .select('paid_until')
+        .eq('id', meta.enrollment_id)
+        .single()
+      const base = currentEnrollment?.paid_until ? new Date(currentEnrollment.paid_until) : new Date()
+      paidUntil = lastDayOfMonthStr(base.getFullYear(), base.getMonth() + 1)
+    } else {
+      paidUntil = computePaidUntil(new Date())
+    }
     const { error: enrollErr } = await adminSupabase
       .from('group_enrollments')
       .update({ paid_until: paidUntil })
