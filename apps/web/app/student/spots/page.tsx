@@ -324,6 +324,10 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
         enable60min={features.enable_60min}
         enable90min={features.enable_90min}
         cashOnly={features.cash_only_payments}
+        payPerClassPrice60={(clubRow as any)?.config?.pay_per_class_price_60 ?? 1200}
+        payPerClassPrice90={(clubRow as any)?.config?.pay_per_class_price_90 ?? 1500}
+        wholeClassPrice60={(clubRow as any)?.config?.whole_class_price_60 ?? 4800}
+        wholeClassPrice90={(clubRow as any)?.config?.whole_class_price_90 ?? 6000}
         year={year}
         month0={month0}
         todayStr={today}

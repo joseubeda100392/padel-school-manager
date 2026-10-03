@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { PayButton } from '@/components/pay-button'
 import { MonthCalendar } from '@/components/month-calendar'
+import { formatCurrency } from '@/lib/utils'
 
 interface Spot {
   spotType: 'absence' | 'capacity'
@@ -23,7 +24,7 @@ interface Spot {
   enrolledCount: number | null
 }
 
-function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true, cashOnly = false }: { spot: Spot; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean; cashOnly?: boolean }) {
+function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true, cashOnly = false, payPerClassPrice60, payPerClassPrice90, wholeClassPrice60, wholeClassPrice90 }: { spot: Spot; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean; cashOnly?: boolean; payPerClassPrice60: number; payPerClassPrice90: number; wholeClassPrice60: number; wholeClassPrice90: number }) {
   const router = useRouter()
   const [booking, setBooking] = useState(false)
   const [booked, setBooked] = useState(false)
@@ -39,6 +40,17 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
   const hasBalance = !isIntensivo && (durationType === '90'
     ? balance90 > 0
     : balance60 > 0 || balance90 > 0)
+
+  // Mismo criterio de prioridad que /api/payments/create-order: un precio
+  // propio del horario (schedulePriceCents, ej. intensivos) manda sobre la
+  // tarifa general del club — así el precio mostrado aquí siempre coincide
+  // con el que de verdad se cobra al pulsar el botón.
+  const singleClassPriceCents = spot.schedulePriceCents && spot.schedulePriceCents > 0
+    ? spot.schedulePriceCents
+    : (durationType === '90' ? payPerClassPrice90 : payPerClassPrice60)
+  const wholeClassPriceCents = spot.schedulePriceCents && spot.schedulePriceCents > 0
+    ? spot.schedulePriceCents
+    : (durationType === '90' ? wholeClassPrice90 : wholeClassPrice60)
 
   async function handleUseBag() {
     if (!confirm(`¿Confirmas que quieres usar 1 clase de tu bolsa para el ${dateLabel}?`)) return
@@ -121,7 +133,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
                 scheduleId={spot.scheduleId}
                 exclusionId={spot.exclusionId ?? undefined}
                 classDate={spot.excludedDate}
-                label="💳 Pagar mi plaza"
+                label={`💳 Pagar mi plaza — ${formatCurrency(singleClassPriceCents)}`}
                 className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
                 cashOnly={cashOnly}
               />
@@ -135,7 +147,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
                   exclusionId={spot.exclusionId ?? undefined}
                   classDate={spot.excludedDate}
                   wholeClass
-                  label="💳 Pagar la clase entera"
+                  label={`💳 Pagar la clase entera — ${formatCurrency(wholeClassPriceCents)}`}
                   className="rounded-lg border border-brand-500 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
                   cashOnly={cashOnly}
                 />
@@ -147,9 +159,6 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
           )}
           {!isIntensivo && !hasBalance && balance60 === 0 && balance90 === 0 && (
             <p className="text-xs text-gray-400">Sin saldo en bolsa</p>
-          )}
-          {isIntensivo && spot.schedulePriceCents && spot.schedulePriceCents > 0 && (
-            <p className="text-xs text-gray-400">{(spot.schedulePriceCents / 100).toFixed(2)} € / clase</p>
           )}
         </div>
       </div>
@@ -166,6 +175,10 @@ export function SpotsClient({
   enable60min = true,
   enable90min = true,
   cashOnly = false,
+  payPerClassPrice60,
+  payPerClassPrice90,
+  wholeClassPrice60,
+  wholeClassPrice90,
   year,
   month0,
   todayStr,
@@ -179,6 +192,10 @@ export function SpotsClient({
   enable60min?: boolean
   enable90min?: boolean
   cashOnly?: boolean
+  payPerClassPrice60: number
+  payPerClassPrice90: number
+  wholeClassPrice60: number
+  wholeClassPrice90: number
   year: number
   month0: number
   todayStr: string
@@ -244,6 +261,10 @@ export function SpotsClient({
             enable60min={enable60min}
             enable90min={enable90min}
             cashOnly={cashOnly}
+            payPerClassPrice60={payPerClassPrice60}
+            payPerClassPrice90={payPerClassPrice90}
+            wholeClassPrice60={wholeClassPrice60}
+            wholeClassPrice90={wholeClassPrice90}
           />
         ))
       )}
