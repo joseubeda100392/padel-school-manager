@@ -7,6 +7,7 @@ import { SpotBookingCard } from './spot-booking-card'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
+import { getHolidaySet } from '@/lib/club-holidays'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -16,6 +17,7 @@ function getUpcomingOccurrences(
   overrides: { override_date: string; new_start_time: string }[],
   count = 8,
   maxDateStr: string | null = null,
+  holidaySet: Set<string> = new Set(),
 ): { dateStr: string; label: string; canRegister: boolean; overrideTime: string | null }[] {
   const base = new Date(startTime)
   const now = new Date()
@@ -39,7 +41,7 @@ function getUpcomingOccurrences(
       : null
     const withinAdvanceLimit = !maxDateStr || dateStr <= maxDateStr
     return { dateStr, label, canRegister: hoursUntil >= cancellationHours && withinAdvanceLimit, overrideTime }
-  })
+  }).filter(o => !holidaySet.has(o.dateStr))
 }
 
 function isPaidThisMonth(paidUntil: string | null) {
@@ -158,6 +160,7 @@ export default async function StudentSchedulePage() {
   ])
 
   const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
+  const holidaySet = getHolidaySet((clubRow as any)?.config)
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
@@ -179,7 +182,7 @@ export default async function StudentSchedulePage() {
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
     const myOverrides = (timeOverrides ?? []).filter((o: any) => o.schedule_id === schedule?.id)
-    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides, occurrenceCount, maxDateFor(schedule?.recurrence_end_date))
+    const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides, occurrenceCount, maxDateFor(schedule?.recurrence_end_date), holidaySet)
     const myExclusions = (exclusionsRaw ?? [])
       .filter((x: any) => x.group_enrollment_id === e.id)
       .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))

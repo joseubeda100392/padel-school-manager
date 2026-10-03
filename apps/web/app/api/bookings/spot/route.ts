@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -34,6 +35,11 @@ export async function POST(req: NextRequest) {
 
   if ((userProfile as any)?.club_id && (schedule as any).club_id !== (userProfile as any).club_id) {
     return NextResponse.json({ error: 'Sin acceso a este hueco' }, { status: 403 })
+  }
+
+  const { data: clubRow } = await admin.from('clubs').select('config').eq('id', (schedule as any).club_id).single()
+  if (getHolidaySet((clubRow as any)?.config).has(exclusion.excluded_date)) {
+    return NextResponse.json({ error: HOLIDAY_ERROR }, { status: 400 })
   }
 
   // Overlap check: compare against bookings on the same exact date

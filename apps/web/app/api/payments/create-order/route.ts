@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 import {
   generateOrderId,
   buildMerchantParameters,
@@ -153,6 +154,10 @@ export async function POST(req: NextRequest) {
     pendingBooking = booking
     scheduleId = booking.schedule_id
     classDate = booking.class_date ?? undefined
+  }
+
+  if (type === 'single_class' && classDate && getHolidaySet(cfg).has(classDate)) {
+    return NextResponse.json({ error: HOLIDAY_ERROR }, { status: 400 })
   }
 
   if (type === 'single_class') {

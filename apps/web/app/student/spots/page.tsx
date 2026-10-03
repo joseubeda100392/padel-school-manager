@@ -5,6 +5,7 @@ import { formatTime, getDayOfWeek } from '@/lib/utils'
 import { SpotsClient } from './spots-client'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { getHolidaySet } from '@/lib/club-holidays'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -16,7 +17,7 @@ const TZ = 'Europe/Madrid'
 function getMonthOccurrences(s: any, rangeStart: string, rangeEnd: string, holidaySet: Set<string>): string[] {
   if (s.recurrence === 'none') {
     const d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
-    return d >= rangeStart && d <= rangeEnd ? [d] : []
+    return d >= rangeStart && d <= rangeEnd && !holidaySet.has(d) ? [d] : []
   }
 
   const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
@@ -67,7 +68,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   ])
   if (!features.enable_spots) redirect('/student')
 
-  const holidaySet = new Set<string>((clubRow as any)?.config?.holidays ?? [])
+  const holidaySet = getHolidaySet((clubRow as any)?.config)
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || today >= billingStartDate
 
@@ -148,6 +149,9 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
       const alreadyBooked = (mySpotBookings ?? []).some(
         b => b.schedule_id === ge?.schedule_id && b.class_date === s.excluded_date
       )
+      // Faltas registradas antes de que el admin marcara el día como festivo
+      // siguen en BD con publish_spot=true — ese día no hay clase que cubrir.
+      if (holidaySet.has(s.excluded_date)) return false
       return ge?.schedule_id && !myScheduleIds.has(ge.schedule_id) && levelOk && clubOk && !alreadyBooked
     })
     .map(s => {

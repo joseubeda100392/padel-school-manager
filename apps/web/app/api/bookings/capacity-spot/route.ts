@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 
 const TZ = 'Europe/Madrid'
 
@@ -38,6 +39,10 @@ export async function POST(req: NextRequest) {
   }
   if ((schedule as any).recurrence_end_date && date > (schedule as any).recurrence_end_date) {
     return NextResponse.json({ error: 'Esa clase ya ha terminado' }, { status: 400 })
+  }
+  const { data: clubRow } = await admin.from('clubs').select('config').eq('id', (schedule as any).club_id).single()
+  if (getHolidaySet((clubRow as any)?.config).has(date)) {
+    return NextResponse.json({ error: HOLIDAY_ERROR }, { status: 400 })
   }
   const scheduleDow = new Date(schedule.start_time).getUTCDay()
   const requestedDow = new Date(date + 'T12:00:00Z').getUTCDay()

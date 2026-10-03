@@ -7,6 +7,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
 import { dateStr as buildDateStr } from '@/lib/billing-cycle'
+import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -43,6 +44,10 @@ export async function POST(req: NextRequest) {
 
   const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
   const dateStr = date as string
+
+  if (getHolidaySet((clubRow as any)?.config).has(dateStr)) {
+    return NextResponse.json({ error: HOLIDAY_ERROR }, { status: 400 })
+  }
   const classDt = getScheduleDateTimeInMadrid(schedule.start_time, dateStr)
 
 

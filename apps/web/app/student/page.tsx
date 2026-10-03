@@ -5,6 +5,7 @@ import { formatCurrency, formatTime, getDayOfWeek, matchesDayTimePreference } fr
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { getHolidaySet } from '@/lib/club-holidays'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 import { PasswordForm } from './password-form'
 import { PistaVivaOptin } from './pista-viva-optin'
@@ -60,7 +61,7 @@ export default async function StudentHomePage() {
       .eq('status', 'active'),
     admin
       .from('schedule_exclusions')
-      .select('id, group_enrollment:group_enrollments!group_enrollment_id(schedule_id, schedule:schedules!schedule_id(club_id, level_id))')
+      .select('id, excluded_date, group_enrollment:group_enrollments!group_enrollment_id(schedule_id, schedule:schedules!schedule_id(club_id, level_id))')
       .eq('publish_spot', true)
       .gte('excluded_date', today),
     clubId
@@ -129,7 +130,9 @@ export default async function StudentHomePage() {
 
   const level = levelData
 
+  const holidaySet = getHolidaySet((clubRow as any)?.config)
   const absenceSpots = (spots ?? []).filter((s: any) => {
+    if (holidaySet.has(s.excluded_date)) return false
     const schedule = (s.group_enrollment as any)?.schedule
     const clubOk = !clubId || schedule?.club_id === clubId
     const levelId = schedule?.level_id ?? null
@@ -172,7 +175,7 @@ export default async function StudentHomePage() {
     const levelId = (s.level as any)?.id ?? null
     const levelOk = !myLevelId || !levelId || levelId === myLevelId
     const classDate = getClassDateHome(s)
-    if (!classDate) return false
+    if (!classDate || holidaySet.has(classDate)) return false
     if (absenceScheduleIds.has(s.id)) return false
     const alreadyBooked = (mySpotBookings ?? []).some((b: any) => b.schedule_id === s.id && b.class_date === classDate)
     return !alreadyIn && active.length < s.max_students && levelOk && !alreadyBooked
