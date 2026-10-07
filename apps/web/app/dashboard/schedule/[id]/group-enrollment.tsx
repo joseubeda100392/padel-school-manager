@@ -64,7 +64,9 @@ function isPaidThisMonth(paidUntil: string | null) {
   return new Date(paidUntil) >= endOfMonth
 }
 
-function getNextOccurrence(startTime: string): string {
+// Próxima fecha de la clase para proponer en "Registrar falta", saltando los
+// festivos del club (ese día no hay clase y el servidor rechaza la falta).
+function getNextOccurrence(startTime: string, holidays: string[]): string {
   const base = new Date(startTime)
   const now = new Date()
   const next = new Date(now)
@@ -75,6 +77,7 @@ function getNextOccurrence(startTime: string): string {
   if (daysAhead === 0 && next <= now) daysAhead = 7
   next.setDate(next.getDate() + daysAhead)
   while (next < base) next.setDate(next.getDate() + 7)
+  for (let i = 0; i < 52 && holidays.includes(next.toISOString().split('T')[0]); i++) next.setDate(next.getDate() + 7)
   return next.toISOString().split('T')[0]
 }
 
@@ -91,6 +94,7 @@ export default function GroupEnrollment({
   enablePayments = true,
   enableSpots = true,
   enableClassValidation = false,
+  holidays = [],
 }: {
   scheduleId: string
   scheduleStartTime: string
@@ -104,6 +108,7 @@ export default function GroupEnrollment({
   enablePayments?: boolean
   enableSpots?: boolean
   enableClassValidation?: boolean
+  holidays?: string[]
 }) {
   const router = useRouter()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
@@ -126,7 +131,7 @@ export default function GroupEnrollment({
   const [faltaSuccessMsg, setFaltaSuccessMsg] = useState<string | null>(null)
 
   const now = new Date()
-  const nextOccurrence = getNextOccurrence(scheduleStartTime)
+  const nextOccurrence = getNextOccurrence(scheduleStartTime, holidays)
 
   // Duración real de la clase, para saber qué tarifa (60/90 min) de
   // Con pista / Sin pista aplica — el admin no la elige, se deriva sola.

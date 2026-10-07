@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import CoachWeeklyCalendar from './coach-weekly-calendar'
 import { computeScheduleReviewMap, computeScheduleReviewByDate } from '@/lib/schedule-review'
+import { getHolidaySet } from '@/lib/club-holidays'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -15,13 +16,15 @@ const TZ = 'Europe/Madrid'
 // Fecha de referencia para el enlace de Lista: hoy si le toca hoy, o si no la
 // próxima fecha futura en que le toque — igual que en Horarios (admin), para
 // que la ficha de clase abra la fecha correcta en vez de asumir siempre hoy.
-function nextClassDate(startTime: string, todaySpain: string): string {
+// Los festivos del club se saltan: ese día no hay clase.
+function nextClassDate(startTime: string, todaySpain: string, holidays: Set<string>): string {
   const classDow = getDayOfWeek(startTime)
   const [sy, sm, sd] = todaySpain.split('-').map(Number)
   const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
-  const daysUntil = (classDow - todayDow + 7) % 7
-  const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
-  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
+  let daysUntil = (classDow - todayDow + 7) % 7
+  const format = (days: number) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(Date.UTC(sy, sm - 1, sd + days, 10, 0, 0)))
+  for (let i = 0; i < 52 && holidays.has(format(daysUntil)); i++) daysUntil += 7
+  return format(daysUntil)
 }
 
 export default async function CoachClassesPage({
@@ -42,6 +45,12 @@ export default async function CoachClassesPage({
     .eq('is_active', true)
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+
+  const { data: coachRow } = await admin.from('users').select('club_id').eq('id', user.id).single()
+  const { data: clubRow } = coachRow?.club_id
+    ? await admin.from('clubs').select('config').eq('id', coachRow.club_id).single()
+    : { data: null }
+  const holidays = getHolidaySet((clubRow as any)?.config)
 
   const ids = (schedules ?? []).map((s: any) => s.id)
   const { data: enrollments } = ids.length
@@ -73,7 +82,7 @@ export default async function CoachClassesPage({
     : { data: [] }
 
   const referenceDateBySchedule: Record<string, string> = {}
-  for (const s of schedules ?? []) referenceDateBySchedule[s.id] = nextClassDate(s.start_time, todaySpain)
+  for (const s of schedules ?? []) referenceDateBySchedule[s.id] = nextClassDate(s.start_time, todaySpain, holidays)
 
   for (const b of bookingsRaw ?? []) {
     if (b.class_date === referenceDateBySchedule[b.schedule_id]) {
@@ -147,7 +156,7 @@ export default async function CoachClassesPage({
       </div>
 
       {view === 'week' ? (
-        <CoachWeeklyCalendar schedules={schedulesWithCount} />
+        <CoachWeeklyCalendar schedules={schedulesWithCount} holidays={[...holidays]} />
       ) : orderedDays.length === 0 ? (
         <div className="rounded-xl bg-white p-10 text-center shadow-sm">
           <p className="text-gray-400">No tienes clases asignadas.</p>

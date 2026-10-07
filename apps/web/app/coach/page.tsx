@@ -7,6 +7,7 @@ import { formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
+import { getHolidaySet } from '@/lib/club-holidays'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -26,7 +27,13 @@ export default async function CoachHomePage() {
     .eq('coach_id', user.id)
     .eq('is_active', true)
 
-  const todaySchedules = (allSchedules ?? []).filter((s: any) => {
+  const { data: coachRow } = await admin.from('users').select('club_id').eq('id', user.id).single()
+  const { data: clubRow } = coachRow?.club_id
+    ? await admin.from('clubs').select('config').eq('id', coachRow.club_id).single()
+    : { data: null }
+  const isHolidayToday = getHolidaySet((clubRow as any)?.config).has(todaySpain)
+
+  const todaySchedules = isHolidayToday ? [] : (allSchedules ?? []).filter((s: any) => {
     const scheduleDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
     if (s.recurrence === 'none') return scheduleDate === todaySpain
     if (scheduleDate > todaySpain) return false
@@ -96,7 +103,7 @@ export default async function CoachHomePage() {
 
       {todaySchedules.length === 0 ? (
         <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-gray-400">No tienes clases hoy.</p>
+          <p className="text-gray-400">{isHolidayToday ? 'Hoy es festivo: no hay clases.' : 'No tienes clases hoy.'}</p>
         </div>
       ) : (
         <div className="space-y-3">

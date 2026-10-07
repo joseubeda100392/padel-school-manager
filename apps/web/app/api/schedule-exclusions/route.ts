@@ -7,6 +7,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { formatTime } from '@/lib/utils'
 import { sanitizeDbError } from '@/lib/sanitize-error'
+import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 
 async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, scheduleId: string, excludedDate: string) {
   try {
@@ -77,10 +78,20 @@ export async function POST(req: NextRequest) {
     .eq('id', group_enrollment_id)
     .single()
 
-  if (adminUser.role !== 'super_admin' && enrollment?.schedule_id) {
-    const { data: scheduleCheck } = await admin.from('schedules').select('club_id').eq('id', enrollment.schedule_id).single()
-    if (!scheduleCheck || (scheduleCheck as any).club_id !== adminUser.club_id) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  if (!enrollment?.schedule_id) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
+
+  const { data: scheduleCheck } = await admin.from('schedules').select('club_id').eq('id', enrollment.schedule_id).single()
+  const scheduleClubId = (scheduleCheck as any)?.club_id ?? null
+  if (adminUser.role !== 'super_admin' && (!scheduleCheck || scheduleClubId !== adminUser.club_id)) {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
+  // Un festivo no tiene clase: registrar falta daría +1 en bolsa y publicaría
+  // un hueco en un día sin sesión (igual que ya se rechaza desde el alumno).
+  if (scheduleClubId) {
+    const { data: clubRow } = await admin.from('clubs').select('config').eq('id', scheduleClubId).single()
+    if (getHolidaySet((clubRow as any)?.config).has(excluded_date)) {
+      return NextResponse.json({ error: HOLIDAY_ERROR }, { status: 400 })
     }
   }
 

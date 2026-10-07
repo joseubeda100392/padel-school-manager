@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { formatDate, formatTime, getDayOfWeek, mostCommonMonthlyPrice } from '@/lib/utils'
+import { getHolidaySet } from '@/lib/club-holidays'
 import { ScheduleActions } from './schedule-actions'
 import GroupEnrollment from './group-enrollment'
 import ScheduleMaterials from './schedule-materials'
@@ -282,6 +283,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           scheduleId={params.id}
           scheduleStartTime={schedule.start_time}
           scheduleEndTime={schedule.end_time}
+          holidays={[...getHolidaySet((clubRow as any)?.config)]}
           courtPricing={{
             withCourt60: (clubRow as any)?.config?.price_per_class_with_court_60 ?? 0,
             withCourt90: (clubRow as any)?.config?.price_per_class_with_court_90 ?? 0,

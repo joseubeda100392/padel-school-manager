@@ -11,6 +11,7 @@ import { getClubFeatures } from '@/lib/get-club-features'
 import { ClassSessionMarker } from './class-session-marker'
 import { AdminAddSpotBooking } from '@/app/dashboard/schedule/[id]/add-spot-booking'
 import { SpotBookingsList } from '@/app/dashboard/schedule/[id]/spot-bookings-list'
+import { getHolidaySet } from '@/lib/club-holidays'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -155,9 +156,14 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
   const bookingCount = bookings?.length ?? 0
   const enrolled = groupAttendingOnDate + bookingCount
 
+  const { data: clubRow } = schedule.club_id
+    ? await admin.from('clubs').select('config').eq('id', schedule.club_id).single()
+    : { data: null }
+  const isHolidayOnResolvedDate = getHolidaySet((clubRow as any)?.config).has(resolvedDate)
+
   const resolvedDow = new Date(resolvedDate + 'T12:00:00Z').getUTCDay()
   const scheduleDow = new Date(schedule.start_time).getUTCDay()
-  const isClassDayOnResolvedDate = resolvedDow === scheduleDow
+  const isClassDayOnResolvedDate = resolvedDow === scheduleDow && !isHolidayOnResolvedDate
 
   let existingSessionData: { status: 'given' | 'not_given'; cancel_reason: string | null; confirmed_by_admin: string | null; absentStudentIds: string[] } | null = null
   if (features.enable_class_validation && isViewingRealToday && isClassDayOnResolvedDate) {
@@ -198,6 +204,12 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
         <span className="text-gray-300">/</span>
         <h1 className="text-xl font-bold text-gray-900">Detalle de clase</h1>
       </div>
+
+      {isHolidayOnResolvedDate && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          Festivo: no hay clase este día.
+        </div>
+      )}
 
       {/* Info */}
       <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">

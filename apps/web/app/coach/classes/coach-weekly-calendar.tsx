@@ -44,7 +44,7 @@ function getWeekDates(offset: number) {
   })
 }
 
-export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule[] }) {
+export default function CoachWeeklyCalendar({ schedules, holidays = [] }: { schedules: Schedule[]; holidays?: string[] }) {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
 
@@ -96,7 +96,8 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
             const date = weekDates[idx]
             const isToday = date.toDateString() === new Date().toDateString()
             const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(date)
-            const classes = [...byDay[idx]]
+            const isHoliday = holidays.includes(dateStr)
+            const classes = isHoliday ? [] : [...byDay[idx]]
               .filter((s) => {
                 const startDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(s.start_time))
                 return dateStr >= startDate
@@ -112,7 +113,11 @@ export default function CoachWeeklyCalendar({ schedules }: { schedules: Schedule
                   </p>
                 </div>
                 <div className="space-y-2">
-                  {classes.length === 0 ? (
+                  {isHoliday ? (
+                    <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50 px-2 py-4 text-center">
+                      <p className="text-xs font-medium text-amber-700">Festivo</p>
+                    </div>
+                  ) : classes.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-gray-200 px-2 py-4 text-center">
                       <p className="text-xs text-gray-300">Sin clases</p>
                     </div>
