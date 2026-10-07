@@ -104,8 +104,8 @@ export default function AdminAyudaPage() {
           </Section>
 
           <Section id="descuentos" title="Descuentos en la cuota">
-            <p>En la ficha de cada alumno, junto a su cuota, hay un check <strong>"Descuento"</strong>. Al marcarlo, aplica automáticamente el descuento estándar del club (configurable en Configuración) sobre su cuota. Al desmarcarlo, vuelve al precio normal del grupo.</p>
-            <Aviso>El descuento es puntual, no permanente: en cuanto se registra el cobro de ese mes (efectivo o tarjeta), el check se desmarca solo y el mes siguiente vuelve al precio normal. Si el alumno debe seguir con descuento, hay que volver a marcarlo cada mes.</Aviso>
+            <p>En la ficha de cada alumno, junto a su cuota, hay un check <strong>"Descuento"</strong>. Al marcarlo, resta el descuento estándar del club (configurable en Configuración) a la cuota de ese alumno: si paga 85 € y el descuento es de 40 €, ese mes paga 45 €. Al desmarcarlo, vuelve a su cuota de siempre, aunque en el grupo haya alumnos que pagan otra cantidad.</p>
+            <Aviso>El descuento es puntual, no permanente: en cuanto se registra el cobro de ese mes (efectivo o tarjeta), el check se desmarca solo y el mes siguiente vuelve a su cuota de siempre. Si el alumno debe seguir con descuento, hay que volver a marcarlo cada mes.</Aviso>
           </Section>
 
           <Section id="materia" title="Materia didáctica">
