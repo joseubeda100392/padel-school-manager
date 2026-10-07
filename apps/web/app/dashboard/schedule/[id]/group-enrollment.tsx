@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StudentCombobox } from '@/components/student-combobox'
 import { getDayOfWeek } from '@/lib/utils'
+import type { InClubMethod } from '@/lib/payment-method'
 
 interface Enrollment {
   id: string
@@ -286,11 +287,16 @@ export default function GroupEnrollment({
     setEditingPerClassId(null)
   }
 
-  async function handleMarkPaid(id: string) {
-    if (!confirm('¿Registrar el pago en efectivo de este mes? Quedará registrado en el historial de pagos.')) return
+  async function handleMarkPaid(id: string, method: InClubMethod) {
+    const how = method === 'card_terminal' ? 'con datáfono' : 'en efectivo'
+    if (!confirm(`¿Registrar el pago ${how} de este mes? Quedará registrado en el historial de pagos.`)) return
     setLoadingId(id)
     setMarkPaidError(null)
-    const res = await fetch(`/api/group-enrollments/${id}/mark-paid`, { method: 'POST' })
+    const res = await fetch(`/api/group-enrollments/${id}/mark-paid`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method }),
+    })
     const json = await res.json()
     if (res.ok) {
       setEnrollments((prev) =>
@@ -493,13 +499,22 @@ export default function GroupEnrollment({
                   )}
 
                   {enablePayments && !paid && (
-                    <button
-                      onClick={() => handleMarkPaid(e.id)}
-                      disabled={isLoading}
-                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      {isLoading ? '...' : 'Efectivo ✓'}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleMarkPaid(e.id, 'cash')}
+                        disabled={isLoading}
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {isLoading ? '...' : 'Efectivo ✓'}
+                      </button>
+                      <button
+                        onClick={() => handleMarkPaid(e.id, 'card_terminal')}
+                        disabled={isLoading}
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {isLoading ? '...' : 'Datáfono ✓'}
+                      </button>
+                    </>
                   )}
 
                   <button

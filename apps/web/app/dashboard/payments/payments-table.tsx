@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/utils'
+import { PAYMENT_METHODS, paymentMethodKey, type PaymentMethodKey } from '@/lib/payment-method'
 
 const statusBadge: Record<string, string> = {
   completed: 'bg-brand-100 text-brand-600',
@@ -34,10 +35,10 @@ const typeLabel: Record<string, string> = {
 }
 
 function methodLabel(p: any): { label: string; cls: string } {
-  if (p.metadata?.method === 'cash') return { label: 'Efectivo', cls: 'bg-orange-100 text-orange-700' }
-  if (p.redsys_order_id || p.stripe_payment_intent_id) return { label: 'Tarjeta', cls: 'bg-blue-100 text-blue-700' }
-  return { label: '—', cls: 'bg-gray-100 text-gray-400' }
+  return PAYMENT_METHODS[paymentMethodKey(p)]
 }
+
+const METHOD_FILTERS: PaymentMethodKey[] = ['online', 'cash', 'card_terminal']
 
 function isPaid(p: any) {
   return p.status === 'completed' || p.status === 'succeeded'
@@ -92,13 +93,15 @@ function redsysReason(code: string | undefined): string {
 export default function PaymentsTable({ payments }: { payments: any[] }) {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
+  const [method, setMethod] = useState<PaymentMethodKey | ''>('')
 
   const filtered = payments.filter((p) => {
     const matchQ = !q ||
       p.user?.name?.toLowerCase().includes(q.toLowerCase()) ||
       p.user?.email?.toLowerCase().includes(q.toLowerCase())
     const matchStatus = !status || p.status === status || (status === 'completed' && p.status === 'succeeded')
-    return matchQ && matchStatus
+    const matchMethod = !method || paymentMethodKey(p) === method
+    return matchQ && matchStatus && matchMethod
   })
 
   function exportCSV() {
@@ -142,9 +145,19 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
           <option value="failed">Fallidos</option>
           <option value="refunded">Reembolsados</option>
         </select>
-        {(q || status) && (
+        <select
+          value={method}
+          onChange={(e) => setMethod(e.target.value as PaymentMethodKey | '')}
+          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+        >
+          <option value="">Todos los métodos</option>
+          {METHOD_FILTERS.map((m) => (
+            <option key={m} value={m}>{PAYMENT_METHODS[m].label}</option>
+          ))}
+        </select>
+        {(q || status || method) && (
           <button
-            onClick={() => { setQ(''); setStatus('') }}
+            onClick={() => { setQ(''); setStatus(''); setMethod('') }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
           >
             Limpiar
@@ -182,12 +195,12 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
               {!filtered.length && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                    {q || status ? 'Sin resultados para esa búsqueda.' : 'No hay pagos aún.'}
+                    {q || status || method ? 'Sin resultados para esa búsqueda.' : 'No hay pagos aún.'}
                   </td>
                 </tr>
               )}
               {filtered.map((p) => {
-                const method = methodLabel(p)
+                const methodInfo = methodLabel(p)
                 return (
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
@@ -196,8 +209,8 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{typeLabel[p.type] ?? p.type}</td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${method.cls}`}>
-                        {method.label}
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${methodInfo.cls}`}>
+                        {methodInfo.label}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900">

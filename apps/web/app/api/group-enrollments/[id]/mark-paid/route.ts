@@ -3,9 +3,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
+import { z } from 'zod'
 import { nextPaidUntilForEnrollment } from '@/lib/billing-cycle'
+import { IN_CLUB_METHODS } from '@/lib/payment-method'
 
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+const bodySchema = z.object({ method: z.enum(IN_CLUB_METHODS).default('cash') })
+
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -15,6 +19,11 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
+
+  // Sin body (llamadas antiguas) cuenta como efectivo, igual que antes.
+  const parsed = bodySchema.safeParse(await req.json().catch(() => ({})))
+  if (!parsed.success) return NextResponse.json({ error: 'Método de pago no válido' }, { status: 400 })
+  const { method } = parsed.data
 
   const { data: enrollment, error: enrollmentErr } = await admin
     .from('group_enrollments')
@@ -57,7 +66,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     type: 'fixed_group_month',
     status: 'succeeded',
     metadata: {
-      enrollment_id: params.id, method: 'cash', paid_until: paidUntil,
+      enrollment_id: params.id, method, paid_until: paidUntil,
       ...(discountCents > 0 ? { discount_applied_cents: discountCents, discount_classes: pendingDiscount } : {}),
     },
   })

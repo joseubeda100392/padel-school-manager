@@ -19,6 +19,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
   const [q, setQ] = useState('')
   const [day, setDay] = useState('')
   const [type, setType] = useState('')
+  const [onlyFree, setOnlyFree] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
 
@@ -31,9 +32,10 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
         (s.level?.name ?? '').toLowerCase().includes(qLower)
       const matchDay = !day || String(getDayOfWeek(s.start_time)) === day
       const matchType = !type || (s.type ?? 'regular') === type
-      return matchQ && matchDay && matchType
+      const matchFree = !onlyFree || (s.max_students > 0 && (s.group_size ?? 0) < s.max_students)
+      return matchQ && matchDay && matchType && matchFree
     })
-  }, [schedules, q, day, type])
+  }, [schedules, q, day, type, onlyFree])
 
   const allFilteredSelected = filtered.length > 0 && filtered.every(s => selected.has(s.id))
 
@@ -112,9 +114,21 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
           <option value="regular">Regular</option>
           <option value="intensivo">Intensivo</option>
         </select>
-        {(q || day || type) && (
+        <label
+          className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+          title="Grupos con menos alumnos fijos activos que plazas"
+        >
+          <input
+            type="checkbox"
+            checked={onlyFree}
+            onChange={(e) => setOnlyFree(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+          />
+          Solo con plazas libres
+        </label>
+        {(q || day || type || onlyFree) && (
           <button
-            onClick={() => { setQ(''); setDay(''); setType('') }}
+            onClick={() => { setQ(''); setDay(''); setType(''); setOnlyFree(false) }}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
           >
             Limpiar
@@ -131,7 +145,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
         )}
       </div>
 
-      {(q || day || type) && (
+      {(q || day || type || onlyFree) && (
         <p className="mb-3 text-sm text-gray-400">{filtered.length} de {schedules.length} clases</p>
       )}
 

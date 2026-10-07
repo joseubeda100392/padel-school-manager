@@ -20,6 +20,7 @@ import { ResetMfaButton } from './reset-mfa-button'
 import { StudentMandate } from './student-mandate'
 import { DevError } from '@/components/dev-error'
 import Link from 'next/link'
+import { PAYMENT_METHODS, paymentMethodKey } from '@/lib/payment-method'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -100,7 +101,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .limit(10),
     admin
       .from('payments')
-      .select('id, amount, type, status, currency, created_at')
+      .select('id, amount, type, status, currency, created_at, metadata, redsys_order_id, stripe_payment_intent_id')
       .eq('user_id', params.id)
       .order('created_at', { ascending: false })
       .limit(20),
@@ -328,10 +329,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             <p className="px-6 py-8 text-center text-sm text-gray-400">Sin pagos registrados.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[400px]">
+              <table className="w-full min-w-[520px]">
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Tipo</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Método</th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha</th>
@@ -341,6 +343,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                   {payments.map((p: any) => (
                     <tr key={p.id} className="hover:bg-gray-50">
                       <td className="px-6 py-3 text-sm text-gray-700">{typeLabel[p.type] ?? p.type ?? '—'}</td>
+                      <td className="px-6 py-3">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${PAYMENT_METHODS[paymentMethodKey(p)].cls}`}>
+                          {PAYMENT_METHODS[paymentMethodKey(p)].label}
+                        </span>
+                      </td>
                       <td className="px-6 py-3 text-sm font-semibold text-gray-900">{formatCurrency(p.amount, p.currency ?? 'EUR')}</td>
                       <td className="px-6 py-3">
                         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
