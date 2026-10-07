@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { notFound } from 'next/navigation'
-import { formatDate, formatCurrency, mostCommonMonthlyPrice } from '@/lib/utils'
+import { formatDate, formatCurrency } from '@/lib/utils'
+import { DEFAULT_STANDARD_DISCOUNT_CENTS } from '@/lib/enrollment-discount'
 import { StudentLevelForm } from './student-level-form'
 import { BagAdjustForm } from './bag-adjust-form'
 import { BagHistoryList } from './bag-history-list'
@@ -161,24 +162,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     .filter((p: any) => p.status === 'succeeded')
     .reduce((acc: number, p: any) => acc + p.amount, 0)
 
-  // Precio "normal" de cada grupo fijo en el que está este alumno — para
-  // poder calcular a cuánto equivale aplicar/quitar el descuento estándar
-  // del club sobre la cuota de cada inscripción. Se calcula solo con las
-  // inscripciones SIN descuento activo (si se incluyeran las descontadas,
-  // en un grupo pequeño o mayoritariamente descontado el precio "normal"
-  // calculado acabaría siendo el ya rebajado, y el check quedaría mal
-  // marcado al recargar la página — el flag persistido evita justo eso).
-  const scheduleIds = [...new Set((enrollments ?? []).map((e: any) => e.schedule?.id).filter(Boolean))] as string[]
-  const { data: siblingEnrollments } = scheduleIds.length
-    ? await admin.from('group_enrollments').select('schedule_id, monthly_price').eq('status', 'active').eq('discount_applied', false).in('schedule_id', scheduleIds)
-    : { data: [] }
-  const defaultPriceByScheduleId: Record<string, number> = {}
-  for (const scheduleId of scheduleIds) {
-    defaultPriceByScheduleId[scheduleId] = mostCommonMonthlyPrice(
-      (siblingEnrollments ?? []).filter((e: any) => e.schedule_id === scheduleId),
-    )
-  }
-  const discountCents = (clubRow as any)?.config?.standard_discount_cents ?? 4000
+  const discountCents = (clubRow as any)?.config?.standard_discount_cents ?? DEFAULT_STANDARD_DISCOUNT_CENTS
   const pendingBajaDate = (enrollments ?? []).find((e: any) => e.end_date)?.end_date ?? null
 
   return (
@@ -260,7 +244,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             end_date: e.end_date,
             discount_applied: e.discount_applied ?? false,
             schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
-          }))} defaultPriceByScheduleId={defaultPriceByScheduleId} discountCents={discountCents} />
+          }))} discountCents={discountCents} />
         </div>
       )}
 

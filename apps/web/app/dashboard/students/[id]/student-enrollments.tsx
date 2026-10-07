@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import { currentBillingMonth } from '@/lib/billing-cycle'
+import { applyStandardDiscount, removeStandardDiscount } from '@/lib/enrollment-discount'
 
 interface Enrollment {
   id: string
@@ -28,11 +29,9 @@ function isPaidThisMonth(paidUntil: string | null) {
 
 export function StudentEnrollments({
   initialEnrollments,
-  defaultPriceByScheduleId,
   discountCents,
 }: {
   initialEnrollments: Enrollment[]
-  defaultPriceByScheduleId: Record<string, number>
   discountCents: number
 }) {
   const [enrollments, setEnrollments] = useState(initialEnrollments)
@@ -71,22 +70,26 @@ export function StudentEnrollments({
     setSaving(false)
   }
 
-  // basePrice=0 significa que no había ninguna inscripción sin descuento en
-  // el grupo con la que calcular el precio normal (p.ej. todo el grupo ya
-  // está descontado) — en ese caso, para desactivar, se deshace el
-  // descuento conocido sobre el propio precio actual en vez de usar 0.
-  async function handleToggleDiscount(e: Enrollment, basePrice: number) {
-    setDiscountLoadingId(e.id)
-    let ok: boolean
+  // El descuento se calcula siempre sobre la cuota de este alumno (no la del
+  // grupo), y al quitarlo se le devuelven los mismos euros: así vuelve
+  // exactamente a lo que pagaba.
+  async function handleToggleDiscount(e: Enrollment) {
     if (e.discount_applied) {
-      const restoredPrice = basePrice > 0 ? basePrice : e.monthly_price + discountCents
-      ok = await saveEnrollment(e.id, { monthly_price: restoredPrice, discount_applied: false })
-      if (ok) toast.success('Descuento quitado — cuota normal guardada')
-    } else {
-      const discountedPrice = Math.max(0, (basePrice > 0 ? basePrice : e.monthly_price) - discountCents)
-      ok = await saveEnrollment(e.id, { monthly_price: discountedPrice, discount_applied: true })
-      if (ok) toast.success(`Descuento aplicado — ${formatCurrency(discountedPrice)}/mes guardado`)
+      setDiscountLoadingId(e.id)
+      const restoredPrice = removeStandardDiscount(e.monthly_price, discountCents)
+      const ok = await saveEnrollment(e.id, { monthly_price: restoredPrice, discount_applied: false })
+      if (ok) toast.success(`Descuento quitado — cuota de ${formatCurrency(restoredPrice)}/mes`)
+      setDiscountLoadingId(null)
+      return
     }
+    const discountedPrice = applyStandardDiscount(e.monthly_price, discountCents)
+    if (discountedPrice === null) {
+      toast.error(`La cuota (${formatCurrency(e.monthly_price)}) es menor que el descuento de ${formatCurrency(discountCents)}. Ajusta la cuota a mano.`)
+      return
+    }
+    setDiscountLoadingId(e.id)
+    const ok = await saveEnrollment(e.id, { monthly_price: discountedPrice, discount_applied: true })
+    if (ok) toast.success(`Descuento de ${formatCurrency(discountCents)} aplicado — ${formatCurrency(discountedPrice)}/mes este mes`)
     setDiscountLoadingId(null)
   }
 
@@ -153,14 +156,13 @@ export function StudentEnrollments({
               )}
 
               {e.schedule?.id && (() => {
-                const basePrice = defaultPriceByScheduleId[e.schedule.id] ?? 0
                 return (
                   <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500" title={`Descuento estándar: ${formatCurrency(discountCents)} · solo para el próximo cobro, se desmarca solo al registrar el pago`}>
                     <input
                       type="checkbox"
                       checked={e.discount_applied}
                       disabled={discountLoadingId === e.id}
-                      onChange={() => handleToggleDiscount(e, basePrice)}
+                      onChange={() => handleToggleDiscount(e)}
                       className="h-3.5 w-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400"
                     />
                     Descuento
