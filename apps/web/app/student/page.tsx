@@ -6,24 +6,12 @@ import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet } from '@/lib/club-holidays'
+import { getNextOccurrence } from '@/lib/next-class'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 import { PasswordForm } from './password-form'
 import { PistaVivaOptin } from './pista-viva-optin'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-
-function getNextOccurrence(startTime: string): Date | null {
-  if (!startTime) return null
-  const base = new Date(startTime)
-  if (isNaN(base.getTime())) return null
-  const now = new Date()
-  const next = new Date(now)
-  next.setHours(base.getHours(), base.getMinutes(), 0, 0)
-  const diff = (base.getDay() - now.getDay() + 7) % 7
-  next.setDate(now.getDate() + (diff === 0 && next <= now ? 7 : diff))
-  while (next < base) next.setDate(next.getDate() + 7)
-  return next
-}
 
 function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
@@ -116,9 +104,10 @@ export default async function StudentHomePage() {
         .gte('override_date', todaySpain)
     : { data: [] }
 
+  const holidaySet = getHolidaySet((clubRow as any)?.config)
   const nextClass = (activeEnrollments as any[])
     .flatMap((e: any) => {
-      const nextDate = getNextOccurrence((e.schedule as any)?.start_time ?? '')
+      const nextDate = getNextOccurrence((e.schedule as any)?.start_time ?? '', holidaySet)
       if (!nextDate) return []
       const nextDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(nextDate)
       const override = (timeOverrides ?? []).find(
@@ -130,7 +119,6 @@ export default async function StudentHomePage() {
 
   const level = levelData
 
-  const holidaySet = getHolidaySet((clubRow as any)?.config)
   const absenceSpots = (spots ?? []).filter((s: any) => {
     if (holidaySet.has(s.excluded_date)) return false
     const schedule = (s.group_enrollment as any)?.schedule
