@@ -104,7 +104,7 @@ export default function AdminAyudaPage() {
           </Section>
 
           <Section id="descuentos" title="Descuentos en la cuota">
-            <p>En la ficha de cada alumno, junto a su cuota, hay un check <strong>"Descuento"</strong>. Al marcarlo, resta el descuento estándar del club (configurable en Configuración) a la cuota de ese alumno: si paga 85 € y el descuento es de 40 €, ese mes paga 45 €. Al desmarcarlo, vuelve a su cuota de siempre, aunque en el grupo haya alumnos que pagan otra cantidad.</p>
+            <p>En la ficha de cada alumno, junto a su cuota, hay un check <strong>"Descuento"</strong>. Al marcarlo, la cuota de ese alumno se queda en la mitad: si paga 85 €, ese mes paga 42,50 €. Al desmarcarlo, vuelve a su cuota de siempre, aunque en el grupo haya alumnos que pagan otra cantidad.</p>
             <Aviso>El descuento es puntual, no permanente: en cuanto se registra el cobro de ese mes (efectivo o tarjeta), el check se desmarca solo y el mes siguiente vuelve a su cuota de siempre. Si el alumno debe seguir con descuento, hay que volver a marcarlo cada mes.</Aviso>
           </Section>
 
@@ -131,7 +131,6 @@ export default function AdminAyudaPage() {
               <li><strong>Política de cancelación y clases de recuperación</strong>: plazos y límites.</li>
               <li><strong>Días festivos</strong>: fechas en las que no hay clase, para que no se generen sesiones ni horas ese día.</li>
               <li><strong>Inicio de facturación</strong>: fecha a partir de la cual se activan los pagos en la app cada temporada. Un cobro que caiga en los últimos días del mes cubre directamente el mes siguiente completo, así que puedes ponerla el mismo día real de inicio de temporada sin generar cobros duplicados.</li>
-              <li><strong>Descuento estándar</strong>: importe por defecto del check de descuento en la ficha de cada alumno.</li>
               <li><strong>Pista Viva — Playtomic</strong>: credenciales de la API oficial del club en Playtomic, necesarias para ese módulo.</li>
               <li><strong>Importar jugadores desde Playtomic</strong>: herramienta aparte para dar de alta jugadores en bloque (no relacionada con Pista Viva).</li>
             </ul>

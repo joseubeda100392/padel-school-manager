@@ -1,34 +1,41 @@
 import { describe, it, expect, vi } from 'vitest'
 import {
-  applyStandardDiscount,
-  removeStandardDiscount,
+  halfFeeDiscountCents,
+  restoreDiscountedPrice,
   resetEnrollmentDiscountAfterPayment,
 } from '@/lib/enrollment-discount'
 
-describe('applyStandardDiscount', () => {
-  it('subtracts the discount from the student own fee, not the group fee', () => {
-    expect(applyStandardDiscount(8500, 4000)).toBe(4500)
-    expect(applyStandardDiscount(8000, 4000)).toBe(4000)
+describe('halfFeeDiscountCents', () => {
+  it('discounts half of the student own fee', () => {
+    expect(halfFeeDiscountCents(8500)).toBe(4250)
+    expect(halfFeeDiscountCents(16000)).toBe(8000)
   })
 
-  it('returns null when the fee is lower than the discount', () => {
-    expect(applyStandardDiscount(3000, 4000)).toBeNull()
+  it('leaves the odd cent to the student', () => {
+    expect(halfFeeDiscountCents(8501)).toBe(4250)
+    expect(8501 - halfFeeDiscountCents(8501)).toBe(4251)
   })
 
-  it('allows a fee equal to the discount (free month)', () => {
-    expect(applyStandardDiscount(4000, 4000)).toBe(0)
+  it('returns 0 for a free fee', () => {
+    expect(halfFeeDiscountCents(0)).toBe(0)
   })
 })
 
-describe('removeStandardDiscount', () => {
-  it('adds the discount back to the student own fee', () => {
-    expect(removeStandardDiscount(4500, 4000)).toBe(8500)
+describe('restoreDiscountedPrice', () => {
+  it('adds back exactly the stored discount', () => {
+    expect(restoreDiscountedPrice(4251, 4250, 4000)).toBe(8501)
   })
 
-  it('round-trips with applyStandardDiscount', () => {
-    const original = 16000
-    const discounted = applyStandardDiscount(original, 4000)!
-    expect(removeStandardDiscount(discounted, 4000)).toBe(original)
+  it('round-trips with halfFeeDiscountCents for any fee', () => {
+    for (const fee of [0, 1, 4999, 8500, 8501, 16000]) {
+      const discount = halfFeeDiscountCents(fee)
+      expect(restoreDiscountedPrice(fee - discount, discount, 4000)).toBe(fee)
+    }
+  })
+
+  it('falls back to the legacy fixed discount when none was stored', () => {
+    expect(restoreDiscountedPrice(4500, null, 4000)).toBe(8500)
+    expect(restoreDiscountedPrice(4500, undefined, 4000)).toBe(8500)
   })
 })
 
@@ -43,23 +50,33 @@ function fakeAdmin(enrollment: Record<string, unknown> | null, clubConfig: Recor
     }
     return { select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { config: clubConfig } }) }) }) }
   })
-  return { client: { from } as never, update }
+  return { client: { from } as never, update, from }
 }
 
 describe('resetEnrollmentDiscountAfterPayment', () => {
-  it('restores the student own fee after the discounted month is paid', async () => {
-    const { client, update } = fakeAdmin(
-      { discount_applied: true, monthly_price: 4500, club_id: 'club-1' },
+  it('restores the fee using the stored half-fee discount', async () => {
+    const { client, update, from } = fakeAdmin(
+      { discount_applied: true, discount_cents: 4250, monthly_price: 4250, club_id: 'club-1' },
       { standard_discount_cents: 4000 },
     )
     await resetEnrollmentDiscountAfterPayment(client, 'enr-1')
-    expect(update).toHaveBeenCalledWith({ monthly_price: 8500, discount_applied: false })
+    expect(update).toHaveBeenCalledWith({ monthly_price: 8500, discount_applied: false, discount_cents: null })
+    expect(from).not.toHaveBeenCalledWith('clubs')
   })
 
-  it('uses the default 40 € discount when the club has no config', async () => {
-    const { client, update } = fakeAdmin({ discount_applied: true, monthly_price: 4000, club_id: 'club-1' }, null)
+  it('restores a legacy discount with the club fixed amount', async () => {
+    const { client, update } = fakeAdmin(
+      { discount_applied: true, discount_cents: null, monthly_price: 4500, club_id: 'club-1' },
+      { standard_discount_cents: 4000 },
+    )
     await resetEnrollmentDiscountAfterPayment(client, 'enr-1')
-    expect(update).toHaveBeenCalledWith({ monthly_price: 8000, discount_applied: false })
+    expect(update).toHaveBeenCalledWith({ monthly_price: 8500, discount_applied: false, discount_cents: null })
+  })
+
+  it('uses the default 40 € for a legacy discount when the club has no config', async () => {
+    const { client, update } = fakeAdmin({ discount_applied: true, discount_cents: null, monthly_price: 4000, club_id: 'club-1' }, null)
+    await resetEnrollmentDiscountAfterPayment(client, 'enr-1')
+    expect(update).toHaveBeenCalledWith({ monthly_price: 8000, discount_applied: false, discount_cents: null })
   })
 
   it('does nothing when the enrollment has no discount', async () => {

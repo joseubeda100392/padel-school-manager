@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import { currentBillingMonth } from '@/lib/billing-cycle'
-import { applyStandardDiscount, removeStandardDiscount } from '@/lib/enrollment-discount'
+import { halfFeeDiscountCents, restoreDiscountedPrice } from '@/lib/enrollment-discount'
 
 interface Enrollment {
   id: string
@@ -14,6 +14,7 @@ interface Enrollment {
   start_date: string | null
   end_date: string | null
   discount_applied: boolean
+  discount_cents: number | null
   schedule: { id: string; start_time: string; court: { name: string } | null } | null
 }
 
@@ -29,10 +30,10 @@ function isPaidThisMonth(paidUntil: string | null) {
 
 export function StudentEnrollments({
   initialEnrollments,
-  discountCents,
+  legacyDiscountCents,
 }: {
   initialEnrollments: Enrollment[]
-  discountCents: number
+  legacyDiscountCents: number
 }) {
   const [enrollments, setEnrollments] = useState(initialEnrollments)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -42,7 +43,7 @@ export function StudentEnrollments({
 
   const currentMonth = MONTHS[currentBillingMonth().month0]
 
-  async function saveEnrollment(id: string, updates: { monthly_price: number; discount_applied?: boolean }): Promise<boolean> {
+  async function saveEnrollment(id: string, updates: { monthly_price: number; discount_applied?: boolean; discount_cents?: number | null }): Promise<boolean> {
     try {
       const res = await fetch(`/api/group-enrollments/${id}`, {
         method: 'PATCH',
@@ -70,26 +71,21 @@ export function StudentEnrollments({
     setSaving(false)
   }
 
-  // El descuento se calcula siempre sobre la cuota de este alumno (no la del
-  // grupo), y al quitarlo se le devuelven los mismos euros: así vuelve
-  // exactamente a lo que pagaba.
+  // El descuento es la mitad de la cuota de este alumno (no la del grupo), y
+  // se guarda el importe descontado para devolver exactamente esos euros al
+  // quitarlo.
   async function handleToggleDiscount(e: Enrollment) {
-    if (e.discount_applied) {
-      setDiscountLoadingId(e.id)
-      const restoredPrice = removeStandardDiscount(e.monthly_price, discountCents)
-      const ok = await saveEnrollment(e.id, { monthly_price: restoredPrice, discount_applied: false })
-      if (ok) toast.success(`Descuento quitado — cuota de ${formatCurrency(restoredPrice)}/mes`)
-      setDiscountLoadingId(null)
-      return
-    }
-    const discountedPrice = applyStandardDiscount(e.monthly_price, discountCents)
-    if (discountedPrice === null) {
-      toast.error(`La cuota (${formatCurrency(e.monthly_price)}) es menor que el descuento de ${formatCurrency(discountCents)}. Ajusta la cuota a mano.`)
-      return
-    }
     setDiscountLoadingId(e.id)
-    const ok = await saveEnrollment(e.id, { monthly_price: discountedPrice, discount_applied: true })
-    if (ok) toast.success(`Descuento de ${formatCurrency(discountCents)} aplicado — ${formatCurrency(discountedPrice)}/mes este mes`)
+    if (e.discount_applied) {
+      const restoredPrice = restoreDiscountedPrice(e.monthly_price, e.discount_cents, legacyDiscountCents)
+      const ok = await saveEnrollment(e.id, { monthly_price: restoredPrice, discount_applied: false, discount_cents: null })
+      if (ok) toast.success(`Descuento quitado — cuota de ${formatCurrency(restoredPrice)}/mes`)
+    } else {
+      const discountCents = halfFeeDiscountCents(e.monthly_price)
+      const discountedPrice = e.monthly_price - discountCents
+      const ok = await saveEnrollment(e.id, { monthly_price: discountedPrice, discount_applied: true, discount_cents: discountCents })
+      if (ok) toast.success(`Descuento del 50% aplicado — ${formatCurrency(discountedPrice)}/mes este mes`)
+    }
     setDiscountLoadingId(null)
   }
 
@@ -157,7 +153,7 @@ export function StudentEnrollments({
 
               {e.schedule?.id && (() => {
                 return (
-                  <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500" title={`Descuento estándar: ${formatCurrency(discountCents)} · solo para el próximo cobro, se desmarca solo al registrar el pago`}>
+                  <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500" title="Descuento del 50% de la cuota · solo para el próximo cobro, se desmarca solo al registrar el pago">
                     <input
                       type="checkbox"
                       checked={e.discount_applied}

@@ -107,7 +107,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       .limit(20),
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, paid_until, status, start_date, end_date, discount_applied, schedule:schedules(id, start_time, court:courts(name))')
+      .select('id, monthly_price, paid_until, status, start_date, end_date, discount_applied, discount_cents, schedule:schedules(id, start_time, court:courts(name))')
       .eq('student_id', params.id)
       .eq('status', 'active')
       .order('enrolled_at', { ascending: false }),
@@ -163,7 +163,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     .filter((p: any) => p.status === 'succeeded')
     .reduce((acc: number, p: any) => acc + p.amount, 0)
 
-  const discountCents = (clubRow as any)?.config?.standard_discount_cents ?? DEFAULT_STANDARD_DISCOUNT_CENTS
+  const legacyDiscountCents = (clubRow as any)?.config?.standard_discount_cents ?? DEFAULT_STANDARD_DISCOUNT_CENTS
   const pendingBajaDate = (enrollments ?? []).find((e: any) => e.end_date)?.end_date ?? null
 
   return (
@@ -244,8 +244,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             start_date: e.start_date,
             end_date: e.end_date,
             discount_applied: e.discount_applied ?? false,
+            discount_cents: e.discount_cents ?? null,
             schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
-          }))} discountCents={discountCents} />
+          }))} legacyDiscountCents={legacyDiscountCents} />
         </div>
       )}
 

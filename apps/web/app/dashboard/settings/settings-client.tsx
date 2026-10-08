@@ -1369,25 +1369,6 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
             )}
           </div>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-1 font-semibold text-gray-900">Descuento estándar</h2>
-            <p className="mb-4 text-xs text-gray-400">
-              Importe que se resta de la cuota normal de un grupo fijo al marcar el check de "Descuento" en la ficha de un alumno.
-            </p>
-            <div className="relative w-40">
-              <input
-                type="text"
-                inputMode="decimal"
-                onFocus={e => e.target.select()}
-                value={displayPrice(config.standard_discount_cents)}
-                onChange={e => setConfig({ ...config, standard_discount_cents: priceVal(e.target.value) })}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                placeholder="40"
-              />
-              <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-            </div>
-          </div>
-
           {saveError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">Error: {saveError}</p>}
           <button onClick={saveConfig} disabled={saving} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
             {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar tarifas'}
