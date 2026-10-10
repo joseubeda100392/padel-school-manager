@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
@@ -6,8 +6,12 @@ import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { ChevronLeft, MessageSquare } from 'lucide-react'
 import { ChatWindow } from './chat-window'
 import { DevError } from '@/components/dev-error'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/feedback'
+import { cn } from '@/lib/utils'
 
 export default async function ChatPage({ searchParams }: { searchParams: { thread?: string } }) {
   const supabase = createClient()
@@ -51,62 +55,68 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   return (
     <div className="flex flex-col gap-2">
       <DevError errors={[errThreads?.message]} />
-    <div className="flex h-[calc(100dvh-9rem)] gap-0 overflow-hidden rounded-xl bg-white shadow-sm">
-      {/* Thread list — full width on mobile when no thread selected, sidebar on md+ */}
-      <aside className={`flex flex-col border-r border-gray-100 flex-shrink-0 ${mobileShowChat ? 'hidden md:flex md:w-72' : 'w-full md:w-72'}`}>
-        <div className="border-b border-gray-100 p-4">
-          <h1 className="font-semibold text-gray-900">Chat soporte</h1>
-          <p className="text-xs text-gray-400">{threads?.length ?? 0} conversaciones</p>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {threads?.length === 0 && (
-            <p className="p-6 text-center text-sm text-gray-400">No hay conversaciones aún.</p>
-          )}
-          {threads?.map((t: any) => (
-            <Link
-              key={t.id}
-              href={`/dashboard/chat?thread=${t.id}`}
-              className={`block border-b border-gray-50 p-4 hover:bg-gray-50 ${activeThreadId === t.id ? 'bg-brand-50 border-l-2 border-l-green-600' : ''}`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-gray-900">{t.user?.name ?? 'Desconocido'}</p>
-                  <p className="truncate text-xs text-gray-400">{t.lastMessage?.[0]?.content ?? 'Sin mensajes'}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${t.status === 'active' ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
-                    {t.status === 'active' ? 'Activo' : 'Resuelto'}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </aside>
-
-      {/* Chat panel — hidden on mobile until a thread is explicitly selected */}
-      <div className={`flex-col flex-1 min-w-0 ${mobileShowChat ? 'flex' : 'hidden md:flex'}`}>
-        {mobileShowChat && (
-          <Link
-            href="/dashboard/chat"
-            className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50 md:hidden"
-          >
-            ← Conversaciones
-          </Link>
-        )}
-        {activeThread ? (
-          <ChatWindow
-            thread={activeThread}
-            initialMessages={messages}
-            currentUserId={currentUser?.id ?? ''}
-          />
-        ) : (
-          <div className="flex flex-1 items-center justify-center text-gray-400">
-            Selecciona una conversación
+      <div className="flex h-[calc(100dvh-var(--tabbar-h)-var(--safe-bottom)-8rem)] gap-0 overflow-hidden rounded-card border border-line bg-surface shadow-card md:h-[calc(100dvh-6rem)]">
+        {/* Thread list — full width on mobile when no thread selected, sidebar on md+ */}
+        <aside className={cn('flex flex-shrink-0 flex-col border-r border-line', mobileShowChat ? 'hidden md:flex md:w-72' : 'w-full md:w-72')}>
+          <div className="border-b border-line p-4">
+            <h1 className="text-heading text-ink">Chat de soporte</h1>
+            <p className="text-meta tabular-nums text-ink-3">{threads?.length ?? 0} conversaciones</p>
           </div>
-        )}
+          <nav aria-label="Conversaciones" className="flex-1 overflow-y-auto">
+            {threads?.length === 0 && (
+              <EmptyState icon={<MessageSquare />} title="Sin conversaciones" description="Cuando un alumno escriba, la conversación aparecerá aquí." />
+            )}
+            <ul className="divide-y divide-line">
+              {threads?.map((t: any) => (
+                <li key={t.id}>
+                  <Link
+                    href={`/dashboard/chat?thread=${t.id}`}
+                    aria-current={activeThreadId === t.id ? 'true' : undefined}
+                    className={cn(
+                      'block min-h-14 border-l-2 p-4 transition-colors hover:bg-ink/[0.03]',
+                      activeThreadId === t.id ? 'border-l-accent-ink bg-accent-soft' : 'border-l-transparent',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-label text-ink">{t.user?.name ?? 'Desconocido'}</p>
+                        <p className="truncate text-meta text-ink-3">{t.lastMessage?.[0]?.content ?? 'Sin mensajes'}</p>
+                      </div>
+                      <Badge tone={t.status === 'active' ? 'success' : 'neutral'}>
+                        {t.status === 'active' ? 'Activo' : 'Resuelto'}
+                      </Badge>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
+
+        {/* Chat panel — hidden on mobile until a thread is explicitly selected */}
+        <div className={cn('min-w-0 flex-1 flex-col', mobileShowChat ? 'flex' : 'hidden md:flex')}>
+          {mobileShowChat && (
+            <Link
+              href="/dashboard/chat"
+              className="flex min-h-11 items-center gap-1 border-b border-line px-3 text-label text-ink-2 hover:bg-ink/[0.03] md:hidden"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+              Conversaciones
+            </Link>
+          )}
+          {activeThread ? (
+            <ChatWindow
+              thread={activeThread}
+              initialMessages={messages}
+              currentUserId={currentUser?.id ?? ''}
+            />
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-body text-ink-2">
+              Selecciona una conversación
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   )
 }

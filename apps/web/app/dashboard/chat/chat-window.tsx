@@ -1,6 +1,12 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { SendHorizontal } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/field'
+import { useConfirm } from '@/components/ui/confirm'
+import { formatLongDate, formatClock } from '@/lib/format-date'
+import { cn } from '@/lib/utils'
 
 interface Message {
   id: string
@@ -29,10 +35,11 @@ function formatDate(dateStr: string) {
   yesterday.setDate(today.getDate() - 1)
   if (d.toDateString() === today.toDateString()) return 'Hoy'
   if (d.toDateString() === yesterday.toDateString()) return 'Ayer'
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+  return formatLongDate(d, { weekday: false })
 }
 
 export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
+  const confirm = useConfirm()
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
@@ -82,7 +89,15 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
   }
 
   async function deleteThread() {
-    if (!confirm('¿Eliminar esta conversación? Se borrarán todos los mensajes.')) return
+    if (
+      !(await confirm({
+        title: 'Eliminar esta conversación',
+        description: 'Se borrarán todos los mensajes. No se puede deshacer.',
+        confirmLabel: 'Eliminar conversación',
+        destructive: true,
+      }))
+    )
+      return
     setDeleting(true)
     await fetch(`/api/chat/threads/${thread.id}`, { method: 'DELETE' })
     window.location.href = '/dashboard/chat'
@@ -98,52 +113,43 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-gray-100 p-4">
-        <div>
-          <p className="font-semibold text-gray-900">{thread.user?.name ?? 'Desconocido'}</p>
-          <p className="text-xs text-gray-400">{thread.user?.email}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line p-3 sm:p-4">
+        <div className="min-w-0">
+          <h2 className="truncate text-heading text-ink">{thread.user?.name ?? 'Desconocido'}</h2>
+          <p className="truncate text-meta text-ink-3">{thread.user?.email}</p>
         </div>
         <div className="flex items-center gap-2">
           {thread.status === 'active' && (
-            <button
-              onClick={resolve}
-              className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-200"
-            >
+            <Button variant="secondary" size="sm" onClick={resolve}>
               Marcar resuelto
-            </button>
+            </Button>
           )}
-          <button
-            onClick={deleteThread}
-            disabled={deleting}
-            className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
-          >
+          <Button variant="danger-ghost" size="sm" onClick={deleteThread} loading={deleting}>
             Eliminar
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 space-y-3 overflow-y-auto p-4" role="log" aria-label="Mensajes">
         {messages.length === 0 && (
-          <p className="text-center text-sm text-gray-400">Sin mensajes aún.</p>
+          <p className="text-center text-body text-ink-2">Sin mensajes aún.</p>
         )}
         {grouped.map(({ date, msgs }) => (
           <div key={date}>
-            <div className="flex items-center gap-3 my-4">
-              <div className="h-px flex-1 bg-gray-100" />
-              <span className="text-xs text-gray-400">{date}</span>
-              <div className="h-px flex-1 bg-gray-100" />
+            <div className="my-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-line" />
+              <span className="text-meta text-ink-3">{date}</span>
+              <div className="h-px flex-1 bg-line" />
             </div>
             {msgs.map((m) => {
               const isMe = m.sender_id === currentUserId
               return (
-                <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
-                  <div className={`max-w-sm rounded-2xl px-4 py-2.5 ${isMe ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-900'}`}>
-                    {!isMe && (
-                      <p className="mb-0.5 text-xs font-medium opacity-70">{m.sender?.name}</p>
-                    )}
-                    <p className="text-sm">{m.content}</p>
-                    <p className="mt-0.5 text-right text-xs opacity-60">
-                      {new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                <div key={m.id} className={cn('mb-2 flex', isMe ? 'justify-end' : 'justify-start')}>
+                  <div className={cn('max-w-[85%] rounded-2xl px-4 py-2.5 sm:max-w-sm', isMe ? 'bg-accent text-accent-on' : 'bg-surface-2 text-ink')}>
+                    {!isMe && <p className="mb-0.5 text-meta font-medium text-ink-2">{m.sender?.name}</p>}
+                    <p className="whitespace-pre-wrap break-words text-body">{m.content}</p>
+                    <p className={cn('mt-0.5 text-right text-meta tabular-nums', isMe ? 'text-accent-on/70' : 'text-ink-3')}>
+                      {formatClock(m.created_at)}
                     </p>
                   </div>
                 </div>
@@ -154,26 +160,26 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-gray-100 p-4">
+      <div className="border-t border-line p-3 sm:p-4">
         {thread.status === 'resolved' ? (
-          <p className="text-center text-sm text-gray-400">Conversación resuelta. Puedes eliminarla con el botón de arriba.</p>
+          <p className="text-center text-body text-ink-2">Conversación resuelta. Puedes eliminarla con el botón de arriba.</p>
         ) : (
           <div className="flex gap-2">
-            <input
+            <Input
               type="text"
+              aria-label="Mensaje"
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-              placeholder="Escribe un mensaje..."
-              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              placeholder="Escribe un mensaje"
+              autoComplete="off"
+              enterKeyHint="send"
+              className="flex-1"
             />
-            <button
-              onClick={send}
-              disabled={!text.trim() || sending}
-              className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-            >
-              Enviar
-            </button>
+            <Button onClick={send} disabled={!text.trim() || sending} aria-label="Enviar mensaje">
+              <SendHorizontal className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline">Enviar</span>
+            </Button>
           </div>
         )}
       </div>

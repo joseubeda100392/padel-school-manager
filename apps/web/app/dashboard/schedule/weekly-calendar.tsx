@@ -2,6 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight, TriangleAlert } from 'lucide-react'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const DAY_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
@@ -81,32 +85,26 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
   }, [weekDates])
 
   return (
-    <div>
-      {/* Navegación de semana */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <button
-          onClick={() => setWeekOffset((o) => o - 1)}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
-        >
-          ← Anterior
-        </button>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button variant="secondary" size="sm" onClick={() => setWeekOffset((o) => o - 1)}>
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          Anterior
+        </Button>
         <div className="text-center">
-          <p className="text-sm font-semibold text-gray-900">{weekRange}</p>
+          <p className="text-label tabular-nums text-ink">{weekRange}</p>
           {weekOffset !== 0 && (
-            <button onClick={() => setWeekOffset(0)} className="text-xs text-brand-500 hover:underline">
+            <button onClick={() => setWeekOffset(0)} className={buttonVariants({ variant: 'link', size: 'sm' })}>
               Volver a hoy
             </button>
           )}
         </div>
-        <button
-          onClick={() => setWeekOffset((o) => o + 1)}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
-        >
-          Siguiente →
-        </button>
+        <Button variant="secondary" size="sm" onClick={() => setWeekOffset((o) => o + 1)}>
+          Siguiente
+          <ChevronRight className="h-4 w-4" aria-hidden />
+        </Button>
       </div>
 
-      {/* Intensivos de la semana — una tarjeta por grupo */}
       {enableIntensivos && (() => {
         const weekStart = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(weekDates[0])
         const weekEnd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(weekDates[6])
@@ -124,44 +122,38 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
 
         if (!weekGroups.length) return null
         return (
-          <div className="mb-4 space-y-2">
+          <div className="space-y-2">
             {weekGroups.map(group => {
               if (!group) return null
               const first = group.classes[0]
               const dayNames = group.classes.map((s: any) => DAY_NAMES[JS_DAY_TO_IDX[new Date(s.start_time).getDay()]])
               const enrolled = first.bookings_count ?? 0
               return (
-                <div
-                  key={group.gid}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 cursor-pointer hover:bg-purple-100 transition-colors"
-                  onClick={() => router.push(`/dashboard/schedule/${first.id}`)}
-                >
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-purple-200 px-2.5 py-0.5 text-xs font-semibold text-purple-800">
-                      Intensivo
-                    </span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {dayNames.join(' · ')} — {timeOnly(first.start_time)}–{timeOnly(group.classes[group.classes.length - 1].end_time)}
-                    </span>
-                    <span className="text-sm text-gray-500">{first.court?.name ?? '—'}</span>
-                    {first.coach?.name && <span className="text-sm text-gray-400">{first.coach.name}</span>}
-                    {first.level && (
-                      <span className="rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: first.level.color }}>
-                        {first.level.name}
+                <Card key={group.gid}>
+                  <button
+                    type="button"
+                    className="flex w-full flex-wrap items-center justify-between gap-3 rounded-card px-4 py-3 text-left transition-colors hover:bg-ink/[0.03]"
+                    onClick={() => router.push(`/dashboard/schedule/${first.id}`)}
+                  >
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <Badge tone="outline">Intensivo</Badge>
+                      <span className="text-label tabular-nums text-ink">
+                        {dayNames.join(' · ')} — {timeOnly(first.start_time)}–{timeOnly(group.classes[group.classes.length - 1].end_time)}
                       </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-500">{enrolled}/{first.max_students} alumnos · {group.classes.length} clases</span>
-                </div>
+                      <span className="text-meta text-ink-3">{first.court?.name ?? '—'}</span>
+                      {first.coach?.name && <span className="text-meta text-ink-3">{first.coach.name}</span>}
+                      {first.level && <LevelTag name={first.level.name} color={first.level.color} />}
+                    </div>
+                    <span className="text-meta tabular-nums text-ink-3">{enrolled}/{first.max_students} alumnos · {group.classes.length} clases</span>
+                  </button>
+                </Card>
               )
             })}
           </div>
         )
       })()}
 
-      {/* Columnas por día */}
-      <div className="overflow-x-auto pb-2">
-        <div className="grid min-w-[700px] grid-cols-7 gap-2">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-7 md:gap-2">
         {DAY_NAMES.map((dayName, idx) => {
           const date = weekDates[idx]
           const isToday = date.toDateString() === new Date().toDateString()
@@ -179,26 +171,24 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
             .sort((a, b) => madridMinutesOfDay(a.start_time) - madridMinutesOfDay(b.start_time))
 
           return (
-            <div key={idx}>
-              {/* Header del día */}
-              <div className={`mb-2 rounded-lg px-2 py-2 text-center ${isToday ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                <p className="text-xs font-semibold">{dayName}</p>
-                <p className={`text-lg font-bold ${isToday ? 'text-white' : 'text-gray-900'}`}>
-                  {date.getDate()}
+            <section key={idx} className="min-w-0" aria-label={`${DAY_FULL[idx]} ${date.getDate()}`}>
+              <div
+                className={`mb-2 flex items-baseline gap-2 border-b pb-2 md:flex-col md:items-center md:gap-0 md:rounded-control md:border-b-0 md:py-2 ${
+                  isToday ? 'border-ink md:bg-chrome md:text-white' : 'border-line md:bg-surface-2'
+                }`}
+                aria-current={isToday ? 'date' : undefined}
+              >
+                <p className={`text-label ${isToday ? 'text-ink md:text-chrome-ink-2' : 'text-ink-2'}`}>
+                  <span className="md:hidden">{DAY_FULL[idx]}</span>
+                  <span className="hidden md:inline">{dayName}</span>
                 </p>
+                <p className={`font-display text-heading tabular-nums ${isToday ? 'text-ink md:text-white' : 'text-ink'}`}>{date.getDate()}</p>
+                {isHoliday && <Badge tone="warn" className="md:mt-1">Festivo</Badge>}
               </div>
 
-              {/* Clases del día */}
               <div className="space-y-2">
-                {isHoliday && (
-                  <div className="rounded-lg bg-orange-50 border border-orange-100 px-2 py-4 text-center">
-                    <p className="text-xs font-medium text-orange-500">Festivo</p>
-                  </div>
-                )}
                 {!isHoliday && classes.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-gray-200 px-2 py-4 text-center">
-                    <p className="text-xs text-gray-300">Sin clases</p>
-                  </div>
+                  <p className="rounded-control border border-dashed border-line px-2 py-3 text-center text-meta text-ink-3">Sin clases</p>
                 )}
                 {classes.map((s: any) => {
                   const override = overrideByKey.get(`${s.id}_${dateStr}`)
@@ -206,60 +196,45 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                   // Grupo fijo: la ocupación es constante salvo lo que pase ESE día concreto
                   // (falta sin cubrir) — no el número de "hoy" heredado en cualquier semana.
                   const occupancy = typeof s.group_size === 'number' ? s.group_size - (review?.uncoveredCount ?? 0) : s.bookings_count
+                  const reviewLabel = review
+                    ? review.uncoveredCount > 0
+                      ? `${review.uncoveredCount} plaza(s) por cubrir`
+                      : `Sustituye: ${review.substituteNames.join(', ')}`
+                    : undefined
                   return (
                   <button
                     key={s.id}
                     onClick={() => router.push(`/dashboard/schedule/${s.id}?date=${dateStr}`)}
-                    className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all hover:ring-green-400 ${s.is_fixed_group ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
+                    className="w-full rounded-control border border-line bg-surface p-3 text-left shadow-card transition-colors hover:border-line-strong md:p-2.5"
                   >
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="flex items-center gap-1 text-xs font-semibold text-gray-900">
+                    <div className="flex flex-wrap items-center justify-between gap-1">
+                      <p className="flex items-center gap-1 whitespace-nowrap text-label tabular-nums text-ink">
                         {timeOnly(override?.new_start_time ?? s.start_time)}–{timeOnly(override?.new_end_time ?? s.end_time)}
-                        {override && <span className="ml-1 text-amber-600">⚠️</span>}
+                        {override && <TriangleAlert className="ml-1 h-4 w-4 text-warn-ink" aria-label="Horario modificado" />}
                         {review && (
-                          <span
-                            className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500"
-                            title={
-                              review.uncoveredCount > 0
-                                ? `${review.uncoveredCount} plaza(s) por cubrir`
-                                : `Sustituye: ${review.substituteNames.join(', ')}`
-                            }
-                          />
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-danger-ink" role="img" aria-label={reviewLabel} title={reviewLabel} />
                         )}
                       </p>
-                      {s.is_fixed_group && (
-                        <span className="shrink-0 rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-semibold text-orange-700">
-                          FIJO
-                        </span>
-                      )}
-                      {s.type === 'intensivo' && (
-                        <span className="shrink-0 rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-semibold text-purple-700">
-                          INT
-                        </span>
-                      )}
+                      <div className="flex shrink-0 flex-wrap gap-1">
+                        {s.is_fixed_group && <Badge tone="outline">Fijo</Badge>}
+                        {s.type === 'intensivo' && <Badge tone="outline">Intensivo</Badge>}
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 truncate">{s.court?.name ?? '—'}</p>
-                    <p className="text-xs text-gray-400 truncate">{s.coach?.name ?? '—'}</p>
-                    {s.level && (
-                      <span
-                        className="mt-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white"
-                        style={{ backgroundColor: s.level.color }}
-                      >
-                        {s.level.name}
-                      </span>
-                    )}
+                    <p className="mt-0.5 truncate text-meta text-ink-2">{s.court?.name ?? '—'}</p>
+                    <p className="truncate text-meta text-ink-3">{s.coach?.name ?? '—'}</p>
+                    {s.level && <LevelTag name={s.level.name} color={s.level.color} className="mt-1" />}
                     {occupancy !== undefined && (
-                      <p className="mt-1 text-[10px] text-gray-400">
+                      <p className="mt-1 text-meta tabular-nums text-ink-3">
                         {occupancy}/{s.max_students} plazas
                       </p>
                     )}
                     {review && (
                       <div className="mt-1 flex flex-col gap-0.5">
                         {review.substituteNames.map((name: string, i: number) => (
-                          <span key={i} className="text-[10px] font-medium text-gray-600 truncate">{name}</span>
+                          <span key={i} className="truncate text-meta font-medium text-ink-2">{name}</span>
                         ))}
                         {review.uncoveredCount > 0 && (
-                          <span className="text-[10px] font-medium text-red-600">
+                          <span className="text-meta font-medium text-danger-ink">
                             {review.uncoveredCount} plaza{review.uncoveredCount > 1 ? 's' : ''} por cubrir
                           </span>
                         )}
@@ -269,10 +244,9 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                   )
                 })}
               </div>
-            </div>
+            </section>
           )
         })}
-        </div>
       </div>
     </div>
   )

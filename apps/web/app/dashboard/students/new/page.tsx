@@ -1,9 +1,14 @@
-﻿'use client'
+'use client'
 
 import { toast } from 'sonner'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody } from '@/components/ui/card'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Field, Input, Select } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
 
 const DEFAULT_PASSWORD = 'miclave123'
 
@@ -54,122 +59,97 @@ export default function NewStudentPage() {
   }
 
   return (
-    <div className="max-w-lg">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Alumnos
-        </Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Nuevo usuario</h1>
-      </div>
+    <div className="mx-auto w-full max-w-lg space-y-6">
+      <PageHeader title="Nuevo usuario" back={{ href: '/dashboard/students', label: 'Usuarios' }} />
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre completo *</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Juan García"
-          />
-        </div>
+      <Card>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Field label="Nombre completo">
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoComplete="off"
+                placeholder="Juan García"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Email *</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="juan@email.com"
-          />
-        </div>
+            <Field label="Email">
+              <Input
+                type="email"
+                inputMode="email"
+                autoComplete="off"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="juan@email.com"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Teléfono</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="600 000 000"
-          />
-        </div>
+            <Field label="Teléfono (opcional)">
+              <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="600 000 000"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Contraseña inicial *</label>
-          <input
-            value={tempPassword}
-            onChange={(e) => setTempPassword(e.target.value)}
-            required
-            minLength={6}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Mínimo 6 caracteres"
-          />
-          <p className="mt-1 text-xs text-gray-400">Compártesela al usuario — podrá cambiarla luego desde su perfil.</p>
-        </div>
+            <Field label="Contraseña inicial" hint="Compártesela al usuario: podrá cambiarla luego desde su perfil.">
+              <Input
+                value={tempPassword}
+                onChange={(e) => setTempPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete="off"
+                placeholder="Mínimo 6 caracteres"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Rol *</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as 'student' | 'coach' | 'admin')}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="student">Alumno</option>
-            <option value="coach">Monitor</option>
-            {isSuperAdmin && <option value="admin">Admin</option>}
-          </select>
-        </div>
+            <Field label="Rol">
+              <Select value={role} onChange={(e) => setRole(e.target.value as 'student' | 'coach' | 'admin')}>
+                <option value="student">Alumno</option>
+                <option value="coach">Monitor</option>
+                {isSuperAdmin && <option value="admin">Admin</option>}
+              </Select>
+            </Field>
 
-        {role === 'student' && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Nivel inicial</label>
-            {levels.length === 0 ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                Este club no tiene niveles creados.{' '}
-                <Link href="/dashboard/levels/new" className="font-medium underline hover:text-amber-900">
-                  Crea los niveles primero
-                </Link>{' '}
-                para poder asignar uno al alumno.
-              </div>
-            ) : (
-            <select
-              value={levelId}
-              onChange={(e) => setLevelId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
-              <option value="">Sin asignar</option>
-              {levels.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
+            {role === 'student' &&
+              (levels.length === 0 ? (
+                <Notice tone="warn">
+                  Este club no tiene niveles creados.{' '}
+                  <Link href="/dashboard/levels/new" className="font-medium underline">
+                    Crea los niveles primero
+                  </Link>{' '}
+                  para poder asignar uno al alumno.
+                </Notice>
+              ) : (
+                <Field label="Nivel inicial">
+                  <Select value={levelId} onChange={(e) => setLevelId(e.target.value)}>
+                    <option value="">Sin asignar</option>
+                    {levels.map((l) => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </Select>
+                </Field>
               ))}
-            </select>
-            )}
-          </div>
-        )}
 
-        {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-        )}
+            {error && <Notice tone="danger">{error}</Notice>}
 
-        <div className="flex gap-3 pt-2">
-          <Link
-            href="/dashboard/students"
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-          >
-            {loading ? 'Creando...' : 'Crear usuario'}
-          </button>
-        </div>
-      </form>
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
+              <Link href="/dashboard/students" className={buttonVariants({ variant: 'secondary', className: 'sm:flex-1' })}>
+                Cancelar
+              </Link>
+              <Button type="submit" loading={loading} className="sm:flex-1">
+                {loading ? 'Creando usuario' : 'Crear usuario'}
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
     </div>
   )
 }

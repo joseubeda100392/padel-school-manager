@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { DocumentosClient } from './documentos-client'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function DashboardTarifasPage() {
   const supabase = createClient()
@@ -20,11 +21,11 @@ export default async function DashboardTarifasPage() {
   const clubId = (profile as any)?.club_id ?? null
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tarifas y documentos</h1>
-        <p className="text-sm text-gray-500">Sube los PDFs del club. Todos los alumnos y monitores pueden consultarlos.</p>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader
+        title="Tarifas y documentos"
+        description="Sube los PDF del club. Todos los alumnos y monitores pueden consultarlos."
+      />
       <DocumentosClient clubId={clubId} isAdmin />
     </div>
   )

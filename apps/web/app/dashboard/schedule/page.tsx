@@ -11,6 +11,10 @@ import ScheduleViewToggle from './schedule-view-toggle'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
+import { Plus, CircleAlert } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
+import { Notice } from '@/components/ui/feedback'
 
 const TZ = 'Europe/Madrid'
 
@@ -154,7 +158,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   }))
 
   return (
-    <div>
+    <div className="space-y-6">
       <RealtimeRefresh
         channelName="admin-schedule-list"
         subs={clubId ? [
@@ -168,32 +172,27 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
         ]}
       />
       <DevError errors={[errSchedules?.message, errCourts?.message, errEnrollments?.message]} />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Horarios</h1>
-          <p className="text-sm text-gray-500">{schedules.length} clases programadas</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <ScheduleViewToggle current={view} />
-          <Link
-            href="/dashboard/schedule/master"
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Calendario maestro
-          </Link>
-          <Link
-            href="/dashboard/schedule/new"
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-          >
-            + Nueva clase
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Horarios"
+        description={`${schedules.length} clases programadas`}
+        actions={
+          <>
+            <ScheduleViewToggle current={view} />
+            <Link href="/dashboard/schedule/master" className={buttonVariants({ variant: 'secondary' })}>
+              Calendario maestro
+            </Link>
+            <Link href="/dashboard/schedule/new" className={buttonVariants({ variant: 'primary' })}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Nueva clase
+            </Link>
+          </>
+        }
+      />
 
       {courts && courts.length === 0 && (
-        <div className="mb-4 rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-          No hay pistas activas. Primero crea una pista en Configuración.
-        </div>
+        <Notice tone="warn" icon={<CircleAlert />}>
+          No hay pistas activas. Crea una pista en Configuración antes de programar clases.
+        </Notice>
       )}
 
       {view === 'week'

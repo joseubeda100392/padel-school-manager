@@ -1,7 +1,12 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { Check, CircleCheck, CircleOff, Clock } from 'lucide-react'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { List } from '@/components/ui/list'
 
 interface Makeup {
   id: string
@@ -14,10 +19,12 @@ interface Makeup {
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const statusLabel: Record<string, string> = { pending: 'Pendiente', completed: 'Realizada', cancelled: 'Cancelada' }
-const statusColor: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-brand-100 text-brand-600',
-  cancelled: 'bg-gray-100 text-gray-500',
+
+function MakeupStatus({ status }: { status: string }) {
+  const label = statusLabel[status] ?? status
+  if (status === 'completed') return <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />{label}</Badge>
+  if (status === 'pending') return <Badge tone="warn"><Clock className="h-3.5 w-3.5" aria-hidden />{label}</Badge>
+  return <Badge tone="neutral"><CircleOff className="h-3.5 w-3.5" aria-hidden />{label}</Badge>
 }
 
 export function StudentMakeups({ initialMakeups }: { initialMakeups: Makeup[] }) {
@@ -33,54 +40,53 @@ export function StudentMakeups({ initialMakeups }: { initialMakeups: Makeup[] })
   if (!makeups.length) return null
 
   return (
-    <div className="rounded-xl bg-white shadow-sm">
-      <div className="border-b border-gray-100 px-6 py-4">
-        <h2 className="font-semibold text-gray-900">Recuperaciones</h2>
-        <p className="text-xs text-gray-400">{makeups.length} registradas · {makeups.filter(m => m.status === 'pending').length} pendientes</p>
-      </div>
-      <ul className="divide-y divide-gray-50">
+    <Card className="overflow-hidden">
+      <CardHeader
+        title="Recuperaciones"
+        description={`${makeups.length} registradas · ${makeups.filter(m => m.status === 'pending').length} pendientes`}
+      />
+      <List className="mt-3">
         {makeups.map((m) => {
           const dow = m.schedule?.start_time ? new Date(m.schedule.start_time).getDay() : null
           const time = m.schedule?.start_time
             ? new Date(m.schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
             : null
           return (
-            <li key={m.id} className="flex flex-wrap items-center gap-3 px-6 py-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">
+            <li key={m.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-5">
+              <div className="min-w-0 flex-1 basis-48">
+                <p className="text-label text-ink">
                   {dow !== null ? `${DAYS[dow]} ${time}` : 'Clase sin horario'}
                 </p>
-                <p className="text-xs text-gray-400">
-                  {m.original_date ? `Faltó: ${new Date(m.original_date).toLocaleDateString('es-ES')}` : 'Sin fecha origen'}
+                <p className="text-meta tabular-nums text-ink-3">
+                  {m.original_date ? `Faltó: ${new Date(m.original_date).toLocaleDateString('es-ES')}` : 'Sin fecha de origen'}
                   {m.makeup_date ? ` · Recupera: ${new Date(m.makeup_date).toLocaleDateString('es-ES')}` : ''}
                 </p>
-                {m.notes && <p className="text-xs italic text-gray-400">{m.notes}</p>}
+                {m.notes && <p className="text-meta italic text-ink-3">{m.notes}</p>}
               </div>
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusColor[m.status]}`}>
-                {statusLabel[m.status]}
-              </span>
+              <MakeupStatus status={m.status} />
               {m.status === 'pending' && (
-                <div className="flex gap-1">
-                  <button onClick={() => handleStatus(m.id, 'completed')}
-                    className="rounded border border-brand-200 px-2 py-1 text-xs text-brand-500 hover:bg-brand-50">
-                    ✓ Realizada
-                  </button>
-                  <button onClick={() => handleStatus(m.id, 'cancelled')}
-                    className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-400 hover:bg-gray-50">
+                <div className="flex gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => handleStatus(m.id, 'completed')}>
+                    <Check className="h-4 w-4" aria-hidden />
+                    Marcar realizada
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => handleStatus(m.id, 'cancelled')}>
                     Cancelar
-                  </button>
+                  </Button>
                 </div>
               )}
               {m.schedule?.id && (
-                <Link href={`/dashboard/schedule/${m.schedule.id}`}
-                  className="shrink-0 text-xs font-medium text-brand-500 hover:underline">
-                  Ver clase →
+                <Link
+                  href={`/dashboard/schedule/${m.schedule.id}`}
+                  className={buttonVariants({ variant: 'link', size: 'sm', className: 'min-h-11 shrink-0' })}
+                >
+                  Ver clase
                 </Link>
               )}
             </li>
           )
         })}
-      </ul>
-    </div>
+      </List>
+    </Card>
   )
 }

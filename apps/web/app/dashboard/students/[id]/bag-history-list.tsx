@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface Tx {
   id: string
@@ -10,11 +13,18 @@ interface Tx {
 }
 
 export function BagHistoryList({ initial, canDelete }: { initial: Tx[]; canDelete: boolean }) {
+  const confirm = useConfirm()
   const [history, setHistory] = useState(initial)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function handleDelete(id: string) {
-    if (!confirm('¿Borrar este movimiento del historial? Solo borra el registro — no toca el saldo actual del alumno.')) return
+    const ok = await confirm({
+      title: '¿Borrar este movimiento?',
+      description: 'Solo se borra el registro del historial. El saldo actual del alumno no cambia.',
+      confirmLabel: 'Borrar movimiento',
+      destructive: true,
+    })
+    if (!ok) return
     setDeletingId(id)
     const res = await fetch(`/api/admin/bag-transactions/${id}`, { method: 'DELETE' })
     if (res.ok) {
@@ -30,25 +40,27 @@ export function BagHistoryList({ initial, canDelete }: { initial: Tx[]; canDelet
   if (history.length === 0) return null
 
   return (
-    <div className="mt-4 border-t border-gray-100 pt-4">
-      <p className="mb-2 text-xs font-medium uppercase text-gray-400">Últimos movimientos</p>
-      <ul className="space-y-1.5">
+    <div className="border-t border-line pt-4">
+      <p className="mb-1 text-label text-ink-2">Últimos movimientos</p>
+      <ul className="divide-y divide-line">
         {history.map((t) => (
-          <li key={t.id} className="flex items-center justify-between gap-2 text-xs">
-            <span className="text-gray-600">{t.reason || 'Sin motivo'}</span>
-            <div className="flex items-center gap-2">
-              <span className={t.delta > 0 ? 'font-medium text-brand-500' : 'font-medium text-red-600'}>
+          <li key={t.id} className="flex min-h-11 items-center justify-between gap-2 text-body">
+            <span className="min-w-0 truncate text-ink-2">{t.reason || 'Sin motivo'}</span>
+            <div className="flex shrink-0 items-center gap-1">
+              <span className={`text-label tabular-nums ${t.delta > 0 ? 'text-accent-ink' : 'text-danger-ink'}`}>
                 {t.delta > 0 ? '+' : ''}{t.delta}
               </span>
               {canDelete && (
-                <button
+                <Button
+                  size="icon"
+                  variant="ghost"
                   onClick={() => handleDelete(t.id)}
                   disabled={deletingId === t.id}
-                  title="Borrar del historial (solo super admin) — no toca el saldo"
-                  className="text-gray-300 hover:text-red-500 disabled:opacity-40"
+                  aria-label="Borrar movimiento del historial"
+                  title="Borrar del historial (solo super admin). No toca el saldo."
                 >
-                  ×
-                </button>
+                  <X className="h-4 w-4" aria-hidden />
+                </Button>
               )}
             </div>
           </li>

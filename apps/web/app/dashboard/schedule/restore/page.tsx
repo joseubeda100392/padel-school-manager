@@ -2,7 +2,11 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { FileSpreadsheet, CircleCheck, CircleX, Minus } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardBody } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import * as XLSX from 'xlsx'
 import { formatTime } from '@/lib/utils'
 
@@ -92,7 +96,7 @@ export default function RestoreSchedulePage() {
           }))
 
         if (parsed.length === 0) {
-          setError('No se encontraron filas válidas. ¿Es el Excel exportado desde "↓ Descargar Excel"?')
+          setError('No se encontraron filas válidas. ¿Es el Excel exportado desde «Descargar Excel»?')
           return
         }
         if (!parsed.some((r) => r.start_time)) {
@@ -102,7 +106,7 @@ export default function RestoreSchedulePage() {
 
         setRows(parsed)
       } catch {
-        setError('No se pudo leer el archivo. Asegúrate de que es el .xlsx exportado desde "↓ Descargar Excel".')
+        setError('No se pudo leer el archivo. Asegúrate de que es el .xlsx exportado desde «Descargar Excel».')
       }
     }
     reader.readAsArrayBuffer(file)
@@ -148,82 +152,76 @@ export default function RestoreSchedulePage() {
   const errors = results?.filter((r) => r.status === 'error') ?? []
 
   return (
-    <div className="max-w-4xl">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/schedule/master" className="text-sm text-gray-500 hover:text-gray-700">← Calendario maestro</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Restaurar calendario</h1>
-      </div>
+    <div className="mx-auto w-full max-w-4xl space-y-6">
+      <PageHeader back={{ href: '/dashboard/schedule/master', label: 'Calendario maestro' }} title="Restaurar calendario" />
 
-      <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-2 font-semibold text-gray-900">Cómo funciona</h2>
-        <p className="text-sm text-gray-500">
-          Sube el mismo fichero <strong>.xlsx</strong> que descargaste con "↓ Descargar Excel" en la pantalla de Clases.
-          Las clases que ya existan de forma idéntica se saltan automáticamente, sin duplicarse.
-        </p>
-      </div>
-
-      <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-3 font-semibold text-gray-900">Sube el fichero Excel</h2>
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 px-6 py-10 transition hover:border-green-400 hover:bg-brand-50">
-          <span className="text-3xl mb-2">📂</span>
-          <span className="text-sm font-medium text-gray-700">Haz clic para seleccionar el archivo</span>
-          <span className="mt-1 text-xs text-gray-400">.xlsx</span>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx"
-            className="hidden"
-            onChange={handleFile}
-          />
-        </label>
-        {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-      </div>
+      <Card>
+        <CardHeader
+          title="Cómo funciona"
+          description={
+            <>
+              Sube el mismo fichero <strong className="font-medium text-ink-2">.xlsx</strong> que descargaste con «Descargar Excel» en el calendario maestro.
+              Las clases que ya existan de forma idéntica se saltan automáticamente, sin duplicarse.
+            </>
+          }
+        />
+        <CardBody>
+          <label className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-control border-2 border-dashed border-line-strong/60 px-6 py-10 text-center transition-colors hover:border-accent-ink hover:bg-accent-soft focus-within:border-accent-ink">
+            <FileSpreadsheet className="mb-2 h-8 w-8 text-ink-3" aria-hidden />
+            <span className="text-label text-ink">Seleccionar el archivo Excel</span>
+            <span className="mt-1 text-meta text-ink-3">Formato .xlsx, máximo 5 MB</span>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx"
+              className="sr-only"
+              onChange={handleFile}
+            />
+          </label>
+          {error && <p role="alert" className="mt-3 text-meta font-medium text-danger-ink">{error}</p>}
+        </CardBody>
+      </Card>
 
       {rows.length > 0 && !results && (
-        <div className="mb-4 rounded-xl bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
-            <div>
-              <h2 className="font-semibold text-gray-900">Confirma los datos</h2>
-              <p className="text-sm text-gray-500">{rows.length} clases listas para restaurar</p>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <button
-                onClick={handleImport}
-                disabled={importing}
-                className="w-full rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 sm:w-auto"
-              >
-                {importing ? `Restaurando... ${progress.done}/${progress.total}` : `Restaurar ${rows.length} clases`}
-              </button>
-              {importing && (
-                <div className="h-1.5 w-48 overflow-hidden rounded-full bg-gray-200">
-                  <div
-                    className="h-1.5 rounded-full bg-brand-500 transition-all"
-                    style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] text-sm">
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="Confirma los datos"
+            description={`${rows.length} clases listas para restaurar`}
+            action={
+              <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+                <Button onClick={handleImport} loading={importing} className="w-full sm:w-auto">
+                  {importing ? `Restaurando ${progress.done}/${progress.total}` : `Restaurar ${rows.length} clases`}
+                </Button>
+                {importing && (
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.06] sm:w-48">
+                    <div
+                      className="h-1.5 rounded-full bg-accent-ink transition-all"
+                      style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            }
+          />
+          <div className="mt-4 overflow-x-auto border-t border-line">
+            <table className="w-full min-w-[600px] text-body">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Pista</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Monitor</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Nivel</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Día</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Hora</th>
+                <tr className="bg-surface-2">
+                  <th className="px-4 py-3 text-left text-meta font-medium text-ink-3">Pista</th>
+                  <th className="px-4 py-3 text-left text-meta font-medium text-ink-3">Monitor</th>
+                  <th className="px-4 py-3 text-left text-meta font-medium text-ink-3">Nivel</th>
+                  <th className="px-4 py-3 text-left text-meta font-medium text-ink-3">Día</th>
+                  <th className="px-4 py-3 text-left text-meta font-medium text-ink-3">Hora</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-line">
                 {rows.map((r, i) => (
-                  <tr key={i} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{r.pista}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.monitor}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.nivel || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.dia}</td>
-                    <td className="px-4 py-3 text-gray-500">
+                  <tr key={i}>
+                    <td className="px-4 py-3 text-label text-ink">{r.pista}</td>
+                    <td className="px-4 py-3 text-ink-2">{r.monitor}</td>
+                    <td className="px-4 py-3 text-ink-3">{r.nivel || '—'}</td>
+                    <td className="px-4 py-3 text-ink-3">{r.dia}</td>
+                    <td className="px-4 py-3 tabular-nums text-ink-3">
                       {r.start_time ? formatTime(r.start_time) : '—'}
                     </td>
                   </tr>
@@ -231,54 +229,55 @@ export default function RestoreSchedulePage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {results && (
-        <div className="rounded-xl bg-white shadow-sm">
-          <div className="border-b border-gray-100 px-6 py-4">
-            <h2 className="font-semibold text-gray-900">Resultado</h2>
-            <div className="mt-1 flex flex-wrap gap-4 text-sm">
-              <span className="text-brand-600">✓ {ok.length} creadas</span>
-              {skipped.length > 0 && <span className="text-gray-500">— {skipped.length} ya existían</span>}
-              {errors.length > 0 && <span className="text-red-600">✗ {errors.length} errores</span>}
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] text-sm">
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="Resultado"
+            description={
+              <span className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-body">
+                <span className="inline-flex items-center gap-1 text-accent-ink"><CircleCheck className="h-4 w-4" aria-hidden />{ok.length} creadas</span>
+                {skipped.length > 0 && <span className="inline-flex items-center gap-1 text-ink-3"><Minus className="h-4 w-4" aria-hidden />{skipped.length} ya existían</span>}
+                {errors.length > 0 && <span className="inline-flex items-center gap-1 text-danger-ink"><CircleX className="h-4 w-4" aria-hidden />{errors.length} con error</span>}
+              </span>
+            }
+          />
+          <div className="mt-4 overflow-x-auto border-t border-line">
+            <table className="w-full min-w-[500px] text-body">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Clase</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Estado</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Detalle</th>
+                <tr className="bg-surface-2">
+                  <th className="px-4 py-3 text-left text-meta font-medium text-ink-3">Clase</th>
+                  <th className="px-4 py-3 text-left text-meta font-medium text-ink-3">Estado</th>
+                  <th className="px-4 py-3 text-left text-meta font-medium text-ink-3">Detalle</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-line">
                 {results.map((r, i) => (
-                  <tr key={i} className={r.status === 'error' ? 'bg-red-50' : 'hover:bg-gray-50'}>
-                    <td className="px-4 py-3 text-gray-600">{r.label}</td>
+                  <tr key={i} className={r.status === 'error' ? 'bg-danger-soft' : undefined}>
+                    <td className="px-4 py-3 text-ink-2">{r.label}</td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        r.status === 'ok' ? 'bg-brand-100 text-brand-600' : r.status === 'skipped' ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {r.status === 'ok' ? '✓ Creada' : r.status === 'skipped' ? '— Ya existía' : '✗ Error'}
-                      </span>
+                      <Badge tone={r.status === 'ok' ? 'success' : r.status === 'skipped' ? 'neutral' : 'danger'}>
+                        {r.status === 'ok' ? <CircleCheck className="h-3.5 w-3.5" aria-hidden /> : r.status === 'skipped' ? <Minus className="h-3.5 w-3.5" aria-hidden /> : <CircleX className="h-3.5 w-3.5" aria-hidden />}
+                        {r.status === 'ok' ? 'Creada' : r.status === 'skipped' ? 'Ya existía' : 'Error'}
+                      </Badge>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">{r.error ?? ''}</td>
+                    <td className="px-4 py-3 text-meta text-ink-3">{r.error ?? ''}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-            <button
+          <div className="flex justify-end gap-2 border-t border-line px-4 py-4 sm:px-5">
+            <Button
               onClick={() => { router.refresh(); router.push('/dashboard/schedule/master') }}
-              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+              className="w-full sm:w-auto"
             >
               Ver calendario
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   )

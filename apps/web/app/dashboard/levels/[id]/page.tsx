@@ -2,11 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { TriangleAlert } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { PageSkeleton } from '@/components/ui/page-skeleton'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Field, Input, Textarea } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
+import { useConfirm } from '@/components/ui/confirm'
 import { createClient } from '@/lib/supabase/client'
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#6b7280', '#1d4ed8']
 
 export default function EditLevelPage({ params }: { params: { id: string } }) {
+  const confirm = useConfirm()
   const [form, setForm] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -37,7 +46,12 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
   }
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar este nivel? Los alumnos que lo tengan asignado quedarán sin nivel.')) return
+    if (!(await confirm({
+      title: '¿Eliminar este nivel?',
+      description: 'Los alumnos que lo tengan asignado quedarán sin nivel.',
+      confirmLabel: 'Eliminar nivel',
+      destructive: true,
+    }))) return
     setDeleting(true)
     const supabase = createClient()
     await supabase.from('users').update({ current_level_id: null }).eq('current_level_id', params.id)
@@ -45,77 +59,92 @@ export default function EditLevelPage({ params }: { params: { id: string } }) {
     window.location.href = '/dashboard/levels'
   }
 
-  if (!form) return <div className="p-8 text-center text-gray-400">Cargando...</div>
+  if (!form) return <PageSkeleton />
 
   return (
-    <div className="max-w-lg">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/levels" className="text-sm text-gray-500 hover:text-gray-700">← Niveles</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Editar nivel</h1>
-      </div>
+    <div className="mx-auto w-full max-w-xl space-y-6">
+      <PageHeader back={{ href: '/dashboard/levels', label: 'Niveles' }} title="Editar nivel" />
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre *</label>
-          <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
+      <Card>
+        <form onSubmit={handleSubmit} className="space-y-5 p-4 sm:p-6">
+          <Field label="Nombre">
+            <Input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Descripción</label>
-          <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={3} placeholder="Opcional"
-            className="w-full resize-none rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
+          <Field label="Descripción (opcional)">
+            <Textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={3}
+              placeholder="Qué sabe hacer un alumno de este nivel"
+            />
+          </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
-          <div className="flex flex-wrap gap-2">
-            {COLORS.map((c) => (
-              <button key={c} type="button" onClick={() => setForm({ ...form, color: c })}
-                className={`h-8 w-8 rounded-full transition-transform ${form.color === c ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : 'hover:scale-105'}`}
-                style={{ backgroundColor: c }} />
-            ))}
-            <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })}
-              className="h-8 w-8 cursor-pointer rounded-full border-0 p-0" title="Color personalizado" />
+          <div role="group" aria-labelledby="color-nivel" className="space-y-2">
+            <p id="color-nivel" className="text-label text-ink">Color</p>
+            <div className="flex flex-wrap items-center gap-3">
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setForm({ ...form, color: c })}
+                  aria-label={`Color ${c}`}
+                  aria-pressed={form.color === c}
+                  className={`h-11 w-11 rounded-full ring-1 ring-ink/10 transition-transform active:scale-95 ${form.color === c ? 'outline outline-[3px] outline-offset-2 outline-ink-2' : ''}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+              <input
+                type="color"
+                value={form.color}
+                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                className="h-11 w-11 cursor-pointer rounded-full border-0 p-0"
+                title="Color personalizado"
+                aria-label="Color personalizado"
+              />
+            </div>
+            <p className="flex items-center gap-2 text-meta text-ink-3">
+              <span className="h-3 w-3 rounded-full ring-1 ring-ink/10" style={{ backgroundColor: form.color }} aria-hidden />
+              <span className="tabular-nums">{form.color}</span>
+            </p>
           </div>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="h-4 w-4 rounded-full" style={{ backgroundColor: form.color }} />
-            <span className="text-xs text-gray-500">{form.color}</span>
+
+          <Field label="Orden (posición en la lista)" className="sm:w-40">
+            <Input
+              type="text"
+              value={form.order}
+              onChange={(e) => setForm({ ...form, order: e.target.value })}
+              inputMode="numeric"
+              onFocus={e => e.target.select()}
+              className="tabular-nums"
+            />
+          </Field>
+
+          {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <Link href="/dashboard/levels" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+              Cancelar
+            </Link>
+            <Button type="submit" loading={saving} className="w-full sm:w-auto">
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </Button>
           </div>
-        </div>
+        </form>
+      </Card>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Orden (posición en la lista)</label>
-          <input type="text" value={form.order} onChange={(e) => setForm({ ...form, order: e.target.value })}
-          inputMode="numeric"
-          onFocus={e => e.target.select()}
-            className="w-32 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
-
-        {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-
-        <div className="flex gap-3 pt-2">
-          <Link href="/dashboard/levels"
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50">
-            Cancelar
-          </Link>
-          <button type="submit" disabled={saving}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-            {saving ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-        </div>
-      </form>
-
-      <div className="mt-6 rounded-xl border border-red-100 bg-red-50 p-4">
-        <p className="mb-1 text-sm font-medium text-red-700">Zona peligrosa</p>
-        <p className="mb-3 text-xs text-red-500">Los alumnos con este nivel quedarán sin nivel asignado.</p>
-        <button onClick={handleDelete} disabled={deleting}
-          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">
-          {deleting ? 'Eliminando...' : 'Eliminar nivel'}
-        </button>
-      </div>
+      <Notice
+        tone="danger"
+        icon={<TriangleAlert />}
+        action={
+          <Button variant="danger" onClick={handleDelete} loading={deleting}>
+            {deleting ? 'Eliminando…' : 'Eliminar nivel'}
+          </Button>
+        }
+      >
+        <p className="font-medium">Eliminar este nivel</p>
+        <p className="mt-0.5 text-meta">Los alumnos con este nivel quedarán sin nivel asignado.</p>
+      </Notice>
     </div>
   )
 }

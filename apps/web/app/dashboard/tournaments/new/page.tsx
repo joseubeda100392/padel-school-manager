@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody } from '@/components/ui/card'
+import { Field, Input, Textarea } from '@/components/ui/field'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { LevelTag } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 export default function NewTournamentPage() {
   const [saving, setSaving] = useState(false)
@@ -52,153 +58,139 @@ export default function NewTournamentPage() {
   }
 
   return (
-    <div className="max-w-lg">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Nuevo torneo</h1>
-      </div>
+    <div className="mx-auto w-full max-w-xl space-y-6">
+      <PageHeader title="Nuevo torneo" back={{ href: '/dashboard/tournaments', label: 'Torneos' }} />
 
-      <form onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow-sm space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre del torneo *</label>
-          <input
-            type="text"
-            required
-            value={form.name}
-            onChange={e => setForm({ ...form, name: e.target.value })}
-            placeholder="Ej: Torneo de Verano 2026"
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
+      <Card>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Field label="Nombre del torneo">
+              <Input
+                type="text"
+                required
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                placeholder="Ej: Torneo de verano 2026"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha *</label>
-          <input
-            type="date"
-            required
-            value={form.tournament_date}
-            onChange={e => setForm({ ...form, tournament_date: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
+            <Field label="Fecha">
+              <Input
+                type="date"
+                required
+                value={form.tournament_date}
+                onChange={e => setForm({ ...form, tournament_date: e.target.value })}
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Lugar / Pista</label>
-          <input
-            type="text"
-            value={form.location}
-            onChange={e => setForm({ ...form, location: e.target.value })}
-            placeholder="Ej: Pista 1 y 2"
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
+            <Field label="Lugar o pista">
+              <Input
+                type="text"
+                value={form.location}
+                onChange={e => setForm({ ...form, location: e.target.value })}
+                placeholder="Ej: Pista 1 y 2"
+              />
+            </Field>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Plazas máximas</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              onFocus={e => e.target.select()}
-              min={2}
-              max={256}
-              value={form.max_players}
-              onChange={e => setForm({ ...form, max_players: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio de inscripción (€)</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              onFocus={e => e.target.select()}
-              min={0}
-              step={0.5}
-              value={form.price_cents}
-              onChange={e => setForm({ ...form, price_cents: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
-        </div>
-
-        {levels.length > 0 && (
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Niveles permitidos
-              <span className="ml-1 text-xs font-normal text-gray-400">(deja vacío para abrir a todos)</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {levels.map(l => (
-                <button
-                  key={l.id}
-                  type="button"
-                  onClick={() => toggleLevel(l.id)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors border ${
-                    allowedLevelIds.includes(l.id)
-                      ? 'text-white border-transparent'
-                      : 'text-gray-600 border-gray-200 hover:bg-gray-50'
-                  }`}
-                  style={allowedLevelIds.includes(l.id) ? { backgroundColor: l.color, borderColor: l.color } : {}}
-                >
-                  {l.name}
-                </button>
-              ))}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Plazas máximas">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  onFocus={e => e.target.select()}
+                  min={2}
+                  max={256}
+                  value={form.max_players}
+                  onChange={e => setForm({ ...form, max_players: Number(e.target.value) })}
+                  className="tabular-nums"
+                />
+              </Field>
+              <Field label="Precio de inscripción (€)">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  onFocus={e => e.target.select()}
+                  min={0}
+                  step={0.5}
+                  value={form.price_cents}
+                  onChange={e => setForm({ ...form, price_cents: Number(e.target.value) })}
+                  className="tabular-nums"
+                />
+              </Field>
             </div>
-            {allowedLevelIds.length === 0 && (
-              <p className="mt-1 text-xs text-gray-400">Abierto a todos los niveles</p>
+
+            {levels.length > 0 && (
+              <fieldset>
+                <legend className="text-label text-ink">Niveles permitidos</legend>
+                <p className="mt-0.5 text-meta text-ink-3">
+                  {allowedLevelIds.length === 0 ? 'Abierto a todos los niveles. Elige alguno para limitarlo.' : 'Solo podrán apuntarse los niveles elegidos.'}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {levels.map(l => {
+                    const selected = allowedLevelIds.includes(l.id)
+                    return (
+                      <button
+                        key={l.id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => toggleLevel(l.id)}
+                        className={cn(
+                          'min-h-11 rounded-full border px-4 transition-colors',
+                          selected ? 'border-accent-ink bg-accent-soft' : 'border-line-strong/60 bg-surface hover:bg-surface-2',
+                        )}
+                      >
+                        <LevelTag name={l.name} color={l.color} />
+                      </button>
+                    )
+                  })}
+                </div>
+              </fieldset>
             )}
-          </div>
-        )}
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Descripción</label>
-          <textarea
-            rows={3}
-            value={form.description}
-            onChange={e => setForm({ ...form, description: e.target.value })}
-            placeholder="Información adicional sobre el torneo..."
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
-          />
-        </div>
+            <Field label="Descripción">
+              <Textarea
+                rows={3}
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                placeholder="Información adicional sobre el torneo"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Estado inicial</label>
-          <div className="flex gap-3">
-            {[{ value: 'open', label: 'Abierto (inscripciones activas)' }, { value: 'closed', label: 'Cerrado' }].map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setForm({ ...form, status: opt.value as any })}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-                  form.status === opt.value ? 'bg-brand-500 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
+            <fieldset>
+              <legend className="text-label text-ink">Estado inicial</legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[{ value: 'open', label: 'Abierto (inscripciones activas)' }, { value: 'closed', label: 'Cerrado' }].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    aria-pressed={form.status === opt.value}
+                    onClick={() => setForm({ ...form, status: opt.value as any })}
+                    className={cn(
+                      'min-h-11 rounded-full border px-4 text-label transition-colors',
+                      form.status === opt.value
+                        ? 'border-accent-ink bg-accent-soft text-accent-ink'
+                        : 'border-line-strong/60 bg-surface text-ink-2 hover:bg-surface-2',
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-        )}
+            {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 
-        <div className="flex gap-3 pt-2">
-          <Link
-            href="/dashboard/tournaments"
-            className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-          >
-            {saving ? 'Creando...' : 'Crear torneo'}
-          </button>
-        </div>
-      </form>
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Link href="/dashboard/tournaments" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+                Cancelar
+              </Link>
+              <Button type="submit" loading={saving} className="w-full sm:w-auto">
+                {saving ? 'Creando…' : 'Crear torneo'}
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
     </div>
   )
 }

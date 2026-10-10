@@ -11,6 +11,11 @@ import { MonthNavigator } from './month-navigator'
 import { DevError } from '@/components/dev-error'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { currentBillingMonth, lastDayOfMonthStr } from '@/lib/billing-cycle'
+import { CalendarClock, CircleAlert } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader, SectionTitle } from '@/components/ui/card'
+import { EmptyState, Notice } from '@/components/ui/feedback'
+import { Stat } from '@/components/ui/list'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -128,61 +133,61 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
           { table: 'group_enrollments' },
         ]}
       />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pagos</h1>
-          <p className="text-sm text-gray-500">{transactionCount} transacciones en {monthLabel}</p>
-        </div>
-        <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/payments" maxYear={defaultBilling.year} maxMonth={defaultBilling.month0} />
-      </div>
+      <PageHeader
+        title="Pagos"
+        description={`${transactionCount} transacciones en ${monthLabel}`}
+        actions={<MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/payments" maxYear={defaultBilling.year} maxMonth={defaultBilling.month0} />}
+      />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border-l-4 border-l-brand-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total generado en {monthLabel}</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{formatCurrency(generatedAmount)}</p>
-          <p className="mt-0.5 text-xs text-gray-400">Cobrado + pendiente</p>
-        </div>
-        <div className="rounded-xl border-l-4 border-l-green-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total cobrado en {monthLabel}</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{formatCurrency(total)}</p>
-        </div>
-        <div className="rounded-xl border-l-4 border-l-yellow-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Pendiente de cobro</p>
-          <p className={`mt-2 text-2xl font-bold ${unpaid.length > 0 ? 'text-yellow-600' : 'text-gray-900'}`}>
-            {formatCurrency(pendingAmount)}
-          </p>
-          <p className="mt-0.5 text-xs text-gray-400">{unpaid.length} alumno{unpaid.length !== 1 ? 's' : ''}</p>
-        </div>
-        <div className="rounded-xl border-l-4 border-l-blue-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Transacciones</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{transactionCount}</p>
-        </div>
-      </div>
+      <Card>
+        <CardBody>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-line">
+            <div className="lg:pr-5">
+              <Stat label={`Total cobrado en ${monthLabel}`} value={formatCurrency(total)} className="[&_p:nth-child(2)]:text-accent-ink" />
+            </div>
+            <div className="lg:px-5">
+              <Stat
+                label="Pendiente de cobro"
+                value={formatCurrency(pendingAmount)}
+                hint={`${unpaid.length} alumno${unpaid.length !== 1 ? 's' : ''}`}
+                className={unpaid.length > 0 ? '[&_p:nth-child(2)]:text-warn-ink' : ''}
+              />
+            </div>
+            <div className="lg:px-5">
+              <Stat label={`Total generado en ${monthLabel}`} value={formatCurrency(generatedAmount)} hint="Cobrado + pendiente" />
+            </div>
+            <div className="lg:pl-5">
+              <Stat label="Transacciones" value={transactionCount} />
+            </div>
+          </div>
+        </CardBody>
+      </Card>
 
-      <div className="rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {monthLabel}</h2>
-          <p className="text-xs text-gray-400">{unpaid.length} alumnos sin regularizar</p>
-        </div>
+      <Card className="overflow-hidden">
+        <CardHeader
+          title={`Mensualidades pendientes de ${monthLabel}`}
+          description={`${unpaid.length} alumnos sin regularizar`}
+        />
         {!billingActive ? (
-          <p className="px-6 py-8 text-center text-sm text-gray-400">
-            El seguimiento de mensualidades empieza el{' '}
-            <strong>{new Date(billingStartDate! + 'T12:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
-          </p>
+          <EmptyState
+            icon={<CalendarClock />}
+            title="El seguimiento aún no ha empezado"
+            description={`El seguimiento de mensualidades empieza el ${new Date(billingStartDate! + 'T12:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.`}
+          />
         ) : (
           <UnpaidList key={monthLabel} items={unpaid as any[]} monthLabel={monthLabel} />
         )}
-      </div>
+      </Card>
 
-      <div>
-        <h2 className="mb-4 font-semibold text-gray-900">Transacciones — {monthLabel}</h2>
+      <section className="space-y-4">
+        <SectionTitle>Transacciones de {monthLabel}</SectionTitle>
         {listIsTruncated && (
-          <p className="mb-3 rounded-lg bg-yellow-50 px-4 py-2 text-xs text-yellow-800">
-            Mostrando las {payments?.length ?? 0} más recientes de {transactionCount} — los totales de arriba sí cuentan todas.
-          </p>
+          <Notice tone="warn" icon={<CircleAlert />}>
+            Mostrando las {payments?.length ?? 0} más recientes de {transactionCount}. Los totales de arriba sí cuentan todas.
+          </Notice>
         )}
         <PaymentsTable payments={payments ?? []} />
-      </div>
+      </section>
     </div>
   )
 }

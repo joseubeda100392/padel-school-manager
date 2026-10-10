@@ -19,8 +19,13 @@ import { StudentObjectives } from './student-objectives'
 import { ResetMfaButton } from './reset-mfa-button'
 import { StudentMandate } from './student-mandate'
 import { DevError } from '@/components/dev-error'
-import Link from 'next/link'
 import { PAYMENT_METHODS, paymentMethodKey } from '@/lib/payment-method'
+import { CircleAlert, CircleCheck, CircleOff, Clock, Receipt, Undo2 } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
+import { EmptyState, Notice } from '@/components/ui/feedback'
+import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -28,11 +33,11 @@ const roleLabel: Record<string, string> = {
   admin: 'Admin',
 }
 
-const statusBadge: Record<string, string> = {
-  succeeded: 'bg-brand-100 text-brand-600',
-  pending: 'bg-yellow-100 text-yellow-700',
-  failed: 'bg-red-100 text-red-700',
-  refunded: 'bg-gray-100 text-gray-500',
+const statusBadge: Record<string, { tone: 'success' | 'warn' | 'danger' | 'neutral'; Icon: typeof CircleCheck }> = {
+  succeeded: { tone: 'success', Icon: CircleCheck },
+  pending: { tone: 'warn', Icon: Clock },
+  failed: { tone: 'danger', Icon: CircleAlert },
+  refunded: { tone: 'neutral', Icon: Undo2 },
 }
 
 const statusLabel: Record<string, string> = {
@@ -138,10 +143,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
   if (studentError || !student) {
     return (
-      <div className="rounded-xl bg-red-50 p-6 text-red-700">
-        <p className="font-semibold">Error al cargar el alumno</p>
-        <p className="text-sm">{studentError?.message ?? 'No encontrado'}</p>
-        <Link href="/dashboard/students" className="mt-3 block text-sm underline">← Volver</Link>
+      <div className="mx-auto w-full max-w-4xl space-y-4">
+        <PageHeader title="Ficha del usuario" back={{ href: '/dashboard/students', label: 'Usuarios' }} />
+        <Notice tone="danger" icon={<CircleAlert />}>
+          <p className="font-medium">No se ha podido cargar el usuario</p>
+          <p className="text-meta">{studentError?.message ?? 'No encontrado'}</p>
+        </Notice>
       </div>
     )
   }
@@ -166,66 +173,75 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const legacyDiscountCents = (clubRow as any)?.config?.standard_discount_cents ?? DEFAULT_STANDARD_DISCOUNT_CENTS
   const pendingBajaDate = (enrollments ?? []).find((e: any) => e.end_date)?.end_date ?? null
 
+  const isActive = (student as any).is_active
+  const phone = (student as any).phone
+
   return (
-    <div className="max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <DevError errors={[makeupsError?.message]} />
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Alumnos
-        </Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${(student as any).is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
-          {(student as any).is_active ? 'Activo' : 'Inactivo'}
-        </span>
-      </div>
+      <PageHeader title="Ficha del usuario" back={{ href: '/dashboard/students', label: 'Usuarios' }} />
 
-      <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-semibold text-gray-900">Información</h2>
-        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div>
-            <dt className="text-xs font-medium uppercase text-gray-500">Email</dt>
-            <dd className="mt-1 break-all text-sm text-gray-900">{student.email}</dd>
+      <Card>
+        <CardBody>
+          <div className="flex flex-wrap items-center gap-4">
+            <Avatar name={student.name as string} className="h-16 w-16 shrink-0 text-heading" />
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-title text-ink">{student.name}</h2>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                {currentLevel && actsAsStudent && (
+                  <LevelTag name={(currentLevel as any).name} color={(currentLevel as any).color} />
+                )}
+                {isActive ? (
+                  <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Activo</Badge>
+                ) : (
+                  <Badge tone="neutral"><CircleOff className="h-3.5 w-3.5" aria-hidden />Inactivo</Badge>
+                )}
+              </div>
+            </div>
           </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-gray-500">Rol</dt>
-            <dd className="mt-1 text-sm text-gray-900">{roleLabel[student.role as string] ?? student.role}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-gray-500">Teléfono</dt>
-            <dd className="mt-1 text-sm text-gray-900">{(student as any).phone ?? '—'}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-gray-500">Alta</dt>
-            <dd className="mt-1 text-sm text-gray-900">{formatDate((student as any).start_date ?? student.created_at as string)}</dd>
-          </div>
-        </dl>
-        {viewerRole === 'super_admin' && ['admin', 'super_admin'].includes((student as any).role) && (
-          <div className="mt-4 border-t border-gray-100 pt-4">
-            <p className="mb-2 text-xs font-medium uppercase text-gray-500">Seguridad</p>
-            <ResetMfaButton userId={student.id as string} />
-          </div>
-        )}
-      </div>
+          <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-line pt-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="min-w-0">
+              <dt className="text-meta text-ink-3">Email</dt>
+              <dd className="mt-0.5 break-all text-body text-ink">{student.email}</dd>
+            </div>
+            <div>
+              <dt className="text-meta text-ink-3">Rol</dt>
+              <dd className="mt-0.5 text-body text-ink">{roleLabel[student.role as string] ?? student.role}</dd>
+            </div>
+            <div>
+              <dt className="text-meta text-ink-3">Teléfono</dt>
+              <dd className="mt-0.5 text-body tabular-nums text-ink">{phone ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-meta text-ink-3">Alta</dt>
+              <dd className="mt-0.5 text-body tabular-nums text-ink">{formatDate((student as any).start_date ?? student.created_at as string)}</dd>
+            </div>
+          </dl>
+          {viewerRole === 'super_admin' && ['admin', 'super_admin'].includes((student as any).role) && (
+            <div className="mt-5 border-t border-line pt-5">
+              <p className="mb-2 text-label text-ink-2">Seguridad</p>
+              <ResetMfaButton userId={student.id as string} />
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
-      <div className="mb-6">
-        <StudentEditForm student={{
-          id: student.id as string,
-          name: student.name as string,
-          email: student.email as string,
-          phone: (student as any).phone ?? '',
-          role: student.role as string,
-          is_active: (student as any).is_active ?? true,
-          start_date: (student as any).start_date ?? (student.created_at as string).split('T')[0],
-          end_date: (student as any).end_date ?? '',
-          also_student: (student as any).also_student ?? false,
-          is_external: (student as any).is_external ?? false,
-          is_premium_private_coach: (student as any).is_premium_private_coach ?? false,
-        }} isSuperAdmin={viewerRole === 'super_admin'} enablePrivateLessons={features.enable_private_lessons} />
-      </div>
+      <StudentEditForm student={{
+        id: student.id as string,
+        name: student.name as string,
+        email: student.email as string,
+        phone: (student as any).phone ?? '',
+        role: student.role as string,
+        is_active: (student as any).is_active ?? true,
+        start_date: (student as any).start_date ?? (student.created_at as string).split('T')[0],
+        end_date: (student as any).end_date ?? '',
+        also_student: (student as any).also_student ?? false,
+        is_external: (student as any).is_external ?? false,
+        is_premium_private_coach: (student as any).is_premium_private_coach ?? false,
+      }} isSuperAdmin={viewerRole === 'super_admin'} enablePrivateLessons={features.enable_private_lessons} />
 
       {actsAsStudent && (student as any).role === 'student' && (
-        <div className="mb-6 flex justify-end">
+        <div className="flex sm:justify-end">
           <CausarBajaButton
             studentId={student.id as string}
             hasFixedEnrollments={(enrollments ?? []).length > 0}
@@ -236,164 +252,144 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       )}
 
       {actsAsStudent && (
-        <div className="mb-6">
-          <StudentEnrollments initialEnrollments={(enrollments ?? []).map((e: any) => ({
-            id: e.id,
-            monthly_price: e.monthly_price,
-            paid_until: e.paid_until,
-            start_date: e.start_date,
-            end_date: e.end_date,
-            discount_applied: e.discount_applied ?? false,
-            discount_cents: e.discount_cents ?? null,
-            schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
-          }))} legacyDiscountCents={legacyDiscountCents} />
-        </div>
+        <StudentEnrollments initialEnrollments={(enrollments ?? []).map((e: any) => ({
+          id: e.id,
+          monthly_price: e.monthly_price,
+          paid_until: e.paid_until,
+          start_date: e.start_date,
+          end_date: e.end_date,
+          discount_applied: e.discount_applied ?? false,
+          discount_cents: e.discount_cents ?? null,
+          schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
+        }))} legacyDiscountCents={legacyDiscountCents} />
       )}
 
       {actsAsStudent && (
-      <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Nivel de juego</h2>
-          {currentLevel && (
-            <div
-              className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-white"
-              style={{ backgroundColor: (currentLevel as any).color }}
-            >
-              {(currentLevel as any).name}
-            </div>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <Card>
+            <CardHeader title="Nivel de juego" />
+            <CardBody className="space-y-4">
+              {currentLevel && <LevelTag name={(currentLevel as any).name} color={(currentLevel as any).color} className="text-label" />}
+              <StudentLevelForm
+                studentId={student.id as string}
+                currentLevelId={(student as any).current_level_id ?? null}
+                levels={levels ?? []}
+              />
+            </CardBody>
+          </Card>
+
+          {features.enable_bag && (
+            <Card>
+              <CardHeader title="Clases disponibles" />
+              <CardBody className="space-y-4">
+                <div className="flex gap-8">
+                  {features.enable_60min && (
+                    <Stat label="60 min" value={bag?.balance_60 ?? 0} />
+                  )}
+                  {features.enable_90min && (
+                    <Stat label="90 min" value={bag?.balance_90 ?? 0} />
+                  )}
+                </div>
+                <BagAdjustForm studentId={student.id as string} balance60={bag?.balance_60 ?? 0} balance90={bag?.balance_90 ?? 0} />
+
+                <BagHistoryList
+                  initial={(bagHistory ?? []).map((t: any) => ({ id: t.id, delta: t.delta, reason: t.reason }))}
+                  canDelete={viewerRole === 'super_admin'}
+                />
+              </CardBody>
+            </Card>
           )}
-          <StudentLevelForm
-            studentId={student.id as string}
-            currentLevelId={(student as any).current_level_id ?? null}
-            levels={levels ?? []}
-          />
         </div>
-
-        {features.enable_bag && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 font-semibold text-gray-900">Clases disponibles</h2>
-            <div className="mb-4 flex gap-6">
-              {features.enable_60min && (
-                <div>
-                  <p className="text-4xl font-bold text-brand-500">{bag?.balance_60 ?? 0}</p>
-                  <p className="text-xs text-gray-400">60 min</p>
-                </div>
-              )}
-              {features.enable_90min && (
-                <div>
-                  <p className="text-4xl font-bold text-blue-600">{bag?.balance_90 ?? 0}</p>
-                  <p className="text-xs text-gray-400">90 min</p>
-                </div>
-              )}
-            </div>
-            <BagAdjustForm studentId={student.id as string} balance60={bag?.balance_60 ?? 0} balance90={bag?.balance_90 ?? 0} />
-
-            <BagHistoryList
-              initial={(bagHistory ?? []).map((t: any) => ({ id: t.id, delta: t.delta, reason: t.reason }))}
-              canDelete={viewerRole === 'super_admin'}
-            />
-          </div>
-        )}
-      </div>
       )}
 
       {actsAsStudent && makeups && makeups.length > 0 && (
-        <div className="mb-6">
-          <StudentMakeups initialMakeups={(makeups ?? []).map((m: any) => ({
-            id: m.id,
-            original_date: m.original_date,
-            makeup_date: m.makeup_date,
-            status: m.status,
-            notes: m.notes,
-            schedule: m.schedule ? { id: m.schedule.id, start_time: m.schedule.start_time } : null,
-          }))} />
-        </div>
+        <StudentMakeups initialMakeups={(makeups ?? []).map((m: any) => ({
+          id: m.id,
+          original_date: m.original_date,
+          makeup_date: m.makeup_date,
+          status: m.status,
+          notes: m.notes,
+          schedule: m.schedule ? { id: m.schedule.id, start_time: m.schedule.start_time } : null,
+        }))} />
       )}
 
-      {features.enable_payments && actsAsStudent && (
-        <div className="mb-6">
-          <StudentMandate studentId={student.id as string} />
-        </div>
-      )}
+      {features.enable_payments && actsAsStudent && <StudentMandate studentId={student.id as string} />}
 
       {features.enable_payments && actsAsStudent && (
-        <div className="mb-6 rounded-xl bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-            <h2 className="font-semibold text-gray-900">Historial de pagos</h2>
-            {totalPagado > 0 && (
-              <span className="text-sm font-semibold text-brand-600">
-                Total: {formatCurrency(totalPagado)}
-              </span>
-            )}
-          </div>
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="Historial de pagos"
+            action={
+              totalPagado > 0 ? (
+                <span className="text-label tabular-nums text-accent-ink">Total cobrado: {formatCurrency(totalPagado)}</span>
+              ) : undefined
+            }
+          />
           {!payments?.length ? (
-            <p className="px-6 py-8 text-center text-sm text-gray-400">Sin pagos registrados.</p>
+            <EmptyState icon={<Receipt />} title="Sin pagos registrados" description="Cuando este usuario pague algo, aparecerá aquí." />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[520px]">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Tipo</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Método</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha</th>
+                  <tr className="bg-surface-2 text-left text-meta font-medium text-ink-3">
+                    <th scope="col" className="px-4 py-3 sm:px-5">Tipo</th>
+                    <th scope="col" className="px-4 py-3">Método</th>
+                    <th scope="col" className="px-4 py-3 text-right">Importe</th>
+                    <th scope="col" className="px-4 py-3">Estado</th>
+                    <th scope="col" className="px-4 py-3 sm:px-5">Fecha</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {payments.map((p: any) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 text-sm text-gray-700">{typeLabel[p.type] ?? p.type ?? '—'}</td>
-                      <td className="px-6 py-3">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${PAYMENT_METHODS[paymentMethodKey(p)].cls}`}>
-                          {PAYMENT_METHODS[paymentMethodKey(p)].label}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-sm font-semibold text-gray-900">{formatCurrency(p.amount, p.currency ?? 'EUR')}</td>
-                      <td className="px-6 py-3">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                          {statusLabel[p.status] ?? p.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-500">{formatDate(p.created_at)}</td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-line">
+                  {payments.map((p: any) => {
+                    const st = statusBadge[p.status] ?? { tone: 'neutral' as const, Icon: CircleOff }
+                    return (
+                      <tr key={p.id}>
+                        <td className="px-4 py-3 text-body text-ink sm:px-5">{typeLabel[p.type] ?? p.type ?? '—'}</td>
+                        <td className="px-4 py-3">
+                          <Badge tone="outline">{PAYMENT_METHODS[paymentMethodKey(p)].label}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right text-label tabular-nums text-ink">{formatCurrency(p.amount, p.currency ?? 'EUR')}</td>
+                        <td className="px-4 py-3">
+                          <Badge tone={st.tone}><st.Icon className="h-3.5 w-3.5" aria-hidden />{statusLabel[p.status] ?? p.status}</Badge>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2 sm:px-5">{formatDate(p.created_at)}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {actsAsStudent && (
-        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Notificaciones del alumno</h2>
-          {(!studentNotifications || studentNotifications.length === 0) ? (
-            <p className="text-sm text-gray-400">Sin notificaciones.</p>
-          ) : (
-            <NotificationList initial={studentNotifications as any} targetUserId={params.id} />
-          )}
-        </div>
+        <Card>
+          <CardHeader title="Notificaciones del alumno" />
+          <CardBody>
+            {(!studentNotifications || studentNotifications.length === 0) ? (
+              <p className="text-body text-ink-3">Sin notificaciones.</p>
+            ) : (
+              <NotificationList initial={studentNotifications as any} targetUserId={params.id} />
+            )}
+          </CardBody>
+        </Card>
       )}
 
       {actsAsStudent && levelHistory && levelHistory.length > 0 && (
-        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Historial de niveles</h2>
-          <ul className="space-y-3">
+        <Card className="overflow-hidden">
+          <CardHeader title="Historial de niveles" />
+          <List className="mt-2">
             {levelHistory.map((entry: any) => (
-              <li key={entry.id} className="flex items-center justify-between border-b border-gray-50 pb-3 last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: entry.level?.color }} />
-                  <span className="text-sm font-medium text-gray-900">{entry.level?.name}</span>
-                  {entry.assigned_by && (
-                    <span className="text-xs text-gray-400">asignado</span>
-                  )}
-                </div>
-                <span className="text-xs text-gray-400">{formatDate(entry.created_at)}</span>
-              </li>
+              <ListRow
+                key={entry.id}
+                title={<LevelTag name={entry.level?.name ?? ''} color={entry.level?.color} className="text-[0.9375rem] text-ink" />}
+                subtitle={entry.assigned_by ? 'Asignado por un monitor o admin' : undefined}
+                trailing={<span className="text-meta tabular-nums text-ink-3">{formatDate(entry.created_at)}</span>}
+              />
             ))}
-          </ul>
-        </div>
+          </List>
+        </Card>
       )}
 
       {features.enable_objectives && actsAsStudent && <StudentObjectives

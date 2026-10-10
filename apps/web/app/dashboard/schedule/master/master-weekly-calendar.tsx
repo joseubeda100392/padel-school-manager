@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
+import { LevelTag } from '@/components/ui/badge'
 
 const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 // JS getDay: 0=Dom,1=Lun... → map to our index (Mon=0)
@@ -32,56 +33,47 @@ export default function MasterWeeklyCalendar({ schedules, readOnly = false }: { 
   }, [schedules])
 
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="grid min-w-[900px] grid-cols-7 gap-2">
-        {DAY_NAMES.map((dayName, idx) => {
-          const classes = byDay[idx]
-          return (
-            <div key={idx}>
-              <div className="mb-2 rounded-lg bg-gray-100 px-2 py-2 text-center">
-                <p className="text-xs font-semibold text-gray-600">{dayName}</p>
-              </div>
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-4 xl:grid-cols-7 md:gap-3">
+      {DAY_NAMES.map((dayName, idx) => {
+        const classes = byDay[idx]
+        return (
+          <section key={idx} className="min-w-0" aria-label={dayName}>
+            <h2 className="mb-2 border-b border-line pb-2 text-label text-ink-2">{dayName}</h2>
 
-              <div className="space-y-2">
-                {classes.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-gray-200 px-2 py-4 text-center">
-                    <p className="text-xs text-gray-300">Sin clases</p>
-                  </div>
-                )}
-                {classes.map((s: any) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={readOnly ? undefined : () => router.push(`/dashboard/schedule/${s.id}?from=master`)}
-                    disabled={readOnly}
-                    className={`w-full rounded-lg bg-white p-2 text-left shadow-sm transition-all ${readOnly ? 'cursor-default' : 'hover:ring-green-400'} ${s.students?.length ? 'ring-1 ring-orange-300' : 'ring-1 ring-gray-100'}`}
-                  >
-                    <p className="text-[11px] font-medium text-gray-500">
-                      {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                    </p>
-                    <p className="text-xs font-semibold text-gray-900 truncate">{s.coach?.name ?? '—'}</p>
-                    {(s.level?.description || s.level?.name) && (
-                      <span
-                        className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
-                        style={{ backgroundColor: s.level.color ?? '#6366f1' }}
-                      >
-                        {s.level.description || s.level.name}
-                      </span>
-                    )}
-                    {s.students?.length > 0 && (
-                      <div className="mt-1.5 divide-y divide-gray-100 border-t border-gray-100">
-                        {s.students.map((name: string, i: number) => (
-                          <p key={i} className="py-1 text-[11px] text-gray-600">{name}</p>
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+            <div className="space-y-2">
+              {classes.length === 0 && (
+                <p className="rounded-control border border-dashed border-line px-2 py-3 text-center text-meta text-ink-3">Sin clases</p>
+              )}
+              {classes.map((s: any) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={readOnly ? undefined : () => router.push(`/dashboard/schedule/${s.id}?from=master`)}
+                  disabled={readOnly}
+                  className={`w-full rounded-control border border-line bg-surface p-3 text-left shadow-card transition-colors ${
+                    readOnly ? 'cursor-default' : 'hover:border-line-strong'
+                  }`}
+                >
+                  <p className="text-label tabular-nums text-ink">
+                    {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                  </p>
+                  <p className="truncate text-meta text-ink-2">{s.coach?.name ?? '—'}</p>
+                  {(s.level?.description || s.level?.name) && (
+                    <LevelTag name={s.level.description || s.level.name} color={s.level.color} className="mt-1" />
+                  )}
+                  {s.students?.length > 0 && (
+                    <div className="mt-2 divide-y divide-line border-t border-line">
+                      {s.students.map((name: string, i: number) => (
+                        <p key={i} className="py-1 text-meta text-ink-2">{name}</p>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
-          )
-        })}
-      </div>
+          </section>
+        )
+      })}
     </div>
   )
 }

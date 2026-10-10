@@ -3,6 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui/page-header'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Field, Input, Textarea } from '@/components/ui/field'
 import { createClient } from '@/lib/supabase/client'
 
 const COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6']
@@ -36,84 +40,74 @@ export default function NewLevelPage() {
   }
 
   return (
-    <div className="max-w-lg">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Nuevo Nivel</h1>
+    <div className="mx-auto w-full max-w-xl space-y-6">
+      <PageHeader back={{ href: '/dashboard/levels', label: 'Niveles' }} title="Nuevo nivel" />
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre *</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="ej. Iniciación"
-          />
-        </div>
+      <Card>
+        <form onSubmit={handleSubmit} className="space-y-5 p-4 sm:p-6">
+          <Field label="Nombre">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="Por ejemplo, Iniciación"
+            />
+          </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Descripción</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Descripción del nivel..."
-          />
-        </div>
+          <Field label="Descripción (opcional)">
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Qué sabe hacer un alumno de este nivel"
+            />
+          </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Posición en la lista</label>
-          <input
-            type="text"
-            inputMode="numeric"
-            min={1}
-            value={order}
-            onFocus={e => e.target.select()}
-            onChange={(e) => setOrder(Number(e.target.value))}
-            className="w-32 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
+          <Field label="Posición en la lista" className="sm:w-40">
+            <Input
+              type="text"
+              inputMode="numeric"
+              min={1}
+              value={order}
+              onFocus={e => e.target.select()}
+              onChange={(e) => setOrder(Number(e.target.value))}
+              className="tabular-nums"
+            />
+          </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Color</label>
-          <div className="flex gap-3">
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setColor(c)}
-                className="h-8 w-8 rounded-full transition-transform hover:scale-110"
-                style={{
-                  backgroundColor: c,
-                  outline: color === c ? `3px solid ${c}` : 'none',
-                  outlineOffset: '2px',
-                }}
-              />
-            ))}
+          <div role="group" aria-labelledby="color-nivel" className="space-y-2">
+            <p id="color-nivel" className="text-label text-ink">Color</p>
+            <div className="flex flex-wrap gap-3">
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  aria-label={`Color ${c}`}
+                  aria-pressed={color === c}
+                  className="h-11 w-11 rounded-full ring-1 ring-ink/10 transition-transform active:scale-95"
+                  style={{
+                    backgroundColor: c,
+                    outline: color === c ? `3px solid ${c}` : 'none',
+                    outlineOffset: '2px',
+                  }}
+                />
+              ))}
+            </div>
           </div>
-        </div>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-        )}
+          {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 
-        <div className="flex gap-3 pt-2">
-          <Link
-            href="/dashboard/levels"
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-          >
-            {loading ? 'Guardando...' : 'Crear nivel'}
-          </button>
-        </div>
-      </form>
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <Link href="/dashboard/levels" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+              Cancelar
+            </Link>
+            <Button type="submit" loading={loading} className="w-full sm:w-auto">
+              {loading ? 'Creando nivel…' : 'Crear nivel'}
+            </Button>
+          </div>
+        </form>
+      </Card>
     </div>
   )
 }

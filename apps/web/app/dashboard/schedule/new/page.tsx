@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { CircleAlert } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Field, Input, Select } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
 import { createClient } from '@/lib/supabase/client'
 
 export default function NewSchedulePage() {
@@ -106,188 +112,147 @@ export default function NewSchedulePage() {
   }
 
   return (
-    <div className="max-w-lg">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/schedule" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Horarios
-        </Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Nueva clase</h1>
-      </div>
+    <div className="mx-auto w-full max-w-2xl space-y-6">
+      <PageHeader back={{ href: '/dashboard/schedule', label: 'Horarios' }} title="Nueva clase" />
 
       {courts.length === 0 && (
-        <div className="mb-4 rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-          No hay pistas activas. <Link href="/dashboard/settings" className="font-medium underline">Créalas primero en Configuración</Link>.
-        </div>
+        <Notice tone="warn" icon={<CircleAlert />}>
+          No hay pistas activas. <Link href="/dashboard/settings" className="font-medium underline">Crea una pista en Configuración</Link> para poder programar la clase.
+        </Notice>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Pista *</label>
-          <select
-            value={form.court_id}
-            onChange={(e) => setForm({ ...form, court_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="">Selecciona pista...</option>
-            {courts.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Monitor *</label>
-          <select
-            value={form.coach_id}
-            onChange={(e) => setForm({ ...form, coach_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="">Selecciona monitor...</option>
-            {coaches.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nivel requerido</label>
-          <select
-            value={form.level_id}
-            onChange={(e) => setForm({ ...form, level_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="">Abierto a todos los niveles</option>
-            {levels.map((l) => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-gray-400">Solo verán esta clase los alumnos con ese nivel asignado.</p>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            {form.type === 'intensivo' ? 'Semana del intensivo (selecciona cualquier día) *' : 'Fecha de inicio *'}
-          </label>
-          <input
-            type="date"
-            value={form.date}
-            min={new Date().toISOString().split('T')[0]}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Hora inicio *</label>
-            <input
-              type="time"
-              value={form.start_time}
-              onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Duración</label>
-            <select
-              value={form.duration}
-              onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
-              <option value={60}>1 hora</option>
-              <option value={90}>1 hora 30 min</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {form.type !== 'intensivo' && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Recurrencia</label>
-            <select
-              value={form.recurrence}
-              onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
-              <option value="none">Clase única</option>
-              <option value="weekly">Semanal</option>
-              <option value="biweekly">Quincenal</option>
-            </select>
-          </div>
-          )}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Máx. alumnos</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              onFocus={e => e.target.select()}
-              min={1}
-              max={20}
-              disabled={canBePrivate && form.is_private}
-              value={canBePrivate && form.is_private ? 1 : form.max_students}
-              onChange={(e) => setForm({ ...form, max_students: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:bg-gray-50 disabled:text-gray-400"
-            />
-          </div>
-        </div>
-
-        {canBePrivate && (
-          <div className="flex items-center gap-3 rounded-lg bg-amber-50 px-4 py-3">
-            <input type="checkbox" id="is_private" checked={form.is_private}
-              onChange={(e) => setForm({ ...form, is_private: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-brand-500" />
-            <label htmlFor="is_private" className="text-sm font-medium text-gray-700">
-              Es clase particular <span className="font-normal text-gray-400">(1 a 1 — máx. alumnos pasa a 1 y se cobra con las tarifas de particular)</span>
-            </label>
-          </div>
-        )}
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Tipo de clase</label>
-          <div className="flex gap-3">
-            {[{ value: 'regular', label: 'Regular' }, ...(enableIntensivos ? [{ value: 'intensivo', label: 'Intensivo (verano)' }] : [])].map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => { setForm({ ...form, type: opt.value as any }); setIntensivoDays([]) }}
-                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-                  form.type === opt.value ? 'bg-brand-500 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {form.type === 'intensivo' && (
-          <>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Días del intensivo *</label>
-              <p className="mb-2 text-xs text-gray-400">Selecciona los días de la semana. Se creará un horario por cada día.</p>
-              <div className="flex flex-wrap gap-2">
-                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((label, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setIntensivoDays(prev =>
-                      prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx].sort()
-                    )}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      intensivoDays.includes(idx) ? 'bg-purple-500 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {label}
-                  </button>
+      <Card>
+        <form onSubmit={handleSubmit} className="space-y-5 p-4 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Pista">
+              <Select value={form.court_id} onChange={(e) => setForm({ ...form, court_id: e.target.value })}>
+                <option value="">Selecciona una pista</option>
+                {courts.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-              </div>
-            </div>
+              </Select>
+            </Field>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio por clase (€)</label>
-              <div className="relative">
-                <input
+            <Field label="Monitor">
+              <Select value={form.coach_id} onChange={(e) => setForm({ ...form, coach_id: e.target.value })}>
+                <option value="">Selecciona un monitor</option>
+                {coaches.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+
+          <Field label="Nivel requerido" hint="Solo verán esta clase los alumnos con ese nivel asignado.">
+            <Select value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })}>
+              <option value="">Abierto a todos los niveles</option>
+              {levels.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label={form.type === 'intensivo' ? 'Semana del intensivo (elige cualquier día)' : 'Fecha de inicio'}>
+            <Input
+              type="date"
+              value={form.date}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Hora de inicio">
+              <Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
+            </Field>
+            <Field label="Duración">
+              <Select value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}>
+                <option value={60}>1 hora</option>
+                <option value={90}>1 hora 30 min</option>
+              </Select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {form.type !== 'intensivo' && (
+              <Field label="Recurrencia">
+                <Select value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value })}>
+                  <option value="none">Clase única</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="biweekly">Quincenal</option>
+                </Select>
+              </Field>
+            )}
+            <Field label="Máximo de alumnos">
+              <Input
+                type="text"
+                inputMode="numeric"
+                onFocus={e => e.target.select()}
+                min={1}
+                max={20}
+                disabled={canBePrivate && form.is_private}
+                value={canBePrivate && form.is_private ? 1 : form.max_students}
+                onChange={(e) => setForm({ ...form, max_students: Number(e.target.value) })}
+              />
+            </Field>
+          </div>
+
+          {canBePrivate && (
+            <div className="flex items-start gap-3 rounded-control bg-surface-2 px-4 py-3">
+              <input type="checkbox" id="is_private" checked={form.is_private}
+                onChange={(e) => setForm({ ...form, is_private: e.target.checked })}
+                className="mt-0.5 h-5 w-5 rounded border-line-strong text-accent-ink focus:ring-accent-ink" />
+              <label htmlFor="is_private" className="text-label text-ink">
+                Es clase particular <span className="font-normal text-ink-3">(1 a 1: el máximo de alumnos pasa a 1 y se cobra con las tarifas de particular)</span>
+              </label>
+            </div>
+          )}
+
+          <div role="group" aria-labelledby="tipo-clase" className="space-y-2">
+            <p id="tipo-clase" className="text-label text-ink">Tipo de clase</p>
+            <div className="flex flex-wrap gap-2">
+              {[{ value: 'regular', label: 'Regular' }, ...(enableIntensivos ? [{ value: 'intensivo', label: 'Intensivo (verano)' }] : [])].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={form.type === opt.value}
+                  onClick={() => { setForm({ ...form, type: opt.value as any }); setIntensivoDays([]) }}
+                  className={`min-h-11 rounded-full px-4 text-label transition-colors ${
+                    form.type === opt.value ? 'bg-accent-soft text-accent-ink ring-1 ring-accent-ink' : 'border border-line-strong/60 text-ink-2 hover:bg-surface-2'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {form.type === 'intensivo' && (
+            <>
+              <div role="group" aria-labelledby="dias-intensivo" className="space-y-2">
+                <p id="dias-intensivo" className="text-label text-ink">Días del intensivo</p>
+                <p className="text-meta text-ink-3">Selecciona los días de la semana. Se creará un horario por cada día.</p>
+                <div className="flex flex-wrap gap-2">
+                  {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((label, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      aria-pressed={intensivoDays.includes(idx)}
+                      onClick={() => setIntensivoDays(prev =>
+                        prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx].sort()
+                      )}
+                      className={`min-h-11 min-w-11 rounded-full px-3 text-label transition-colors ${
+                        intensivoDays.includes(idx) ? 'bg-accent-soft text-accent-ink ring-1 ring-accent-ink' : 'border border-line-strong/60 text-ink-2 hover:bg-surface-2'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Field label="Precio por clase (€)" hint="Deja el campo vacío para usar el precio general del club.">
+                <Input
                   type="text"
                   inputMode="numeric"
                   onFocus={e => e.target.select()}
@@ -295,50 +260,38 @@ export default function NewSchedulePage() {
                   step={0.5}
                   value={form.price_cents === 0 ? '' : form.price_cents / 100}
                   onChange={e => setForm({ ...form, price_cents: Math.round(Number(e.target.value) * 100) })}
-                  className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  placeholder="0 = usa el precio general del club"
+                  placeholder="Precio general del club"
+                  className="tabular-nums"
                 />
-                <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-              </div>
-              <p className="mt-1 text-xs text-gray-400">Deja en 0 para usar el precio general del club.</p>
-            </div>
-          </>
-        )}
+              </Field>
+            </>
+          )}
 
-        {form.recurrence !== 'none' && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha fin de recurrencia</label>
-            <input
-              type="date"
-              value={form.recurrence_end_date}
-              min={form.date}
-              onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-            <p className="mt-1 text-xs text-gray-400">Opcional. Deja vacío si la clase no tiene fecha de fin.</p>
+          {form.recurrence !== 'none' && (
+            <Field label="Fecha de fin de la recurrencia" hint="Opcional. Déjala vacía si la clase no tiene fecha de fin.">
+              <Input
+                type="date"
+                value={form.recurrence_end_date}
+                min={form.date}
+                onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })}
+              />
+            </Field>
+          )}
+
+          {error && (
+            <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>
+          )}
+
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <Link href="/dashboard/schedule" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+              Cancelar
+            </Link>
+            <Button type="submit" variant="primary" loading={loading} className="w-full sm:w-auto">
+              {loading ? 'Creando clase…' : 'Crear clase'}
+            </Button>
           </div>
-        )}
-
-        {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-        )}
-
-        <div className="flex gap-3 pt-2">
-          <Link
-            href="/dashboard/schedule"
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-          >
-            {loading ? 'Guardando...' : 'Crear clase'}
-          </button>
-        </div>
-      </form>
+        </form>
+      </Card>
     </div>
   )
 }

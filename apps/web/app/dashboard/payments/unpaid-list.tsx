@@ -4,6 +4,10 @@ import { toast } from 'sonner'
 import { useState } from 'react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
+import { Check, CircleCheck, Pencil, Search, X } from 'lucide-react'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Input } from '@/components/ui/field'
+import { EmptyState } from '@/components/ui/feedback'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -50,38 +54,45 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
 
   if (!list.length) {
     return (
-      <p className="px-6 py-8 text-center text-sm text-brand-500 font-medium">
-        ✓ Todos los alumnos están al día en {monthLabel}
-      </p>
+      <EmptyState
+        icon={<CircleCheck />}
+        title={`Todos al día en ${monthLabel}`}
+        description="No hay mensualidades pendientes."
+      />
     )
   }
 
   return (
     <div>
-      <div className="px-6 py-3 border-b border-gray-100">
-        <input
-          type="text"
-          placeholder="Buscar alumno..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="w-full max-w-xs rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-        />
+      <div className="px-4 py-3 sm:px-5">
+        <label htmlFor="unpaid-search" className="sr-only">Buscar alumno</label>
+        <div className="relative max-w-xs">
+          <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+          <Input
+            id="unpaid-search"
+            type="search"
+            placeholder="Buscar alumno"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="pl-10"
+          />
+        </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px]">
+      <div className="overflow-x-auto border-t border-line">
+        <table className="w-full min-w-[560px]">
           <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alumno</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Clase</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Deuda</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Último pago</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500"></th>
+            <tr className="border-b border-line bg-surface-2 text-left text-meta font-medium text-ink-3">
+              <th scope="col" className="px-4 py-3 sm:px-5">Alumno</th>
+              <th scope="col" className="px-4 py-3">Clase</th>
+              <th scope="col" className="px-4 py-3 text-right">Deuda</th>
+              <th scope="col" className="px-4 py-3">Último pago</th>
+              <th scope="col" className="px-4 py-3 sm:px-5"><span className="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-line">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-400">Sin resultados.</td>
+                <td colSpan={5} className="px-4 py-8 text-center text-body text-ink-3">Sin resultados.</td>
               </tr>
             )}
             {filtered.map((e) => {
@@ -93,60 +104,66 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
               const isAccumulated = e.months_overdue > 1
 
               return (
-                <tr key={e.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-medium text-gray-900">{e.student_name ?? '—'}</p>
-                    <p className="text-xs text-gray-400">{e.student_email}</p>
+                <tr key={e.id} className="hover:bg-ink/[0.03]">
+                  <td className="px-4 py-3 sm:px-5">
+                    <p className="text-label text-ink">{e.student_name ?? '—'}</p>
+                    <p className="text-meta text-ink-3">{e.student_email}</p>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2">
                     {dow !== null ? `${DAYS[dow]} ${time}` : '—'}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3 text-right">
                     {editingId === e.id ? (
-                      <div className="flex items-center gap-1">
-                        <input
+                      <div className="flex items-center justify-end gap-1">
+                        <Input
                           type="text"
                           inputMode="decimal"
+                          aria-label={`Cuota mensual de ${e.student_name} en euros`}
                           onFocus={e => e.target.select()}
                           value={editingPrice === 0 ? '' : String(editingPrice / 100)}
                           onChange={(ev) => setEditingPrice(Math.round(Number(ev.target.value) * 100))}
-                          className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+                          className="w-24 tabular-nums"
                           autoFocus
                         />
-                        <button onClick={() => handleSavePrice(e.id)} disabled={saving}
-                          className="text-xs font-medium text-brand-500">
-                          {saving ? '...' : '✓'}
-                        </button>
-                        <button onClick={() => setEditingId(null)} className="text-xs text-gray-400">✕</button>
+                        <Button size="icon" loading={saving} aria-label="Guardar cuota" onClick={() => handleSavePrice(e.id)}>
+                          <Check className="h-4 w-4" aria-hidden />
+                        </Button>
+                        <Button size="icon" variant="ghost" aria-label="Cancelar edición" onClick={() => setEditingId(null)}>
+                          <X className="h-4 w-4" aria-hidden />
+                        </Button>
                       </div>
                     ) : (
                       <div>
                         <button
+                          type="button"
                           onClick={() => { setEditingId(e.id); setEditingPrice(e.monthly_price) }}
-                          className="text-sm font-semibold text-yellow-600 hover:text-yellow-700"
-                          title="Editar cuota mensual"
+                          className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-label tabular-nums text-warn-ink hover:bg-warn-soft"
+                          aria-label={`Editar cuota mensual, ahora ${formatCurrency(e.monthly_price)}`}
                         >
-                          {formatCurrency(e.monthly_price)}/mes ✎
+                          {formatCurrency(e.monthly_price)}/mes
+                          <Pencil className="h-3.5 w-3.5" aria-hidden />
                         </button>
                         {isAccumulated ? (
-                          <p className="mt-0.5 text-xs font-medium text-red-500">
+                          <p className="text-meta font-medium tabular-nums text-danger-ink">
                             {e.months_overdue} meses · Total: {formatCurrency(totalOwed)}
                           </p>
                         ) : (
-                          <p className="mt-0.5 text-xs text-gray-400">1 mes pendiente</p>
+                          <p className="text-meta text-ink-3">1 mes pendiente</p>
                         )}
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">
+                  <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2">
                     {e.paid_until
                       ? new Date(e.paid_until).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
                       : 'Nunca'}
                   </td>
-                  <td className="px-6 py-4">
-                    <Link href={`/dashboard/schedule/${e.schedule_id}`}
-                      className="text-xs font-medium text-brand-500 hover:underline whitespace-nowrap">
-                      Marcar pagado →
+                  <td className="px-4 py-3 text-right sm:px-5">
+                    <Link
+                      href={`/dashboard/schedule/${e.schedule_id}`}
+                      className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+                    >
+                      Marcar pagado
                     </Link>
                   </td>
                 </tr>

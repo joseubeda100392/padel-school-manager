@@ -6,6 +6,13 @@ import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import { currentBillingMonth } from '@/lib/billing-cycle'
 import { halfFeeDiscountCents, restoreDiscountedPrice } from '@/lib/enrollment-discount'
+import { CalendarX, Check, CircleCheck, Clock, Pencil, X } from 'lucide-react'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Input } from '@/components/ui/field'
+import { EmptyState } from '@/components/ui/feedback'
+import { List } from '@/components/ui/list'
 
 interface Enrollment {
   id: string
@@ -91,20 +98,20 @@ export function StudentEnrollments({
 
   if (!enrollments.length) {
     return (
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-2 font-semibold text-gray-900">Clases y cuotas</h2>
-        <p className="text-sm text-gray-400">No está inscrito en ninguna clase de grupo fijo.</p>
-      </div>
+      <Card>
+        <CardHeader title="Clases y cuotas" />
+        <EmptyState icon={<CalendarX />} title="Sin clases fijas" description="No está inscrito en ninguna clase de grupo fijo." />
+      </Card>
     )
   }
 
   return (
-    <div className="rounded-xl bg-white shadow-sm">
-      <div className="border-b border-gray-100 px-6 py-4">
-        <h2 className="font-semibold text-gray-900">Clases y cuotas</h2>
-        <p className="text-xs text-gray-400">{enrollments.length} inscripción{enrollments.length !== 1 ? 'es' : ''} activa{enrollments.length !== 1 ? 's' : ''}</p>
-      </div>
-      <div className="divide-y divide-gray-50">
+    <Card className="overflow-hidden">
+      <CardHeader
+        title="Clases y cuotas"
+        description={`${enrollments.length} inscripción${enrollments.length !== 1 ? 'es' : ''} activa${enrollments.length !== 1 ? 's' : ''}`}
+      />
+      <List className="mt-3">
         {enrollments.map((e) => {
           const paid = isPaidThisMonth(e.paid_until)
           const dow = e.schedule?.start_time ? new Date(e.schedule.start_time).getDay() : null
@@ -112,12 +119,12 @@ export function StudentEnrollments({
             ? new Date(e.schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
             : null
           return (
-            <div key={e.id} className="flex flex-wrap items-center gap-3 px-6 py-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">
+            <li key={e.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 sm:px-5">
+              <div className="min-w-0 flex-1 basis-48">
+                <p className="text-label text-ink">
                   {dow !== null ? `${DAYS[dow]} ${time}` : '—'} · {e.schedule?.court?.name ?? '—'}
                 </p>
-                <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-gray-400">
+                <div className="mt-0.5 flex flex-wrap gap-x-3 text-meta tabular-nums text-ink-3">
                   {e.start_date && <span>Alta: {new Date(e.start_date).toLocaleDateString('es-ES')}</span>}
                   {e.end_date && <span>Baja: {new Date(e.end_date).toLocaleDateString('es-ES')}</span>}
                 </div>
@@ -125,59 +132,68 @@ export function StudentEnrollments({
 
               {editingId === e.id ? (
                 <div className="flex items-center gap-1">
-                  <input
+                  <Input
                     type="text"
                     inputMode="decimal"
+                    aria-label="Cuota mensual en euros"
                     onFocus={e => e.target.select()}
                     value={editingPrice === 0 ? '' : String(editingPrice / 100)}
                     onChange={(ev) => setEditingPrice(Math.round(Number(ev.target.value) * 100))}
-                    className="w-24 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
+                    className="w-24 tabular-nums"
                     autoFocus
                   />
-                  <span className="text-sm text-gray-400">€/mes</span>
-                  <button onClick={() => handleSavePrice(e.id)} disabled={saving}
-                    className="rounded bg-brand-500 px-2 py-1 text-xs font-medium text-white hover:bg-brand-600">
-                    {saving ? '...' : '✓'}
-                  </button>
-                  <button onClick={() => setEditingId(null)} className="text-xs text-gray-400 hover:text-gray-600">✕</button>
+                  <span className="text-meta text-ink-3">€/mes</span>
+                  <Button size="icon" loading={saving} aria-label="Guardar cuota" onClick={() => handleSavePrice(e.id)}>
+                    <Check className="h-4 w-4" aria-hidden />
+                  </Button>
+                  <Button size="icon" variant="ghost" aria-label="Cancelar edición" onClick={() => setEditingId(null)}>
+                    <X className="h-4 w-4" aria-hidden />
+                  </Button>
                 </div>
               ) : (
                 <button
+                  type="button"
                   onClick={() => { setEditingId(e.id); setEditingPrice(e.monthly_price) }}
-                  className="text-sm font-semibold text-gray-700 hover:text-brand-500"
-                  title="Editar cuota"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-label tabular-nums text-ink hover:bg-ink/5"
+                  aria-label={`Editar cuota, ahora ${formatCurrency(e.monthly_price)}`}
                 >
-                  {formatCurrency(e.monthly_price)} ✎
+                  {formatCurrency(e.monthly_price)}
+                  <Pencil className="h-3.5 w-3.5 text-ink-3" aria-hidden />
                 </button>
               )}
 
-              {e.schedule?.id && (() => {
-                return (
-                  <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-500" title="Descuento del 50% de la cuota · solo para el próximo cobro, se desmarca solo al registrar el pago">
-                    <input
-                      type="checkbox"
-                      checked={e.discount_applied}
-                      disabled={discountLoadingId === e.id}
-                      onChange={() => handleToggleDiscount(e)}
-                      className="h-3.5 w-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400"
-                    />
-                    Descuento
-                  </label>
-                )
-              })()}
+              {e.schedule?.id && (
+                <label
+                  className="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-label text-ink-2"
+                  title="Descuento del 50% de la cuota. Solo vale para el próximo cobro y se desmarca solo al registrar el pago."
+                >
+                  <input
+                    type="checkbox"
+                    checked={e.discount_applied}
+                    disabled={discountLoadingId === e.id}
+                    onChange={() => handleToggleDiscount(e)}
+                    className="h-5 w-5 rounded border-line-strong accent-accent-ink"
+                  />
+                  Descuento
+                </label>
+              )}
 
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-brand-100 text-brand-600' : 'bg-yellow-100 text-yellow-700'}`}>
-                {paid ? 'Al día' : `Pdte. ${currentMonth}`}
-              </span>
+              {paid ? (
+                <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Al día</Badge>
+              ) : (
+                <Badge tone="warn"><Clock className="h-3.5 w-3.5" aria-hidden />Pendiente de {currentMonth}</Badge>
+              )}
 
-              <Link href={`/dashboard/schedule/${e.schedule?.id}`}
-                className="text-xs font-medium text-brand-500 hover:underline shrink-0">
-                Ver clase →
+              <Link
+                href={`/dashboard/schedule/${e.schedule?.id}`}
+                className={buttonVariants({ variant: 'link', size: 'sm', className: 'min-h-11 shrink-0' })}
+              >
+                Ver clase
               </Link>
-            </div>
+            </li>
           )
         })}
-      </div>
-    </div>
+      </List>
+    </Card>
   )
 }

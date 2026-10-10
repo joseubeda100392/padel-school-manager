@@ -4,11 +4,17 @@ import Link from 'next/link'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
-import { Users, CalendarDays, CreditCard, BookOpen } from 'lucide-react'
+import { Users, CalendarDays, CreditCard, BookOpen, CircleCheck } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
-import { AnimatedStatsGrid } from '@/components/ui/animated-stats'
+import { Card, CardHeader, CardBody } from '@/components/ui/card'
+import { buttonVariants } from '@/components/ui/button'
+import { LevelTag } from '@/components/ui/badge'
+import { List, ListRow, Avatar } from '@/components/ui/list'
+import { EmptyState } from '@/components/ui/feedback'
+import { PageHeader } from '@/components/ui/page-header'
+import { formatLongDate } from '@/lib/format-date'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -33,7 +39,7 @@ export default async function DashboardPage() {
 
   const now = new Date()
   const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
-  const todayLabel = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+  const todayLabel = formatLongDate(now)
 
   // Fetch club config first to gate billing RPCs
   const { data: club } = clubId
@@ -97,16 +103,16 @@ export default async function DashboardPage() {
   const levels = (levelsRaw ?? []).map((l: any) => ({ ...l, studentCount: levelCountMap[l.id] ?? 0 }))
 
   const stats = [
-    { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, color: 'bg-blue-500', text: 'text-blue-500', href: '/dashboard/students?tab=student' },
-    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, color: 'bg-brand-500', text: 'text-brand-500', href: '/dashboard/schedule' },
-    { label: 'Monitores', value: totalCoaches ?? 0, icon: Users, color: 'bg-green-500', text: 'text-green-500', href: '/dashboard/students?tab=coach' },
-    { label: 'Clases en bolsa', value: totalBagClasses, icon: BookOpen, color: 'bg-indigo-500', text: 'text-indigo-500', href: null },
-    ...(features.enable_payments && billingActive ? [{ label: 'Sin pagar este mes', value: pendingCount, icon: CreditCard, color: 'bg-yellow-500', text: 'text-yellow-500', href: '/dashboard/payments' }] : []),
-    ...(features.enable_materials ? [{ label: 'Materias publicadas', value: totalMaterials ?? 0, icon: BookOpen, color: 'bg-purple-500', text: 'text-purple-500', href: '/dashboard/materials' }] : []),
+    { label: 'Alumnos activos', value: totalStudents ?? 0, icon: Users, href: '/dashboard/students?tab=student', warn: false },
+    { label: 'Clases hoy', value: (classesToday as number) ?? 0, icon: CalendarDays, href: '/dashboard/schedule', warn: false },
+    { label: 'Monitores', value: totalCoaches ?? 0, icon: Users, href: '/dashboard/students?tab=coach', warn: false },
+    { label: 'Clases en bolsa', value: totalBagClasses, icon: BookOpen, href: null, warn: false },
+    ...(features.enable_payments && billingActive ? [{ label: 'Sin pagar este mes', value: pendingCount, icon: CreditCard, href: '/dashboard/payments', warn: pendingCount > 0 }] : []),
+    ...(features.enable_materials ? [{ label: 'Materias publicadas', value: totalMaterials ?? 0, icon: BookOpen, href: '/dashboard/materials', warn: false }] : []),
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <DevError errors={[errStudents?.message, errRpc1?.message, errRpc2?.message, errRecent?.message, errRpc3?.message]} />
       <RealtimeRefresh
         channelName="admin-dashboard"
@@ -117,180 +123,167 @@ export default async function DashboardPage() {
         ] : [{ table: 'group_enrollments' }, { table: 'users' }, { table: 'payments' }]}
       />
 
-      {/* Header */}
-      <div>
-        <h1 className="font-display text-2xl font-bold text-gray-900">{club?.name ?? 'Panel de Control'}</h1>
-        <p className="mt-1 text-sm capitalize text-gray-400">{todayLabel}</p>
-      </div>
+      <PageHeader title={club?.name ?? 'Panel de control'} description={todayLabel} />
 
-      {/* Stats — toda la info clave arriba */}
-      <AnimatedStatsGrid>
-        {stats.map((stat) => {
-          const inner = (
-            <>
-              <div className={`inline-flex rounded-xl p-2.5 ${stat.color} bg-opacity-10`}>
-                <stat.icon className={`h-5 w-5 ${stat.text}`} />
+      <Card className="overflow-hidden">
+        <div className="-mb-px -mr-px grid grid-cols-2 lg:grid-cols-3">
+          {stats.map((stat) => {
+            const inner = (
+              <>
+                <div className="flex items-center gap-2 text-meta text-ink-3">
+                  <stat.icon className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className={stat.href ? 'group-hover:text-ink' : undefined}>{stat.label}</span>
+                </div>
+                <p className={`mt-2 font-display text-title tabular-nums sm:text-display ${stat.warn ? 'text-warn-ink' : 'text-ink'}`}>
+                  {stat.value}
+                </p>
+              </>
+            )
+            const cellClass = 'block border-b border-r border-line p-4 sm:p-5'
+            return stat.href ? (
+              <Link key={stat.label} href={stat.href} className={`group ${cellClass} transition-colors hover:bg-ink/[0.03]`}>
+                {inner}
+              </Link>
+            ) : (
+              <div key={stat.label} className={cellClass}>
+                {inner}
               </div>
-              <p className="mt-4 font-display text-3xl font-bold text-gray-900">{stat.value}</p>
-              <p className={`mt-1 text-sm text-gray-500 ${stat.href ? 'group-hover:text-brand-500 transition-colors' : ''}`}>{stat.label}</p>
-            </>
-          )
-          return stat.href ? (
-            <Link key={stat.label} href={stat.href} className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full block hover:ring-2 hover:ring-brand-200 transition-all">
-              {inner}
-            </Link>
-          ) : (
-            <div key={stat.label} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 h-full">
-              {inner}
-            </div>
-          )
-        })}
-      </AnimatedStatsGrid>
+            )
+          })}
+        </div>
+      </Card>
 
-      {/* Sin pagar + Últimos alumnos */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {features.enable_payments && (
-          <div className="rounded-xl bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-              <div>
-                <h2 className="font-semibold text-gray-900">Sin pagar — {currentMonthLabel}</h2>
-                <p className="text-xs text-gray-400">{unpaidList.length} mensualidades pendientes</p>
-              </div>
-              <Link href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver todos →</Link>
-            </div>
+          <Card>
+            <CardHeader
+              title={`Sin pagar en ${currentMonthLabel}`}
+              description={`${unpaidList.length} mensualidades pendientes`}
+              action={<Link href="/dashboard/payments" className={buttonVariants({ variant: 'link', size: 'sm' })}>Ver todos</Link>}
+            />
             {!billingActive ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">
+              <p className="px-5 py-8 text-center text-body text-ink-3">
                 El seguimiento de mensualidades empieza el{' '}
-                <strong>{new Date(billingStartDate! + 'T12:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                <strong className="text-ink-2">{formatLongDate(billingStartDate!, { weekday: false })}</strong>.
               </p>
             ) : !unpaidList.length ? (
-              <div className="px-6 py-10 text-center">
-                <p className="text-2xl">✓</p>
-                <p className="mt-1 text-sm font-medium text-brand-500">Todo el mundo al día</p>
-              </div>
+              <EmptyState icon={<CircleCheck />} title="Todo el mundo al día" />
             ) : (
-              <ul className="divide-y divide-gray-50">
+              <List className="mt-3 border-t border-line">
                 {unpaidList.slice(0, 6).map((e: any) => {
                   const dow = e.start_time ? new Date(e.start_time).getDay() : null
-                  const initials = (e.student_name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
                   return (
-                    <li key={e.id} className="flex items-center gap-4 px-6 py-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
-                        {initials}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-gray-900">{e.student_name ?? '—'}</p>
-                        {dow !== null && <p className="text-xs text-gray-400">{DAYS[dow]} {formatTime(e.start_time)}</p>}
-                      </div>
-                      <span className="shrink-0 text-sm font-semibold text-yellow-600">{formatCurrency(e.monthly_price)}</span>
-                    </li>
+                    <ListRow
+                      key={e.id}
+                      leading={<Avatar name={e.student_name ?? '?'} />}
+                      title={e.student_name ?? '—'}
+                      subtitle={dow !== null ? `${DAYS[dow]} ${formatTime(e.start_time)}` : undefined}
+                      trailing={<span className="text-label tabular-nums text-warn-ink">{formatCurrency(e.monthly_price)}</span>}
+                    />
                   )
                 })}
-              </ul>
+              </List>
             )}
-          </div>
+          </Card>
         )}
 
-        <div className="rounded-xl bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-            <h2 className="font-semibold text-gray-900">Últimos alumnos</h2>
-            <Link href="/dashboard/students/new" className="text-xs font-medium text-brand-500 hover:underline">+ Nuevo →</Link>
-          </div>
+        <Card>
+          <CardHeader
+            title="Últimos alumnos"
+            action={<Link href="/dashboard/students/new" className={buttonVariants({ variant: 'link', size: 'sm' })}>Nuevo alumno</Link>}
+          />
           {!recentStudents?.length ? (
-            <div className="px-6 py-10 text-center">
-              <p className="text-sm text-gray-400">Aún no hay alumnos.</p>
-              <Link href="/dashboard/students/new" className="mt-1 inline-block text-sm font-medium text-brand-500 hover:underline">Crear el primero</Link>
-            </div>
+            <EmptyState
+              title="Aún no hay alumnos"
+              description="Crea el primero para empezar a apuntarlo a clases."
+              action={<Link href="/dashboard/students/new" className={buttonVariants({ variant: 'secondary' })}>Crear alumno</Link>}
+            />
           ) : (
-            <ul className="divide-y divide-gray-50">
-              {recentStudents.map((s: any) => {
-                const initials = (s.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
-                return (
-                  <li key={s.id} className="flex items-center gap-4 px-6 py-3">
-                    {s.avatar_url ? (
-                      <Image src={s.avatar_url} alt={s.name} width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            <List className="mt-3 border-t border-line">
+              {recentStudents.map((s: any) => (
+                <ListRow
+                  key={s.id}
+                  href={`/dashboard/students/${s.id}`}
+                  leading={
+                    s.avatar_url ? (
+                      <Image src={s.avatar_url} alt={s.name} width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
                     ) : (
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600">
-                        {initials}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-gray-900">{s.name}</p>
-                      <p className="truncate text-xs text-gray-400">{s.email}</p>
-                    </div>
-                    <Link href={`/dashboard/students/${s.id}`} className="shrink-0 text-xs font-medium text-brand-500 hover:underline">Ver →</Link>
-                  </li>
-                )
-              })}
-            </ul>
+                      <Avatar name={s.name ?? '?'} />
+                    )
+                  }
+                  title={s.name}
+                  subtitle={<span className="block truncate">{s.email}</span>}
+                />
+              ))}
+            </List>
           )}
-        </div>
+        </Card>
       </div>
 
-      {/* Niveles + Ingresos */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Alumnos por nivel</h2>
-            <Link href="/dashboard/levels" className="text-xs font-medium text-brand-500 hover:underline">Gestionar →</Link>
-          </div>
-          {levels.length === 0 ? (
-            <p className="text-sm text-gray-400">No hay niveles creados.</p>
-          ) : (
-            <div className="space-y-3">
-              {levels.map((level: any) => {
-                const max = Math.max(...levels.map((l: any) => l.studentCount), 1)
-                const pct = Math.round((level.studentCount / max) * 100)
-                return (
-                  <div key={level.id}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: level.color }} />
-                        <span className="text-gray-700">{level.name}</span>
-                      </span>
-                      <span className="font-medium text-gray-900">{level.studentCount} alumnos</span>
+        <Card>
+          <CardHeader
+            title="Alumnos por nivel"
+            action={<Link href="/dashboard/levels" className={buttonVariants({ variant: 'link', size: 'sm' })}>Gestionar</Link>}
+          />
+          <CardBody>
+            {levels.length === 0 ? (
+              <p className="text-body text-ink-3">No hay niveles creados.</p>
+            ) : (
+              <div className="space-y-3">
+                {levels.map((level: any) => {
+                  const max = Math.max(...levels.map((l: any) => l.studentCount), 1)
+                  const pct = Math.round((level.studentCount / max) * 100)
+                  return (
+                    <div key={level.id}>
+                      <div className="mb-1 flex items-center justify-between gap-2 text-body">
+                        <LevelTag name={level.name} color={level.color} />
+                        <span className="text-label tabular-nums text-ink">{level.studentCount} alumnos</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.06]">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: level.color }} />
+                      </div>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: level.color }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Ingresos por tipo</h2>
-            <Link href="/dashboard/payments" className="text-xs font-medium text-brand-500 hover:underline">Ver pagos →</Link>
-          </div>
-          {Object.keys(revenueByType).length === 0 ? (
-            <p className="text-sm text-gray-400">Sin datos de pagos aún.</p>
-          ) : (
-            <div className="space-y-3">
-              {Object.entries(revenueByType).map(([type, amount]) => {
-                const amt = amount as number
-                const pct = totalRevenue > 0 ? Math.round((amt / totalRevenue) * 100) : 0
-                return (
-                  <div key={type}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="text-gray-700">{typeLabel[type] ?? type}</span>
-                      <span className="font-medium text-gray-900">{formatCurrency(amt)}</span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                      <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                )
-              })}
-              <div className="mt-3 border-t border-gray-100 pt-3 flex items-center justify-between text-sm">
-                <span className="font-semibold text-gray-700">Total</span>
-                <span className="font-bold text-brand-500">{formatCurrency(totalRevenue)}</span>
+                  )
+                })}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Ingresos por tipo"
+            action={<Link href="/dashboard/payments" className={buttonVariants({ variant: 'link', size: 'sm' })}>Ver pagos</Link>}
+          />
+          <CardBody>
+            {Object.keys(revenueByType).length === 0 ? (
+              <p className="text-body text-ink-3">Sin datos de pagos aún.</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(revenueByType).map(([type, amount]) => {
+                  const amt = amount as number
+                  const pct = totalRevenue > 0 ? Math.round((amt / totalRevenue) * 100) : 0
+                  return (
+                    <div key={type}>
+                      <div className="mb-1 flex items-center justify-between gap-2 text-body">
+                        <span className="text-ink-2">{typeLabel[type] ?? type}</span>
+                        <span className="text-label tabular-nums text-ink">{formatCurrency(amt)}</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.06]">
+                        <div className="h-full rounded-full bg-accent-ink" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  )
+                })}
+                <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-body">
+                  <span className="text-label text-ink-2">Total</span>
+                  <span className="font-display text-heading tabular-nums text-ink">{formatCurrency(totalRevenue)}</span>
+                </div>
+              </div>
+            )}
+          </CardBody>
+        </Card>
       </div>
     </div>
   )

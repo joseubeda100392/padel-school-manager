@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui/page-header'
+import { PageSkeleton } from '@/components/ui/page-skeleton'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Field, Input, Select } from '@/components/ui/field'
 import { createClient } from '@/lib/supabase/client'
 
 export default function EditSchedulePage({ params }: { params: { id: string } }) {
@@ -78,116 +83,106 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
     window.location.href = `/dashboard/schedule/${params.id}`
   }
 
-  if (!form) return <div className="p-8 text-center text-gray-400">Cargando...</div>
+  if (!form) return <PageSkeleton />
 
   return (
-    <div className="max-w-lg">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href={`/dashboard/schedule/${params.id}`} className="text-sm text-gray-500 hover:text-gray-700">← Clase</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Editar clase</h1>
-      </div>
+    <div className="mx-auto w-full max-w-2xl space-y-6">
+      <PageHeader back={{ href: `/dashboard/schedule/${params.id}`, label: 'Clase' }} title="Editar clase" />
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Pista *</label>
-          <select value={form.court_id} onChange={(e) => setForm({ ...form, court_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
-            <option value="">Selecciona pista...</option>
-            {courts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
+      <Card>
+        <form onSubmit={handleSubmit} className="space-y-5 p-4 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Pista">
+              <Select value={form.court_id} onChange={(e) => setForm({ ...form, court_id: e.target.value })}>
+                <option value="">Selecciona una pista</option>
+                {courts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Monitor *</label>
-          <select value={form.coach_id} onChange={(e) => setForm({ ...form, coach_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
-            <option value="">Selecciona monitor...</option>
-            {coaches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nivel requerido</label>
-          <select value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
-            <option value="">Abierto a todos los niveles</option>
-            {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha *</label>
-          <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Hora inicio</label>
-            <input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+            <Field label="Monitor">
+              <Select value={form.coach_id} onChange={(e) => setForm({ ...form, coach_id: e.target.value })}>
+                <option value="">Selecciona un monitor</option>
+                {coaches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+            </Field>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Duración</label>
-            <select value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
-              <option value={60}>1 hora</option>
-              <option value={90}>1 hora 30 min</option>
-            </select>
+
+          <Field label="Nivel requerido">
+            <Select value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })}>
+              <option value="">Abierto a todos los niveles</option>
+              {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </Select>
+          </Field>
+
+          <Field label="Fecha">
+            <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Hora de inicio">
+              <Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
+            </Field>
+            <Field label="Duración">
+              <Select value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}>
+                <option value={60}>1 hora</option>
+                <option value={90}>1 hora 30 min</option>
+              </Select>
+            </Field>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Recurrencia</label>
-            <select value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
-              <option value="none">Clase única</option>
-              <option value="weekly">Semanal</option>
-              <option value="biweekly">Quincenal</option>
-            </select>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Recurrencia">
+              <Select value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value })}>
+                <option value="none">Clase única</option>
+                <option value="weekly">Semanal</option>
+                <option value="biweekly">Quincenal</option>
+              </Select>
+            </Field>
+            <Field label="Máximo de alumnos">
+              <Input
+                type="text"
+                value={form.max_students}
+                inputMode="numeric"
+                onFocus={e => e.target.select()}
+                onChange={(e) => setForm({ ...form, max_students: parseInt(e.target.value, 10) || 0 })}
+              />
+            </Field>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Máx. alumnos</label>
-            <input type="text" value={form.max_students}
-            inputMode="numeric"
-            onFocus={e => e.target.select()}
-              onChange={(e) => setForm({ ...form, max_students: parseInt(e.target.value, 10) || 0 })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+
+          {form.recurrence !== 'none' && (
+            <Field label="Fecha de fin de la recurrencia" hint="Opcional. Déjala vacía si la clase no tiene fecha de fin.">
+              <Input
+                type="date"
+                value={form.recurrence_end_date}
+                min={form.date}
+                onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })}
+              />
+            </Field>
+          )}
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="is_active"
+              checked={form.is_active}
+              onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+              className="h-5 w-5 rounded border-line-strong text-accent-ink focus:ring-accent-ink"
+            />
+            <label htmlFor="is_active" className="text-label text-ink">Clase activa (visible para los alumnos)</label>
           </div>
-        </div>
 
-        {form.recurrence !== 'none' && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha fin de recurrencia</label>
-            <input type="date" value={form.recurrence_end_date} min={form.date}
-              onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-            <p className="mt-1 text-xs text-gray-400">Opcional. Deja vacío si la clase no tiene fecha de fin.</p>
+          {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <Link href={`/dashboard/schedule/${params.id}`} className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+              Cancelar
+            </Link>
+            <Button type="submit" variant="primary" loading={loading} className="w-full sm:w-auto">
+              {loading ? 'Guardando…' : 'Guardar cambios'}
+            </Button>
           </div>
-        )}
-
-        <div className="flex items-center gap-3">
-          <input type="checkbox" id="is_active" checked={form.is_active}
-            onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-brand-500" />
-          <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Clase activa (visible para alumnos)</label>
-        </div>
-
-        {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-
-        <div className="flex gap-3 pt-2">
-          <Link href={`/dashboard/schedule/${params.id}`}
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50">
-            Cancelar
-          </Link>
-          <button type="submit" disabled={loading}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-            {loading ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-        </div>
-      </form>
+        </form>
+      </Card>
     </div>
   )
 }

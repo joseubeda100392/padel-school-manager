@@ -1,3 +1,8 @@
+import { TriangleAlert, Info } from "lucide-react"
+import { PageHeader } from "@/components/ui/page-header"
+import { Card } from "@/components/ui/card"
+import { Notice } from "@/components/ui/feedback"
+
 const NAV_ITEMS = [
   { id: 'que-es',          label: '¿Qué es?' },
   { id: 'usuarios',        label: 'Usuarios' },
@@ -20,13 +25,10 @@ const NAV_ITEMS = [
 
 export default function AdminAyudaPage() {
   return (
-    <div className="max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Ayuda</h1>
-        <p className="text-sm text-gray-500">Guía completa del panel de administración</p>
-      </div>
+    <div className="mx-auto w-full max-w-5xl space-y-6">
+      <PageHeader title="Ayuda" description="Guía completa del panel de administración." />
 
-      <div className="lg:grid lg:grid-cols-[1fr_180px] lg:gap-8 lg:items-start">
+      <div className="lg:grid lg:grid-cols-[1fr_200px] lg:items-start lg:gap-8">
 
         <div className="space-y-6">
           <Section id="que-es" title="¿Qué es este panel?">
@@ -42,7 +44,7 @@ export default function AdminAyudaPage() {
               <li>Si es monitor: ver sus clases asignadas y su tarifa por hora.</li>
               <li>Desactivar o eliminar el usuario (desactivar conserva su historial; eliminar solo lo pueden hacer super admins y borra los datos de forma permanente).</li>
             </ul>
-            <Nota><strong>Importar alumnos:</strong> desde "↑ Importar Excel" en el listado puedes dar de alta varios alumnos a la vez subiendo una hoja de cálculo con el formato del club.</Nota>
+            <Nota><strong>Importar alumnos:</strong> desde "Importar Excel" en el listado puedes dar de alta varios alumnos a la vez subiendo una hoja de cálculo con el formato del club.</Nota>
           </Section>
 
           <Section id="tambien-alumno" title="Un monitor que también es alumno">
@@ -86,7 +88,7 @@ export default function AdminAyudaPage() {
 
           <Section id="horas" title="Horas de monitores">
             <p>Si tu club <strong>no</strong> usa Validación de clases, esta pantalla te muestra igualmente cuántas horas ha dado cada monitor este mes — calculado automáticamente a partir de su horario fijo, sin que nadie tenga que marcar nada. Se reinicia solo cada mes.</p>
-            <p className="mt-2 text-sm text-gray-500">Tiene en cuenta los festivos del club, las sesiones canceladas y los sustitutos puntuales.</p>
+            <p className="mt-2 text-ink-3">Tiene en cuenta los festivos del club, las sesiones canceladas y los sustitutos puntuales.</p>
           </Section>
 
           <Section id="pista-viva" title="Pista Viva">
@@ -149,20 +151,21 @@ export default function AdminAyudaPage() {
         </div>
 
         <aside className="hidden lg:block">
-          <div className="sticky top-6 rounded-xl bg-white p-4 shadow-sm">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">Contenido</p>
-            <nav className="space-y-0.5">
+          <nav aria-label="Contenido de la ayuda" className="sticky top-6 rounded-card border border-line bg-surface p-3 shadow-card">
+            <p className="mb-2 px-3 text-label text-ink-2">Contenido</p>
+            <ul className="space-y-0.5">
               {NAV_ITEMS.map(({ id, label }) => (
-                <a
-                  key={id}
-                  href={`#${id}`}
-                  className="block rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                >
-                  {label}
-                </a>
+                <li key={id}>
+                  <a
+                    href={`#${id}`}
+                    className="block rounded-control px-3 py-1.5 text-label text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink"
+                  >
+                    {label}
+                  </a>
+                </li>
               ))}
-            </nav>
-          </div>
+            </ul>
+          </nav>
         </aside>
 
       </div>
@@ -172,10 +175,10 @@ export default function AdminAyudaPage() {
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <div id={id} className="scroll-mt-4 rounded-xl bg-white p-6 shadow-sm">
-      <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
-      <div className="text-sm text-gray-600 leading-relaxed">{children}</div>
-    </div>
+    <Card id={id} className="scroll-mt-4 p-4 sm:p-5">
+      <h2 className="mb-3 text-heading text-ink">{title}</h2>
+      <div className="text-body text-ink-2">{children}</div>
+    </Card>
   )
 }
 
@@ -184,7 +187,7 @@ function Steps({ items }: { items: string[] }) {
     <ol className="mt-2 space-y-2">
       {items.map((item, i) => (
         <li key={i} className="flex gap-3">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600">{i + 1}</span>
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-meta font-medium tabular-nums text-accent-ink">{i + 1}</span>
           <span>{item}</span>
         </li>
       ))}
@@ -194,25 +197,25 @@ function Steps({ items }: { items: string[] }) {
 
 function Aviso({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+    <Notice tone="warn" icon={<TriangleAlert />} className="mt-3">
       <strong>Importante: </strong>{children}
-    </div>
+    </Notice>
   )
 }
 
 function Nota({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+    <Notice tone="neutral" icon={<Info />} className="mt-3">
       {children}
-    </div>
+    </Notice>
   )
 }
 
 function FAQ({ q, a }: { q: string; a: string }) {
   return (
     <div>
-      <p className="font-semibold text-gray-800">{q}</p>
-      <p className="mt-1 text-gray-500">{a}</p>
+      <p className="text-label text-ink">{q}</p>
+      <p className="mt-1 text-ink-2">{a}</p>
     </div>
   )
 }

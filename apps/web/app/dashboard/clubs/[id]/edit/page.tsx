@@ -3,8 +3,15 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Field, Input, Select } from '@/components/ui/field'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/feedback'
+import { useConfirm } from '@/components/ui/confirm'
 
 export default function EditClubPage({ params }: { params: { id: string } }) {
+  const confirm = useConfirm()
   const [form, setForm] = useState<any>(null)
   const [existingFeatures, setExistingFeatures] = useState<Record<string, boolean>>({})
   const [wasActive, setWasActive] = useState(true)
@@ -53,7 +60,16 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
   }
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar este club y TODOS sus datos (alumnos, clases, pagos, etc.) de forma permanente? Esta acción NO se puede deshacer. Si solo quieres bloquear el acceso sin borrar nada, desmarca "Club activo" arriba y guarda.')) return
+    if (
+      !(await confirm({
+        title: 'Eliminar este club',
+        description:
+          'Se borrarán de forma permanente el club y todos sus datos (alumnos, clases, pagos, etc.). No se puede deshacer. Si solo quieres bloquear el acceso sin borrar nada, desmarca "Club activo" y guarda.',
+        confirmLabel: 'Eliminar club',
+        destructive: true,
+      }))
+    )
+      return
     setDeleting(true)
     const res = await fetch(`/api/admin/clubs/${params.id}`, { method: 'DELETE' })
     if (!res.ok) {
@@ -65,83 +81,94 @@ export default function EditClubPage({ params }: { params: { id: string } }) {
     window.location.href = '/dashboard/clubs'
   }
 
-  if (!form) return <div className="p-8 text-center text-gray-400">Cargando...</div>
+  if (!form) {
+    return (
+      <div className="mx-auto w-full max-w-xl space-y-6" aria-busy="true">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-80 w-full" />
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-lg">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/clubs" className="text-sm text-gray-500 hover:text-gray-700">← Clubes</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Editar club</h1>
-      </div>
+    <div className="mx-auto w-full max-w-xl space-y-6">
+      <PageHeader title="Editar club" back={{ href: '/dashboard/clubs', label: 'Clubes' }} />
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre del club *</label>
-          <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
+      <Card>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Field label="Nombre del club">
+              <Input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Slug (URL)</label>
-          <input type="text" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none font-mono" />
-        </div>
+            <Field label="Slug (URL)">
+              <Input
+                type="text"
+                value={form.slug}
+                onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                autoCapitalize="none"
+                className="font-mono"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Plan</label>
-          <select value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
-            <option value="trial">Trial</option>
-            <option value="basic">Basic</option>
-            <option value="pro">Pro</option>
-          </select>
-        </div>
+            <Field label="Plan">
+              <Select value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
+                <option value="trial">Trial</option>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+              </Select>
+            </Field>
 
-        <div className="flex items-center gap-3">
-          <input type="checkbox" id="is_active" checked={form.is_active}
-            onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-brand-500" />
-          <label htmlFor="is_active" className="text-sm font-medium text-gray-700">Club activo</label>
-        </div>
-
-        <div className="border-t border-gray-100 pt-4">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-400">Módulos Premium</p>
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="enable_pista_viva"
-              checked={form.enable_pista_viva}
-              onChange={(e) => setForm({ ...form, enable_pista_viva: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-brand-500"
-            />
-            <label htmlFor="enable_pista_viva" className="text-sm font-medium text-gray-700">
-              ⚡ Pista Viva <span className="ml-1 text-xs font-normal text-gray-400">(detección de partidos abiertos con jugadores pendientes)</span>
+            <label htmlFor="is_active" className="flex min-h-11 cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                id="is_active"
+                checked={form.is_active}
+                onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                className="h-5 w-5 rounded accent-accent-ink"
+              />
+              <span className="text-label text-ink">Club activo</span>
             </label>
-          </div>
-        </div>
 
-        {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
+            <fieldset className="border-t border-line pt-4">
+              <legend className="text-label text-ink-2">Módulos premium</legend>
+              <label htmlFor="enable_pista_viva" className="mt-2 flex min-h-11 cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="enable_pista_viva"
+                  checked={form.enable_pista_viva}
+                  onChange={(e) => setForm({ ...form, enable_pista_viva: e.target.checked })}
+                  className="mt-0.5 h-5 w-5 shrink-0 rounded accent-accent-ink"
+                />
+                <span>
+                  <span className="block text-label text-ink">Pista Viva</span>
+                  <span className="block text-meta text-ink-3">Detección de partidos abiertos con jugadores pendientes.</span>
+                </span>
+              </label>
+            </fieldset>
 
-        <div className="flex gap-3 pt-2">
-          <Link href="/dashboard/clubs"
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50">
-            Cancelar
-          </Link>
-          <button type="submit" disabled={loading}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-            {loading ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-        </div>
-      </form>
+            {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 
-      <div className="mt-6 rounded-xl border border-red-100 bg-red-50 p-4">
-        <p className="mb-3 text-sm font-medium text-red-700">Zona peligrosa</p>
-        <button onClick={handleDelete} disabled={deleting}
-          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">
-          {deleting ? 'Eliminando...' : 'Eliminar club'}
-        </button>
-      </div>
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Link href="/dashboard/clubs" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+                Cancelar
+              </Link>
+              <Button type="submit" loading={loading} className="w-full sm:w-auto">
+                {loading ? 'Guardando…' : 'Guardar cambios'}
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
+
+      <Card className="border-danger-ink/20">
+        <CardHeader title="Eliminar club" description="Borra el club y todos sus datos de forma permanente." />
+        <CardBody>
+          <Button variant="danger" onClick={handleDelete} loading={deleting} className="w-full sm:w-auto">
+            {deleting ? 'Eliminando…' : 'Eliminar club'}
+          </Button>
+        </CardBody>
+      </Card>
     </div>
   )
 }

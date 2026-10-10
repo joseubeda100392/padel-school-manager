@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 export function ClubManageButton({ clubId }: { clubId: string }) {
   const router = useRouter()
@@ -19,12 +20,8 @@ export function ClubManageButton({ clubId }: { clubId: string }) {
   }
 
   return (
-    <button
-      onClick={handleManage}
-      disabled={loading}
-      className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
-    >
-      {loading ? '...' : 'Gestionar'}
-    </button>
+    <Button onClick={handleManage} loading={loading} size="sm">
+      Gestionar
+    </Button>
   )
 }

@@ -1,6 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Check, CircleCheck, CircleOff, Clock, Copy, Link2, Pause } from 'lucide-react'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Field, Input, Select } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface Mandate {
   id: string
@@ -18,14 +25,8 @@ const statusLabel: Record<string, string> = {
   cancelled: 'Cancelada',
 }
 
-const statusColor: Record<string, string> = {
-  pending_auth: 'bg-yellow-100 text-yellow-700',
-  active: 'bg-green-100 text-green-700',
-  paused: 'bg-orange-100 text-orange-700',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
-
 export function StudentMandate({ studentId }: { studentId: string }) {
+  const confirm = useConfirm()
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -75,7 +76,15 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   }
 
   async function handleCancel() {
-    if (!mandate || !confirm('¿Cancelar la domiciliación de este alumno?')) return
+    if (!mandate) return
+    const ok = await confirm({
+      title: '¿Cancelar la domiciliación?',
+      description: 'Se dejarán de cobrar las cuotas automáticamente y el alumno tendrá que pagar a mano cada mes.',
+      confirmLabel: 'Cancelar domiciliación',
+      cancelLabel: 'Mantenerla',
+      destructive: true,
+    })
+    if (!ok) return
     await fetch(`/api/admin/payment-mandates/${mandate.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -88,128 +97,115 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   if (loading) return null
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="font-semibold text-gray-900">Domiciliación mensual</h2>
-          <p className="text-xs text-gray-400">Cobro recurrente via Redsys</p>
-        </div>
-        {!mandate && (
-          <button
-            onClick={() => setShowForm(v => !v)}
-            className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
-          >
-            Activar
-          </button>
-        )}
-      </div>
-
-      {payLink && (
-        <div className="mb-4 rounded-lg border border-brand-200 bg-brand-50 p-4">
-          <p className="mb-2 text-sm font-medium text-brand-700">Enlace de pago generado — envíaselo al alumno:</p>
-          <div className="flex items-center gap-2">
-            <input
-              readOnly
-              value={payLink}
-              className="flex-1 truncate rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs text-gray-700 focus:outline-none"
-            />
-            <button
-              onClick={async () => {
-                await navigator.clipboard.writeText(payLink)
-                setLinkCopied(true)
-                setTimeout(() => setLinkCopied(false), 2000)
-              }}
-              className="shrink-0 rounded-lg bg-brand-500 px-3 py-2 text-xs font-medium text-white hover:bg-brand-600"
-            >
-              {linkCopied ? '¡Copiado!' : 'Copiar'}
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-brand-600">El enlace caduca cuando el alumno completa el pago o se regenera.</p>
-        </div>
-      )}
-
-      {mandate && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColor[mandate.status] ?? 'bg-gray-100 text-gray-500'}`}>
-              {statusLabel[mandate.status] ?? mandate.status}
-            </span>
-            <span className="text-sm font-medium text-gray-900">
-              {(mandate.amount_cents / 100).toFixed(2)} € / mes · día {mandate.day_of_month}
-            </span>
-          </div>
-          {mandate.last_charged_at && (
-            <p className="text-xs text-gray-400">
-              Último cobro: {new Date(mandate.last_charged_at).toLocaleDateString('es-ES')}
-            </p>
-          )}
-          {mandate.next_charge_at && mandate.status === 'active' && (
-            <p className="text-xs text-gray-400">
-              Próximo cobro: {new Date(mandate.next_charge_at + 'T12:00:00Z').toLocaleDateString('es-ES')}
-            </p>
-          )}
-          <div className="flex gap-2 pt-1">
-            {mandate.status !== 'pending_auth' && (
-              <button
-                onClick={handlePause}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+    <Card>
+      <CardHeader
+        title="Domiciliación mensual"
+        description="Cobro recurrente por Redsys"
+        action={
+          !mandate ? (
+            <Button size="sm" onClick={() => setShowForm(v => !v)} aria-expanded={showForm}>
+              Activar domiciliación
+            </Button>
+          ) : undefined
+        }
+      />
+      <CardBody className="space-y-4">
+        {payLink && (
+          <Notice tone="success" icon={<Link2 />}>
+            <p className="mb-2 text-label">Enlace de pago generado. Envíaselo al alumno.</p>
+            <div className="flex items-center gap-2">
+              <label htmlFor="mandate-pay-link" className="sr-only">Enlace de pago</label>
+              <Input id="mandate-pay-link" readOnly value={payLink} className="flex-1 truncate text-meta" />
+              <Button
+                size="sm"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(payLink)
+                  setLinkCopied(true)
+                  setTimeout(() => setLinkCopied(false), 2000)
+                }}
               >
-                {mandate.status === 'paused' ? 'Reactivar' : 'Pausar'}
-              </button>
-            )}
-            <button
-              onClick={handleCancel}
-              className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
-            >
-              Cancelar domiciliación
-            </button>
-          </div>
-        </div>
-      )}
+                {linkCopied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+                {linkCopied ? 'Copiado' : 'Copiar enlace'}
+              </Button>
+            </div>
+            <p className="mt-2 text-meta">El enlace caduca cuando el alumno completa el pago o se regenera.</p>
+          </Notice>
+        )}
 
-      {showForm && !mandate && (
-        <form onSubmit={handleCreate} className="mt-4 space-y-4 border-t border-gray-100 pt-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Importe mensual (€)</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              onFocus={e => e.target.select()}
-              step="0.01"
-              min="1"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              required
-              placeholder="60.00"
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
+        {mandate && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <MandateStatus status={mandate.status} />
+              <span className="text-label tabular-nums text-ink">
+                {(mandate.amount_cents / 100).toFixed(2)} € / mes · día {mandate.day_of_month}
+              </span>
+            </div>
+            {mandate.last_charged_at && (
+              <p className="text-meta tabular-nums text-ink-3">
+                Último cobro: {new Date(mandate.last_charged_at).toLocaleDateString('es-ES')}
+              </p>
+            )}
+            {mandate.next_charge_at && mandate.status === 'active' && (
+              <p className="text-meta tabular-nums text-ink-3">
+                Próximo cobro: {new Date(mandate.next_charge_at + 'T12:00:00Z').toLocaleDateString('es-ES')}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {mandate.status !== 'pending_auth' && (
+                <Button variant="secondary" size="sm" onClick={handlePause}>
+                  {mandate.status === 'paused' ? 'Reactivar cobros' : 'Pausar cobros'}
+                </Button>
+              )}
+              <Button variant="danger-ghost" size="sm" onClick={handleCancel}>
+                Cancelar domiciliación
+              </Button>
+            </div>
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Día de cobro</label>
-            <select
-              value={day}
-              onChange={e => setDay(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
-              {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                <option key={d} value={d}>Día {d}</option>
-              ))}
-            </select>
-          </div>
-          <p className="text-xs text-gray-400">
-            Se generará un enlace de pago para enviar al alumno. Al pagarlo, la tarjeta queda vinculada y los cobros son automáticos.
-          </p>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setShowForm(false)} className="flex-1 rounded-lg border border-gray-200 py-2 text-sm text-gray-600 hover:bg-gray-50">
-              Cancelar
-            </button>
-            <button type="submit" disabled={submitting} className="flex-1 rounded-lg bg-brand-500 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-              {submitting ? 'Generando...' : 'Generar enlace'}
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
+        )}
+
+        {showForm && !mandate && (
+          <form onSubmit={handleCreate} className="space-y-4 border-t border-line pt-4">
+            <Field label="Importe mensual (€)">
+              <Input
+                type="text"
+                inputMode="decimal"
+                onFocus={e => e.target.select()}
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                required
+                placeholder="60.00"
+                className="tabular-nums"
+              />
+            </Field>
+            <Field label="Día de cobro">
+              <Select value={day} onChange={e => setDay(e.target.value)}>
+                {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
+                  <option key={d} value={d}>Día {d}</option>
+                ))}
+              </Select>
+            </Field>
+            <p className="text-meta text-ink-3">
+              Se generará un enlace de pago para enviar al alumno. Al pagarlo, la tarjeta queda vinculada y los cobros son automáticos.
+            </p>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button variant="secondary" onClick={() => setShowForm(false)} className="sm:flex-1">
+                Cancelar
+              </Button>
+              <Button type="submit" loading={submitting} className="sm:flex-1">
+                {submitting ? 'Generando enlace' : 'Generar enlace de pago'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </CardBody>
+    </Card>
   )
 }
 
+function MandateStatus({ status }: { status: string }) {
+  const label = statusLabel[status] ?? status
+  if (status === 'active') return <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />{label}</Badge>
+  if (status === 'pending_auth') return <Badge tone="warn"><Clock className="h-3.5 w-3.5" aria-hidden />{label}</Badge>
+  if (status === 'paused') return <Badge tone="warn"><Pause className="h-3.5 w-3.5" aria-hidden />{label}</Badge>
+  return <Badge tone="neutral"><CircleOff className="h-3.5 w-3.5" aria-hidden />{label}</Badge>
+}

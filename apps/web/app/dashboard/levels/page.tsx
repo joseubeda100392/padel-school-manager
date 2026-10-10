@@ -5,6 +5,12 @@ import { getClubId } from '@/lib/get-club'
 import Link from 'next/link'
 import { LevelCard } from '@/components/levels/level-card'
 import { DevError } from '@/components/dev-error'
+import { Plus, Layers } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { List } from '@/components/ui/list'
+import { EmptyState } from '@/components/ui/feedback'
 
 export default async function LevelsPage() {
   const admin = getAdminClient()
@@ -30,26 +36,39 @@ export default async function LevelsPage() {
   })
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <DevError errors={[errLevels?.message]} />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Niveles de Juego</h1>
-          <p className="text-sm text-gray-500">Gestiona los niveles y asígnalos a tus alumnos</p>
-        </div>
-        <Link
-          href="/dashboard/levels/new"
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-        >
-          + Nuevo nivel
-        </Link>
-      </div>
+      <PageHeader
+        title="Niveles de juego"
+        description="Gestiona los niveles y asígnalos a tus alumnos."
+        actions={
+          <Link href="/dashboard/levels/new" className={buttonVariants({ variant: 'primary' })}>
+            <Plus className="h-4 w-4" aria-hidden />
+            Nuevo nivel
+          </Link>
+        }
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {levels?.map((level: any) => (
-          <LevelCard key={level.id} level={level} studentCount={countMap[level.id] ?? 0} />
-        ))}
-      </div>
+      <Card>
+        {levels?.length ? (
+          <List>
+            {levels.map((level: any) => (
+              <LevelCard key={level.id} level={level} studentCount={countMap[level.id] ?? 0} />
+            ))}
+          </List>
+        ) : (
+          <EmptyState
+            icon={<Layers />}
+            title="Aún no hay niveles"
+            description="Crea el primer nivel para poder asignarlo a tus alumnos y a las clases."
+            action={
+              <Link href="/dashboard/levels/new" className={buttonVariants({ variant: 'primary' })}>
+                Crear nivel
+              </Link>
+            }
+          />
+        )}
+      </Card>
     </div>
   )
 }

@@ -1,6 +1,14 @@
 ﻿'use client'
 
 import { toast } from 'sonner'
+import { Banknote, CalendarPlus, CalendarX, Check, CircleAlert, CircleCheck, Clock, CreditCard, Eye, EyeOff, Pencil, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Field, Input, Select } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
+import { Avatar } from '@/components/ui/list'
+import { useConfirm } from '@/components/ui/confirm'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StudentCombobox } from '@/components/student-combobox'
@@ -112,6 +120,7 @@ export default function GroupEnrollment({
   holidays?: string[]
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
   const [exclusions, setExclusions] = useState<Record<string, Exclusion[]>>(initialExclusions)
   const [selectedStudentId, setSelectedStudentId] = useState('')
@@ -238,7 +247,12 @@ export default function GroupEnrollment({
   }
 
   async function handleRemove(id: string) {
-    if (!confirm('¿Quitar al alumno del grupo fijo?')) return
+    if (!(await confirm({
+      title: '¿Quitar al alumno del grupo fijo?',
+      description: 'Dejará de tener plaza permanente en esta clase.',
+      confirmLabel: 'Quitar del grupo',
+      destructive: true,
+    }))) return
     setLoadingId(id)
     const res = await fetch(`/api/group-enrollments/${id}`, { method: 'DELETE' })
     setLoadingId(null)
@@ -289,7 +303,11 @@ export default function GroupEnrollment({
 
   async function handleMarkPaid(id: string, method: InClubMethod) {
     const how = method === 'card_terminal' ? 'con datáfono' : 'en efectivo'
-    if (!confirm(`¿Registrar el pago ${how} de este mes? Quedará registrado en el historial de pagos.`)) return
+    if (!(await confirm({
+      title: `¿Registrar el pago ${how}?`,
+      description: 'Se marcará este mes como pagado y quedará en el historial de pagos.',
+      confirmLabel: 'Registrar pago',
+    }))) return
     setLoadingId(id)
     setMarkPaidError(null)
     const res = await fetch(`/api/group-enrollments/${id}/mark-paid`, {
@@ -338,7 +356,7 @@ export default function GroupEnrollment({
       setFaltaFormId(null)
       if (json.newBagBalance != null) {
         const studentName = enrollments.find(e => e.id === enrollmentId)?.student.name ?? 'el alumno'
-        setFaltaSuccessMsg(`✓ +1 clase añadida a la bolsa de ${studentName} · Saldo actual: ${json.newBagBalance} clase${json.newBagBalance !== 1 ? 's' : ''}`)
+        setFaltaSuccessMsg(`+1 clase añadida a la bolsa de ${studentName} · Saldo actual: ${json.newBagBalance} clase${json.newBagBalance !== 1 ? 's' : ''}`)
         setTimeout(() => setFaltaSuccessMsg(null), 5000)
       }
       router.refresh()
@@ -383,26 +401,26 @@ export default function GroupEnrollment({
   }
 
   return (
-    <div className="rounded-xl bg-white shadow-sm">
-      <div className="border-b border-gray-100 px-6 py-4">
-        <h2 className="font-semibold text-gray-900">Grupo fijo</h2>
-        <p className="mt-0.5 text-xs text-gray-400">
-          Alumnos con plaza permanente{enablePayments ? ` · Cuota de ${billingTarget(false).monthLabel}` : ''}
-        </p>
-      </div>
+    <Card>
+      <CardHeader
+        title="Grupo fijo"
+        description={`Alumnos con plaza permanente${enablePayments ? ` · Cuota de ${billingTarget(false).monthLabel}` : ''}`}
+      />
 
       {markPaidError && (
-        <p className="mx-6 mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{markPaidError}</p>
+        <p role="alert" className="mx-4 mt-3 text-meta font-medium text-danger-ink sm:mx-5">{markPaidError}</p>
       )}
 
       {faltaSuccessMsg && (
-        <p className="mx-6 mt-3 rounded-lg bg-brand-50 px-3 py-2 text-xs font-medium text-brand-600">{faltaSuccessMsg}</p>
+        <Notice tone="success" icon={<CircleCheck />} className="mx-4 mt-3 sm:mx-5">
+          {faltaSuccessMsg}
+        </Notice>
       )}
 
       {enrollments.length === 0 ? (
-        <p className="px-6 py-6 text-sm text-gray-400">No hay alumnos en el grupo fijo aún.</p>
+        <p className="px-4 py-6 text-body text-ink-3 sm:px-5">Aún no hay alumnos en el grupo fijo. Añade el primero abajo.</p>
       ) : (
-        <div className="divide-y divide-gray-50">
+        <div className="mt-3 divide-y divide-line border-t border-line">
           {enrollments.map((e) => {
             const paid = isPaidThisMonth(e.paid_until)
             const isLoading = loadingId === e.id
@@ -417,188 +435,208 @@ export default function GroupEnrollment({
             const isPendingAlta = !!e.start_date && e.start_date > todayStr
 
             return (
-              <div key={e.id} className="px-6 py-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900">{e.student.name}</p>
-                    <p className="text-xs text-gray-400">{e.student.email}</p>
+              <div key={e.id} className="px-4 py-4 sm:px-5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Avatar name={e.student.name} />
+                  <div className="min-w-0 flex-1 basis-40">
+                    <p className="truncate text-[0.9375rem] font-medium text-ink">{e.student.name}</p>
+                    <p className="truncate text-meta text-ink-3">{e.student.email}</p>
                     {(isPendingBaja || isPendingAlta) && (
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {isPendingBaja && (
-                          <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                          <Badge tone="danger">
+                            <CalendarX className="h-3.5 w-3.5" aria-hidden />
                             Baja programada: {new Date(e.end_date + 'T12:00:00').toLocaleDateString('es-ES')}
-                          </span>
+                          </Badge>
                         )}
                         {isPendingAlta && (
-                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
-                            Sustituto — entra el {new Date(e.start_date + 'T12:00:00').toLocaleDateString('es-ES')}
-                          </span>
+                          <Badge tone="neutral">
+                            <CalendarPlus className="h-3.5 w-3.5" aria-hidden />
+                            Sustituto: entra el {new Date(e.start_date + 'T12:00:00').toLocaleDateString('es-ES')}
+                          </Badge>
                         )}
                       </div>
                     )}
                   </div>
 
-                  {enablePayments && (editingPriceId === e.id ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        onFocus={e => e.target.select()}
-                        value={editingPriceValue === 0 ? '' : String(editingPriceValue / 100)}
-                        onChange={(ev) => setEditingPriceValue(Math.round(Number(ev.target.value) * 100))}
-                        className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
-                        autoFocus
-                      />
-                      <button onClick={() => handleUpdatePrice(e.id)} className="text-xs font-medium text-brand-500">✓</button>
-                      <button onClick={() => setEditingPriceId(null)} className="text-xs text-gray-400">✕</button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setEditingPriceId(e.id); setEditingPriceValue(e.monthly_price) }}
-                      className="text-sm font-medium text-gray-600 hover:text-brand-500"
-                      title="Editar cuota"
-                    >
-                      {(e.monthly_price / 100).toFixed(2)}€/mes ✎
-                    </button>
-                  ))}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {enablePayments && (editingPriceId === e.id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          aria-label="Cuota mensual en euros"
+                          onFocus={e => e.target.select()}
+                          value={editingPriceValue === 0 ? '' : String(editingPriceValue / 100)}
+                          onChange={(ev) => setEditingPriceValue(Math.round(Number(ev.target.value) * 100))}
+                          className="w-24 tabular-nums"
+                          autoFocus
+                        />
+                        <Button variant="ghost" size="icon" onClick={() => handleUpdatePrice(e.id)} aria-label="Guardar cuota">
+                          <Check className="h-4 w-4" aria-hidden />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setEditingPriceId(null)} aria-label="Cancelar edición de la cuota">
+                          <X className="h-4 w-4" aria-hidden />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setEditingPriceId(e.id); setEditingPriceValue(e.monthly_price) }}
+                        title="Editar cuota"
+                        aria-label={`Editar cuota: ${(e.monthly_price / 100).toFixed(2)} euros al mes`}
+                      >
+                        <span className="tabular-nums">{(e.monthly_price / 100).toFixed(2)} €/mes</span>
+                        <Pencil className="h-3.5 w-3.5 text-ink-3" aria-hidden />
+                      </Button>
+                    ))}
 
-                  {enableClassValidation && enablePayments && (editingPerClassId === e.id ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        onFocus={ev => ev.target.select()}
-                        value={editingPerClassValue === 0 ? '' : String(editingPerClassValue / 100)}
-                        onChange={(ev) => setEditingPerClassValue(Math.round(Number(ev.target.value) * 100))}
-                        className="w-20 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
-                        autoFocus
-                      />
-                      <button onClick={() => handleUpdatePerClassPrice(e.id)} className="text-xs font-medium text-brand-500">✓</button>
-                      <button onClick={() => setEditingPerClassId(null)} className="text-xs text-gray-400">✕</button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setEditingPerClassId(e.id); setEditingPerClassValue(e.price_per_class_cents ?? 0) }}
-                      className="text-xs font-medium text-gray-500 hover:text-brand-500"
-                      title="Precio por clase suelta (para el descuento de clases no dadas)"
-                    >
-                      {e.price_per_class_cents ? `${(e.price_per_class_cents / 100).toFixed(2)}€/clase ✎` : 'Sin precio/clase ✎'}
-                    </button>
-                  ))}
+                    {enableClassValidation && enablePayments && (editingPerClassId === e.id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          aria-label="Precio por clase en euros"
+                          onFocus={ev => ev.target.select()}
+                          value={editingPerClassValue === 0 ? '' : String(editingPerClassValue / 100)}
+                          onChange={(ev) => setEditingPerClassValue(Math.round(Number(ev.target.value) * 100))}
+                          className="w-24 tabular-nums"
+                          autoFocus
+                        />
+                        <Button variant="ghost" size="icon" onClick={() => handleUpdatePerClassPrice(e.id)} aria-label="Guardar precio por clase">
+                          <Check className="h-4 w-4" aria-hidden />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setEditingPerClassId(null)} aria-label="Cancelar edición del precio por clase">
+                          <X className="h-4 w-4" aria-hidden />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setEditingPerClassId(e.id); setEditingPerClassValue(e.price_per_class_cents ?? 0) }}
+                        title="Precio por clase suelta (para el descuento de clases no dadas)"
+                      >
+                        <span className="tabular-nums">{e.price_per_class_cents ? `${(e.price_per_class_cents / 100).toFixed(2)} €/clase` : 'Sin precio por clase'}</span>
+                        <Pencil className="h-3.5 w-3.5 text-ink-3" aria-hidden />
+                      </Button>
+                    ))}
 
-                  {enableClassValidation && (e.discount_classes_pending ?? 0) > 0 && (
-                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                      −{e.discount_classes_pending} clase{e.discount_classes_pending === 1 ? '' : 's'} el próximo cobro
-                    </span>
-                  )}
+                    {enableClassValidation && (e.discount_classes_pending ?? 0) > 0 && (
+                      <Badge tone="warn">
+                        <CircleAlert className="h-3.5 w-3.5" aria-hidden />
+                        −{e.discount_classes_pending} clase{e.discount_classes_pending === 1 ? '' : 's'} en el próximo cobro
+                      </Badge>
+                    )}
 
-                  {enablePayments && (
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${paid ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
-                      {paid ? 'Pagado' : `Pendiente ${billingTarget(!!(e.court_pricing || e.price_per_class_cents)).monthName}`}
-                    </span>
-                  )}
+                    {enablePayments && (
+                      paid ? (
+                        <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagado</Badge>
+                      ) : (
+                        <Badge tone="warn"><Clock className="h-3.5 w-3.5" aria-hidden />Pendiente {billingTarget(!!(e.court_pricing || e.price_per_class_cents)).monthName}</Badge>
+                      )
+                    )}
+                  </div>
+                </div>
 
+                <div className="mt-3 flex flex-wrap gap-2">
                   {enablePayments && !paid && (
                     <>
-                      <button
-                        onClick={() => handleMarkPaid(e.id, 'cash')}
-                        disabled={isLoading}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                      >
-                        {isLoading ? '...' : 'Efectivo ✓'}
-                      </button>
-                      <button
-                        onClick={() => handleMarkPaid(e.id, 'card_terminal')}
-                        disabled={isLoading}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                      >
-                        {isLoading ? '...' : 'Datáfono ✓'}
-                      </button>
+                      <Button variant="secondary" size="sm" onClick={() => handleMarkPaid(e.id, 'cash')} loading={isLoading}>
+                        <Banknote className="h-4 w-4" aria-hidden />
+                        Efectivo
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => handleMarkPaid(e.id, 'card_terminal')} loading={isLoading}>
+                        <CreditCard className="h-4 w-4" aria-hidden />
+                        Datáfono
+                      </Button>
                     </>
                   )}
 
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    aria-expanded={showFaltaForm}
                     onClick={() => showFaltaForm ? setFaltaFormId(null) : openFaltaForm(e.id)}
                     disabled={isLoading}
-                    className="rounded-lg border border-orange-200 px-3 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-50 disabled:opacity-50"
                   >
                     Registrar falta
-                  </button>
+                  </Button>
 
-                  <button
-                    onClick={() => handleRemove(e.id)}
-                    disabled={isLoading}
-                    className="rounded-lg border border-red-100 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {isLoading ? '...' : 'Quitar'}
-                  </button>
+                  <Button variant="danger-ghost" size="sm" onClick={() => handleRemove(e.id)} loading={isLoading}>
+                    Quitar del grupo
+                  </Button>
                 </div>
 
-                {/* Formulario de falta */}
                 {showFaltaForm && (
-                  <div className="mt-3 rounded-lg border border-orange-100 bg-orange-50 p-4">
-                    <p className="mb-3 text-xs font-semibold text-orange-700">Registrar falta — {e.student.name}</p>
+                  <div className="mt-3 rounded-control border border-line bg-surface-2 p-4">
+                    <p className="mb-3 text-label text-ink">Registrar falta de {e.student.name}</p>
                     <div className="flex flex-wrap items-end gap-3">
-                      <div>
-                        <label className="mb-1 block text-xs text-gray-500">Fecha de la clase</label>
-                        <input
+                      <Field label="Fecha de la clase" className="w-full sm:w-48">
+                        <Input
                           type="date"
                           value={faltaDate}
                           min={now.toISOString().split('T')[0]}
                           onChange={(ev) => setFaltaDate(ev.target.value)}
-                          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
                         />
-                      </div>
+                      </Field>
                       {enableSpots && (
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-600">Publicar plaza libre</label>
+                        <div className="flex min-h-11 items-center gap-2">
+                          <span id={`publicar-${e.id}`} className="text-label text-ink">Publicar plaza libre</span>
                           <button
+                            type="button"
+                            role="switch"
+                            aria-checked={faltaPublish}
+                            aria-labelledby={`publicar-${e.id}`}
                             onClick={() => setFaltaPublish(!faltaPublish)}
-                            className={`relative h-6 w-11 rounded-full transition-colors ${faltaPublish ? 'bg-brand-500' : 'bg-gray-300'}`}
+                            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${faltaPublish ? 'bg-accent-ink' : 'bg-line-strong'}`}
                           >
-                            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${faltaPublish ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow-card transition-transform ${faltaPublish ? 'translate-x-5' : 'translate-x-0.5'}`} />
                           </button>
-                          <span className="text-xs text-gray-400">{faltaPublish ? 'Sí' : 'No'}</span>
+                          <span className="text-meta text-ink-3">{faltaPublish ? 'Sí' : 'No'}</span>
                         </div>
                       )}
-                      <button
-                        onClick={() => handleRegistrarFalta(e.id)}
-                        disabled={faltaLoading || !faltaDate}
-                        className="rounded-lg bg-orange-500 px-4 py-2 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
-                      >
-                        {faltaLoading ? '...' : 'Confirmar falta'}
-                      </button>
-                      <button onClick={() => setFaltaFormId(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
                     </div>
-                    <p className="mt-2 text-xs text-gray-400">
+                    <p className="mt-3 text-meta text-ink-3">
                       {faltaPublish
-                        ? '✓ El alumno recibe +1 clase disponible y la plaza se publica en la app'
-                        : '✓ El alumno recibe +1 clase disponible · la plaza no se publica'}
+                        ? 'El alumno recibe +1 clase disponible y la plaza se publica en la app.'
+                        : 'El alumno recibe +1 clase disponible. La plaza no se publica.'}
                     </p>
+                    <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                      <Button variant="secondary" onClick={() => setFaltaFormId(null)}>Cancelar</Button>
+                      <Button onClick={() => handleRegistrarFalta(e.id)} disabled={!faltaDate} loading={faltaLoading}>
+                        Confirmar falta
+                      </Button>
+                    </div>
                   </div>
                 )}
 
-                {/* Faltas próximas registradas */}
                 {myExclusions.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {myExclusions.map((x) => (
-                      <div key={x.id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
-                        <span className="text-xs text-gray-500">
+                      <div key={x.id} className="flex items-center gap-1 rounded-full border border-line bg-surface-2 py-0.5 pl-3 pr-1">
+                        <span className="text-meta text-ink-2">
                           Falta {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                         </span>
                         <button
+                          type="button"
                           onClick={() => handleTogglePublish(e.id, x)}
-                          className={`text-xs font-medium ${x.publish_spot ? 'text-brand-500' : 'text-gray-400'}`}
-                          title={x.publish_spot ? 'Plaza publicada · click para ocultar' : 'Plaza no publicada · click para publicar'}
+                          aria-pressed={x.publish_spot}
+                          className={`inline-flex min-h-8 items-center gap-1 rounded-full px-2 text-meta font-medium hover:bg-ink/5 ${x.publish_spot ? 'text-accent-ink' : 'text-ink-3'}`}
+                          title={x.publish_spot ? 'Plaza publicada. Pulsa para ocultarla' : 'Plaza no publicada. Pulsa para publicarla'}
                         >
-                          {x.publish_spot ? '● Publicada' : '○ No publicada'}
+                          {x.publish_spot ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeOff className="h-3.5 w-3.5" aria-hidden />}
+                          {x.publish_spot ? 'Publicada' : 'No publicada'}
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleDeleteExclusion(e.id, x.id)}
-                          className="text-xs text-red-400 hover:text-red-600"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-danger-ink hover:bg-danger-soft"
+                          aria-label="Eliminar falta"
                           title="Eliminar falta"
                         >
-                          ×
+                          <X className="h-3.5 w-3.5" aria-hidden />
                         </button>
                       </div>
                     ))}
@@ -610,40 +648,41 @@ export default function GroupEnrollment({
         </div>
       )}
 
-      <div className="border-t border-gray-100 px-6 py-4">
-        <p className="mb-3 text-xs font-medium text-gray-500">Añadir alumno al grupo fijo</p>
+      <div className="border-t border-line px-4 py-4 sm:px-5">
+        <p className="mb-3 text-label text-ink">Añadir alumno al grupo fijo</p>
         {addError && (
-          <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{addError}</p>
+          <p role="alert" className="mb-2 text-meta font-medium text-danger-ink">{addError}</p>
         )}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-end gap-3">
           <StudentCombobox
             students={unenrolledStudents}
             value={selectedStudentId}
             onChange={setSelectedStudentId}
-            placeholder="Buscar alumno por nombre o email..."
+            placeholder="Buscar alumno por nombre o email"
           />
           {enablePayments && enableClassValidation && (courtPricing || otherTariffs) && (
-            <select
+            <Select
+              aria-label="Tarifa"
               value={selectedTariff}
               onChange={(e) => handleSelectTariff(e.target.value as TariffChoice)}
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+              className="w-full sm:w-auto"
             >
-              <option value="" disabled>Elige tarifa...</option>
+              <option value="" disabled>Elige una tarifa</option>
               {(['clase_suelta', 'con_pista', 'sin_pista'] as TariffChoice[]).map((tariff) => (
                 <option key={tariff} value={tariff}>
-                  {TARIFF_LABELS[tariff]} ({(tariffPricePerClass(tariff) / 100).toFixed(2)}€/clase)
+                  {TARIFF_LABELS[tariff]} ({(tariffPricePerClass(tariff) / 100).toFixed(2)} €/clase)
                 </option>
               ))}
-            </select>
+            </Select>
           )}
           {selectedTariff && (
-            <span className="flex items-center text-xs text-gray-400">
+            <span className="flex min-h-11 items-center text-meta text-ink-3">
               Cuota de {billingTarget().monthLabel}
             </span>
           )}
           {enablePayments && (
-            <div className="relative">
-              <input
+            <Field label="Precio al mes (€)" className="w-full sm:w-32">
+              <Input
                 type="text"
                 inputMode="numeric"
                 onFocus={e => e.target.select()}
@@ -651,21 +690,15 @@ export default function GroupEnrollment({
                 step={0.5}
                 value={monthlyPrice / 100}
                 onChange={(e) => { setMonthlyPrice(Math.round(Number(e.target.value) * 100)); setSelectedTariff('') }}
-                className="w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-                placeholder="Precio/mes"
+                className="tabular-nums"
               />
-              <span className="pointer-events-none absolute right-3 top-2 text-sm text-gray-400">€</span>
-            </div>
+            </Field>
           )}
-          <button
-            onClick={handleAdd}
-            disabled={adding || !selectedStudentId}
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-          >
-            {adding ? '...' : 'Añadir'}
-          </button>
+          <Button onClick={handleAdd} disabled={!selectedStudentId} loading={adding} className="w-full sm:w-auto">
+            Añadir al grupo
+          </Button>
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

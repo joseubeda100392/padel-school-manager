@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
+import { FileText, FileUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/feedback'
 
 interface Doc {
   key: 'tarifas_pdf_url' | 'calendario_pdf_url' | 'terms_pdf_url'
@@ -93,7 +98,15 @@ export function DocumentosClient({ clubId, isAdmin = false }: { clubId: string |
     }
   }
 
-  if (loading) return <div className="text-sm text-gray-400">Cargando...</div>
+  if (loading) {
+    return (
+      <div className="space-y-4" aria-busy="true">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -102,60 +115,65 @@ export function DocumentosClient({ clubId, isAdmin = false }: { clubId: string |
         const isUploading = uploading === doc.key
 
         return (
-          <div key={doc.key} className="rounded-xl bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h2 className="font-semibold text-gray-900">{doc.label}</h2>
-                <p className="mt-0.5 text-xs text-gray-400">{doc.description}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {hasUrl && (
-                  <a
-                    href={doc.apiPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Ver PDF
-                  </a>
-                )}
-                {isAdmin && (
-                  <>
-                    <input
-                      ref={el => { fileRefs.current[doc.key] = el }}
-                      type="file"
-                      accept="application/pdf"
-                      className="hidden"
-                      onChange={e => {
-                        const file = e.target.files?.[0]
-                        if (file) handleUpload(doc, file)
-                      }}
-                    />
-                    <button
-                      onClick={() => fileRefs.current[doc.key]?.click()}
-                      disabled={isUploading}
-                      className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
+          <Card key={doc.key}>
+            <CardHeader
+              title={doc.label}
+              description={doc.description}
+              action={
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                  {hasUrl && (
+                    <a
+                      href={doc.apiPath}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={buttonVariants({ variant: 'secondary', className: 'flex-1 sm:flex-none' })}
                     >
-                      {isUploading ? 'Subiendo...' : hasUrl ? 'Cambiar PDF' : '+ Subir PDF'}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+                      Ver PDF
+                    </a>
+                  )}
+                  {isAdmin && (
+                    <>
+                      <input
+                        ref={el => { fileRefs.current[doc.key] = el }}
+                        type="file"
+                        accept="application/pdf"
+                        className="hidden"
+                        aria-label={`Archivo PDF de ${doc.label}`}
+                        onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (file) handleUpload(doc, file)
+                        }}
+                      />
+                      <Button
+                        onClick={() => fileRefs.current[doc.key]?.click()}
+                        loading={isUploading}
+                        variant={hasUrl ? 'secondary' : 'primary'}
+                        className="flex-1 sm:flex-none"
+                      >
+                        {!isUploading && <FileUp className="h-4 w-4" aria-hidden />}
+                        {isUploading ? 'Subiendo…' : hasUrl ? 'Cambiar PDF' : 'Subir PDF'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              }
+            />
 
-            {hasUrl ? (
-              <div className="mt-4 flex items-center gap-3 rounded-lg border border-green-100 bg-green-50 px-4 py-3">
-                <span className="text-xl">📄</span>
-                <p className="text-sm font-medium text-green-700">PDF disponible</p>
-              </div>
-            ) : (
-              <div className="mt-4 flex h-20 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
-                <p className="text-sm text-gray-400">
-                  {isAdmin ? 'Sin PDF subido aún' : 'No disponible todavía'}
-                </p>
-              </div>
-            )}
-          </div>
+            <div className="p-4 pt-3 sm:p-5 sm:pt-3">
+              {hasUrl ? (
+                <Badge tone="success" className="gap-2 px-3 py-1.5">
+                  <FileText className="h-4 w-4" aria-hidden />
+                  PDF disponible
+                </Badge>
+              ) : (
+                <div className="flex h-20 items-center justify-center rounded-control border border-dashed border-line-strong/60 bg-surface-2">
+                  <p className="text-body text-ink-2">
+                    {isAdmin ? 'Todavía no has subido ningún PDF' : 'No disponible todavía'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </Card>
         )
       })}
     </div>

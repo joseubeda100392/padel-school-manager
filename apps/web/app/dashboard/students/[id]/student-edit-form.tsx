@@ -3,6 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
+import { Check, Trash2 } from 'lucide-react'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Field, Input, Select } from '@/components/ui/field'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface Props {
   student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string; also_student?: boolean; is_external?: boolean; is_premium_private_coach?: boolean }
@@ -12,6 +18,7 @@ interface Props {
 
 export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLessons = false }: Props) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [form, setForm] = useState({
     name: student.name ?? '',
     phone: student.phone ?? '',
@@ -100,10 +107,22 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
   }
 
   async function handleDelete() {
-    const confirmMsg = isSuperAdmin
-      ? `¿ELIMINAR a ${student.name} de forma permanente? Se borra su historial de reservas, pagos y bolsa. Esta acción NO se puede deshacer.`
-      : `¿Desactivar a ${student.name}? No podrá entrar en la app, pero su historial (reservas, pagos, bolsa) se conserva y puedes reactivarlo cuando quieras.`
-    if (!confirm(confirmMsg)) return
+    const confirmed = await confirm(
+      isSuperAdmin
+        ? {
+            title: `¿Eliminar a ${student.name}?`,
+            description: 'Se borra de forma permanente su historial de reservas, pagos y bolsa. Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar usuario',
+            destructive: true,
+          }
+        : {
+            title: `¿Desactivar a ${student.name}?`,
+            description: 'No podrá entrar en la app, pero su historial (reservas, pagos, bolsa) se conserva y puedes reactivarlo cuando quieras.',
+            confirmLabel: 'Desactivar usuario',
+            destructive: true,
+          },
+    )
+    if (!confirmed) return
     setDeleting(true)
     const res = await fetch(`/api/admin/students/${student.id}`, { method: 'DELETE' })
     if (res.ok) {
@@ -111,151 +130,131 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
     } else {
       const json = await res.json().catch(() => ({}))
       const msg = json.error ?? (isSuperAdmin ? 'Error al eliminar usuario' : 'Error al desactivar usuario')
-      alert(`Error: ${msg}`)
+      toast.error(msg)
       setDeleting(false)
     }
   }
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm">
-      <h2 className="mb-4 font-semibold text-gray-900">Editar información</h2>
-      <div className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre</label>
-          <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Teléfono</label>
-          <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            placeholder="Opcional"
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Rol</label>
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none">
+    <Card>
+      <CardHeader title="Editar información" />
+      <CardBody className="space-y-5">
+        <Field label="Nombre">
+          <Input type="text" autoComplete="off" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </Field>
+        <Field label="Teléfono (opcional)">
+          <Input type="tel" inputMode="tel" autoComplete="off" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        </Field>
+        <Field label="Rol">
+          <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="student">Alumno</option>
             <option value="coach">Monitor</option>
             <option value="admin">Admin</option>
-          </select>
-        </div>
+          </Select>
+        </Field>
         {form.role === 'coach' && (
-          <div className="flex items-center gap-3">
-            <input type="checkbox" id="also_student_edit" checked={form.also_student}
-              onChange={(e) => setForm({ ...form, also_student: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-brand-500" />
-            <label htmlFor="also_student_edit" className="text-sm font-medium text-gray-700">
-              También es alumno <span className="font-normal text-gray-400">(puede entrar también al panel de alumno, apuntarse a clases y tener cuota)</span>
-            </label>
-          </div>
+          <CheckRow id="also_student_edit" checked={form.also_student}
+            onChange={(v) => setForm({ ...form, also_student: v })}
+            label="También es alumno"
+            hint="Puede entrar también al panel de alumno, apuntarse a clases y tener cuota." />
         )}
         {enablePrivateLessons && form.role === 'coach' && (
-          <div className="flex items-center gap-3">
-            <input type="checkbox" id="is_premium_private_coach_edit" checked={form.is_premium_private_coach}
-              onChange={(e) => setForm({ ...form, is_premium_private_coach: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-brand-500" />
-            <label htmlFor="is_premium_private_coach_edit" className="text-sm font-medium text-gray-700">
-              Tarifa particular premium <span className="font-normal text-gray-400">(sus clases particulares cobran el precio premium configurado en Tarifas)</span>
-            </label>
-          </div>
+          <CheckRow id="is_premium_private_coach_edit" checked={form.is_premium_private_coach}
+            onChange={(v) => setForm({ ...form, is_premium_private_coach: v })}
+            label="Tarifa particular premium"
+            hint="Sus clases particulares cobran el precio premium configurado en Tarifas." />
         )}
         {enablePrivateLessons && form.role === 'student' && (
-          <div className="flex items-center gap-3">
-            <input type="checkbox" id="is_external_edit" checked={form.is_external}
-              onChange={(e) => setForm({ ...form, is_external: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-brand-500" />
-            <label htmlFor="is_external_edit" className="text-sm font-medium text-gray-700">
-              Alumno externo <span className="font-normal text-gray-400">(paga las tarifas de externo y no ve los huecos libres de las clases fijas de la escuela)</span>
-            </label>
-          </div>
+          <CheckRow id="is_external_edit" checked={form.is_external}
+            onChange={(v) => setForm({ ...form, is_external: v })}
+            label="Alumno externo"
+            hint="Paga las tarifas de externo y no ve los huecos libres de las clases fijas de la escuela." />
         )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha de alta</label>
-            <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+          <Field label="Fecha de alta">
+            <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
+          </Field>
+          <Field label="Fecha de baja">
+            <Input type="date" value={form.end_date} min={form.start_date}
+              onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+          </Field>
+        </div>
+        <CheckRow id="is_active_edit" checked={form.is_active}
+          onChange={(v) => setForm({ ...form, is_active: v, end_date: v ? '' : form.end_date })}
+          label="Usuario activo" />
+
+        {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+
+        <Button onClick={handleSave} loading={saving} block>
+          {done && <Check className="h-4 w-4" aria-hidden />}
+          {saving ? 'Guardando cambios' : done ? 'Cambios guardados' : 'Guardar cambios'}
+        </Button>
+
+        <div className="border-t border-line pt-5">
+          <h3 className="text-label text-ink">Cambiar email</h3>
+          <p className="mb-3 mt-0.5 text-meta text-ink-3">El cambio es inmediato: no requiere confirmación por correo.</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <Field label="Nuevo email" className="flex-1">
+              <Input type="email" inputMode="email" autoComplete="off" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="nuevo@email.com" />
+            </Field>
+            <Button variant="secondary" onClick={handleChangeEmail} loading={savingEmail} className="sm:mt-[26px]">
+              {emailDone && <Check className="h-4 w-4" aria-hidden />}
+              {emailDone ? 'Email cambiado' : 'Cambiar email'}
+            </Button>
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Fecha de baja</label>
-            <input type="date" value={form.end_date} min={form.start_date}
-              onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+          {emailError && <p role="alert" className="mt-2 text-meta font-medium text-danger-ink">{emailError}</p>}
+        </div>
+
+        <div className="border-t border-line pt-5">
+          <h3 className="text-label text-ink">Cambiar contraseña</h3>
+          <p className="mb-3 mt-0.5 text-meta text-ink-3">Se le pedirá elegir una contraseña propia la próxima vez que entre.</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <Field label="Nueva contraseña" className="flex-1">
+              <Input type="text" autoComplete="off" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres" />
+            </Field>
+            <Button variant="secondary" onClick={handleChangePassword} loading={savingPassword} className="sm:mt-[26px]">
+              {passwordDone && <Check className="h-4 w-4" aria-hidden />}
+              {passwordDone ? 'Contraseña cambiada' : 'Cambiar contraseña'}
+            </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <input type="checkbox" id="is_active_edit" checked={form.is_active}
-            onChange={(e) => setForm({ ...form, is_active: e.target.checked, end_date: e.target.checked ? '' : form.end_date })}
-            className="h-4 w-4 rounded border-gray-300 text-brand-500" />
-          <label htmlFor="is_active_edit" className="text-sm font-medium text-gray-700">Usuario activo</label>
+          {passwordError && <p role="alert" className="mt-2 text-meta font-medium text-danger-ink">{passwordError}</p>}
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-
-        <button onClick={handleSave} disabled={saving}
-          className="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-          {saving ? 'Guardando...' : done ? '¡Guardado!' : 'Guardar cambios'}
-        </button>
-      </div>
-
-      {/* Cambio de email separado */}
-      <div className="mt-6 border-t border-gray-100 pt-5">
-        <h3 className="mb-1 text-sm font-semibold text-gray-900">Cambiar email</h3>
-        <p className="mb-3 text-xs text-gray-400">
-          El cambio es inmediato — no requiere confirmación por correo.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="email"
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
-            placeholder="nuevo@email.com"
-            className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-          />
-          <button
-            onClick={handleChangeEmail}
-            disabled={savingEmail}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 sm:w-auto"
-          >
-            {savingEmail ? '...' : emailDone ? '¡Listo!' : 'Cambiar email'}
-          </button>
+        <div className="border-t border-line pt-5">
+          <Button variant="danger-ghost" onClick={handleDelete} loading={deleting} block>
+            <Trash2 className="h-4 w-4" aria-hidden />
+            {deleting
+              ? (isSuperAdmin ? 'Eliminando usuario' : 'Desactivando usuario')
+              : (isSuperAdmin ? 'Eliminar usuario' : 'Desactivar usuario')}
+          </Button>
         </div>
-        {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
-      </div>
+      </CardBody>
+    </Card>
+  )
+}
 
-      {/* Cambio de contraseña */}
-      <div className="mt-6 border-t border-gray-100 pt-5">
-        <h3 className="mb-1 text-sm font-semibold text-gray-900">Cambiar contraseña</h3>
-        <p className="mb-3 text-xs text-gray-400">
-          Se le pedirá elegir una nueva contraseña propia la próxima vez que entre.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="text"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Nueva contraseña (mín. 6 caracteres)"
-            className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-          />
-          <button
-            onClick={handleChangePassword}
-            disabled={savingPassword}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60 sm:w-auto"
-          >
-            {savingPassword ? '...' : passwordDone ? '¡Listo!' : 'Cambiar contraseña'}
-          </button>
-        </div>
-        {passwordError && <p className="mt-2 text-sm text-red-600">{passwordError}</p>}
-      </div>
-
-      <div className="mt-6 border-t border-gray-100 pt-4 space-y-2">
-        <button onClick={handleDelete} disabled={deleting}
-          className="w-full rounded-lg bg-red-50 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-60">
-          {deleting
-            ? (isSuperAdmin ? 'Eliminando...' : 'Desactivando...')
-            : (isSuperAdmin ? 'Eliminar usuario' : 'Desactivar usuario')}
-        </button>
-      </div>
+function CheckRow({ id, checked, onChange, label, hint }: {
+  id: string
+  checked: boolean
+  onChange: (value: boolean) => void
+  label: string
+  hint?: string
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <input
+        type="checkbox"
+        id={id}
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-5 w-5 shrink-0 rounded border-line-strong accent-accent-ink"
+      />
+      <label htmlFor={id} className="text-label text-ink">
+        {label}
+        {hint && <span className="mt-0.5 block text-meta font-normal text-ink-3">{hint}</span>}
+      </label>
     </div>
   )
 }

@@ -4,8 +4,13 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { CircleCheck, CircleX, Plus } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { ClubManageButton } from '@/components/clubs/club-manage-button'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
 
 const planLabel: Record<string, string> = {
   trial: 'Trial',
@@ -13,10 +18,10 @@ const planLabel: Record<string, string> = {
   pro: 'Pro',
 }
 
-const planBadge: Record<string, string> = {
-  trial: 'bg-gray-100 text-gray-600',
-  basic: 'bg-blue-100 text-blue-700',
-  pro: 'bg-brand-100 text-brand-700',
+const planTone: Record<string, 'neutral' | 'outline' | 'success'> = {
+  trial: 'neutral',
+  basic: 'outline',
+  pro: 'success',
 }
 
 export default async function ClubsPage() {
@@ -39,64 +44,58 @@ export default async function ClubsPage() {
   })
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">Clubes</h1>
-          <p className="mt-1 text-sm text-gray-500">{clubs?.length ?? 0} clubes registrados</p>
-        </div>
-        <Link
-          href="/dashboard/clubs/new"
-          className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600"
-        >
-          + Nuevo club
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Clubes"
+        description={`${clubs?.length ?? 0} clubes registrados`}
+        actions={
+          <Link href="/dashboard/clubs/new" className={buttonVariants({ className: 'w-full sm:w-auto' })}>
+            <Plus className="h-4 w-4" aria-hidden />
+            Nuevo club
+          </Link>
+        }
+      />
 
-      <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
+      <Card className="overflow-x-auto">
         <table className="w-full min-w-[600px]">
           <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Club</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Slug</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Plan</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Usuarios</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alta</th>
-              <th className="px-6 py-3"></th>
+            <tr className="border-b border-line bg-surface-2">
+              <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3 sm:px-5">Club</th>
+              <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Slug</th>
+              <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Plan</th>
+              <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Usuarios</th>
+              <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Estado</th>
+              <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Alta</th>
+              <th scope="col" className="px-4 py-3 sm:pr-5"><span className="sr-only">Acciones</span></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-line">
             {!clubs?.length && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                  No hay clubes aún.
+                <td colSpan={7} className="px-6 py-12 text-center text-body text-ink-2">
+                  Todavía no hay clubes. Crea el primero con el botón de arriba.
                 </td>
               </tr>
             )}
             {clubs?.map((club: any) => (
-              <tr key={club.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium text-gray-900">{club.name}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{club.slug}</td>
-                <td className="px-6 py-4">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${planBadge[club.plan] ?? 'bg-gray-100 text-gray-500'}`}>
-                    {planLabel[club.plan] ?? club.plan}
-                  </span>
+              <tr key={club.id}>
+                <td className="px-4 py-3 text-body font-medium text-ink sm:px-5">{club.name}</td>
+                <td className="px-4 py-3 font-mono text-meta text-ink-2">{club.slug}</td>
+                <td className="px-4 py-3">
+                  <Badge tone={planTone[club.plan] ?? 'neutral'}>{planLabel[club.plan] ?? club.plan}</Badge>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">{countMap[club.id] ?? 0}</td>
-                <td className="px-6 py-4">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${club.is_active ? 'bg-brand-100 text-brand-700' : 'bg-red-100 text-red-600'}`}>
+                <td className="px-4 py-3 text-body tabular-nums text-ink-2">{countMap[club.id] ?? 0}</td>
+                <td className="px-4 py-3">
+                  <Badge tone={club.is_active ? 'success' : 'danger'}>
+                    {club.is_active ? <CircleCheck className="h-3.5 w-3.5" aria-hidden /> : <CircleX className="h-3.5 w-3.5" aria-hidden />}
                     {club.is_active ? 'Activo' : 'Inactivo'}
-                  </span>
+                  </Badge>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">{formatDate(club.created_at)}</td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3 text-body tabular-nums text-ink-2">{formatDate(club.created_at)}</td>
+                <td className="px-4 py-3 sm:pr-5">
                   <div className="flex items-center gap-2">
                     <ClubManageButton clubId={club.id} />
-                    <Link
-                      href={`/dashboard/clubs/${club.id}/edit`}
-                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                    >
+                    <Link href={`/dashboard/clubs/${club.id}/edit`} className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
                       Editar
                     </Link>
                   </div>
@@ -105,7 +104,7 @@ export default async function ClubsPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   )
 }

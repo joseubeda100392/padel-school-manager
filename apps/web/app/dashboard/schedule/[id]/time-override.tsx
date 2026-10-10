@@ -2,6 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { TriangleAlert } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface Override {
   id: string
@@ -22,6 +27,7 @@ export function TimeOverride({ scheduleId, nextDate, nextDateLabel, existingOver
   existingOverride: Override | null
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [showForm, setShowForm] = useState(false)
   const [startTime, setStartTime] = useState(existingOverride ? toHHMM(existingOverride.new_start_time) : '')
   const [endTime, setEndTime] = useState(existingOverride ? toHHMM(existingOverride.new_end_time) : '')
@@ -50,7 +56,12 @@ export function TimeOverride({ scheduleId, nextDate, nextDateLabel, existingOver
   }
 
   async function handleRemove() {
-    if (!confirm('¿Quitar el cambio de hora y volver al horario habitual ese día?')) return
+    if (!(await confirm({
+      title: '¿Quitar el cambio de hora?',
+      description: 'La clase volverá al horario habitual ese día.',
+      confirmLabel: 'Quitar cambio',
+      destructive: true,
+    }))) return
     setSaving(true)
     await fetch(`/api/admin/schedules/${scheduleId}/time-override?date=${nextDate}`, { method: 'DELETE' })
     setSaving(false)
@@ -59,58 +70,47 @@ export function TimeOverride({ scheduleId, nextDate, nextDateLabel, existingOver
 
   if (existingOverride && !showForm) {
     return (
-      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
-        <p className="font-medium text-amber-800">
-          ⚠️ Cambio de hora puntual: el {nextDateLabel} es a las {toHHMM(existingOverride.new_start_time)} (en vez de la hora habitual)
+      <Notice tone="warn" icon={<TriangleAlert />} className="mt-4">
+        <p className="font-medium">
+          Cambio de hora puntual: el {nextDateLabel} es a las {toHHMM(existingOverride.new_start_time)} en vez de la hora habitual.
         </p>
-        {existingOverride.reason && <p className="mt-0.5 text-xs text-amber-600">{existingOverride.reason}</p>}
-        <div className="mt-2 flex gap-3">
-          <button onClick={() => setShowForm(true)} className="text-xs font-medium text-amber-700 underline hover:text-amber-900">Editar</button>
-          <button onClick={handleRemove} disabled={saving} className="text-xs font-medium text-red-600 underline hover:text-red-800">Quitar cambio</button>
+        {existingOverride.reason && <p className="mt-0.5 text-meta">{existingOverride.reason}</p>}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setShowForm(true)}>Editar</Button>
+          <Button variant="danger-ghost" size="sm" onClick={handleRemove} disabled={saving}>Quitar cambio</Button>
         </div>
-      </div>
+      </Notice>
     )
   }
 
   if (!showForm) {
     return (
-      <button
-        onClick={() => setShowForm(true)}
-        className="mt-3 text-xs font-medium text-gray-500 underline hover:text-gray-700"
-      >
-        Cambiar la hora solo el {nextDateLabel} (pista no disponible, etc.)
-      </button>
+      <div className="mt-4">
+        <Button variant="link" onClick={() => setShowForm(true)} className="h-auto whitespace-normal text-left text-meta">
+          Cambiar la hora solo el {nextDateLabel} (pista no disponible, etc.)
+        </Button>
+      </div>
     )
   }
 
   return (
-    <form onSubmit={handleSave} className="mt-3 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-      <p className="text-xs font-medium text-gray-600">Nueva hora solo para el {nextDateLabel}</p>
+    <form onSubmit={handleSave} className="mt-4 space-y-3 rounded-control border border-line bg-surface-2 p-4">
+      <p className="text-label text-ink">Nueva hora solo para el {nextDateLabel}</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-xs text-gray-500">Hora inicio</label>
-          <input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-gray-500">Hora fin</label>
-          <input type="time" required value={endTime} onChange={e => setEndTime(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
-        </div>
+        <Field label="Hora de inicio">
+          <Input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)} />
+        </Field>
+        <Field label="Hora de fin">
+          <Input type="time" required value={endTime} onChange={e => setEndTime(e.target.value)} />
+        </Field>
       </div>
-      <input
-        type="text"
-        placeholder="Motivo (opcional, ej. pista ocupada)"
-        value={reason}
-        onChange={e => setReason(e.target.value)}
-        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-      />
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button type="button" onClick={() => setShowForm(false)} className="flex-1 rounded-lg border border-gray-200 py-2 text-xs text-gray-600 hover:bg-gray-50">Cancelar</button>
-        <button type="submit" disabled={saving} className="flex-1 rounded-lg bg-brand-500 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-          {saving ? 'Guardando...' : 'Guardar y avisar al grupo'}
-        </button>
+      <Field label="Motivo (opcional)">
+        <Input type="text" placeholder="Por ejemplo, pista ocupada" value={reason} onChange={e => setReason(e.target.value)} />
+      </Field>
+      {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+        <Button type="submit" loading={saving}>{saving ? 'Guardando…' : 'Guardar y avisar al grupo'}</Button>
       </div>
     </form>
   )

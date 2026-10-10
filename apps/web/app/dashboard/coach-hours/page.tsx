@@ -6,6 +6,11 @@ import { getClubFeatures } from '@/lib/get-club-features'
 import { redirect } from 'next/navigation'
 import { calculateCoachScheduledMonthlyHours } from '@/lib/coach-payroll'
 import { MonthNavigator } from '../payments/month-navigator'
+import { Users } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/feedback'
+import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -46,45 +51,46 @@ export default async function CoachHoursPage({ searchParams }: { searchParams: {
   const totalSessions = hours.reduce((acc, c) => acc + c.sessionCount, 0)
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Horas de monitores</h1>
-          <p className="text-sm text-gray-500">Calculadas automáticamente a partir del horario fijo de cada uno — sin que tengan que marcar nada.</p>
-        </div>
-        <MonthNavigator year={selectedYear} month={selectedMonth0} basePath="/dashboard/coach-hours" maxYear={todayYear} maxMonth={todayMonth0} />
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader
+        title="Horas de monitores"
+        description="Calculadas automáticamente a partir del horario fijo de cada uno, sin que tengan que marcar nada."
+        actions={<MonthNavigator year={selectedYear} month={selectedMonth0} basePath="/dashboard/coach-hours" maxYear={todayYear} maxMonth={todayMonth0} />}
+      />
 
-      <div className="mb-6 rounded-xl border-l-4 border-l-brand-500 bg-white p-5 shadow-sm">
-        <p className="text-sm text-gray-500">Total del club en {monthLabel}</p>
-        <p className="mt-2 text-2xl font-bold text-gray-900">{totalHours.toFixed(1)}h</p>
-        <p className="mt-0.5 text-xs text-gray-400">{totalSessions} clase{totalSessions !== 1 ? 's' : ''} entre {hours.length} monitor{hours.length !== 1 ? 'es' : ''}</p>
-      </div>
+      <Card>
+        <CardBody>
+          <Stat
+            label={`Total del club en ${monthLabel}`}
+            value={`${totalHours.toFixed(1)} h`}
+            hint={`${totalSessions} clase${totalSessions !== 1 ? 's' : ''} entre ${hours.length} monitor${hours.length !== 1 ? 'es' : ''}`}
+          />
+        </CardBody>
+      </Card>
 
-      <div className="rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Horas en {monthLabel}</h2>
-          <p className="mt-0.5 text-xs text-gray-400">Se reinicia solo al empezar cada mes.</p>
-        </div>
+      <Card className="overflow-hidden">
+        <CardHeader title={`Horas en ${monthLabel}`} description="Se reinicia solo al empezar cada mes." />
         {hours.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-gray-400">No hay monitores en este club.</p>
+          <EmptyState icon={<Users />} title="Sin monitores" description="No hay monitores activos en este club." />
         ) : (
-          <div className="divide-y divide-gray-50">
+          <List className="mt-3">
             {hours.map((c) => (
-              <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{c.name}</p>
-                  <p className="text-xs text-gray-400">{c.email}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-gray-900">{c.hours.toFixed(1)}h</p>
-                  <p className="text-xs text-gray-400">{c.sessionCount} clase{c.sessionCount !== 1 ? 's' : ''}</p>
-                </div>
-              </div>
+              <ListRow
+                key={c.id}
+                leading={<Avatar name={c.name ?? ''} />}
+                title={c.name}
+                subtitle={c.email}
+                trailing={
+                  <>
+                    <p className="font-display text-heading tabular-nums text-ink">{c.hours.toFixed(1)} h</p>
+                    <p className="text-meta tabular-nums text-ink-3">{c.sessionCount} clase{c.sessionCount !== 1 ? 's' : ''}</p>
+                  </>
+                }
+              />
             ))}
-          </div>
+          </List>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

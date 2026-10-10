@@ -1,8 +1,14 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody } from '@/components/ui/card'
+import { Field, Input, Textarea } from '@/components/ui/field'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { LevelTag } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 interface Level {
   id: string
@@ -116,108 +122,90 @@ export default function NewMaterialPage() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/materials" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Materias
-        </Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Subir materia</h1>
-      </div>
+    <div className="mx-auto w-full max-w-2xl space-y-6">
+      <PageHeader title="Subir materia" back={{ href: '/dashboard/materials', label: 'Materias' }} />
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Título *</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Técnica de globo — Nivel intermedio"
-          />
-        </div>
+      <Card>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Field label="Título">
+              <Input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                placeholder="Técnica de globo, nivel intermedio"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Descripción</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Breve descripción del contenido..."
-          />
-        </div>
+            <Field label="Descripción">
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder="Breve descripción del contenido"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Archivo PDF *</label>
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-500 file:mr-3 file:rounded-md file:border-0 file:bg-brand-500 file:px-3 file:py-1 file:text-xs file:font-medium file:text-white hover:file:bg-green-700"
-          />
-          {file && (
-            <p className="mt-1 text-xs text-gray-500">{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</p>
-          )}
-        </div>
+            <Field label="Archivo PDF" hint={file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : 'Máximo 10 MB.'}>
+              <Input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="h-auto py-2 text-ink-2 file:mr-3 file:rounded-control file:border-0 file:bg-surface-2 file:px-3 file:py-1.5 file:text-label file:font-medium file:text-ink"
+              />
+            </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Niveles (vacío = todos los niveles)
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {levels.map((level) => (
-              <button
-                key={level.id}
-                type="button"
-                onClick={() => toggleLevel(level.id)}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                  selectedLevels.includes(level.id)
-                    ? 'text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-                style={selectedLevels.includes(level.id) ? { backgroundColor: level.color } : undefined}
-              >
-                {level.name}
-              </button>
-            ))}
-          </div>
-        </div>
+            <fieldset>
+              <legend className="text-label text-ink">Niveles</legend>
+              <p className="mt-0.5 text-meta text-ink-3">Si no eliges ninguno, lo verán todos los niveles.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {levels.map((level) => {
+                  const selected = selectedLevels.includes(level.id)
+                  return (
+                    <button
+                      key={level.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => toggleLevel(level.id)}
+                      className={cn(
+                        'min-h-11 rounded-full border px-4 transition-colors',
+                        selected ? 'border-accent-ink bg-accent-soft' : 'border-line-strong/60 bg-surface hover:bg-surface-2',
+                      )}
+                    >
+                      <LevelTag name={level.name} color={level.color} />
+                    </button>
+                  )
+                })}
+              </div>
+            </fieldset>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isPublished}
-            onClick={() => setIsPublished(!isPublished)}
-            className={`relative h-6 w-11 rounded-full transition ${isPublished ? 'bg-brand-500' : 'bg-gray-300'}`}
-          >
-            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isPublished ? 'translate-x-5' : 'translate-x-0.5'}`} />
-          </button>
-          <span className="text-sm text-gray-700">Publicar inmediatamente</span>
-        </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isPublished}
+              onClick={() => setIsPublished(!isPublished)}
+              className="flex min-h-11 items-center gap-3 text-left"
+            >
+              <span className={cn('relative h-6 w-11 shrink-0 rounded-full transition-colors', isPublished ? 'bg-accent-ink' : 'bg-line-strong')}>
+                <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow-card transition-transform', isPublished ? 'translate-x-5' : 'translate-x-0.5')} />
+              </span>
+              <span className="text-label text-ink">Publicar inmediatamente</span>
+            </button>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-        )}
+            {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={uploading}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-          >
-            {uploading ? 'Subiendo...' : 'Subir materia'}
-          </button>
-          <Link
-            href="/dashboard/materials"
-            className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Cancelar
-          </Link>
-        </div>
-      </form>
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Link href="/dashboard/materials" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+                Cancelar
+              </Link>
+              <Button type="submit" loading={uploading} className="w-full sm:w-auto">
+                {uploading ? 'Subiendo…' : 'Subir materia'}
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
     </div>
   )
 }

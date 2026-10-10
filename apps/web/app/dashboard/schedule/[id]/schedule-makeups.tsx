@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Plus, Clock, CircleCheck, CircleX } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Field, Input, Select } from '@/components/ui/field'
+import { List } from '@/components/ui/list'
 
 interface Makeup {
   id: string
@@ -22,10 +28,10 @@ const statusLabel: Record<string, string> = {
   completed: 'Realizada',
   cancelled: 'Cancelada',
 }
-const statusColor: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-brand-100 text-brand-600',
-  cancelled: 'bg-gray-100 text-gray-500',
+const statusTone: Record<string, 'warn' | 'success' | 'neutral'> = {
+  pending: 'warn',
+  completed: 'success',
+  cancelled: 'neutral',
 }
 
 export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: string; students: Student[] }) {
@@ -79,95 +85,77 @@ export default function ScheduleMakeups({ scheduleId, students }: { scheduleId: 
   }
 
   return (
-    <div className="rounded-xl bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-6 py-4">
-        <div>
-          <h2 className="font-semibold text-gray-900">Recuperaciones</h2>
-          <p className="text-xs text-gray-400">{makeups.filter(m => m.status === 'pending').length} pendientes</p>
-        </div>
-        <button onClick={() => setOpen((o) => !o)}
-          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600">
-          + Nueva
-        </button>
-      </div>
+    <Card>
+      <CardHeader
+        title="Recuperaciones"
+        description={`${makeups.filter(m => m.status === 'pending').length} pendientes`}
+        action={
+          <Button variant="secondary" size="sm" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+            <Plus className="h-4 w-4" aria-hidden />
+            Nueva recuperación
+          </Button>
+        }
+      />
 
       {open && (
-        <div className="border-b border-gray-100 bg-gray-50 px-6 py-4 space-y-3">
+        <div className="mt-4 space-y-3 border-y border-line bg-surface-2 px-4 py-4 sm:px-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Alumno *</label>
-              <select value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
-                <option value="">Seleccionar...</option>
+            <Field label="Alumno">
+              <Select value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })}>
+                <option value="">Selecciona un alumno</option>
                 {students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Fecha clase perdida</label>
-              <input type="date" value={form.originalDate}
-                onChange={(e) => setForm({ ...form, originalDate: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Fecha recuperación</label>
-              <input type="date" value={form.makeupDate}
-                onChange={(e) => setForm({ ...form, makeupDate: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Notas</label>
-              <input type="text" value={form.notes} placeholder="Opcional"
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
-            </div>
+              </Select>
+            </Field>
+            <Field label="Fecha de la clase perdida">
+              <Input type="date" value={form.originalDate} onChange={(e) => setForm({ ...form, originalDate: e.target.value })} />
+            </Field>
+            <Field label="Fecha de recuperación">
+              <Input type="date" value={form.makeupDate} onChange={(e) => setForm({ ...form, makeupDate: e.target.value })} />
+            </Field>
+            <Field label="Notas (opcional)">
+              <Input type="text" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </Field>
           </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button onClick={() => { setOpen(false); setError('') }}
-              className="flex-1 rounded-lg border border-gray-200 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100">
-              Cancelar
-            </button>
-            <button onClick={handleAdd} disabled={saving}
-              className="flex-1 rounded-lg bg-brand-500 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-              {saving ? 'Guardando...' : 'Guardar recuperación'}
-            </button>
+          {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => { setOpen(false); setError('') }}>Cancelar</Button>
+            <Button onClick={handleAdd} loading={saving}>{saving ? 'Guardando…' : 'Guardar recuperación'}</Button>
           </div>
         </div>
       )}
 
       {makeups.length === 0 ? (
-        <p className="px-6 py-8 text-center text-sm text-gray-400">Sin recuperaciones registradas.</p>
+        <p className="px-4 py-8 text-center text-body text-ink-3 sm:px-5">Sin recuperaciones registradas.</p>
       ) : (
-        <ul className="divide-y divide-gray-50">
+        <List className="mt-3 border-t border-line">
           {makeups.map((m) => (
-            <li key={m.id} className="flex flex-wrap items-center gap-3 px-6 py-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">{m.student_name}</p>
-                <p className="text-xs text-gray-400">
-                  {m.original_date ? `Faltó: ${new Date(m.original_date).toLocaleDateString('es-ES')}` : 'Sin fecha origen'}
+            <li key={m.id} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5">
+              <div className="min-w-0 flex-1 basis-48">
+                <p className="truncate text-[0.9375rem] font-medium text-ink">{m.student_name}</p>
+                <p className="text-meta text-ink-3">
+                  {m.original_date ? `Faltó: ${new Date(m.original_date).toLocaleDateString('es-ES')}` : 'Sin fecha de origen'}
                   {m.makeup_date ? ` · Recupera: ${new Date(m.makeup_date).toLocaleDateString('es-ES')}` : ''}
                 </p>
-                {m.notes && <p className="text-xs text-gray-400 italic">{m.notes}</p>}
+                {m.notes && <p className="text-meta text-ink-3">{m.notes}</p>}
               </div>
-              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusColor[m.status]}`}>
+              <Badge tone={statusTone[m.status] ?? 'neutral'}>
+                {m.status === 'pending' ? <Clock className="h-3.5 w-3.5" aria-hidden /> : m.status === 'completed' ? <CircleCheck className="h-3.5 w-3.5" aria-hidden /> : <CircleX className="h-3.5 w-3.5" aria-hidden />}
                 {statusLabel[m.status]}
-              </span>
+              </Badge>
               {m.status === 'pending' && (
-                <div className="flex gap-1">
-                  <button onClick={() => handleStatus(m.id, 'completed')}
-                    className="rounded border border-brand-200 px-2 py-1 text-xs text-brand-500 hover:bg-brand-50">
-                    ✓ Realizada
-                  </button>
-                  <button onClick={() => handleStatus(m.id, 'cancelled')}
-                    className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-400 hover:bg-gray-50">
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => handleStatus(m.id, 'completed')}>
+                    Marcar como realizada
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleStatus(m.id, 'cancelled')}>
                     Cancelar
-                  </button>
+                  </Button>
                 </div>
               )}
             </li>
           ))}
-        </ul>
+        </List>
       )}
-    </div>
+    </Card>
   )
 }

@@ -2,15 +2,25 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { toast } from 'sonner'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Sheet } from '@/components/ui/sheet'
+import { useConfirm } from '@/components/ui/confirm'
 
 export function ScheduleActions({ scheduleId, nextDate }: { scheduleId: string; nextDate: string }) {
+  const confirm = useConfirm()
   const [deleting, setDeleting] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelMsg, setCancelMsg] = useState('')
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar esta clase? Se eliminarán también todas las reservas asociadas.')) return
+    if (!(await confirm({
+      title: '¿Eliminar esta clase?',
+      description: 'Se eliminarán también todas las reservas asociadas. No se puede deshacer.',
+      confirmLabel: 'Eliminar clase',
+      destructive: true,
+    }))) return
     setDeleting(true)
     const res = await fetch('/api/admin/schedules', {
       method: 'DELETE',
@@ -19,7 +29,7 @@ export function ScheduleActions({ scheduleId, nextDate }: { scheduleId: string; 
     })
     if (!res.ok) {
       const json = await res.json().catch(() => ({}))
-      alert(`Error al eliminar: ${json.error ?? res.statusText}`)
+      toast.error(`No se pudo eliminar la clase: ${json.error ?? res.statusText}`)
       setDeleting(false)
       return
     }
@@ -45,64 +55,41 @@ export function ScheduleActions({ scheduleId, nextDate }: { scheduleId: string; 
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href={`/dashboard/schedule/${scheduleId}/edit`}
-          className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-        >
+      <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+        <Link href={`/dashboard/schedule/${scheduleId}/edit`} className={buttonVariants({ variant: 'secondary' })}>
           Editar
         </Link>
-        <button
-          onClick={() => setShowCancelModal(true)}
-          className="rounded-lg bg-orange-50 px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-100"
-        >
+        <Button variant="secondary" onClick={() => setShowCancelModal(true)}>
           Cancelar sesión
-        </button>
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-60"
-        >
-          {deleting ? 'Eliminando...' : 'Eliminar clase'}
-        </button>
+        </Button>
+        <Button variant="danger-ghost" onClick={handleDelete} loading={deleting}>
+          {deleting ? 'Eliminando…' : 'Eliminar clase'}
+        </Button>
       </div>
 
       {cancelMsg && (
-        <p className="mt-2 text-sm text-brand-600">{cancelMsg}</p>
+        <p role="status" className="mt-2 w-full text-meta font-medium text-accent-ink">{cancelMsg}</p>
       )}
 
-      {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-gray-900">Cancelar sesión</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              ¿Por qué cancelas esta sesión? Esto determina si los alumnos recuperan la clase en su bolsa.
-            </p>
-            <div className="mt-5 flex flex-col gap-3">
-              <button
-                onClick={() => handleCancelSession(true)}
-                disabled={cancelling}
-                className="rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-              >
-                La clase no se da → +1 bolsa a cada alumno
-              </button>
-              <button
-                onClick={() => handleCancelSession(false)}
-                disabled={cancelling}
-                className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-              >
-                Error al crear la clase → sin crédito a bolsas
-              </button>
-              <button
-                onClick={() => setShowCancelModal(false)}
-                className="text-sm text-gray-400 hover:text-gray-600"
-              >
-                Cancelar
-              </button>
-            </div>
+      <Sheet
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        title="Cancelar sesión"
+        description="¿Por qué cancelas esta sesión? Esto determina si los alumnos recuperan la clase en su bolsa."
+        footer={
+          <div className="flex w-full flex-col gap-2">
+            <Button size="lg" onClick={() => handleCancelSession(true)} disabled={cancelling}>
+              La clase no se da: +1 en la bolsa de cada alumno
+            </Button>
+            <Button variant="secondary" size="lg" onClick={() => handleCancelSession(false)} disabled={cancelling}>
+              Error al crear la clase: sin crédito a bolsas
+            </Button>
+            <Button variant="ghost" onClick={() => setShowCancelModal(false)}>
+              Volver
+            </Button>
           </div>
-        </div>
-      )}
+        }
+      />
     </>
   )
 }

@@ -3,6 +3,11 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
+import { Input, Select } from '@/components/ui/field'
+import { useConfirm } from '@/components/ui/confirm'
 
 const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -14,8 +19,12 @@ function timeOnly(dateStr: string) {
   return formatTime(dateStr)
 }
 
+const TH = 'px-4 py-3 text-left text-meta font-medium text-ink-3'
+const CHECKBOX = 'h-5 w-5 rounded border-line-strong text-accent-ink focus:ring-accent-ink'
+
 export default function ScheduleTable({ schedules }: { schedules: any[] }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [q, setQ] = useState('')
   const [day, setDay] = useState('')
   const [type, setType] = useState('')
@@ -65,7 +74,12 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
 
   async function handleDeleteSelected() {
     const ids = [...selected]
-    if (!confirm(`¿Eliminar ${ids.length} clase${ids.length > 1 ? 's' : ''}? Se eliminarán también sus reservas e inscripciones.`)) return
+    if (!(await confirm({
+      title: `¿Eliminar ${ids.length} clase${ids.length > 1 ? 's' : ''}?`,
+      description: 'Se eliminarán también sus reservas e inscripciones. No se puede deshacer.',
+      confirmLabel: `Eliminar ${ids.length > 1 ? 'clases' : 'clase'}`,
+      destructive: true,
+    }))) return
     setDeleting(true)
 
     const res = await fetch('/api/admin/schedules/bulk-delete', {
@@ -82,20 +96,17 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
   }
 
   return (
-    <>
-      <div className="mb-4 flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Buscar por pista, monitor o nivel..."
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          type="search"
+          aria-label="Buscar por pista, monitor o nivel"
+          placeholder="Buscar por pista, monitor o nivel"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="w-full min-w-0 flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none sm:min-w-[200px]"
+          className="min-w-0 flex-1 sm:min-w-[220px]"
         />
-        <select
-          value={day}
-          onChange={(e) => setDay(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-        >
+        <Select aria-label="Día" value={day} onChange={(e) => setDay(e.target.value)} className="w-full sm:w-auto">
           <option value="">Todos los días</option>
           <option value="1">Lunes</option>
           <option value="2">Martes</option>
@@ -104,173 +115,153 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
           <option value="5">Viernes</option>
           <option value="6">Sábado</option>
           <option value="0">Domingo</option>
-        </select>
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-        >
+        </Select>
+        <Select aria-label="Tipo de clase" value={type} onChange={(e) => setType(e.target.value)} className="w-full sm:w-auto">
           <option value="">Todos los tipos</option>
           <option value="regular">Regular</option>
           <option value="intensivo">Intensivo</option>
-        </select>
+        </Select>
         <label
-          className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+          className="flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-line-strong/70 bg-surface px-3.5 text-label text-ink hover:border-line-strong"
           title="Grupos con menos alumnos fijos activos que plazas"
         >
           <input
             type="checkbox"
             checked={onlyFree}
             onChange={(e) => setOnlyFree(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+            className={CHECKBOX}
           />
           Solo con plazas libres
         </label>
         {(q || day || type || onlyFree) && (
-          <button
-            onClick={() => { setQ(''); setDay(''); setType(''); setOnlyFree(false) }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
-          >
-            Limpiar
-          </button>
+          <Button variant="ghost" onClick={() => { setQ(''); setDay(''); setType(''); setOnlyFree(false) }}>
+            Limpiar filtros
+          </Button>
         )}
         {selected.size > 0 && (
-          <button
-            onClick={handleDeleteSelected}
-            disabled={deleting}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
-          >
-            {deleting ? 'Eliminando...' : `Eliminar ${selected.size} seleccionada${selected.size > 1 ? 's' : ''}`}
-          </button>
+          <Button variant="danger" onClick={handleDeleteSelected} loading={deleting}>
+            {deleting ? 'Eliminando…' : `Eliminar ${selected.size} seleccionada${selected.size > 1 ? 's' : ''}`}
+          </Button>
         )}
       </div>
 
       {(q || day || type || onlyFree) && (
-        <p className="mb-3 text-sm text-gray-400">{filtered.length} de {schedules.length} clases</p>
+        <p className="text-meta tabular-nums text-ink-3">{filtered.length} de {schedules.length} clases</p>
       )}
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px]">
+          <table className="w-full min-w-[720px]">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
+              <tr className="border-b border-line bg-surface-2">
                 <th className="px-4 py-3 text-left">
                   <input
                     type="checkbox"
+                    aria-label="Seleccionar todas las clases"
                     checked={allFilteredSelected}
                     onChange={toggleAll}
-                    className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                    className={CHECKBOX}
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Día</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Horario</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Pista</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Monitor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Recurrencia</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Ocupación</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Revisión</th>
+                <th className={TH}>Día</th>
+                <th className={TH}>Horario</th>
+                <th className={TH}>Pista</th>
+                <th className={TH}>Monitor</th>
+                <th className={TH}>Nivel</th>
+                <th className={TH}>Recurrencia</th>
+                <th className={TH}>Ocupación</th>
+                <th className={TH}>Revisión</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-line">
               {!filtered.length && (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
-                    {q || day || type ? 'Sin resultados para esa búsqueda.' : 'No hay clases programadas. Crea la primera.'}
+                  <td colSpan={9} className="px-6 py-12 text-center text-body text-ink-3">
+                    {q || day || type ? 'Sin resultados para esa búsqueda. Prueba con otros filtros.' : 'No hay clases programadas. Crea la primera con "Nueva clase".'}
                   </td>
                 </tr>
               )}
               {filtered.map((s: any) => {
                 const level = Array.isArray(s.level) ? s.level[0] : s.level
+                const ratio = s.max_students > 0 ? s.bookings_count / s.max_students : 0
                 return (
                 <tr
                   key={s.id}
-                  className={`cursor-pointer hover:bg-gray-50 ${selected.has(s.id) ? 'bg-red-50' : ''}`}
+                  className={`cursor-pointer hover:bg-ink/[0.03] ${selected.has(s.id) ? 'bg-accent-soft' : ''}`}
                   onClick={() => router.push(`/dashboard/schedule/${s.id}${s.reference_date ? `?date=${s.reference_date}` : ''}`)}
                 >
                   <td
-                    className="px-4 py-4"
+                    className="px-4 py-3"
                     onClick={(e) => { e.stopPropagation(); toggleOne(s.id) }}
                   >
                     <div className="flex h-full w-full cursor-pointer items-center">
                       <input
                         type="checkbox"
+                        aria-label="Seleccionar clase"
                         checked={selected.has(s.id)}
                         onChange={() => toggleOne(s.id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                        className={CHECKBOX}
                       />
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-xs font-semibold text-brand-600">
-                      {dayName(s.start_time)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-4 py-3 text-label text-ink">{dayName(s.start_time)}</td>
+                  <td className="px-4 py-3 text-body tabular-nums text-ink">
                     {timeOnly(s.start_time)} — {timeOnly(s.end_time)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{s.court?.name ?? '—'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{s.coach?.name ?? '—'}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3 text-body text-ink-2">{s.court?.name ?? '—'}</td>
+                  <td className="px-4 py-3 text-body text-ink-2">{s.coach?.name ?? '—'}</td>
+                  <td className="px-4 py-3">
                     {level ? (
-                      <span
-                        className="rounded-full px-2.5 py-1 text-xs font-medium text-white whitespace-nowrap"
-                        style={{ backgroundColor: level.color }}
-                      >
-                        {level.name}
-                      </span>
+                      <LevelTag name={level.name} color={level.color} />
                     ) : (
-                      <span className="text-xs text-gray-400">Todos</span>
+                      <span className="text-meta text-ink-3">Todos</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${s.recurrence === 'weekly' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                      <Badge tone="neutral">
                         {s.recurrence === 'weekly' ? 'Semanal' : s.recurrence === 'biweekly' ? 'Quincenal' : 'Única'}
-                      </span>
-                      {s.is_fixed_group && (
-                        <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-medium text-orange-700">
-                          Grupo fijo
-                        </span>
-                      )}
-                      {(s.type === 'intensivo') && (
-                        <span className="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">
-                          Intensivo
-                        </span>
-                      )}
+                      </Badge>
+                      {s.is_fixed_group && <Badge tone="outline">Grupo fijo</Badge>}
+                      {(s.type === 'intensivo') && <Badge tone="outline">Intensivo</Badge>}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     {s.max_students > 0 && (
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-ink/[0.06]">
                           <div
-                            className={`h-1.5 rounded-full ${(s.bookings_count / s.max_students) >= 1 ? 'bg-red-500' : (s.bookings_count / s.max_students) >= 0.7 ? 'bg-yellow-500' : 'bg-brand-500'}`}
-                            style={{ width: `${Math.min((s.bookings_count / s.max_students) * 100, 100)}%` }}
+                            className={`h-1.5 rounded-full ${ratio >= 1 ? 'bg-danger-ink' : ratio >= 0.7 ? 'bg-warn-ink' : 'bg-accent-ink'}`}
+                            style={{ width: `${Math.min(ratio * 100, 100)}%` }}
                           />
                         </div>
-                        <span className="text-xs text-gray-500">{s.bookings_count ?? 0}/{s.max_students}</span>
+                        <span className="text-meta tabular-nums text-ink-2">{s.bookings_count ?? 0}/{s.max_students}</span>
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     {s.review ? (
                       <div className="flex items-start gap-1.5">
-                        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-500" title="Requiere revisión: hay faltas registradas" />
+                        <span
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-danger-ink"
+                          role="img"
+                          aria-label="Requiere revisión: hay faltas registradas"
+                          title="Requiere revisión: hay faltas registradas"
+                        />
                         <div className="flex flex-col gap-0.5">
                           {s.review.substituteNames.map((name: string, i: number) => (
-                            <span key={i} className="text-xs font-medium text-gray-700">{name}</span>
+                            <span key={i} className="text-meta font-medium text-ink-2">{name}</span>
                           ))}
                           {s.review.uncoveredCount > 0 && (
-                            <span className="text-xs font-medium text-red-600">
+                            <span className="text-meta font-medium text-danger-ink">
                               {s.review.uncoveredCount} plaza{s.review.uncoveredCount > 1 ? 's' : ''} por cubrir
                             </span>
                           )}
                         </div>
                       </div>
                     ) : (
-                      <span className="text-xs text-gray-300">—</span>
+                      <span className="text-meta text-ink-3">—</span>
                     )}
                   </td>
                 </tr>
@@ -279,7 +270,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
             </tbody>
           </table>
         </div>
-      </div>
-    </>
+      </Card>
+    </div>
   )
 }

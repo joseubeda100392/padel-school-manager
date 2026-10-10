@@ -1,10 +1,13 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { Download, Upload } from 'lucide-react'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import MasterWeeklyCalendar from './master-weekly-calendar'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 
 export default async function MasterSchedulePage() {
   const admin = getAdminClient()
@@ -41,7 +44,7 @@ export default async function MasterSchedulePage() {
   }))
 
   return (
-    <div>
+    <div className="space-y-6">
       <RealtimeRefresh
         channelName="admin-schedule-master"
         subs={clubId ? [
@@ -49,34 +52,31 @@ export default async function MasterSchedulePage() {
           { table: 'schedules', filter: `club_id=eq.${clubId}` },
         ] : [{ table: 'group_enrollments' }, { table: 'schedules' }]}
       />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Calendario maestro</h1>
-          <p className="text-sm text-gray-500">Con alumnos del grupo fijo, monitor y nivel real</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <a
-            href="/api/admin/schedules/export"
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-            title="Copia de seguridad del calendario en Excel"
-          >
-            ↓ Descargar Excel
-          </a>
-          <Link
-            href="/dashboard/schedule/restore"
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-            title="Restaurar clases desde un Excel descargado antes"
-          >
-            ↑ Restaurar Excel
-          </Link>
-          <Link
-            href="/dashboard/schedule"
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            ← Volver a Horarios
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: '/dashboard/schedule', label: 'Horarios' }}
+        title="Calendario maestro"
+        description="Alumnos del grupo fijo, monitor y nivel de cada clase."
+        actions={
+          <>
+            <a
+              href="/api/admin/schedules/export"
+              className={buttonVariants({ variant: 'secondary' })}
+              title="Copia de seguridad del calendario en Excel"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Descargar Excel
+            </a>
+            <Link
+              href="/dashboard/schedule/restore"
+              className={buttonVariants({ variant: 'secondary' })}
+              title="Restaurar clases desde un Excel descargado antes"
+            >
+              <Upload className="h-4 w-4" aria-hidden />
+              Restaurar Excel
+            </Link>
+          </>
+        }
+      />
 
       <MasterWeeklyCalendar schedules={schedules} />
     </div>

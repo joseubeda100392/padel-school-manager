@@ -1,8 +1,16 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Field, Input, Textarea } from '@/components/ui/field'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { LevelTag } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/feedback'
+import { useConfirm } from '@/components/ui/confirm'
+import { cn } from '@/lib/utils'
 
 interface Level {
   id: string
@@ -11,6 +19,7 @@ interface Level {
 }
 
 export default function EditMaterialPage({ params }: { params: { id: string } }) {
+  const confirm = useConfirm()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isPublished, setIsPublished] = useState(true)
@@ -87,7 +96,15 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
   }
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar esta materia? Esta acción no se puede deshacer.')) return
+    if (
+      !(await confirm({
+        title: 'Eliminar esta materia',
+        description: 'Esta acción no se puede deshacer.',
+        confirmLabel: 'Eliminar materia',
+        destructive: true,
+      }))
+    )
+      return
     setDeleting(true)
     const supabase = createClient()
     await supabase.from('material_levels').delete().eq('material_id', params.id)
@@ -95,108 +112,92 @@ export default function EditMaterialPage({ params }: { params: { id: string } })
     window.location.href = '/dashboard/materials'
   }
 
-  if (!loaded) return <div className="p-8 text-center text-gray-400">Cargando...</div>
+  if (!loaded) {
+    return (
+      <div className="mx-auto w-full max-w-2xl space-y-6" aria-busy="true">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-80 w-full" />
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/materials" className="text-sm text-gray-500 hover:text-gray-700">
-          ← Materias
-        </Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Editar materia</h1>
-      </div>
+    <div className="mx-auto w-full max-w-2xl space-y-6">
+      <PageHeader title="Editar materia" back={{ href: '/dashboard/materials', label: 'Materias' }} />
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Título *</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
+      <Card>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Field label="Título">
+              <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            </Field>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Descripción</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          />
-        </div>
+            <Field label="Descripción">
+              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            </Field>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Niveles (vacío = todos los niveles)
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {levels.map((level) => (
-              <button
-                key={level.id}
-                type="button"
-                onClick={() => toggleLevel(level.id)}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                  selectedLevels.includes(level.id)
-                    ? 'text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-                style={selectedLevels.includes(level.id) ? { backgroundColor: level.color } : undefined}
-              >
-                {level.name}
-              </button>
-            ))}
-          </div>
-        </div>
+            <fieldset>
+              <legend className="text-label text-ink">Niveles</legend>
+              <p className="mt-0.5 text-meta text-ink-3">Si no eliges ninguno, lo verán todos los niveles.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {levels.map((level) => {
+                  const selected = selectedLevels.includes(level.id)
+                  return (
+                    <button
+                      key={level.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => toggleLevel(level.id)}
+                      className={cn(
+                        'min-h-11 rounded-full border px-4 transition-colors',
+                        selected ? 'border-accent-ink bg-accent-soft' : 'border-line-strong/60 bg-surface hover:bg-surface-2',
+                      )}
+                    >
+                      <LevelTag name={level.name} color={level.color} />
+                    </button>
+                  )
+                })}
+              </div>
+            </fieldset>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isPublished}
-            onClick={() => setIsPublished(!isPublished)}
-            className={`relative h-6 w-11 rounded-full transition ${isPublished ? 'bg-brand-500' : 'bg-gray-300'}`}
-          >
-            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isPublished ? 'translate-x-5' : 'translate-x-0.5'}`} />
-          </button>
-          <span className="text-sm text-gray-700">Publicado</span>
-        </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isPublished}
+              onClick={() => setIsPublished(!isPublished)}
+              className="flex min-h-11 items-center gap-3 text-left"
+            >
+              <span className={cn('relative h-6 w-11 shrink-0 rounded-full transition-colors', isPublished ? 'bg-accent-ink' : 'bg-line-strong')}>
+                <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow-card transition-transform', isPublished ? 'translate-x-5' : 'translate-x-0.5')} />
+              </span>
+              <span className="text-label text-ink">Publicado</span>
+            </button>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-        )}
+            {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-          >
-            {saving ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-          <Link
-            href="/dashboard/materials"
-            className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Cancelar
-          </Link>
-        </div>
-      </form>
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Link href="/dashboard/materials" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+                Cancelar
+              </Link>
+              <Button type="submit" loading={saving} className="w-full sm:w-auto">
+                {saving ? 'Guardando…' : 'Guardar cambios'}
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
 
-      <div className="mt-6 rounded-xl border border-red-100 bg-red-50 p-4">
-        <p className="mb-1 text-sm font-medium text-red-700">Zona peligrosa</p>
-        <p className="mb-3 text-xs text-red-500">Se eliminará la materia y sus asignaciones de nivel. El archivo en Storage no se borra automáticamente.</p>
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
-        >
-          {deleting ? 'Eliminando...' : 'Eliminar materia'}
-        </button>
-      </div>
+      <Card className="border-danger-ink/20">
+        <CardHeader
+          title="Eliminar materia"
+          description="Se eliminará la materia y sus asignaciones de nivel. El archivo en Storage no se borra automáticamente."
+        />
+        <CardBody>
+          <Button variant="danger" onClick={handleDelete} loading={deleting} className="w-full sm:w-auto">
+            {deleting ? 'Eliminando…' : 'Eliminar materia'}
+          </Button>
+        </CardBody>
+      </Card>
     </div>
   )
 }

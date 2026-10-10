@@ -3,6 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MonthNavigator } from '../payments/month-navigator'
+import { CircleAlert, CircleCheck, CircleX, ClipboardCheck, UserX, Users } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+import { EmptyState, Notice } from '@/components/ui/feedback'
+import { List, Stat } from '@/components/ui/list'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface PendingSession {
   id: string
@@ -55,6 +64,7 @@ export function ClassValidationClient({
   maxMonth: number
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [rateEdits, setRateEdits] = useState<Record<string, string>>({})
@@ -95,7 +105,12 @@ export function ClassValidationClient({
   }
 
   async function markCoachPaid(coachId: string) {
-    if (!confirm('¿Marcar como pagado? Las horas pendientes de este profesor pasarán a cero.')) return
+    const ok = await confirm({
+      title: '¿Marcar como pagado?',
+      description: 'Las horas pendientes de este monitor pasarán a cero.',
+      confirmLabel: 'Marcar pagado',
+    })
+    if (!ok) return
     setPayingId(coachId)
     const res = await fetch(`/api/admin/coach-payroll/${coachId}/mark-paid`, { method: 'POST' })
     const json = await res.json().catch(() => ({}))
@@ -109,118 +124,112 @@ export function ClassValidationClient({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Validación de clases</h1>
-        <p className="text-sm text-gray-500">Confirma las sesiones marcadas por los profesores y gestiona su nómina.</p>
-      </div>
+      <PageHeader
+        title="Validación de clases"
+        description="Confirma las sesiones marcadas por los monitores y gestiona su nómina."
+      />
 
-      {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
+      {error && <Notice tone="danger" icon={<CircleAlert />}>{error}</Notice>}
 
-      <div className="rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Pendientes de confirmar <span className="ml-1 text-sm font-normal text-gray-400">({initialPending.length})</span></h2>
-        </div>
+      <Card className="overflow-hidden">
+        <CardHeader title={`Pendientes de confirmar (${initialPending.length})`} />
         {initialPending.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-gray-400">No hay sesiones pendientes de confirmar.</p>
+          <EmptyState icon={<ClipboardCheck />} title="Todo confirmado" description="No hay sesiones pendientes de confirmar." />
         ) : (
-          <div className="divide-y divide-gray-50">
+          <List className="mt-3">
             {initialPending.map((s) => (
-              <div key={s.id} className="flex flex-wrap items-start justify-between gap-3 px-6 py-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {formatDate(s.sessionDate)} — {s.coachName} — {s.courtName}
+              <li key={s.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-4 sm:px-5">
+                <div className="min-w-0 flex-1 basis-60">
+                  <p className="text-label text-ink">
+                    {formatDate(s.sessionDate)} · {s.coachName} · {s.courtName}
                   </p>
-                  <p className="mt-0.5 text-xs">
-                    <span className={s.status === 'given' ? 'text-green-600' : 'text-red-600'}>
-                      {s.status === 'given' ? 'Marcada como dada' : 'Marcada como NO dada'}
-                    </span>
-                    {s.cancelReason && <span className="text-gray-400"> — {s.cancelReason}</span>}
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-meta">
+                    {s.status === 'given' ? (
+                      <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Marcada como dada</Badge>
+                    ) : (
+                      <Badge tone="danger"><CircleX className="h-3.5 w-3.5" aria-hidden />Marcada como no dada</Badge>
+                    )}
+                    {s.cancelReason && <span className="text-ink-3">{s.cancelReason}</span>}
                   </p>
                   {s.absences.length > 0 && (
-                    <p className="mt-0.5 text-xs text-amber-600">
+                    <p className="mt-1.5 flex items-center gap-1.5 text-meta text-warn-ink">
+                      <UserX className="h-4 w-4 shrink-0" aria-hidden />
                       Ausentes: {s.absences.map((a) => a.studentName).join(', ')}
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => confirmSession(s.id)}
-                  disabled={confirmingId === s.id}
-                  className="rounded-lg bg-brand-500 px-4 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-                >
-                  {confirmingId === s.id ? 'Confirmando...' : 'Confirmar'}
-                </button>
-              </div>
+                <Button onClick={() => confirmSession(s.id)} loading={confirmingId === s.id} className="w-full sm:w-auto">
+                  {confirmingId === s.id ? 'Confirmando sesión' : 'Confirmar sesión'}
+                </Button>
+              </li>
             ))}
-          </div>
+          </List>
         )}
-      </div>
+      </Card>
 
-      <div className="rounded-xl border-l-4 border-l-brand-500 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <p className="text-sm text-gray-500">Total del club en {MONTH_NAMES[selectedMonth]}</p>
-          <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/class-validation" maxYear={maxYear} maxMonth={maxMonth} />
-        </div>
-        <p className="mt-2 text-2xl font-bold text-gray-900">
-          {initialPayroll.reduce((acc, c) => acc + c.monthlyHours, 0).toFixed(1)}h
-        </p>
-        <p className="mt-0.5 text-xs text-gray-400">
-          {initialPayroll.reduce((acc, c) => acc + c.monthlySessionCount, 0)} clases entre {initialPayroll.length} monitor{initialPayroll.length !== 1 ? 'es' : ''}
-        </p>
-      </div>
+      <Card>
+        <CardBody>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <Stat
+              label={`Total del club en ${MONTH_NAMES[selectedMonth]}`}
+              value={`${initialPayroll.reduce((acc, c) => acc + c.monthlyHours, 0).toFixed(1)} h`}
+              hint={`${initialPayroll.reduce((acc, c) => acc + c.monthlySessionCount, 0)} clases entre ${initialPayroll.length} monitor${initialPayroll.length !== 1 ? 'es' : ''}`}
+            />
+            <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/class-validation" maxYear={maxYear} maxMonth={maxMonth} />
+          </div>
+        </CardBody>
+      </Card>
 
-      <div className="rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Nómina de profesores</h2>
-          <p className="mt-0.5 text-xs text-gray-400">Horas pendientes desde el último pago, según sesiones confirmadas.</p>
-        </div>
+      <Card className="overflow-hidden">
+        <CardHeader title="Nómina de monitores" description="Horas pendientes desde el último pago, según sesiones confirmadas." />
         {initialPayroll.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-gray-400">No hay profesores en este club.</p>
+          <EmptyState icon={<Users />} title="Sin monitores" description="No hay monitores activos en este club." />
         ) : (
-          <div className="divide-y divide-gray-50">
+          <List className="mt-3">
             {initialPayroll.map((c) => (
-              <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{c.name}</p>
-                  <p className="text-xs text-gray-400">
-                    {c.hours.toFixed(1)}h pendientes ({c.sessionCount} sesiones) {c.periodStart ? `desde ${formatDate(c.periodStart)}` : '(histórico completo)'}
+              <li key={c.id} className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-4 py-4 sm:px-5">
+                <div className="min-w-0 flex-1 basis-60">
+                  <p className="text-label text-ink">{c.name}</p>
+                  <p className="text-meta tabular-nums text-ink-3">
+                    {c.hours.toFixed(1)} h pendientes ({c.sessionCount} sesiones) {c.periodStart ? `desde ${formatDate(c.periodStart)}` : '(histórico completo)'}
                   </p>
-                  <p className="mt-0.5 text-xs text-gray-400">
-                    {c.monthlyHours.toFixed(1)}h en {MONTH_NAMES[selectedMonth]} ({c.monthlySessionCount} sesiones)
+                  <p className="text-meta tabular-nums text-ink-3">
+                    {c.monthlyHours.toFixed(1)} h en {MONTH_NAMES[selectedMonth]} ({c.monthlySessionCount} sesiones)
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <input
+                <div className="flex flex-wrap items-end gap-2">
+                  <Field label="Tarifa por hora (€)" className="w-32">
+                    <Input
                       type="text"
                       inputMode="decimal"
-                      placeholder={c.hourlyRateCents ? (c.hourlyRateCents / 100).toString() : 'Tarifa/h'}
+                      placeholder={c.hourlyRateCents ? (c.hourlyRateCents / 100).toString() : '0'}
                       value={rateEdits[c.id] ?? ''}
                       onChange={(e) => setRateEdits((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                      className="w-24 rounded-lg border border-gray-200 px-3 py-1.5 pr-6 text-xs focus:border-brand-500 focus:outline-none"
+                      className="tabular-nums"
                     />
-                    <span className="pointer-events-none absolute right-2 top-1.5 text-xs text-gray-400">€</span>
-                  </div>
-                  <button
+                  </Field>
+                  <Button
+                    variant="secondary"
                     onClick={() => saveRate(c.id)}
-                    disabled={savingRateId === c.id || rateEdits[c.id] === undefined}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                    loading={savingRateId === c.id}
+                    disabled={rateEdits[c.id] === undefined}
                   >
                     Guardar tarifa
-                  </button>
-                  <span className="text-sm font-semibold text-gray-900">{euros(c.amountCents)}</span>
-                  <button
+                  </Button>
+                  <span className="min-h-11 content-center font-display text-heading tabular-nums text-ink">{euros(c.amountCents)}</span>
+                  <Button
                     onClick={() => markCoachPaid(c.id)}
-                    disabled={payingId === c.id || c.sessionCount === 0 || !c.hourlyRateCents}
-                    className="rounded-lg bg-brand-500 px-4 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-40"
+                    loading={payingId === c.id}
+                    disabled={c.sessionCount === 0 || !c.hourlyRateCents}
                   >
-                    {payingId === c.id ? '...' : 'Marcar pagado'}
-                  </button>
+                    Marcar pagado
+                  </Button>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </List>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

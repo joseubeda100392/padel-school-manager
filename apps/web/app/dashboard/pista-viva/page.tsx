@@ -1,12 +1,25 @@
 import Link from 'next/link'
+import { Settings, TriangleAlert, CircleCheck, Clock, CircleX } from 'lucide-react'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { PendingMatchesPanel } from './pending-matches-panel'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Notice } from '@/components/ui/feedback'
+import { Stat } from '@/components/ui/list'
+import { buttonVariants } from '@/components/ui/button'
+import { formatShortDay, formatClock } from '@/lib/format-date'
 
-const statusBadge: Record<string, string> = {
-  sent: 'bg-blue-100 text-blue-700',
-  recovered: 'bg-green-100 text-green-700',
-  lost: 'bg-red-100 text-red-600',
+const statusTone: Record<string, 'neutral' | 'success' | 'danger'> = {
+  sent: 'neutral',
+  recovered: 'success',
+  lost: 'danger',
+}
+const statusIcon: Record<string, React.ReactNode> = {
+  sent: <Clock className="h-3.5 w-3.5" aria-hidden />,
+  recovered: <CircleCheck className="h-3.5 w-3.5" aria-hidden />,
+  lost: <CircleX className="h-3.5 w-3.5" aria-hidden />,
 }
 const statusLabel: Record<string, string> = {
   sent: 'Avisado, esperando',
@@ -46,107 +59,101 @@ export default async function PistaVivaPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pista Viva ⚡</h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            Detecta partidos abiertos en Playtomic a los que les faltan jugadores y avisa a tus alumnos
-          </p>
-        </div>
-        <Link
-          href="/dashboard/settings#playtomic"
-          className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-        >
-          ⚙️ Configurar Playtomic
-        </Link>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Vigilando</p>
-          <p className="mt-1 text-3xl font-bold text-blue-600">{stats.watching}</p>
-        </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Recuperados</p>
-          <p className="mt-1 text-3xl font-bold text-green-600">{stats.recovered}</p>
-        </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Perdidos</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{stats.lost}</p>
-        </div>
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Alumnos con Pista Viva activo</p>
-          <p className="mt-1 text-3xl font-bold text-brand-600">{stats.optedIn} <span className="text-base font-medium text-gray-400">de {stats.totalStudents}</span></p>
-        </div>
-      </div>
-
-      {/* Aviso de configuración pendiente */}
-      {needsSetup && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-          <span className="font-medium">⚙️ Configuración pendiente.</span>{' '}
-          Para usar Pista Viva necesitas introducir tus credenciales oficiales de Playtomic.{' '}
-          <Link href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
-            Configurar ahora →
+    <div className="mx-auto w-full max-w-5xl space-y-6">
+      <PageHeader
+        title="Pista Viva"
+        description="Detecta partidos abiertos en Playtomic a los que les faltan jugadores y avisa a tus alumnos."
+        actions={
+          <Link href="/dashboard/settings#playtomic" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+            <Settings className="h-4 w-4" aria-hidden />
+            Configurar Playtomic
           </Link>
+        }
+      />
+
+      <Card>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-5 p-4 sm:p-5 lg:grid-cols-4">
+          <Stat label="Vigilando" value={stats.watching} />
+          <Stat label="Recuperados" value={stats.recovered} />
+          <Stat label="Perdidos" value={stats.lost} />
+          <Stat
+            label="Alumnos con Pista Viva activo"
+            value={
+              <>
+                {stats.optedIn} <span className="font-sans text-label text-ink-3">de {stats.totalStudents}</span>
+              </>
+            }
+          />
         </div>
+      </Card>
+
+      {needsSetup && (
+        <Notice
+          tone="warn"
+          icon={<TriangleAlert />}
+          action={
+            <Link href="/dashboard/settings#playtomic" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+              Configurar ahora
+            </Link>
+          }
+        >
+          <span className="font-medium">Configuración pendiente.</span> Para usar Pista Viva necesitas introducir tus credenciales oficiales de Playtomic.
+        </Notice>
       )}
 
-      <p className="text-sm text-gray-500">
+      <p className="max-w-2xl text-body text-ink-2">
         Detecta automáticamente (cada pocos minutos) partidos abiertos en Playtomic a los que les faltan 3, 2 o 1 jugadores,
         y avisa a los alumnos del club con opt-in activo y nivel compatible.
       </p>
 
       {!needsSetup && <PendingMatchesPanel />}
 
-      {/* Lista de partidos vigilados */}
-      <div className="rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Partidos detectados</h2>
-        </div>
-        <div className="overflow-x-auto">
+      <Card>
+        <CardHeader title="Partidos detectados" />
+        <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[640px]">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Pista</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha / Hora</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Nivel</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Avisados</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
+              <tr className="border-y border-line bg-surface-2">
+                <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3 sm:px-5">Pista</th>
+                <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Fecha y hora</th>
+                <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Nivel</th>
+                <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Avisados</th>
+                <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3 sm:pr-5">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-line">
               {!alerts?.length && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-body text-ink-2">
                     Todavía no se ha detectado ningún partido. El escaneo se ejecuta automáticamente cada pocos minutos.
                   </td>
                 </tr>
               )}
-              {(alerts ?? []).map((a: any) => (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{a.court_name ?? '—'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {new Date(a.slot_datetime).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Madrid' })}
-                    {' '}
-                    {new Date(a.slot_datetime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {a.level_min != null && a.level_max != null ? `${a.level_min.toFixed(2)} – ${a.level_max.toFixed(2)}` : '—'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{(a.notified_user_ids ?? []).length}</td>
-                  <td className="px-6 py-4">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[a.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                      {statusLabel[a.status] ?? a.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {(alerts ?? []).map((a: any) => {
+                const day = formatShortDay(a.slot_datetime)
+                return (
+                  <tr key={a.id}>
+                    <td className="px-4 py-3 text-body font-medium text-ink sm:px-5">{a.court_name ?? '—'}</td>
+                    <td className="px-4 py-3 text-body tabular-nums text-ink-2">
+                      {day.weekday} {day.day} · {formatClock(a.slot_datetime)}
+                    </td>
+                    <td className="px-4 py-3 text-body tabular-nums text-ink-2">
+                      {a.level_min != null && a.level_max != null ? `${a.level_min.toFixed(2)} – ${a.level_max.toFixed(2)}` : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-body tabular-nums text-ink-2">{(a.notified_user_ids ?? []).length}</td>
+                    <td className="px-4 py-3 sm:pr-5">
+                      <Badge tone={statusTone[a.status] ?? 'neutral'}>
+                        {statusIcon[a.status]}
+                        {statusLabel[a.status] ?? a.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

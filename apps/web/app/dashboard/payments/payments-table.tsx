@@ -3,13 +3,20 @@
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PAYMENT_METHODS, paymentMethodKey, type PaymentMethodKey } from '@/lib/payment-method'
+import { CircleAlert, CircleCheck, Clock, Download, Receipt, Search, Undo2, X } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Field, Input, Select } from '@/components/ui/field'
+import { EmptyState } from '@/components/ui/feedback'
 
-const statusBadge: Record<string, string> = {
-  completed: 'bg-brand-100 text-brand-600',
-  succeeded: 'bg-brand-100 text-brand-600',
-  pending:   'bg-yellow-100 text-yellow-700',
-  failed:    'bg-red-100 text-red-700',
-  refunded:  'bg-gray-100 text-gray-500',
+type StatusTone = 'success' | 'warn' | 'danger' | 'neutral'
+
+function statusInfo(status: string): { tone: StatusTone; Icon: typeof CircleCheck } {
+  if (status === 'completed' || status === 'succeeded') return { tone: 'success', Icon: CircleCheck }
+  if (status === 'pending') return { tone: 'warn', Icon: Clock }
+  if (status === 'failed') return { tone: 'danger', Icon: CircleAlert }
+  return { tone: 'neutral', Icon: Undo2 }
 }
 
 const statusLabel: Record<string, string> = {
@@ -124,114 +131,113 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
 
   const total = filtered.reduce((acc, p) => isPaid(p) ? acc + p.amount : acc, 0)
 
+  const hasFilters = !!(q || status || method)
+
   return (
-    <>
-      <div className="mb-4 flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Buscar por alumno o email..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="min-w-[200px] flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-        />
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-        >
-          <option value="">Todos los estados</option>
-          <option value="completed">Completados</option>
-          <option value="pending">Pendientes</option>
-          <option value="failed">Fallidos</option>
-          <option value="refunded">Reembolsados</option>
-        </select>
-        <select
-          value={method}
-          onChange={(e) => setMethod(e.target.value as PaymentMethodKey | '')}
-          className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-        >
-          <option value="">Todos los métodos</option>
-          {METHOD_FILTERS.map((m) => (
-            <option key={m} value={m}>{PAYMENT_METHODS[m].label}</option>
-          ))}
-        </select>
-        {(q || status || method) && (
-          <button
-            onClick={() => { setQ(''); setStatus(''); setMethod('') }}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
-          >
-            Limpiar
-          </button>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="relative min-w-[200px] flex-1">
+          <label htmlFor="payments-search" className="sr-only">Buscar por alumno o email</label>
+          <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+          <Input
+            id="payments-search"
+            type="search"
+            placeholder="Buscar por alumno o email"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Field label="Estado" className="w-full sm:w-auto">
+          <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">Todos los estados</option>
+            <option value="completed">Completados</option>
+            <option value="pending">Pendientes</option>
+            <option value="failed">Fallidos</option>
+            <option value="refunded">Reembolsados</option>
+          </Select>
+        </Field>
+        <Field label="Método" className="w-full sm:w-auto">
+          <Select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethodKey | '')}>
+            <option value="">Todos los métodos</option>
+            {METHOD_FILTERS.map((m) => (
+              <option key={m} value={m}>{PAYMENT_METHODS[m].label}</option>
+            ))}
+          </Select>
+        </Field>
+        {hasFilters && (
+          <Button variant="ghost" onClick={() => { setQ(''); setStatus(''); setMethod('') }}>
+            <X className="h-4 w-4" aria-hidden />
+            Limpiar filtros
+          </Button>
         )}
-        <button
-          onClick={exportCSV}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
-        >
-          ↓ CSV
-        </button>
+        <Button variant="secondary" onClick={exportCSV}>
+          <Download className="h-4 w-4" aria-hidden />
+          Descargar CSV
+        </Button>
       </div>
 
-      <p className="mb-3 text-sm text-gray-400">
+      <p className="text-meta tabular-nums text-ink-3" aria-live="polite">
         {filtered.length} de {payments.length} transacciones
         {filtered.length > 0 && (
-          <span className="ml-2 font-medium text-gray-600">· Total filtrado: {formatCurrency(total)}</span>
+          <span className="ml-2 text-label text-ink-2">· Total filtrado: {formatCurrency(total)}</span>
         )}
       </p>
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px]">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Alumno</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Tipo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Método</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Importe</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Fecha</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {!filtered.length && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                    {q || status || method ? 'Sin resultados para esa búsqueda.' : 'No hay pagos aún.'}
-                  </td>
+      <Card className="overflow-hidden">
+        {!filtered.length ? (
+          <EmptyState
+            icon={<Receipt />}
+            title={hasFilters ? 'Sin resultados' : 'Aún no hay pagos'}
+            description={hasFilters ? 'Prueba con otra búsqueda o quita algún filtro.' : 'Los pagos de este mes aparecerán aquí.'}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead>
+                <tr className="border-b border-line bg-surface-2 text-left text-meta font-medium text-ink-3">
+                  <th scope="col" className="px-4 py-3 sm:px-5">Alumno</th>
+                  <th scope="col" className="px-4 py-3">Tipo</th>
+                  <th scope="col" className="px-4 py-3">Método</th>
+                  <th scope="col" className="px-4 py-3 text-right">Importe</th>
+                  <th scope="col" className="px-4 py-3">Estado</th>
+                  <th scope="col" className="px-4 py-3 sm:px-5">Fecha</th>
                 </tr>
-              )}
-              {filtered.map((p) => {
-                const methodInfo = methodLabel(p)
-                return (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-gray-900">{p.user?.name ?? '—'}</p>
-                      <p className="text-xs text-gray-400">{p.user?.email}</p>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{typeLabel[p.type] ?? p.type}</td>
-                    <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${methodInfo.cls}`}>
-                        {methodInfo.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                      {formatCurrency(p.amount, p.currency ?? 'EUR')}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        title={p.status === 'failed' ? redsysReason(p.metadata?.redsys_response_code) : undefined}
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge[p.status] ?? 'bg-gray-100 text-gray-500'} ${p.status === 'failed' && p.metadata?.redsys_response_code ? 'cursor-help' : ''}`}
-                      >
-                        {statusLabel[p.status] ?? p.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(p.created_at)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {filtered.map((p) => {
+                  const methodInfo = methodLabel(p)
+                  const st = statusInfo(p.status)
+                  const failReason = p.status === 'failed' ? redsysReason(p.metadata?.redsys_response_code) : ''
+                  return (
+                    <tr key={p.id} className="hover:bg-ink/[0.03]">
+                      <td className="px-4 py-3 sm:px-5">
+                        <p className="text-label text-ink">{p.user?.name ?? '—'}</p>
+                        <p className="text-meta text-ink-3">{p.user?.email}</p>
+                      </td>
+                      <td className="px-4 py-3 text-body text-ink-2">{typeLabel[p.type] ?? p.type}</td>
+                      <td className="px-4 py-3">
+                        <Badge tone="outline">{methodInfo.label}</Badge>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right text-label tabular-nums text-ink">
+                        {formatCurrency(p.amount, p.currency ?? 'EUR')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge tone={st.tone} title={failReason || undefined} className={failReason ? 'cursor-help' : undefined}>
+                          <st.Icon className="h-3.5 w-3.5" aria-hidden />
+                          {statusLabel[p.status] ?? p.status}
+                        </Badge>
+                        {failReason && <p className="mt-1 max-w-[220px] text-meta text-ink-3">{failReason}</p>}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2 sm:px-5">{formatDate(p.created_at)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
   )
 }

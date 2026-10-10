@@ -2,8 +2,13 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import * as XLSX from 'xlsx'
+import { CircleAlert, CircleCheck, Download, FileUp } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Notice } from '@/components/ui/feedback'
 
 interface Row {
   nombre: string
@@ -204,160 +209,164 @@ export default function ImportStudentsPage() {
   const errors = results?.filter((r) => r.status === 'error') ?? []
 
   return (
-    <div className="max-w-4xl">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/students" className="text-sm text-gray-500 hover:text-gray-700">← Alumnos</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Importar alumnos</h1>
-      </div>
+    <div className="mx-auto w-full max-w-4xl space-y-6">
+      <PageHeader title="Importar alumnos" back={{ href: '/dashboard/students', label: 'Usuarios' }} />
 
-      {/* Paso 1: Plantilla */}
-      <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="font-semibold text-gray-900">1. Descarga la plantilla CSV</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Rellena el CSV con los datos de los alumnos. Las columnas <strong>nombre</strong> y <strong>email</strong> son obligatorias.
-              Si no pones contraseña, se genera una automáticamente.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-400">
-              <span className="rounded-full bg-gray-100 px-3 py-1">nombre <span className="text-red-500">*</span></span>
-              <span className="rounded-full bg-gray-100 px-3 py-1">email <span className="text-red-500">*</span></span>
-              <span className="rounded-full bg-gray-100 px-3 py-1">telefono</span>
-              <span className="rounded-full bg-gray-100 px-3 py-1">nivel</span>
-              <span className="rounded-full bg-gray-100 px-3 py-1">password</span>
+      <Card>
+        <CardBody>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-heading text-ink">1. Descarga la plantilla</h2>
+              <p className="mt-1 text-body text-ink-2">
+                Rellena el fichero con los datos de los alumnos. Las columnas <strong>nombre</strong> y <strong>email</strong> son obligatorias.
+                Si no pones contraseña, se genera una automáticamente.
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-2" aria-label="Columnas de la plantilla">
+                <li><Badge tone="neutral">nombre (obligatoria)</Badge></li>
+                <li><Badge tone="neutral">email (obligatoria)</Badge></li>
+                <li><Badge tone="neutral">telefono</Badge></li>
+                <li><Badge tone="neutral">nivel</Badge></li>
+                <li><Badge tone="neutral">password</Badge></li>
+              </ul>
             </div>
+            <Button variant="secondary" onClick={downloadTemplate} className="w-full sm:w-auto">
+              <Download className="h-4 w-4" aria-hidden />
+              Descargar plantilla Excel
+            </Button>
           </div>
-          <button
-            onClick={downloadTemplate}
-            className="shrink-0 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-100"
-          >
-            ↓ Plantilla Excel
-          </button>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
-      {/* Paso 2: Subir fichero */}
-      <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="mb-3 font-semibold text-gray-900">2. Sube el fichero CSV</h2>
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-200 px-6 py-10 transition hover:border-green-400 hover:bg-brand-50">
-          <span className="text-3xl mb-2">📂</span>
-          <span className="text-sm font-medium text-gray-700">Haz clic para seleccionar el archivo</span>
-          <span className="mt-1 text-xs text-gray-400">.csv</span>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={handleFile}
-          />
-        </label>
-        {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-      </div>
+      <Card>
+        <CardBody>
+          <h2 className="mb-3 text-heading text-ink">2. Sube el fichero CSV</h2>
+          <label className="flex min-h-11 cursor-pointer flex-col items-center justify-center rounded-card border-2 border-dashed border-line-strong/60 px-6 py-10 text-center transition-colors hover:bg-surface-2 focus-within:ring-2 focus-within:ring-focus focus-within:ring-offset-2">
+            <FileUp aria-hidden className="mb-2 h-7 w-7 text-ink-3" />
+            <span className="text-label text-ink">Selecciona el archivo CSV</span>
+            <span className="mt-1 text-meta text-ink-3">Máximo 2 MB</span>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={handleFile}
+            />
+          </label>
+          {error && <Notice tone="danger" icon={<CircleAlert />} className="mt-3">{error}</Notice>}
+        </CardBody>
+      </Card>
 
-      {/* Preview */}
       {rows.length > 0 && !results && (
-        <div className="mb-4 rounded-xl bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
-            <div>
-              <h2 className="font-semibold text-gray-900">3. Confirma los datos</h2>
-              <p className="text-sm text-gray-500">{rows.length} alumnos listos para importar</p>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <button
-                onClick={handleImport}
-                disabled={importing}
-                className="w-full rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 sm:w-auto"
-              >
-                {importing ? `Importando... ${progress.done}/${progress.total}` : `Importar ${rows.length} alumnos`}
-              </button>
-              {importing && (
-                <div className="h-1.5 w-48 overflow-hidden rounded-full bg-gray-200">
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="3. Confirma los datos"
+            description={`${rows.length} alumnos listos para importar`}
+            action={
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+                <Button onClick={handleImport} loading={importing} className="w-full sm:w-auto">
+                  {importing ? `Importando ${progress.done}/${progress.total}` : `Importar ${rows.length} alumnos`}
+                </Button>
+                {importing && (
                   <div
-                    className="h-1.5 rounded-full bg-brand-500 transition-all"
-                    style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] text-sm">
+                    role="progressbar"
+                    aria-label="Progreso de la importación"
+                    aria-valuemin={0}
+                    aria-valuemax={progress.total}
+                    aria-valuenow={progress.done}
+                    className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.07] sm:w-48"
+                  >
+                    <div
+                      className="h-1.5 rounded-full bg-accent-ink"
+                      style={{ width: `${progress.total ? (progress.done / progress.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            }
+          />
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[500px] text-body">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Nombre</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Email</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Teléfono</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Nivel</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Contraseña</th>
+                <tr className="bg-surface-2 text-left text-meta font-medium text-ink-3">
+                  <th scope="col" className="px-4 py-3">Nombre</th>
+                  <th scope="col" className="px-4 py-3">Email</th>
+                  <th scope="col" className="px-4 py-3">Teléfono</th>
+                  <th scope="col" className="px-4 py-3">Nivel</th>
+                  <th scope="col" className="px-4 py-3">Contraseña</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-line">
                 {rows.map((r, i) => (
-                  <tr key={i} className={!r.nombre || !r.email ? 'bg-red-50' : 'hover:bg-gray-50'}>
-                    <td className="px-4 py-3 font-medium text-gray-900">{r.nombre || <span className="text-red-500">—</span>}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.email || <span className="text-red-500">—</span>}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.telefono || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500">{r.nivel || '—'}</td>
-                    <td className="px-4 py-3 text-gray-400">{r.password || <span className="italic">Auto</span>}</td>
+                  <tr key={i} className={!r.nombre || !r.email ? 'bg-danger-soft' : ''}>
+                    <td className="px-4 py-3 text-label text-ink">{r.nombre || <span className="text-danger-ink">Falta el nombre</span>}</td>
+                    <td className="px-4 py-3 text-ink-2">{r.email || <span className="text-danger-ink">Falta el email</span>}</td>
+                    <td className="px-4 py-3 tabular-nums text-ink-2">{r.telefono || '—'}</td>
+                    <td className="px-4 py-3 text-ink-2">{r.nivel || '—'}</td>
+                    <td className="px-4 py-3 text-ink-3">{r.password || <span className="italic">Automática</span>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Resultados */}
       {results && (
-        <div className="rounded-xl bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
-            <div>
-              <h2 className="font-semibold text-gray-900">Resultado de la importación</h2>
-              <div className="mt-1 flex gap-4 text-sm">
-                <span className="text-brand-600">✓ {ok.length} creados</span>
-                {errors.length > 0 && <span className="text-red-600">✗ {errors.length} errores</span>}
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="Resultado de la importación"
+            description={
+              <span className="flex flex-wrap gap-x-4 gap-y-1">
+                <span className="inline-flex items-center gap-1 text-accent-ink">
+                  <CircleCheck className="h-4 w-4" aria-hidden />
+                  {ok.length} creados
+                </span>
+                {errors.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-danger-ink">
+                    <CircleAlert className="h-4 w-4" aria-hidden />
+                    {errors.length} con error
+                  </span>
+                )}
+              </span>
+            }
+            action={
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                <Button variant="secondary" onClick={downloadResults}>
+                  <Download className="h-4 w-4" aria-hidden />
+                  Descargar resultado
+                </Button>
+                <Button onClick={() => { router.refresh(); router.push('/dashboard/students') }}>
+                  Ver usuarios
+                </Button>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={downloadResults}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
-              >
-                ↓ Descargar resultado Excel
-              </button>
-              <button
-                onClick={() => { router.refresh(); router.push('/dashboard/students') }}
-                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-              >
-                Ver alumnos
-              </button>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] text-sm">
+            }
+          />
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[500px] text-body">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Nombre</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Email</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Estado</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Contraseña / Error</th>
+                <tr className="bg-surface-2 text-left text-meta font-medium text-ink-3">
+                  <th scope="col" className="px-4 py-3">Nombre</th>
+                  <th scope="col" className="px-4 py-3">Email</th>
+                  <th scope="col" className="px-4 py-3">Estado</th>
+                  <th scope="col" className="px-4 py-3">Contraseña o error</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-line">
                 {results.map((r, i) => (
-                  <tr key={i} className={r.status === 'error' ? 'bg-red-50' : 'hover:bg-gray-50'}>
-                    <td className="px-4 py-3 font-medium text-gray-900">{r.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.email}</td>
+                  <tr key={i} className={r.status === 'error' ? 'bg-danger-soft' : ''}>
+                    <td className="px-4 py-3 text-label text-ink">{r.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-ink-2">{r.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${r.status === 'ok' ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-700'}`}>
-                        {r.status === 'ok' ? '✓ Creado' : '✗ Error'}
-                      </span>
+                      {r.status === 'ok' ? (
+                        <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Creado</Badge>
+                      ) : (
+                        <Badge tone="danger"><CircleAlert className="h-3.5 w-3.5" aria-hidden />Error</Badge>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {r.status === 'ok'
-                        ? <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700">{r.password}</span>
-                        : <span className="text-xs text-red-600">{r.error}</span>
+                        ? <span className="rounded bg-ink/[0.06] px-2 py-0.5 font-mono text-meta text-ink">{r.password}</span>
+                        : <span className="text-meta text-danger-ink">{r.error}</span>
                       }
                     </td>
                   </tr>
@@ -365,7 +374,7 @@ export default function ImportStudentsPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   )

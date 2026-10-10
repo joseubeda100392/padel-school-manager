@@ -2,22 +2,28 @@
 
 import { useRouter } from 'next/navigation'
 
+const OPTIONS: { value: 'list' | 'week'; label: string }[] = [
+  { value: 'list', label: 'Lista' },
+  { value: 'week', label: 'Semana' },
+]
+
 export default function ScheduleViewToggle({ current }: { current: 'list' | 'week' }) {
   const router = useRouter()
   return (
-    <div className="flex overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-      <button
-        onClick={() => router.push('/dashboard/schedule?view=list')}
-        className={`px-4 py-2 text-sm font-medium transition-colors ${current === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-      >
-        Lista
-      </button>
-      <button
-        onClick={() => router.push('/dashboard/schedule?view=week')}
-        className={`px-4 py-2 text-sm font-medium transition-colors ${current === 'week' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-      >
-        Semana
-      </button>
+    <div role="group" aria-label="Vista del horario" className="flex rounded-control border border-line-strong/60 bg-surface-2 p-0.5">
+      {OPTIONS.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={current === o.value}
+          onClick={() => router.push(`/dashboard/schedule?view=${o.value}`)}
+          className={`h-10 rounded-[8px] px-4 text-label transition-colors ${
+            current === o.value ? 'bg-surface text-ink shadow-card' : 'text-ink-3 hover:text-ink'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   )
 }

@@ -4,6 +4,17 @@ import { toast } from 'sonner'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { CircleCheck, CircleOff, CircleX, Download, FileText, FileUp, Info, Loader2, Search, TriangleAlert, Zap } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader, SectionTitle } from '@/components/ui/card'
+import { Field, Input, Select } from '@/components/ui/field'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Notice, Skeleton } from '@/components/ui/feedback'
+import { Avatar } from '@/components/ui/list'
+import { useConfirm } from '@/components/ui/confirm'
+import { formatLongDate } from '@/lib/format-date'
+import { cn } from '@/lib/utils'
 
 function downloadCsv(filename: string, rows: Record<string, unknown>[], columns?: { key: string; header: string }[]) {
   if (!rows.length) return
@@ -181,41 +192,61 @@ function displayInt(n: number): string {
 
 function PriceField({ label, value, onChange }: { label: string; value: number; onChange: (cents: number) => void }) {
   return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
+    <Field label={label}>
       <div className="relative">
-        <input
+        <Input
           type="text"
           inputMode="decimal"
           onFocus={e => e.target.select()}
           value={displayPrice(value)}
           onChange={e => onChange(priceVal(e.target.value))}
-          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
+          className="pr-8 tabular-nums"
         />
-        <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
+        <span aria-hidden className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-body text-ink-3">€</span>
       </div>
-    </div>
+    </Field>
   )
 }
 
 function CountField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
   return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
-      <input
+    <Field label={label}>
+      <Input
         type="text"
         inputMode="numeric"
         onFocus={e => e.target.select()}
         value={displayInt(value)}
         onChange={e => onChange(intVal(e.target.value))}
-        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+        className="tabular-nums"
       />
+    </Field>
+  )
+}
+
+function SaveBar({ onSave, saving, saved, error, label }: { onSave: () => void; saving: boolean; saved: boolean; error: string; label: string }) {
+  return (
+    <div className="space-y-2">
+      {error && <p role="alert" className="text-meta font-medium text-danger-ink">No se ha podido guardar: {error}</p>}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={onSave} loading={saving} className="w-full sm:w-auto">
+          {saving ? 'Guardando…' : label}
+        </Button>
+        <span role="status" className="inline-flex items-center gap-1.5 text-label text-accent-ink">
+          {saved && (
+            <>
+              <CircleCheck className="h-4 w-4" aria-hidden />
+              Guardado
+            </>
+          )}
+        </span>
+      </div>
     </div>
   )
 }
 
 export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | null; userId: string; clubSlug: string | null }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [config, setConfig] = useState<AppConfig>(defaults)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -415,7 +446,7 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
   }
 
   async function deleteCourt(id: string) {
-    if (!confirm('¿Eliminar esta pista?')) return
+    if (!(await confirm({ title: 'Eliminar esta pista', description: 'Esta acción no se puede deshacer.', confirmLabel: 'Eliminar pista', destructive: true }))) return
     const supabase = createClient()
     const { error } = await supabase.from('courts').delete().eq('id', id)
     if (error) {
@@ -526,9 +557,15 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
     else toast.error('PDF subido pero no se guardó la URL')
   }
 
-  if (loading) return <div className="text-gray-400">Cargando...</div>
-
-  const initials = (profile?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-3xl space-y-6" aria-busy="true">
+        <Skeleton className="h-9 w-56" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
+  }
 
   type Tab = 'perfil' | 'pistas' | 'modulos' | 'pagos' | 'tarifas' | 'playtomic'
   const tabs: { id: Tab; label: string }[] = [
@@ -537,1006 +574,918 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
     { id: 'modulos', label: 'Módulos' },
     { id: 'pagos', label: 'Pagos' },
     { id: 'tarifas', label: 'Tarifas' },
-    ...(features.enable_pista_viva ? [{ id: 'playtomic' as Tab, label: '⚡ Playtomic' }] : []),
+    ...(features.enable_pista_viva ? [{ id: 'playtomic' as Tab, label: 'Playtomic' }] : []),
   ]
 
+  function handleTabKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    let next = -1
+    if (e.key === 'ArrowRight') next = (index + 1) % tabs.length
+    else if (e.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = tabs.length - 1
+    if (next < 0) return
+    e.preventDefault()
+    setActiveTab(tabs[next].id)
+    document.getElementById(`settings-tab-${tabs[next].id}`)?.focus()
+  }
+
+  const moduleItems = [
+    { key: 'enable_60min', label: 'Clases de 60 minutos', desc: 'Bolsa 60min, bonos 60min y pago de clase suelta 60min' },
+    { key: 'enable_90min', label: 'Clases de 90 minutos', desc: 'Bolsa 90min, bonos 90min y pago de clase suelta 90min' },
+    { key: 'enable_payments', label: 'Pagos con tarjeta (Redsys)', desc: 'Flujo de pago online. La bolsa manual sigue funcionando siempre' },
+    { key: 'enable_spots', label: 'Huecos libres', desc: 'Los alumnos pueden reservar huecos cuando un compañero falta' },
+    { key: 'enable_bag', label: 'Bolsa de clases', desc: 'Saldo de clases disponibles y gestión de bonos' },
+    { key: 'enable_chat', label: 'Chat de soporte', desc: 'Chat entre alumnos/monitores y la administración' },
+    { key: 'enable_materials', label: 'Materia didáctica', desc: 'PDFs y contenido formativo por nivel' },
+    { key: 'enable_objectives', label: 'Objetivos y progreso', desc: 'Checklists de progreso asignados por el monitor' },
+    { key: 'enable_tournaments', label: 'Torneos', desc: 'Gestión de torneos e inscripciones de alumnos' },
+    { key: 'enable_intensivos', label: 'Semanas intensivas', desc: 'Clases intensivas de pago único por semana' },
+    { key: 'enable_terms', label: 'Condiciones de uso', desc: 'Los alumnos deben aceptar las condiciones antes de acceder a la app' },
+    { key: 'enable_class_validation', label: 'Validación de clases', desc: 'El profesor marca si se dio la clase, el admin confirma — cobro por clases realmente dadas y nómina de profesores' },
+    { key: 'cash_only_payments', label: 'Solo efectivo (sin TPV)', desc: 'Bloquea el pago por app (Redsys) y muestra un aviso de pagar en efectivo — para cuando el club aún no tiene su TPV configurado' },
+    { key: 'enable_private_lessons', label: 'Clases particulares y tarifas de alumno externo', desc: 'Añade en Tarifas los precios de clase particular, clase/bono para alumnos externos, y en la ficha de alumno el marcador de "externo"' },
+  ] as { key: keyof typeof features; label: string; desc: string }[]
+
+  const hasTermsPdf = typeof features.terms_pdf_url === 'string' && !!features.terms_pdf_url
+  const showClassPrices = features.enable_60min || features.enable_90min
+
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader title="Configuración" description="Datos del club, módulos, pagos y tarifas." />
+
+      <div role="tablist" aria-label="Secciones de configuración" className="-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0">
+        {tabs.map((t, index) => {
+          const selected = activeTab === t.id
+          return (
+            <button
+              key={t.id}
+              id={`settings-tab-${t.id}`}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              aria-controls={`settings-panel-${t.id}`}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => setActiveTab(t.id)}
+              onKeyDown={(e) => handleTabKeyDown(e, index)}
+              className={cn(
+                '-mb-px inline-flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 px-4 text-label transition-colors',
+                selected ? 'border-accent-ink text-ink' : 'border-transparent text-ink-2 hover:text-ink',
+              )}
+            >
+              {t.id === 'playtomic' && <Zap className="h-4 w-4" aria-hidden />}
+              {t.label}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Tabs */}
-      <div className="flex overflow-x-auto gap-1 rounded-xl bg-gray-100 p-1">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === t.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
+      <div
+        role="tabpanel"
+        id={`settings-panel-${activeTab}`}
+        aria-labelledby={`settings-tab-${activeTab}`}
+        tabIndex={0}
+        className="space-y-5 focus-visible:outline-none"
+      >
       {/* Tab: Perfil */}
       {activeTab === 'perfil' && (
-        <div className="space-y-5">
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 font-semibold text-gray-900">Mi perfil</h2>
-            <div className="flex items-center gap-5">
-              <div className="relative shrink-0">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt={profile.name} className="h-20 w-20 rounded-full object-cover ring-2 ring-brand-500" />
-                ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-100 ring-2 ring-brand-500">
-                    <span className="text-2xl font-bold text-brand-600">{initials}</span>
-                  </div>
-                )}
-                {uploading && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
-                    <svg className="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                  </div>
-                )}
+        <>
+          <Card>
+            <CardHeader title="Mi perfil" />
+            <CardBody>
+              <div className="flex flex-wrap items-center gap-5">
+                <div className="relative shrink-0">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt={profile.name} className="h-20 w-20 rounded-full object-cover ring-2 ring-line" />
+                  ) : (
+                    <Avatar name={profile?.name ?? '?'} className="h-20 w-20 text-title" />
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-ink/40">
+                      <Loader2 className="h-5 w-5 animate-spin text-chrome-ink" aria-hidden />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-heading text-ink">{profile?.name}</p>
+                  <p className="mb-3 text-meta text-ink-3">{profile?.email}</p>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" aria-label="Foto de perfil" onChange={handleAvatarChange} />
+                  <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} loading={uploading}>
+                    {uploading ? 'Subiendo…' : 'Cambiar foto'}
+                  </Button>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-gray-900">{profile?.name}</p>
-                <p className="mb-3 text-sm text-gray-400">{profile?.email}</p>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  {uploading ? 'Subiendo...' : 'Cambiar foto'}
-                </button>
-              </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 font-semibold text-gray-900">Información general</h2>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre de la escuela</label>
-              <input
-                type="text"
-                value={config.school_name}
-                onChange={(e) => setConfig({ ...config, school_name: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-            </div>
-          </div>
-
-          {saveError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">Error: {saveError}</p>}
-          <button onClick={saveConfig} disabled={saving} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-            {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar cambios'}
-          </button>
-        </div>
+          <Card>
+            <CardHeader title="Información general" />
+            <CardBody className="space-y-4">
+              <Field label="Nombre de la escuela">
+                <Input type="text" value={config.school_name} onChange={(e) => setConfig({ ...config, school_name: e.target.value })} />
+              </Field>
+              <SaveBar onSave={saveConfig} saving={saving} saved={saved} error={saveError} label="Guardar cambios" />
+            </CardBody>
+          </Card>
+        </>
       )}
 
       {/* Tab: Pistas */}
       {activeTab === 'pistas' && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-gray-900">Pistas</h2>
-          <div className="mb-4 space-y-2">
-            {courts.map((court) => (
-              <div key={court.id} className="rounded-lg border border-gray-100 px-4 py-3">
-                {editingCourtId === court.id ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="text"
-                      value={editingCourt.name}
-                      onChange={(e) => setEditingCourt({ ...editingCourt, name: e.target.value })}
-                      onKeyDown={(e) => { if (e.key === 'Enter') saveEditCourt(court.id); if (e.key === 'Escape') setEditingCourtId(null) }}
-                      className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
-                      autoFocus
-                    />
-                    <select
-                      value={editingCourt.type}
-                      onChange={(e) => setEditingCourt({ ...editingCourt, type: e.target.value })}
-                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
-                    >
-                      <option value="indoor">Interior</option>
-                      <option value="outdoor">Exterior</option>
-                    </select>
-                    <button onClick={() => saveEditCourt(court.id)} className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600">Guardar</button>
-                    <button onClick={() => setEditingCourtId(null)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Cancelar</button>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{court.name}</p>
-                      <p className="text-xs text-gray-400">{court.type === 'indoor' ? 'Interior' : 'Exterior'}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => toggleCourt(court.id, court.is_active)} className={`rounded-full px-3 py-1 text-xs font-medium ${court.is_active ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500'}`}>
-                        {court.is_active ? 'Activa' : 'Inactiva'}
-                      </button>
-                      <button onClick={() => startEditCourt(court)} className="rounded-lg border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50">Editar</button>
-                      <button onClick={() => deleteCourt(court.id)} className="rounded-lg border border-red-100 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50">Eliminar</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-            {courts.length === 0 && <p className="text-sm text-gray-400">No hay pistas. Añade la primera.</p>}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Nombre de la pista"
-              value={newCourt.name}
-              onChange={(e) => setNewCourt({ ...newCourt, name: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') addCourt() }}
-              className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-            />
-            <select value={newCourt.type} onChange={(e) => setNewCourt({ ...newCourt, type: e.target.value })} className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
-              <option value="indoor">Interior</option>
-              <option value="outdoor">Exterior</option>
-            </select>
-            <button onClick={addCourt} disabled={addingCourt || !newCourt.name.trim()} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-              Añadir
-            </button>
-          </div>
-          {courtError && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">Error: {courtError}</p>}
-        </div>
+        <Card>
+          <CardHeader title="Pistas" description="Las pistas que ofrece el club. Desactiva una para que no se pueda asignar a clases nuevas." />
+          <CardBody className="space-y-4">
+            {courts.length === 0 ? (
+              <p className="text-body text-ink-2">No hay pistas. Añade la primera.</p>
+            ) : (
+              <ul className="divide-y divide-line rounded-control border border-line">
+                {courts.map((court) => (
+                  <li key={court.id} className="px-4 py-3">
+                    {editingCourtId === court.id ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          type="text"
+                          aria-label="Nombre de la pista"
+                          value={editingCourt.name}
+                          onChange={(e) => setEditingCourt({ ...editingCourt, name: e.target.value })}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveEditCourt(court.id); if (e.key === 'Escape') setEditingCourtId(null) }}
+                          className="min-w-40 flex-1"
+                          autoFocus
+                        />
+                        <Select
+                          aria-label="Tipo de pista"
+                          value={editingCourt.type}
+                          onChange={(e) => setEditingCourt({ ...editingCourt, type: e.target.value })}
+                          className="w-auto"
+                        >
+                          <option value="indoor">Interior</option>
+                          <option value="outdoor">Exterior</option>
+                        </Select>
+                        <Button size="sm" onClick={() => saveEditCourt(court.id)}>Guardar</Button>
+                        <Button size="sm" variant="secondary" onClick={() => setEditingCourtId(null)}>Cancelar</Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-label text-ink">{court.name}</p>
+                          <p className="text-meta text-ink-3">{court.type === 'indoor' ? 'Interior' : 'Exterior'}</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            aria-pressed={court.is_active}
+                            onClick={() => toggleCourt(court.id, court.is_active)}
+                          >
+                            {court.is_active ? <CircleCheck className="h-4 w-4 text-accent-ink" aria-hidden /> : <CircleOff className="h-4 w-4" aria-hidden />}
+                            {court.is_active ? 'Activa' : 'Inactiva'}
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => startEditCourt(court)}>Editar</Button>
+                          <Button size="sm" variant="danger-ghost" onClick={() => deleteCourt(court.id)}>Eliminar</Button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Input
+                type="text"
+                aria-label="Nombre de la nueva pista"
+                placeholder="Nombre de la pista"
+                value={newCourt.name}
+                onChange={(e) => setNewCourt({ ...newCourt, name: e.target.value })}
+                onKeyDown={(e) => { if (e.key === 'Enter') addCourt() }}
+                className="min-w-40 flex-1"
+              />
+              <Select aria-label="Tipo de la nueva pista" value={newCourt.type} onChange={(e) => setNewCourt({ ...newCourt, type: e.target.value })} className="w-auto">
+                <option value="indoor">Interior</option>
+                <option value="outdoor">Exterior</option>
+              </Select>
+              <Button onClick={addCourt} loading={addingCourt} disabled={!newCourt.name.trim()}>
+                Añadir pista
+              </Button>
+            </div>
+            {courtError && <p role="alert" className="text-meta font-medium text-danger-ink">Error: {courtError}</p>}
+          </CardBody>
+        </Card>
       )}
 
       {/* Tab: Módulos */}
       {activeTab === 'modulos' && (
-        <div className="space-y-5">
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-1 font-semibold text-gray-900">Módulos activos</h2>
-            <p className="mb-5 text-xs text-gray-400">Activa o desactiva funcionalidades para toda la escuela.</p>
-            <div className="space-y-1">
-              {([
-                { key: 'enable_60min', label: 'Clases de 60 minutos', desc: 'Bolsa 60min, bonos 60min y pago de clase suelta 60min' },
-                { key: 'enable_90min', label: 'Clases de 90 minutos', desc: 'Bolsa 90min, bonos 90min y pago de clase suelta 90min' },
-                { key: 'enable_payments', label: 'Pagos con tarjeta (Redsys)', desc: 'Flujo de pago online. La bolsa manual sigue funcionando siempre' },
-                { key: 'enable_spots', label: 'Huecos libres', desc: 'Los alumnos pueden reservar huecos cuando un compañero falta' },
-                { key: 'enable_bag', label: 'Bolsa de clases', desc: 'Saldo de clases disponibles y gestión de bonos' },
-                { key: 'enable_chat', label: 'Chat de soporte', desc: 'Chat entre alumnos/monitores y la administración' },
-                { key: 'enable_materials', label: 'Materia didáctica', desc: 'PDFs y contenido formativo por nivel' },
-                { key: 'enable_objectives', label: 'Objetivos y progreso', desc: 'Checklists de progreso asignados por el monitor' },
-                { key: 'enable_tournaments', label: 'Torneos', desc: 'Gestión de torneos e inscripciones de alumnos' },
-                { key: 'enable_intensivos', label: 'Semanas intensivas', desc: 'Clases intensivas de pago único por semana' },
-                { key: 'enable_terms', label: 'Condiciones de uso', desc: 'Los alumnos deben aceptar las condiciones antes de acceder a la app' },
-                { key: 'enable_class_validation', label: 'Validación de clases', desc: 'El profesor marca si se dio la clase, el admin confirma — cobro por clases realmente dadas y nómina de profesores' },
-                { key: 'cash_only_payments', label: 'Solo efectivo (sin TPV)', desc: 'Bloquea el pago por app (Redsys) y muestra un aviso de pagar en efectivo — para cuando el club aún no tiene su TPV configurado' },
-                { key: 'enable_private_lessons', label: 'Clases particulares y tarifas de alumno externo', desc: 'Añade en Tarifas los precios de clase particular, clase/bono para alumnos externos, y en la ficha de alumno el marcador de "externo"' },
-              ] as { key: keyof typeof features; label: string; desc: string }[]).filter(f => f.key !== 'terms_pdf_url').map(({ key, label, desc }) => (
-                <div key={key} className="flex items-center justify-between gap-4 rounded-lg px-3 py-3 hover:bg-gray-50">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{label}</p>
-                    <p className="text-xs text-gray-400">{desc}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFeatures(prev => ({ ...prev, [key]: !prev[key] }))}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${features[key] ? 'bg-brand-500' : 'bg-gray-200'}`}
-                  >
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${features[key] ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            {featuresError && <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{featuresError}</p>}
-            <button onClick={saveFeatures} disabled={featuresSaving} className="mt-5 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-              {featuresSaving ? 'Guardando...' : featuresSaved ? '¡Guardado!' : 'Guardar módulos'}
-            </button>
-          </div>
+        <>
+          <Card>
+            <CardHeader title="Módulos activos" description="Activa o desactiva funcionalidades para toda la escuela." />
+            <CardBody className="space-y-4">
+              <ul className="divide-y divide-line">
+                {moduleItems.filter(f => f.key !== 'terms_pdf_url').map(({ key, label, desc }) => (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={!!features[key]}
+                      aria-labelledby={`module-${key}-label`}
+                      aria-describedby={`module-${key}-desc`}
+                      onClick={() => setFeatures(prev => ({ ...prev, [key]: !prev[key] }))}
+                      className="flex min-h-14 w-full items-center justify-between gap-4 rounded-control px-1 py-3 text-left transition-colors hover:bg-ink/[0.03]"
+                    >
+                      <span className="min-w-0">
+                        <span id={`module-${key}-label`} className="block text-label text-ink">{label}</span>
+                        <span id={`module-${key}-desc`} className="block text-meta text-ink-3">{desc}</span>
+                      </span>
+                      <span
+                        aria-hidden
+                        className={cn('relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200', features[key] ? 'bg-accent-ink' : 'bg-line-strong')}
+                      >
+                        <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow-card transition-transform duration-200', features[key] ? 'translate-x-[22px]' : 'translate-x-0.5')} />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <SaveBar onSave={saveFeatures} saving={featuresSaving} saved={featuresSaved} error={featuresError} label="Guardar módulos" />
+            </CardBody>
+          </Card>
 
           {features.enable_terms && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Condiciones de uso — PDF</h2>
-              <p className="mb-5 text-xs text-gray-400">Sube el documento PDF con las condiciones. Los alumnos lo verán antes de poder acceder a la app.</p>
+            <Card>
+              <CardHeader
+                title="Condiciones de uso: PDF"
+                description="Sube el documento PDF con las condiciones. Los alumnos lo verán antes de poder acceder a la app."
+              />
+              <CardBody className="space-y-4">
+                <input ref={termsFileRef} type="file" accept="application/pdf" className="hidden" aria-label="Archivo PDF de condiciones" onChange={handleTermsPdfUpload} />
 
-              <input ref={termsFileRef} type="file" accept="application/pdf" className="hidden" onChange={handleTermsPdfUpload} />
-
-              {typeof features.terms_pdf_url === 'string' && features.terms_pdf_url ? (
-                <div className="mb-4 flex items-center gap-4 rounded-xl border border-green-100 bg-green-50 px-5 py-4">
-                  <span className="text-2xl">📄</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-green-700">PDF subido correctamente</p>
-                    <p className="truncate text-xs text-gray-400">{features.terms_pdf_url.split('/').pop()?.split('?')[0]}</p>
+                {hasTermsPdf ? (
+                  <div className="flex flex-wrap items-center gap-3 rounded-control border border-accent/30 bg-accent-soft px-4 py-3">
+                    <FileText className="h-5 w-5 shrink-0 text-accent-ink" aria-hidden />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-label text-accent-ink">PDF subido correctamente</p>
+                      <p className="truncate text-meta text-ink-3">{features.terms_pdf_url.split('/').pop()?.split('?')[0]}</p>
+                    </div>
+                    <a href="/api/pdf/normas" target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+                      Ver PDF
+                    </a>
                   </div>
-                  <a href="/api/pdf/normas" target="_blank" rel="noopener noreferrer"
-                    className="shrink-0 rounded-lg border border-green-200 px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100">
-                    Ver PDF
-                  </a>
-                </div>
-              ) : (
-                <div className="mb-4 flex h-28 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50">
-                  <p className="text-sm text-gray-400">Sin PDF subido aún</p>
-                </div>
-              )}
+                ) : (
+                  <div className="flex h-28 items-center justify-center rounded-control border border-dashed border-line-strong/60 bg-surface-2">
+                    <p className="text-body text-ink-2">Todavía no has subido ningún PDF</p>
+                  </div>
+                )}
 
-              <button
-                onClick={() => termsFileRef.current?.click()}
-                disabled={uploadingTerms}
-                className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-              >
-                {uploadingTerms ? 'Subiendo...' : typeof features.terms_pdf_url === 'string' && features.terms_pdf_url ? 'Cambiar PDF' : '+ Subir PDF'}
-              </button>
-            </div>
+                <Button variant="secondary" onClick={() => termsFileRef.current?.click()} loading={uploadingTerms}>
+                  {!uploadingTerms && <FileUp className="h-4 w-4" aria-hidden />}
+                  {uploadingTerms ? 'Subiendo…' : hasTermsPdf ? 'Cambiar PDF' : 'Subir PDF'}
+                </Button>
+              </CardBody>
+            </Card>
           )}
-
-        </div>
+        </>
       )}
 
       {/* Tab: Pagos */}
       {activeTab === 'pagos' && (
-        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-1 font-semibold text-gray-900">Datos legales</h2>
-          <p className="mb-5 text-xs text-gray-400">
-            Tu banco los pide al dar de alta el TPV: razón social, CIF y contacto para las páginas públicas de política de devolución/cancelación, privacidad y cookies.
-          </p>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Razón social</label>
-                <input type="text" value={config.legal_company_name} onChange={e => setConfig({ ...config, legal_company_name: e.target.value })}
-                  placeholder="Ej: PAD&FIT SERVICIES S.L" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+        <>
+          <Card>
+            <CardHeader
+              title="Datos legales"
+              description="Tu banco los pide al dar de alta el TPV: razón social, CIF y contacto para las páginas públicas de política de devolución y cancelación, privacidad y cookies."
+            />
+            <CardBody className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Razón social">
+                  <Input type="text" value={config.legal_company_name} onChange={e => setConfig({ ...config, legal_company_name: e.target.value })} placeholder="Ej: PAD&FIT SERVICES S.L" autoComplete="organization" />
+                </Field>
+                <Field label="CIF / NIF">
+                  <Input type="text" value={config.legal_cif} onChange={e => setConfig({ ...config, legal_cif: e.target.value })} placeholder="Ej: B-86289824" />
+                </Field>
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">CIF / NIF</label>
-                <input type="text" value={config.legal_cif} onChange={e => setConfig({ ...config, legal_cif: e.target.value })}
-                  placeholder="Ej: B-86289824" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+              <Field label="Dirección">
+                <Input type="text" value={config.legal_address} onChange={e => setConfig({ ...config, legal_address: e.target.value })} placeholder="Calle, número, código postal, localidad" autoComplete="street-address" />
+              </Field>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Email de contacto">
+                  <Input type="email" inputMode="email" value={config.legal_email} onChange={e => setConfig({ ...config, legal_email: e.target.value })} placeholder="contacto@tuclub.com" autoComplete="email" />
+                </Field>
+                <Field label="Teléfono">
+                  <Input type="tel" inputMode="tel" value={config.legal_phone} onChange={e => setConfig({ ...config, legal_phone: e.target.value })} placeholder="620108533" autoComplete="tel" />
+                </Field>
               </div>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Dirección</label>
-              <input type="text" value={config.legal_address} onChange={e => setConfig({ ...config, legal_address: e.target.value })}
-                placeholder="Calle, número, código postal, localidad" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Email de contacto</label>
-                <input type="email" value={config.legal_email} onChange={e => setConfig({ ...config, legal_email: e.target.value })}
-                  placeholder="contacto@tuclub.com" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Teléfono</label>
-                <input type="text" value={config.legal_phone} onChange={e => setConfig({ ...config, legal_phone: e.target.value })}
-                  placeholder="620108533" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-              </div>
-            </div>
-            {saveError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{saveError}</p>}
-            <button onClick={saveConfig} disabled={saving} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-              {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar datos legales'}
-            </button>
-            {clubSlug && (
-              <div className="rounded-lg bg-gray-50 p-4 text-xs text-gray-500">
-                <p className="mb-1.5 font-medium text-gray-700">Enlaces para el banco:</p>
-                <ul className="space-y-1">
-                  {[
-                    ['Aviso legal', 'aviso-legal'],
-                    ['Condiciones de compra, cancelación y devolución', 'condiciones'],
-                    ['Privacidad', 'privacidad'],
-                    ['Cookies', 'cookies'],
-                  ].map(([label, path]) => (
-                    <li key={path}>
-                      {label}:{' '}
-                      <a
-                        href={`https://epadelschool.app/legal/${clubSlug}/${path}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono text-brand-600 underline hover:text-brand-700"
-                      >
-                        https://epadelschool.app/legal/{clubSlug}/{path}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'pagos' && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-1 font-semibold text-gray-900">TPV Redsys</h2>
-          <p className="mb-5 text-xs text-gray-400">Credenciales del terminal de pago de tu banco. Cada club tiene las suyas.</p>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Código de comercio</label>
-                <input type="text" value={redsys.merchantCode} onChange={e => setRedsys({ ...redsys, merchantCode: e.target.value })}
-                  placeholder="Ej: 999008881" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Terminal</label>
-                <input type="text" value={redsys.terminal} onChange={e => setRedsys({ ...redsys, terminal: e.target.value })}
-                  placeholder="001" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-              </div>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Clave secreta SHA-256 (Base64)
-                {redsys.hasSecretKey && !showSecretKey && <span className="ml-2 font-normal text-xs text-gray-400">{redsys.secretKeyMasked}</span>}
-              </label>
-              {showSecretKey ? (
-                <div className="flex gap-2">
-                  <input type="text" value={redsys.secretKey} onChange={e => setRedsys({ ...redsys, secretKey: e.target.value })}
-                    placeholder="Pega aquí la clave del panel Redsys"
-                    className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-mono focus:border-brand-500 focus:outline-none" />
-                  <button onClick={() => { setShowSecretKey(false); setRedsys(prev => ({ ...prev, secretKey: '' })) }}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-500 hover:bg-gray-50">Cancelar</button>
+              <SaveBar onSave={saveConfig} saving={saving} saved={saved} error={saveError} label="Guardar datos legales" />
+              {clubSlug && (
+                <div className="rounded-control bg-surface-2 p-4 text-meta text-ink-2">
+                  <p className="mb-1.5 text-label text-ink">Enlaces para el banco</p>
+                  <ul className="space-y-1.5">
+                    {[
+                      ['Aviso legal', 'aviso-legal'],
+                      ['Condiciones de compra, cancelación y devolución', 'condiciones'],
+                      ['Privacidad', 'privacidad'],
+                      ['Cookies', 'cookies'],
+                    ].map(([label, path]) => (
+                      <li key={path}>
+                        {label}:{' '}
+                        <a
+                          href={`https://epadelschool.app/legal/${clubSlug}/${path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="break-all font-mono text-accent-ink underline hover:no-underline"
+                        >
+                          https://epadelschool.app/legal/{clubSlug}/{path}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              ) : (
-                <button onClick={() => setShowSecretKey(true)} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50">
-                  {redsys.hasSecretKey ? 'Cambiar clave secreta' : 'Introducir clave secreta'}
-                </button>
               )}
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Entorno</label>
-              <div className="flex gap-3">
-                {[{ value: 'test', label: 'Pruebas (test)' }, { value: 'production', label: 'Producción (real)' }].map(opt => (
-                  <button key={opt.value} onClick={() => setRedsys({ ...redsys, env: opt.value })}
-                    className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${redsys.env === opt.value ? opt.value === 'production' ? 'bg-brand-500 text-white' : 'bg-blue-500 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                    {opt.label}
-                  </button>
-                ))}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader title="TPV Redsys" description="Credenciales del terminal de pago de tu banco. Cada club tiene las suyas." />
+            <CardBody className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Código de comercio">
+                  <Input type="text" value={redsys.merchantCode} onChange={e => setRedsys({ ...redsys, merchantCode: e.target.value })} placeholder="Ej: 999008881" autoComplete="off" />
+                </Field>
+                <Field label="Terminal">
+                  <Input type="text" value={redsys.terminal} onChange={e => setRedsys({ ...redsys, terminal: e.target.value })} placeholder="001" autoComplete="off" />
+                </Field>
               </div>
-              {redsys.env === 'production' && <p className="mt-2 text-xs font-medium text-orange-600">Entorno real: los pagos serán cobros reales.</p>}
-            </div>
-            {redsysError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{redsysError}</p>}
-            <button onClick={saveRedsys} disabled={redsysSaving} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-              {redsysSaving ? 'Guardando...' : redsysSaved ? '¡Guardado!' : 'Guardar TPV'}
-            </button>
-          </div>
-        </div>
+
+              <div role="group" aria-labelledby="redsys-key-label" className="flex flex-col gap-1.5">
+                <span id="redsys-key-label" className="text-label text-ink">
+                  Clave secreta SHA-256 (Base64)
+                  {redsys.hasSecretKey && !showSecretKey && <span className="ml-2 font-mono text-meta font-normal text-ink-3">{redsys.secretKeyMasked}</span>}
+                </span>
+                {showSecretKey ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      type="text"
+                      aria-labelledby="redsys-key-label"
+                      value={redsys.secretKey}
+                      onChange={e => setRedsys({ ...redsys, secretKey: e.target.value })}
+                      placeholder="Pega aquí la clave del panel Redsys"
+                      autoComplete="off"
+                      className="min-w-40 flex-1 font-mono"
+                    />
+                    <Button variant="secondary" onClick={() => { setShowSecretKey(false); setRedsys(prev => ({ ...prev, secretKey: '' })) }}>
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <Button variant="secondary" onClick={() => setShowSecretKey(true)}>
+                      {redsys.hasSecretKey ? 'Cambiar clave secreta' : 'Introducir clave secreta'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <fieldset>
+                <legend className="text-label text-ink">Entorno</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {[{ value: 'test', label: 'Pruebas (test)' }, { value: 'production', label: 'Producción (real)' }].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      aria-pressed={redsys.env === opt.value}
+                      onClick={() => setRedsys({ ...redsys, env: opt.value })}
+                      className={cn(
+                        'min-h-11 rounded-full border px-4 text-label transition-colors',
+                        redsys.env === opt.value
+                          ? 'border-accent-ink bg-accent-soft text-accent-ink'
+                          : 'border-line-strong/60 bg-surface text-ink-2 hover:bg-surface-2',
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {redsys.env === 'production' && (
+                  <Notice tone="warn" icon={<TriangleAlert />} className="mt-3">
+                    Entorno real: los pagos serán cobros reales.
+                  </Notice>
+                )}
+              </fieldset>
+
+              <SaveBar onSave={saveRedsys} saving={redsysSaving} saved={redsysSaved} error={redsysError} label="Guardar TPV" />
+            </CardBody>
+          </Card>
+        </>
       )}
 
       {/* Tab: Tarifas */}
       {activeTab === 'tarifas' && (
-        <div className="space-y-5">
-          {features.enable_payments && (features.enable_60min || features.enable_90min) && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-4 font-semibold text-gray-900">Clase suelta</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {features.enable_60min && (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase 1 hora (€)</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        onFocus={e => e.target.select()}
-                        value={displayPrice(config.pay_per_class_price_60)}
-                        onChange={e => setConfig({ ...config, pay_per_class_price_60: priceVal(e.target.value) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                      />
-                      <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                    </div>
-                  </div>
-                )}
-                {features.enable_90min && (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase 1h 30min (€)</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        onFocus={e => e.target.select()}
-                        value={displayPrice(config.pay_per_class_price_90)}
-                        onChange={e => setConfig({ ...config, pay_per_class_price_90: priceVal(e.target.value) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                      />
-                      <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+        <>
+          {(features.enable_payments || features.enable_bag) && <SectionTitle>Precios</SectionTitle>}
+
+          {features.enable_payments && showClassPrices && (
+            <Card>
+              <CardHeader title="Clase suelta" />
+              <CardBody>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {features.enable_60min && (
+                    <PriceField label="Clase 1 hora (€)" value={config.pay_per_class_price_60} onChange={v => setConfig({ ...config, pay_per_class_price_60: v })} />
+                  )}
+                  {features.enable_90min && (
+                    <PriceField label="Clase 1h 30min (€)" value={config.pay_per_class_price_90} onChange={v => setConfig({ ...config, pay_per_class_price_90: v })} />
+                  )}
+                </div>
+              </CardBody>
+            </Card>
           )}
 
-          {features.enable_payments && (features.enable_60min || features.enable_90min) && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Clase entera</h2>
-              <p className="mb-4 text-xs text-gray-400">Un alumno paga la clase completa en vez de cada uno su plaza — útil para grupos que reparten el pago entre ellos fuera de la app.</p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {features.enable_60min && (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase entera 1 hora (€)</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        onFocus={e => e.target.select()}
-                        value={displayPrice(config.whole_class_price_60)}
-                        onChange={e => setConfig({ ...config, whole_class_price_60: priceVal(e.target.value) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                      />
-                      <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                    </div>
-                  </div>
-                )}
-                {features.enable_90min && (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700">Clase entera 1h 30min (€)</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        onFocus={e => e.target.select()}
-                        value={displayPrice(config.whole_class_price_90)}
-                        onChange={e => setConfig({ ...config, whole_class_price_90: priceVal(e.target.value) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                      />
-                      <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+          {features.enable_payments && showClassPrices && (
+            <Card>
+              <CardHeader
+                title="Clase entera"
+                description="Un alumno paga la clase completa en vez de cada uno su plaza. Útil para grupos que reparten el pago entre ellos fuera de la app."
+              />
+              <CardBody>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {features.enable_60min && (
+                    <PriceField label="Clase entera 1 hora (€)" value={config.whole_class_price_60} onChange={v => setConfig({ ...config, whole_class_price_60: v })} />
+                  )}
+                  {features.enable_90min && (
+                    <PriceField label="Clase entera 1h 30min (€)" value={config.whole_class_price_90} onChange={v => setConfig({ ...config, whole_class_price_90: v })} />
+                  )}
+                </div>
+              </CardBody>
+            </Card>
           )}
 
-          {features.enable_class_validation && (features.enable_60min || features.enable_90min) && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Precio por clase (Validación de clases)</h2>
-              <p className="mb-4 text-xs text-gray-400">
-                Se usa para calcular el descuento de las clases no dadas, según si el alumno usa pista del club o la suya propia.
-              </p>
-              <div className="space-y-4">
+          {features.enable_class_validation && showClassPrices && (
+            <Card>
+              <CardHeader
+                title="Precio por clase (validación de clases)"
+                description="Se usa para calcular el descuento de las clases no dadas, según si el alumno usa pista del club o la suya propia."
+              />
+              <CardBody className="space-y-5">
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Con pista</p>
+                  <p className="mb-2 text-label text-ink-2">Con pista</p>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {features.enable_60min && (
-                      <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">1 hora (€)</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            onFocus={e => e.target.select()}
-                            value={displayPrice(config.price_per_class_with_court_60)}
-                            onChange={e => setConfig({ ...config, price_per_class_with_court_60: priceVal(e.target.value) })}
-                            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                          />
-                          <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                        </div>
-                      </div>
+                      <PriceField label="Con pista, 1 hora (€)" value={config.price_per_class_with_court_60} onChange={v => setConfig({ ...config, price_per_class_with_court_60: v })} />
                     )}
                     {features.enable_90min && (
-                      <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">1h 30min (€)</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            onFocus={e => e.target.select()}
-                            value={displayPrice(config.price_per_class_with_court_90)}
-                            onChange={e => setConfig({ ...config, price_per_class_with_court_90: priceVal(e.target.value) })}
-                            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                          />
-                          <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                        </div>
-                      </div>
+                      <PriceField label="Con pista, 1h 30min (€)" value={config.price_per_class_with_court_90} onChange={v => setConfig({ ...config, price_per_class_with_court_90: v })} />
                     )}
                   </div>
                 </div>
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Sin pista</p>
+                  <p className="mb-2 text-label text-ink-2">Sin pista</p>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {features.enable_60min && (
-                      <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">1 hora (€)</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            onFocus={e => e.target.select()}
-                            value={displayPrice(config.price_per_class_without_court_60)}
-                            onChange={e => setConfig({ ...config, price_per_class_without_court_60: priceVal(e.target.value) })}
-                            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                          />
-                          <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                        </div>
-                      </div>
+                      <PriceField label="Sin pista, 1 hora (€)" value={config.price_per_class_without_court_60} onChange={v => setConfig({ ...config, price_per_class_without_court_60: v })} />
                     )}
                     {features.enable_90min && (
-                      <div>
-                        <label className="mb-1.5 block text-sm font-medium text-gray-700">1h 30min (€)</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            onFocus={e => e.target.select()}
-                            value={displayPrice(config.price_per_class_without_court_90)}
-                            onChange={e => setConfig({ ...config, price_per_class_without_court_90: priceVal(e.target.value) })}
-                            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                          />
-                          <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                        </div>
-                      </div>
+                      <PriceField label="Sin pista, 1h 30min (€)" value={config.price_per_class_without_court_90} onChange={v => setConfig({ ...config, price_per_class_without_court_90: v })} />
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardBody>
+            </Card>
           )}
 
-          {features.enable_bag && (features.enable_60min || features.enable_90min) && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-4 font-semibold text-gray-900">Bonos de clases</h2>
-              {features.enable_60min && (
-                <>
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">Bono 1 hora</p>
-                  <div className="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        onFocus={e => e.target.select()}
-                        value={displayInt(config.classes_per_pack_60)}
-                        onChange={e => setConfig({ ...config, classes_per_pack_60: intVal(e.target.value) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-                      />
+          {features.enable_bag && showClassPrices && (
+            <Card>
+              <CardHeader title="Bonos de clases" />
+              <CardBody className="space-y-5">
+                {features.enable_60min && (
+                  <div>
+                    <p className="mb-2 text-label text-ink-2">Bono 1 hora</p>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <CountField label="Clases por bono (1 hora)" value={config.classes_per_pack_60} onChange={v => setConfig({ ...config, classes_per_pack_60: v })} />
+                      <PriceField label="Precio del bono de 1 hora (€)" value={config.pack_price_60} onChange={v => setConfig({ ...config, pack_price_60: v })} />
                     </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          onFocus={e => e.target.select()}
-                          value={displayPrice(config.pack_price_60)}
-                          onChange={e => setConfig({ ...config, pack_price_60: priceVal(e.target.value) })}
-                          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                        />
-                        <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                      </div>
-                    </div>
+                    <p className="mt-2 text-meta tabular-nums text-ink-3">
+                      Precio por clase: {config.classes_per_pack_60 > 0 ? ((config.pack_price_60 / config.classes_per_pack_60) / 100).toFixed(2) : '0.00'} €
+                    </p>
                   </div>
-                  <p className="mb-5 text-xs text-gray-400">
-                    Precio por clase: {config.classes_per_pack_60 > 0 ? ((config.pack_price_60 / config.classes_per_pack_60) / 100).toFixed(2) : '0.00'} €
-                  </p>
-                </>
-              )}
-              {features.enable_90min && (
-                <>
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">Bono 1h 30min</p>
-                  <div className="mb-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Clases por bono</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        onFocus={e => e.target.select()}
-                        value={displayInt(config.classes_per_pack_90)}
-                        onChange={e => setConfig({ ...config, classes_per_pack_90: intVal(e.target.value) })}
-                        className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-                      />
+                )}
+                {features.enable_90min && (
+                  <div>
+                    <p className="mb-2 text-label text-ink-2">Bono 1h 30min</p>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <CountField label="Clases por bono (1h 30min)" value={config.classes_per_pack_90} onChange={v => setConfig({ ...config, classes_per_pack_90: v })} />
+                      <PriceField label="Precio del bono de 1h 30min (€)" value={config.pack_price_90} onChange={v => setConfig({ ...config, pack_price_90: v })} />
                     </div>
-                    <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Precio del bono (€)</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          onFocus={e => e.target.select()}
-                          value={displayPrice(config.pack_price_90)}
-                          onChange={e => setConfig({ ...config, pack_price_90: priceVal(e.target.value) })}
-                          className="w-full rounded-lg border border-gray-200 px-4 py-2.5 pr-8 text-sm focus:border-brand-500 focus:outline-none"
-                        />
-                        <span className="pointer-events-none absolute right-3 top-2.5 text-sm text-gray-400">€</span>
-                      </div>
-                    </div>
+                    <p className="mt-2 text-meta tabular-nums text-ink-3">
+                      Precio por clase: {config.classes_per_pack_90 > 0 ? ((config.pack_price_90 / config.classes_per_pack_90) / 100).toFixed(2) : '0.00'} €
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-400">
-                    Precio por clase: {config.classes_per_pack_90 > 0 ? ((config.pack_price_90 / config.classes_per_pack_90) / 100).toFixed(2) : '0.00'} €
-                  </p>
-                </>
-              )}
-            </div>
+                )}
+              </CardBody>
+            </Card>
           )}
 
           {features.enable_private_lessons && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Alumno externo</h2>
-              <p className="mb-4 text-xs text-gray-400">
-                Tarifas para alumnos marcados como "externo" en su ficha — no ven los huecos libres de las clases fijas de la escuela.
-              </p>
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">Clase suelta externa</p>
-              <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {features.enable_60min && (
-                  <PriceField label="Clase 1 hora (€)" value={config.pay_per_class_price_60_external} onChange={v => setConfig({ ...config, pay_per_class_price_60_external: v })} />
-                )}
-                {features.enable_90min && (
-                  <PriceField label="Clase 1h 30min (€)" value={config.pay_per_class_price_90_external} onChange={v => setConfig({ ...config, pay_per_class_price_90_external: v })} />
-                )}
-              </div>
-              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">Bono externo</p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {features.enable_60min && (
-                  <>
-                    <CountField label="Bono 1h — clases por bono" value={config.classes_per_pack_60_external} onChange={v => setConfig({ ...config, classes_per_pack_60_external: v })} />
-                    <PriceField label="Bono 1h — precio (€)" value={config.pack_price_60_external} onChange={v => setConfig({ ...config, pack_price_60_external: v })} />
-                  </>
-                )}
-                {features.enable_90min && (
-                  <>
-                    <CountField label="Bono 1h30 — clases por bono" value={config.classes_per_pack_90_external} onChange={v => setConfig({ ...config, classes_per_pack_90_external: v })} />
-                    <PriceField label="Bono 1h30 — precio (€)" value={config.pack_price_90_external} onChange={v => setConfig({ ...config, pack_price_90_external: v })} />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {features.enable_private_lessons && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Clase particular</h2>
-              <p className="mb-4 text-xs text-gray-400">
-                Clase 1 a 1 con un monitor. Cualquier alumno puede pedirla, de la escuela o externo. Si el monitor tiene marcada la tarifa premium en su ficha, se aplica el precio premium.
-              </p>
-              {(['60', '90'] as const).map(dur => (
-                <div key={dur} className={dur === '60' ? 'mb-5' : ''}>
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">{dur === '60' ? 'Clase particular 1 hora' : 'Clase particular 1h 30min'}</p>
+            <Card>
+              <CardHeader
+                title="Alumno externo"
+                description='Tarifas para alumnos marcados como "externo" en su ficha. No ven los huecos libres de las clases fijas de la escuela.'
+              />
+              <CardBody className="space-y-5">
+                <div>
+                  <p className="mb-2 text-label text-ink-2">Clase suelta externa</p>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <PriceField
-                      label="Alumno de la escuela (€)"
-                      value={config[`private_lesson_price_${dur}` as keyof AppConfig] as number}
-                      onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}`]: v })}
-                    />
-                    <PriceField
-                      label="Alumno externo (€)"
-                      value={config[`private_lesson_price_${dur}_external` as keyof AppConfig] as number}
-                      onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_external`]: v })}
-                    />
-                    <PriceField
-                      label="Alumno de la escuela · monitor premium (€)"
-                      value={config[`private_lesson_price_${dur}_premium` as keyof AppConfig] as number}
-                      onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_premium`]: v })}
-                    />
-                    <PriceField
-                      label="Alumno externo · monitor premium (€)"
-                      value={config[`private_lesson_price_${dur}_premium_external` as keyof AppConfig] as number}
-                      onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_premium_external`]: v })}
-                    />
+                    {features.enable_60min && (
+                      <PriceField label="Clase 1 hora (€)" value={config.pay_per_class_price_60_external} onChange={v => setConfig({ ...config, pay_per_class_price_60_external: v })} />
+                    )}
+                    {features.enable_90min && (
+                      <PriceField label="Clase 1h 30min (€)" value={config.pay_per_class_price_90_external} onChange={v => setConfig({ ...config, pay_per_class_price_90_external: v })} />
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+                <div>
+                  <p className="mb-2 text-label text-ink-2">Bono externo</p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {features.enable_60min && (
+                      <>
+                        <CountField label="Bono 1h: clases por bono" value={config.classes_per_pack_60_external} onChange={v => setConfig({ ...config, classes_per_pack_60_external: v })} />
+                        <PriceField label="Bono 1h: precio (€)" value={config.pack_price_60_external} onChange={v => setConfig({ ...config, pack_price_60_external: v })} />
+                      </>
+                    )}
+                    {features.enable_90min && (
+                      <>
+                        <CountField label="Bono 1h30: clases por bono" value={config.classes_per_pack_90_external} onChange={v => setConfig({ ...config, classes_per_pack_90_external: v })} />
+                        <PriceField label="Bono 1h30: precio (€)" value={config.pack_price_90_external} onChange={v => setConfig({ ...config, pack_price_90_external: v })} />
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
           )}
 
           {features.enable_private_lessons && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Bono de clase particular</h2>
-              <p className="mb-4 text-xs text-gray-400">
-                Pack de créditos que solo valen para clases particulares.
-              </p>
-              {(['60', '90'] as const).map(dur => (
-                <div key={dur} className={dur === '60' ? 'mb-6' : ''}>
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-gray-500">{dur === '60' ? 'Bono particular 1 hora' : 'Bono particular 1h 30min'}</p>
-                  {([
-                    { suffix: '', label: 'Alumno de la escuela' },
-                    { suffix: '_external', label: 'Alumno externo' },
-                    { suffix: '_premium', label: 'Alumno de la escuela · monitor premium' },
-                    { suffix: '_premium_external', label: 'Alumno externo · monitor premium' },
-                  ] as const).map(({ suffix, label }) => (
-                    <div key={suffix} className="mb-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <CountField
-                        label={`${label} — clases por bono`}
-                        value={config[`private_lesson_pack_classes_${dur}${suffix}` as keyof AppConfig] as number}
-                        onChange={v => setConfig({ ...config, [`private_lesson_pack_classes_${dur}${suffix}`]: v })}
+            <Card>
+              <CardHeader
+                title="Clase particular"
+                description="Clase 1 a 1 con un monitor. Cualquier alumno puede pedirla, de la escuela o externo. Si el monitor tiene marcada la tarifa premium en su ficha, se aplica el precio premium."
+              />
+              <CardBody className="space-y-5">
+                {(['60', '90'] as const).map(dur => (
+                  <div key={dur}>
+                    <p className="mb-2 text-label text-ink-2">{dur === '60' ? 'Clase particular 1 hora' : 'Clase particular 1h 30min'}</p>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <PriceField
+                        label="Alumno de la escuela (€)"
+                        value={config[`private_lesson_price_${dur}` as keyof AppConfig] as number}
+                        onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}`]: v })}
                       />
                       <PriceField
-                        label={`${label} — precio (€)`}
-                        value={config[`private_lesson_pack_price_${dur}${suffix}` as keyof AppConfig] as number}
-                        onChange={v => setConfig({ ...config, [`private_lesson_pack_price_${dur}${suffix}`]: v })}
+                        label="Alumno externo (€)"
+                        value={config[`private_lesson_price_${dur}_external` as keyof AppConfig] as number}
+                        onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_external`]: v })}
+                      />
+                      <PriceField
+                        label="Alumno de la escuela, monitor premium (€)"
+                        value={config[`private_lesson_price_${dur}_premium` as keyof AppConfig] as number}
+                        onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_premium`]: v })}
+                      />
+                      <PriceField
+                        label="Alumno externo, monitor premium (€)"
+                        value={config[`private_lesson_price_${dur}_premium_external` as keyof AppConfig] as number}
+                        onChange={v => setConfig({ ...config, [`private_lesson_price_${dur}_premium_external`]: v })}
                       />
                     </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </CardBody>
+            </Card>
+          )}
+
+          {features.enable_private_lessons && (
+            <Card>
+              <CardHeader title="Bono de clase particular" description="Pack de créditos que solo valen para clases particulares." />
+              <CardBody className="space-y-6">
+                {(['60', '90'] as const).map(dur => (
+                  <div key={dur}>
+                    <p className="mb-2 text-label text-ink-2">{dur === '60' ? 'Bono particular 1 hora' : 'Bono particular 1h 30min'}</p>
+                    <div className="space-y-3">
+                      {([
+                        { suffix: '', label: 'Alumno de la escuela' },
+                        { suffix: '_external', label: 'Alumno externo' },
+                        { suffix: '_premium', label: 'Alumno de la escuela, monitor premium' },
+                        { suffix: '_premium_external', label: 'Alumno externo, monitor premium' },
+                      ] as const).map(({ suffix, label }) => (
+                        <div key={suffix} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <CountField
+                            label={`${label}: clases por bono`}
+                            value={config[`private_lesson_pack_classes_${dur}${suffix}` as keyof AppConfig] as number}
+                            onChange={v => setConfig({ ...config, [`private_lesson_pack_classes_${dur}${suffix}`]: v })}
+                          />
+                          <PriceField
+                            label={`${label}: precio (€)`}
+                            value={config[`private_lesson_pack_price_${dur}${suffix}` as keyof AppConfig] as number}
+                            onChange={v => setConfig({ ...config, [`private_lesson_pack_price_${dur}${suffix}`]: v })}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </CardBody>
+            </Card>
+          )}
+
+          <SectionTitle>Clases y faltas</SectionTitle>
+
+          {features.enable_bag && (
+            <Card>
+              <CardHeader title="Política de cancelación" />
+              <CardBody>
+                <Field label="Horas de antelación" hint="Si el alumno cancela con menos de estas horas, el crédito no se devuelve.">
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      onFocus={e => e.target.select()}
+                      value={displayInt(config.cancellation_hours)}
+                      onChange={e => setConfig({ ...config, cancellation_hours: intVal(e.target.value) })}
+                      className="w-28 tabular-nums"
+                    />
+                    <span className="text-body text-ink-2">horas antes del inicio</span>
+                  </div>
+                </Field>
+              </CardBody>
+            </Card>
           )}
 
           {features.enable_bag && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Política de cancelación</h2>
-              <p className="mb-4 text-xs text-gray-400">Si el alumno cancela con menos de X horas, el crédito <strong>no</strong> se devuelve.</p>
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  onFocus={e => e.target.select()}
-                  value={displayInt(config.cancellation_hours)}
-                  onChange={e => setConfig({ ...config, cancellation_hours: intVal(e.target.value) })}
-                  className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-                />
-                <span className="text-sm text-gray-500">horas antes del inicio</span>
-              </div>
-            </div>
-          )}
-
-          {features.enable_bag && (
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h2 className="mb-1 font-semibold text-gray-900">Antelación para registrar falta</h2>
-              <p className="mb-4 text-xs text-gray-400">
-                Con cuántos meses de adelanto puede un alumno registrar su falta y sumar la clase a su bolsa ya. En 0, se queda como ahora (~2 meses vista).
-              </p>
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  onFocus={e => e.target.select()}
-                  value={displayInt(config.falta_advance_months)}
-                  onChange={e => setConfig({ ...config, falta_advance_months: intVal(e.target.value) })}
-                  className="w-28 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-                />
-                <span className="text-sm text-gray-500">meses vista (0 = actual)</span>
-              </div>
-            </div>
+            <Card>
+              <CardHeader title="Antelación para registrar falta" />
+              <CardBody>
+                <Field
+                  label="Meses de antelación"
+                  hint="Con cuántos meses de adelanto puede un alumno registrar su falta y sumar la clase a su bolsa ya. En 0, se queda como ahora (unos 2 meses vista)."
+                >
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      onFocus={e => e.target.select()}
+                      value={displayInt(config.falta_advance_months)}
+                      onChange={e => setConfig({ ...config, falta_advance_months: intVal(e.target.value) })}
+                      className="w-28 tabular-nums"
+                    />
+                    <span className="text-body text-ink-2">meses vista (0 = actual)</span>
+                  </div>
+                </Field>
+              </CardBody>
+            </Card>
           )}
 
           {!features.enable_payments && !features.enable_bag && (
-            <p className="text-sm text-gray-400">
+            <Notice tone="neutral" icon={<Info />}>
               Activa los módulos de pagos o bolsa en{' '}
-              <button onClick={() => setActiveTab('modulos')} className="text-brand-500 hover:underline">Módulos</button>
+              <button type="button" onClick={() => setActiveTab('modulos')} className="font-medium text-accent-ink underline hover:no-underline">Módulos</button>
               {' '}para configurar precios.
-            </p>
+            </Notice>
           )}
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-1 font-semibold text-gray-900">Clases de recuperación</h2>
-            <p className="mb-4 text-xs text-gray-400">
-              Máximo de clases de recuperación pendientes acumuladas por alumno. Las clases de bono no cuentan.
-              Pon <strong>0</strong> para no aplicar límite.
-            </p>
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-              inputMode="numeric"
-              onFocus={e => e.target.select()}
-              value={displayInt(config.max_recovery_classes)}
-              onChange={e => setConfig({ ...config, max_recovery_classes: intVal(e.target.value) })}
-                className="w-24 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-              />
-              <span className="text-sm text-gray-500">
-                {config.max_recovery_classes === 0 ? 'sin límite' : 'clases máximo'}
-              </span>
-            </div>
-          </div>
+          <Card>
+            <CardHeader title="Clases de recuperación" />
+            <CardBody>
+              <Field
+                label="Máximo de clases pendientes"
+                hint="Máximo de clases de recuperación pendientes acumuladas por alumno. Las clases de bono no cuentan. Pon 0 para no aplicar límite."
+              >
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    onFocus={e => e.target.select()}
+                    value={displayInt(config.max_recovery_classes)}
+                    onChange={e => setConfig({ ...config, max_recovery_classes: intVal(e.target.value) })}
+                    className="w-28 tabular-nums"
+                  />
+                  <span className="text-body text-ink-2">
+                    {config.max_recovery_classes === 0 ? 'sin límite' : 'clases máximo'}
+                  </span>
+                </div>
+              </Field>
+            </CardBody>
+          </Card>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-1 font-semibold text-gray-900">Días festivos</h2>
-            <p className="mb-4 text-xs text-gray-400">Las clases no se imparten estos días. No aparecerán en el calendario ni en los huecos disponibles.</p>
-            <div className="mb-4 space-y-2">
-              {holidays.length === 0 && <p className="text-sm text-gray-400">No hay días festivos configurados.</p>}
-              {holidays.map(date => {
-                const label = new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                return (
-                  <div key={date} className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-2.5">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 capitalize">{label}</p>
-                      <p className="text-xs text-gray-400">{date}</p>
-                    </div>
-                    <button onClick={() => removeHoliday(date)} disabled={holidaysSaving} className="rounded-lg border border-red-100 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40">
-                      Eliminar
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="flex gap-2">
-              <input type="date" value={newHoliday} onChange={e => setNewHoliday(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addHoliday() }}
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
-              <button onClick={addHoliday} disabled={holidaysSaving || !newHoliday || holidays.includes(newHoliday)}
-                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-                {holidaysSaving ? 'Guardando...' : 'Añadir'}
-              </button>
-            </div>
-          </div>
+          <SectionTitle>Calendario y facturación</SectionTitle>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-1 font-semibold text-gray-900">Inicio de facturación</h2>
-            <p className="mb-4 text-xs text-gray-400">
-              Si el curso no empieza en enero, indica la fecha a partir de la cual se muestra el estado de pago mensual. Antes de esa fecha no aparecerá la columna de cobro en los grupos fijos.
-            </p>
-            <div className="flex items-center gap-3">
-              <input
-                type="date"
-                value={config.billing_start_date}
-                onChange={e => setConfig({ ...config, billing_start_date: e.target.value })}
-                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-              {config.billing_start_date && (
-                <button
-                  onClick={() => setConfig({ ...config, billing_start_date: '' })}
-                  className="text-xs text-gray-400 hover:text-gray-600"
-                >
-                  Quitar fecha
-                </button>
+          <Card>
+            <CardHeader
+              title="Días festivos"
+              description="Las clases no se imparten estos días. No aparecerán en el calendario ni en los huecos disponibles."
+            />
+            <CardBody className="space-y-4">
+              {holidays.length === 0 ? (
+                <p className="text-body text-ink-2">No hay días festivos configurados.</p>
+              ) : (
+                <ul className="divide-y divide-line rounded-control border border-line">
+                  {holidays.map(date => (
+                    <li key={date} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                      <div className="min-w-0">
+                        <p className="text-label text-ink">{formatLongDate(date)}</p>
+                        <p className="text-meta tabular-nums text-ink-3">{date}</p>
+                      </div>
+                      <Button variant="danger-ghost" size="sm" onClick={() => removeHoliday(date)} disabled={holidaysSaving}>
+                        Eliminar
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </div>
-            {config.billing_start_date && (
-              <p className="mt-2 text-xs text-brand-600">
-                Los pagos se mostrarán a partir del {new Date(config.billing_start_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
-              </p>
-            )}
-          </div>
+              <div className="flex flex-wrap items-end gap-2">
+                <Field label="Nuevo día festivo" className="min-w-40 flex-1">
+                  <Input type="date" value={newHoliday} onChange={e => setNewHoliday(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addHoliday() }} />
+                </Field>
+                <Button onClick={addHoliday} loading={holidaysSaving} disabled={!newHoliday || holidays.includes(newHoliday)}>
+                  Añadir festivo
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
 
-          {saveError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">Error: {saveError}</p>}
-          <button onClick={saveConfig} disabled={saving} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-            {saving ? 'Guardando...' : saved ? '¡Guardado!' : 'Guardar tarifas'}
-          </button>
-        </div>
+          <Card>
+            <CardHeader
+              title="Inicio de facturación"
+              description="Si el curso no empieza en enero, indica la fecha a partir de la cual se muestra el estado de pago mensual. Antes de esa fecha no aparecerá la columna de cobro en los grupos fijos."
+            />
+            <CardBody className="space-y-2">
+              <div className="flex flex-wrap items-end gap-3">
+                <Field label="Fecha de inicio">
+                  <Input type="date" value={config.billing_start_date} onChange={e => setConfig({ ...config, billing_start_date: e.target.value })} />
+                </Field>
+                {config.billing_start_date && (
+                  <Button variant="ghost" onClick={() => setConfig({ ...config, billing_start_date: '' })}>
+                    Quitar fecha
+                  </Button>
+                )}
+              </div>
+              {config.billing_start_date && (
+                <p className="text-meta text-accent-ink">
+                  Los pagos se mostrarán a partir del {formatLongDate(config.billing_start_date, { weekday: false })} de {config.billing_start_date.slice(0, 4)}.
+                </p>
+              )}
+            </CardBody>
+          </Card>
+
+          <SaveBar onSave={saveConfig} saving={saving} saved={saved} error={saveError} label="Guardar tarifas" />
+        </>
       )}
 
       {/* Tab: Playtomic */}
       {activeTab === 'playtomic' && features.enable_pista_viva && (
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-1 font-semibold text-gray-900">⚡ Pista Viva — Playtomic</h2>
-          <p className="mb-5 text-xs text-gray-400">Credenciales oficiales de Playtomic (Client ID + Secret) para detectar partidos abiertos con jugadores pendientes.</p>
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Email de tu cuenta Playtomic</label>
-              <input type="email" value={playtomic.email} onChange={(e) => setPlaytomic(p => ({ ...p, email: e.target.value }))}
-                autoComplete="off"
-                placeholder="admin@venditto.com" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Contraseña de Playtomic</label>
-              <input type="password" value={playtomic.password} onChange={(e) => setPlaytomic(p => ({ ...p, password: e.target.value }))}
-                autoComplete="new-password"
-                placeholder="Solo se guarda si introduces una nueva" className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Buscar tu club en Playtomic</label>
-              <div className="flex gap-2">
-                <input type="text" value={tenantSearch} onChange={(e) => setTenantSearch(e.target.value)}
-                  placeholder="Nombre del club en Playtomic..."
-                  className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-                <button type="button" onClick={async () => {
-                  if (tenantSearch.length < 2) return
-                  const res = await fetch(`/api/admin/pista-viva/tenants/search?text=${encodeURIComponent(tenantSearch)}`)
-                  const data = await res.json()
-                  setTenantResults(data.tenants ?? [])
-                }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50">
-                  Buscar
-                </button>
+        <div id="playtomic" className="space-y-5">
+          <Card>
+            <CardHeader
+              title="Pista Viva: Playtomic"
+              description="Credenciales oficiales de Playtomic (Client ID y Secret) para detectar partidos abiertos con jugadores pendientes."
+            />
+            <CardBody className="space-y-4">
+              <Field label="Email de tu cuenta Playtomic">
+                <Input type="email" inputMode="email" value={playtomic.email} onChange={(e) => setPlaytomic(p => ({ ...p, email: e.target.value }))} autoComplete="off" placeholder="admin@venditto.com" />
+              </Field>
+              <Field label="Contraseña de Playtomic" hint="Solo se guarda si introduces una nueva.">
+                <Input type="password" value={playtomic.password} onChange={(e) => setPlaytomic(p => ({ ...p, password: e.target.value }))} autoComplete="new-password" />
+              </Field>
+              <div>
+                <Field label="Buscar tu club en Playtomic">
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      type="text"
+                      value={tenantSearch}
+                      onChange={(e) => setTenantSearch(e.target.value)}
+                      placeholder="Nombre del club en Playtomic"
+                      className="min-w-40 flex-1"
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={async () => {
+                        if (tenantSearch.length < 2) return
+                        const res = await fetch(`/api/admin/pista-viva/tenants/search?text=${encodeURIComponent(tenantSearch)}`)
+                        const data = await res.json()
+                        setTenantResults(data.tenants ?? [])
+                      }}
+                    >
+                      <Search className="h-4 w-4" aria-hidden />
+                      Buscar
+                    </Button>
+                  </div>
+                </Field>
+                {tenantResults.length > 0 && (
+                  <ul className="mt-2 divide-y divide-line rounded-control border border-line">
+                    {tenantResults.map((t) => (
+                      <li key={t.tenant_id}>
+                        <button
+                          type="button"
+                          onClick={() => { setPlaytomic(p => ({ ...p, tenantId: t.tenant_id })); setTenantResults([]) }}
+                          className="min-h-11 w-full px-3 py-2 text-left transition-colors hover:bg-ink/[0.03]"
+                        >
+                          <span className="text-label text-ink">{t.name}</span>
+                          {t.address && <span className="ml-2 text-meta text-ink-3">{t.address}</span>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              {tenantResults.length > 0 && (
-                <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 p-2 space-y-1">
-                  {tenantResults.map((t) => (
-                    <button key={t.tenant_id} type="button"
-                      onClick={() => { setPlaytomic(p => ({ ...p, tenantId: t.tenant_id })); setTenantResults([]) }}
-                      className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-white">
-                      <span className="font-medium text-gray-900">{t.name}</span>
-                      {t.address && <span className="ml-2 text-xs text-gray-400">{t.address}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Tenant ID (UUID)</label>
-              <input type="text" value={playtomic.tenantId} onChange={(e) => setPlaytomic(p => ({ ...p, tenantId: e.target.value }))}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-mono focus:border-brand-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">URL del club en Playtomic</label>
-              <input type="url" value={playtomic.bookingUrl} onChange={(e) => setPlaytomic(p => ({ ...p, bookingUrl: e.target.value }))}
-                placeholder="https://playtomic.io/tu-club/uuid"
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-            </div>
-            {playtomicError && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{playtomicError}</p>}
-            <div className="flex justify-end">
-              <button type="button" disabled={playtomicSaving} onClick={async () => {
-                setPlaytomicSaving(true)
-                setPlaytomicError('')
-                const body: Record<string, string> = {
-                  playtomic_email: playtomic.email,
-                  playtomic_tenant_id: playtomic.tenantId,
-                  playtomic_booking_url: playtomic.bookingUrl,
-                }
-                if (playtomic.password) body.playtomic_password = playtomic.password
-                if (playtomic.clientId) body.playtomic_client_id = playtomic.clientId
-                if (playtomic.clientSecret) body.playtomic_client_secret = playtomic.clientSecret
-                const res = await fetch('/api/admin/pista-viva/credentials', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(body),
-                })
-                if (!res.ok) {
-                  const d = await res.json().catch(() => ({}))
-                  setPlaytomicError(d.error ?? 'Error al guardar')
-                } else {
-                  setPlaytomicSaved(true)
-                  setPlaytomic(p => ({ ...p, password: '', clientSecret: '' }))
-                  setTimeout(() => setPlaytomicSaved(false), 2000)
-                }
-                setPlaytomicSaving(false)
-              }} className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60">
-                {playtomicSaving ? 'Guardando...' : playtomicSaved ? '¡Guardado!' : 'Guardar Playtomic'}
-              </button>
-            </div>
-          </div>
+              <Field label="Tenant ID (UUID)">
+                <Input type="text" value={playtomic.tenantId} onChange={(e) => setPlaytomic(p => ({ ...p, tenantId: e.target.value }))} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" className="font-mono" />
+              </Field>
+              <Field label="URL del club en Playtomic">
+                <Input type="url" inputMode="url" value={playtomic.bookingUrl} onChange={(e) => setPlaytomic(p => ({ ...p, bookingUrl: e.target.value }))} placeholder="https://playtomic.io/tu-club/uuid" />
+              </Field>
+              <SaveBar
+                saving={playtomicSaving}
+                saved={playtomicSaved}
+                error={playtomicError}
+                label="Guardar Playtomic"
+                onSave={async () => {
+                  setPlaytomicSaving(true)
+                  setPlaytomicError('')
+                  const body: Record<string, string> = {
+                    playtomic_email: playtomic.email,
+                    playtomic_tenant_id: playtomic.tenantId,
+                    playtomic_booking_url: playtomic.bookingUrl,
+                  }
+                  if (playtomic.password) body.playtomic_password = playtomic.password
+                  if (playtomic.clientId) body.playtomic_client_id = playtomic.clientId
+                  if (playtomic.clientSecret) body.playtomic_client_secret = playtomic.clientSecret
+                  const res = await fetch('/api/admin/pista-viva/credentials', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                  })
+                  if (!res.ok) {
+                    const d = await res.json().catch(() => ({}))
+                    setPlaytomicError(d.error ?? 'Error al guardar')
+                  } else {
+                    setPlaytomicSaved(true)
+                    setPlaytomic(p => ({ ...p, password: '', clientSecret: '' }))
+                    setTimeout(() => setPlaytomicSaved(false), 2000)
+                  }
+                  setPlaytomicSaving(false)
+                }}
+              />
+            </CardBody>
+          </Card>
 
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-1 font-semibold text-gray-900">Importar jugadores desde Playtomic</h2>
-            <p className="mb-5 text-xs text-gray-400">
-              Usa la API oficial de Playtomic para traer todos los jugadores del club y crearlos automáticamente como alumnos en PSM.
-              Necesitas las credenciales de desarrollador de Playtomic (Client ID + Secret).
-            </p>
-            <div className="space-y-4">
+          <Card>
+            <CardHeader
+              title="Importar jugadores desde Playtomic"
+              description="Usa la API oficial de Playtomic para traer todos los jugadores del club y crearlos automáticamente como alumnos en PSM. Necesitas las credenciales de desarrollador de Playtomic (Client ID y Secret)."
+            />
+            <CardBody className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Client ID</label>
-                  <input type="text" value={playtomic.clientId}
-                    onChange={(e) => setPlaytomic(p => ({ ...p, clientId: e.target.value }))}
-                    placeholder="clb_xxxxxxxxxxxxxxxx"
-                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-mono focus:border-brand-500 focus:outline-none" />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Client Secret</label>
-                  <input type="password" value={playtomic.clientSecret}
-                    onChange={(e) => setPlaytomic(p => ({ ...p, clientSecret: e.target.value }))}
-                    placeholder="Solo se guarda si introduces uno nuevo"
-                    className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
-                </div>
+                <Field label="Client ID">
+                  <Input type="text" value={playtomic.clientId} onChange={(e) => setPlaytomic(p => ({ ...p, clientId: e.target.value }))} placeholder="clb_xxxxxxxxxxxxxxxx" className="font-mono" autoComplete="off" />
+                </Field>
+                <Field label="Client Secret" hint="Solo se guarda si introduces uno nuevo.">
+                  <Input type="password" value={playtomic.clientSecret} onChange={(e) => setPlaytomic(p => ({ ...p, clientSecret: e.target.value }))} autoComplete="new-password" />
+                </Field>
               </div>
 
-              {extractError && (
-                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{extractError}</div>
-              )}
+              {extractError && <p role="alert" className="text-meta font-medium text-danger-ink">{extractError}</p>}
 
               {extracting && (
-                <p className="text-sm text-gray-500">Extrayendo... {extractedPlayers.length} jugadores traídos hasta ahora</p>
+                <p role="status" className="text-body text-ink-2 tabular-nums">Extrayendo… {extractedPlayers.length} jugadores traídos hasta ahora</p>
               )}
 
               {extractedPlayers.length > 0 && (
-                <div className="rounded-lg border border-dashed border-gray-300 p-4">
+                <div className="rounded-control border border-dashed border-line-strong/60 p-4">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-gray-700">
-                      {extractedPlayers.length} jugadores {extractDone ? 'traídos en total' : 'traídos hasta ahora (extracción en curso)'} —{' '}
+                    <p className="text-label text-ink tabular-nums">
+                      {extractedPlayers.length} jugadores {extractDone ? 'traídos en total' : 'traídos hasta ahora (extracción en curso)'}:{' '}
                       {extractedPlayers.filter((p) => p.status === 'se_crearia').length} se crearían,{' '}
                       {extractedPlayers.filter((p) => p.status === 'ya_existe').length} ya existen,{' '}
                       {extractedPlayers.filter((p) => p.status === 'sin_email').length} sin email
                     </p>
                     {extractDone && (
-                      <button
-                        type="button"
-                        onClick={() => downloadCsv('playtomic-jugadores.csv', extractedPlayers, PLAYTOMIC_PLAYER_COLUMNS)}
-                        className="rounded-lg border border-gray-200 px-4 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                      >
-                        📄 Descargar CSV ({extractedPlayers.length})
-                      </button>
+                      <Button variant="secondary" size="sm" onClick={() => downloadCsv('playtomic-jugadores.csv', extractedPlayers, PLAYTOMIC_PLAYER_COLUMNS)}>
+                        <Download className="h-4 w-4" aria-hidden />
+                        Descargar CSV ({extractedPlayers.length})
+                      </Button>
                     )}
                   </div>
-                  <div className="max-h-64 overflow-auto rounded-lg border border-gray-100">
-                    <table className="w-full min-w-[1400px] text-xs">
-                      <thead className="sticky top-0 bg-gray-50">
+                  <div className="max-h-64 overflow-auto rounded-control border border-line">
+                    <table className="w-full min-w-[1400px] text-meta">
+                      <thead className="sticky top-0 bg-surface-2">
                         <tr>
                           {PLAYTOMIC_PLAYER_COLUMNS.map((c) => (
-                            <th key={c.key} className="whitespace-nowrap px-3 py-2 text-left">{c.header}</th>
+                            <th key={c.key} scope="col" className="whitespace-nowrap px-3 py-2 text-left font-medium text-ink-3">{c.header}</th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-line">
                         {extractedPlayers.map((p, i) => (
                           <tr key={i}>
                             {PLAYTOMIC_PLAYER_COLUMNS.map((c) => (
-                              <td key={c.key} className="whitespace-nowrap px-3 py-1.5">
+                              <td key={c.key} className="whitespace-nowrap px-3 py-1.5 text-ink-2">
                                 {c.key === 'status' ? (
                                   <>
-                                    {p.status === 'se_crearia' && <span className="text-green-600">se crearía</span>}
-                                    {p.status === 'ya_existe' && <span className="text-gray-400">ya existe</span>}
-                                    {p.status === 'sin_email' && <span className="text-red-500">sin email</span>}
+                                    {p.status === 'se_crearia' && <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Se crearía</Badge>}
+                                    {p.status === 'ya_existe' && <Badge tone="neutral">Ya existe</Badge>}
+                                    {p.status === 'sin_email' && <Badge tone="danger"><CircleX className="h-3.5 w-3.5" aria-hidden />Sin email</Badge>}
                                   </>
                                 ) : c.key === 'acceptsMarketing' ? (
                                   p.acceptsMarketing === null ? '—' : p.acceptsMarketing ? 'Sí' : 'No'
@@ -1554,15 +1503,18 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
               )}
 
               {importResult && (
-                <div className={`rounded-lg px-4 py-3 text-sm ${importResult.errors > 0 && importResult.imported === 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                <Notice
+                  tone={importResult.errors > 0 && importResult.imported === 0 ? 'danger' : 'success'}
+                  icon={importResult.errors > 0 && importResult.imported === 0 ? <CircleX /> : <CircleCheck />}
+                >
                   {importResult.message}
-                </div>
+                </Notice>
               )}
 
               <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  disabled={extracting}
+                <Button
+                  variant="secondary"
+                  loading={extracting}
                   onClick={async () => {
                     setExtracting(true)
                     setExtractError('')
@@ -1591,14 +1543,12 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
                     setExtractDone(true)
                     setExtracting(false)
                   }}
-                  className="rounded-lg border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                 >
-                  {extracting ? 'Extrayendo...' : '📥 Extraer y ver jugadores de Playtomic'}
-                </button>
+                  {extracting ? 'Extrayendo…' : 'Extraer y ver jugadores de Playtomic'}
+                </Button>
 
-                <button
-                  type="button"
-                  disabled={importing}
+                <Button
+                  loading={importing}
                   onClick={async () => {
                     setImporting(true)
                     setImportResult(null)
@@ -1608,15 +1558,15 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
                     else setImportResult(data)
                     setImporting(false)
                   }}
-                  className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
                 >
-                  {importing ? 'Importando jugadores...' : '⬇️ Importar jugadores de Playtomic'}
-                </button>
+                  {importing ? 'Importando jugadores…' : 'Importar jugadores de Playtomic'}
+                </Button>
               </div>
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       )}
+      </div>
     </div>
   )
 }
