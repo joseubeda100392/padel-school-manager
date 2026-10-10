@@ -2,7 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tokens del sistema de diseño — ver design.md en la raíz del repo.
+   Canales RGB para que Tailwind pueda aplicar opacidad (bg-ink/40). */
 @layer base {
+  :root {
+    --canvas: 242 245 248;
+    --surface: 255 255 255;
+    --surface-2: 246 248 250;
+    --line: 226 232 239;
+    --line-strong: 132 150 169;
+    --ink: 14 28 44;
+    --ink-2: 58 77 97;
+    --ink-3: 86 106 127;
+    --accent: 0 196 154;
+    --on-accent: 14 28 44;
+    --accent-hover: 25 211 170;
+    --accent-ink: 0 118 91;
+    --accent-soft: 226 247 240;
+    --warn-ink: 154 74 6;
+    --warn-soft: 253 241 220;
+    --danger-ink: 180 35 24;
+    --danger-soft: 253 236 234;
+    --chrome: 14 28 44;
+    --chrome-2: 21 36 52;
+    --chrome-line: 34 54 77;
+    --chrome-ink: 232 238 244;
+    --chrome-ink-2: 157 176 195;
+    --focus: 0 118 91;
+
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+    --safe-top: var(--sat, env(safe-area-inset-top, 0px));
+    --safe-bottom: var(--sab, env(safe-area-inset-bottom, 0px));
+    --tabbar-h: 64px;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+
+  /* Foco solo con teclado, visible al instante y con contraste AA. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--focus));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sora), system-ui, sans-serif;
   }
