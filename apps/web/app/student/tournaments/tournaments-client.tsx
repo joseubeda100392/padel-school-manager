@@ -3,7 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { CircleCheck, Clock, Lock, Users } from 'lucide-react'
 import { PayButton } from '@/components/pay-button'
+import { formatLongDate } from '@/lib/format-date'
+import { useConfirm } from '@/components/ui/confirm'
+import { Card } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
+import { Button, buttonVariants } from '@/components/ui/button'
 
 type Tournament = {
   id: string
@@ -19,14 +25,36 @@ type Tournament = {
   allowedLevels?: { id: string; name: string; color: string }[]
 }
 
-const statusLabel: Record<string, string> = { open: 'Abierto', closed: 'Cerrado', finished: 'Finalizado' }
-const statusColor: Record<string, string> = {
-  open: 'bg-green-100 text-green-700',
-  closed: 'bg-yellow-100 text-yellow-700',
-  finished: 'bg-gray-100 text-gray-500',
+function StatusBadge({ status }: { status: string }) {
+  if (status === 'open') {
+    return (
+      <Badge tone="success">
+        <CircleCheck className="h-3.5 w-3.5" aria-hidden />
+        Abierto
+      </Badge>
+    )
+  }
+  if (status === 'closed') {
+    return (
+      <Badge tone="warn">
+        <Lock className="h-3.5 w-3.5" aria-hidden />
+        Cerrado
+      </Badge>
+    )
+  }
+  if (status === 'finished') {
+    return (
+      <Badge tone="neutral">
+        <Clock className="h-3.5 w-3.5" aria-hidden />
+        Finalizado
+      </Badge>
+    )
+  }
+  return <Badge tone="neutral">{status}</Badge>
 }
 
 export function TournamentsClient({ tournaments, cashOnly = false }: { tournaments: Tournament[]; cashOnly?: boolean }) {
+  const confirm = useConfirm()
   const [states, setStates] = useState<Record<string, { registered: boolean; count: number; loading: boolean }>>(() =>
     Object.fromEntries(tournaments.map(t => [t.id, { registered: t.isRegistered, count: t.registeredCount, loading: false }]))
   )
@@ -40,11 +68,11 @@ export function TournamentsClient({ tournaments, cashOnly = false }: { tournamen
     })
     const j = await res.json().catch(() => ({}))
     if (!res.ok) {
-      toast.error(j.error ?? 'Error al inscribirse')
+      toast.error(j.error ?? 'No se ha podido completar la inscripción. Inténtalo de nuevo.')
       setStates(prev => ({ ...prev, [tournamentId]: { ...prev[tournamentId], loading: false } }))
       return
     }
-    toast.success('¡Inscrito correctamente!')
+    toast.success('Te has apuntado al torneo')
     setStates(prev => ({
       ...prev,
       [tournamentId]: { registered: true, count: prev[tournamentId].count + 1, loading: false },
@@ -52,7 +80,13 @@ export function TournamentsClient({ tournaments, cashOnly = false }: { tournamen
   }
 
   async function handleCancel(tournamentId: string) {
-    if (!confirm('¿Cancelar tu inscripción en este torneo?')) return
+    const ok = await confirm({
+      title: '¿Cancelar tu inscripción?',
+      description: 'Dejarás de estar apuntado a este torneo.',
+      confirmLabel: 'Cancelar inscripción',
+      destructive: true,
+    })
+    if (!ok) return
     setStates(prev => ({ ...prev, [tournamentId]: { ...prev[tournamentId], loading: true } }))
     const res = await fetch('/api/tournaments/register', {
       method: 'DELETE',
@@ -60,7 +94,7 @@ export function TournamentsClient({ tournaments, cashOnly = false }: { tournamen
       body: JSON.stringify({ tournamentId }),
     })
     if (!res.ok) {
-      toast.error('Error al cancelar la inscripción')
+      toast.error('No se ha podido cancelar la inscripción. Inténtalo de nuevo.')
       setStates(prev => ({ ...prev, [tournamentId]: { ...prev[tournamentId], loading: false } }))
       return
     }
@@ -72,107 +106,85 @@ export function TournamentsClient({ tournaments, cashOnly = false }: { tournamen
   }
 
   return (
-    <div className="space-y-4">
-      {tournaments.map(t => {
-        const state = states[t.id]
-        const dateLabel = new Date(t.tournament_date + 'T12:00:00').toLocaleDateString('es-ES', {
-          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-        })
-        const isFull = state.count >= t.max_players && !state.registered
-        const canRegister = t.status === 'open' && !state.registered && !isFull
+    <Card className="overflow-hidden">
+      <ul className="divide-y divide-line">
+        {tournaments.map(t => {
+          const state = states[t.id]
+          const isFull = state.count >= t.max_players && !state.registered
+          const canRegister = t.status === 'open' && !state.registered && !isFull
 
-        return (
-          <div key={t.id} className="rounded-xl bg-white p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <Link href={`/student/tournaments/${t.id}`} className="font-semibold text-gray-900 hover:text-brand-600 hover:underline">
-                    {t.name}
+          return (
+            <li key={t.id} className="p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <Link href={`/student/tournaments/${t.id}`} className="text-heading text-ink hover:underline">
+                      {t.name}
+                    </Link>
+                    <StatusBadge status={t.status} />
+                    {state.registered && (
+                      <Badge tone="success">
+                        <CircleCheck className="h-3.5 w-3.5" aria-hidden />
+                        Inscrito
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-body text-ink-2">{formatLongDate(t.tournament_date)}</p>
+                  {t.location && <p className="text-body text-ink-3">{t.location}</p>}
+                  {t.description && <p className="mt-1 text-body text-ink-2">{t.description}</p>}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta text-ink-3">
+                    <span className="inline-flex items-center gap-1 tabular-nums">
+                      <Users className="h-3.5 w-3.5" aria-hidden />
+                      {state.count} / {t.max_players} inscritos
+                    </span>
+                    <span className="tabular-nums">{t.price_cents > 0 ? `${(t.price_cents / 100).toFixed(2)} €` : 'Gratuito'}</span>
+                    {t.allowedLevels && t.allowedLevels.map(l => (
+                      <LevelTag key={l.id} name={l.name} color={l.color} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:items-end">
+                  {state.registered ? (
+                    t.status === 'open' ? (
+                      <Button
+                        variant="danger-ghost"
+                        onClick={() => handleCancel(t.id)}
+                        loading={state.loading}
+                        className="w-full sm:w-auto"
+                      >
+                        Cancelar inscripción
+                      </Button>
+                    ) : null
+                  ) : canRegister ? (
+                    t.price_cents > 0 ? (
+                      <div className="flex flex-col gap-1 sm:items-end">
+                        <PayButton
+                          type="tournament"
+                          tournamentId={t.id}
+                          label={`Pagar y apuntarme · ${(t.price_cents / 100).toFixed(2)} €`}
+                          className={buttonVariants({ variant: 'primary', className: 'w-full sm:w-auto' })}
+                          cashOnly={cashOnly}
+                        />
+                        <p className="text-meta text-ink-3">La inscripción no es reembolsable</p>
+                      </div>
+                    ) : (
+                      <Button onClick={() => handleRegister(t.id)} loading={state.loading} className="w-full sm:w-auto">
+                        Apuntarme
+                      </Button>
+                    )
+                  ) : isFull ? (
+                    <Badge tone="neutral">Completo</Badge>
+                  ) : null}
+                  <Link href={`/student/tournaments/${t.id}`} className={buttonVariants({ variant: 'link', size: 'md' })}>
+                    Ver información
                   </Link>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[t.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                    {statusLabel[t.status] ?? t.status}
-                  </span>
-                  {state.registered && (
-                    <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">
-                      Inscrito
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-500 capitalize">{dateLabel}</p>
-                {t.location && <p className="text-sm text-gray-400">{t.location}</p>}
-                {t.description && <p className="mt-1 text-sm text-gray-600">{t.description}</p>}
-                <div className="mt-2 flex flex-wrap gap-2 items-center">
-                  <span className="text-xs text-gray-400">{state.count} / {t.max_players} inscritos</span>
-                  <span className="text-xs text-gray-400">·</span>
-                  <span className="text-xs text-gray-400">{t.price_cents > 0 ? `${(t.price_cents / 100).toFixed(2)} €` : 'Gratuito'}</span>
-                  {t.allowedLevels && t.allowedLevels.length > 0 && (
-                    <>
-                      <span className="text-xs text-gray-400">·</span>
-                      {t.allowedLevels.map(l => (
-                        <span
-                          key={l.id}
-                          className="rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-                          style={{ backgroundColor: l.color }}
-                        >
-                          {l.name}
-                        </span>
-                      ))}
-                    </>
-                  )}
                 </div>
               </div>
-
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <Link
-                  href={`/student/tournaments/${t.id}`}
-                  className="text-xs text-brand-500 hover:underline"
-                >
-                  Ver info →
-                </Link>
-                {state.registered ? (
-                  t.status === 'open' ? (
-                    <button
-                      onClick={() => handleCancel(t.id)}
-                      disabled={state.loading}
-                      className="rounded-lg border border-red-100 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
-                    >
-                      {state.loading ? '...' : 'Cancelar'}
-                    </button>
-                  ) : (
-                    <span className="rounded-lg bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600">
-                      Inscrito
-                    </span>
-                  )
-                ) : canRegister ? (
-                  t.price_cents > 0 ? (
-                    <div className="flex flex-col items-end gap-1">
-                      <PayButton
-                        type="tournament"
-                        tournamentId={t.id}
-                        label={`Pagar y apuntarme — ${(t.price_cents / 100).toFixed(2)} €`}
-                        className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-                        cashOnly={cashOnly}
-                      />
-                      <p className="text-xs text-gray-400">La inscripción no es reembolsable</p>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleRegister(t.id)}
-                      disabled={state.loading}
-                      className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-                    >
-                      {state.loading ? '...' : 'Apuntarme'}
-                    </button>
-                  )
-                ) : isFull ? (
-                  <span className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-500">Completo</span>
-                ) : null}
-              </div>
-
-            </div>
-          </div>
-        )
-      })}
-    </div>
+            </li>
+          )
+        })}
+      </ul>
+    </Card>
   )
 }

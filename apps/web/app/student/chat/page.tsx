@@ -1,10 +1,11 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { StudentChatClient } from './student-chat-client'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { Avatar } from '@/components/ui/list'
 
 async function findOrCreateThread(supabase: any, userId: string, type: string, clubId: string | null, recipientId?: string) {
   const query = supabase
@@ -94,22 +95,27 @@ export default async function StudentChatPage({
     ? coachMap.get(activeCoachId!)?.name ?? 'Monitor'
     : 'Administración'
 
+  const linkClass = (active: boolean) =>
+    `flex min-h-11 items-center justify-center gap-2.5 rounded-control px-1.5 py-1.5 text-label transition-colors sm:justify-start sm:px-2.5 ${
+      active ? 'bg-accent-soft text-accent-ink' : 'text-ink-2 hover:bg-ink/5 hover:text-ink'
+    }`
+
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-white shadow-sm">
-      {/* Sidebar — icon-only on mobile, full on sm+ */}
-      <aside className="flex w-12 shrink-0 flex-col border-r border-gray-100 sm:w-44">
-        <div className="hidden border-b border-gray-100 px-3 py-3 sm:block">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Conversaciones</p>
+    <div className="flex min-h-0 flex-1 overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      {/* Conversaciones: solo iconos en móvil, completo desde sm */}
+      <aside className="flex w-14 shrink-0 flex-col border-r border-line sm:w-48">
+        <div className="hidden border-b border-line px-3 py-3 sm:block">
+          <h2 className="text-label text-ink-2">Conversaciones</h2>
         </div>
-        <nav className="flex-1 overflow-y-auto p-1.5 space-y-1 sm:p-2">
+        <nav aria-label="Conversaciones" className="flex-1 space-y-1 overflow-y-auto p-1.5 sm:p-2">
           <Link
             href="/student/chat?with=admin"
             title="Administración"
-            className={`flex items-center justify-center gap-2.5 rounded-lg px-1.5 py-2.5 text-sm font-medium transition-colors sm:justify-start sm:px-3 ${
-              withParam === 'admin' ? 'bg-brand-50 text-brand-600' : 'text-gray-600 hover:bg-gray-50'
-            }`}
+            aria-label="Administración"
+            aria-current={withParam === 'admin' ? 'page' : undefined}
+            className={linkClass(withParam === 'admin')}
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">A</span>
+            <Avatar name="Administración" className="h-8 w-8 text-meta" />
             <span className="hidden truncate sm:block">Administración</span>
           </Link>
           {coaches.map(c => (
@@ -117,21 +123,19 @@ export default async function StudentChatPage({
               key={c.id}
               href={`/student/chat?with=${c.id}`}
               title={c.name}
-              className={`flex items-center justify-center gap-2.5 rounded-lg px-1.5 py-2.5 text-sm font-medium transition-colors sm:justify-start sm:px-3 ${
-                withParam === c.id ? 'bg-brand-50 text-brand-600' : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              aria-label={c.name}
+              aria-current={withParam === c.id ? 'page' : undefined}
+              className={linkClass(withParam === c.id)}
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
-                {c.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
-              </span>
+              <Avatar name={c.name} className="h-8 w-8 text-meta" />
               <span className="hidden truncate sm:block">{c.name}</span>
             </Link>
           ))}
         </nav>
       </aside>
 
-      {/* Chat window */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Ventana de chat */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <StudentChatClient
           threadId={thread.id}
           threadStatus={thread.status}

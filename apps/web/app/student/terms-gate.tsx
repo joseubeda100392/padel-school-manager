@@ -1,7 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import { ExternalLink, FileText } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Notice } from '@/components/ui/feedback'
 
 type Props = {
   pdfUrl: string
@@ -13,6 +17,7 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [loggingOut, setLoggingOut] = useState(false)
+  const checkId = useId()
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -41,80 +46,67 @@ export function TermsGate({ pdfUrl, clubName }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-lg overflow-hidden">
-        <div className="bg-brand-500 px-8 py-6">
-          <p className="text-sm text-brand-100">{clubName}</p>
-          <h1 className="mt-1 text-xl font-bold text-white">Condiciones de Uso</h1>
-        </div>
+    <main className="flex min-h-screen items-center justify-center bg-canvas p-4">
+      <Card className="w-full max-w-md p-6 sm:p-8">
+        <img src="/icon.svg" alt="" width={40} height={40} className="h-10 w-10 rounded-xl" />
+        <p className="mt-4 text-meta text-ink-3">{clubName}</p>
+        <h1 className="mt-0.5 font-display text-title text-ink">Condiciones de uso</h1>
+        <p className="mt-2 text-body text-ink-2">
+          Antes de acceder a la aplicación debes leer y aceptar las condiciones de uso del club.
+        </p>
 
-        <div className="p-8">
-          <p className="mb-6 text-sm text-gray-500">
-            Antes de acceder a la aplicación debes leer y aceptar las condiciones de uso del club.
-          </p>
+        {typeof pdfUrl === 'string' && pdfUrl ? (
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => { window.open('/api/pdf/normas', '_blank') }}
+              className="flex min-h-14 w-full items-center gap-3 rounded-control border border-line-strong/60 bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2"
+            >
+              <FileText className="h-5 w-5 shrink-0 text-ink-2" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-label text-ink">Leer las condiciones de uso</span>
+                <span className="block text-meta text-ink-3">Se abre en una pestaña nueva</span>
+              </span>
+              <ExternalLink className="h-4 w-4 shrink-0 text-ink-3" aria-hidden />
+            </button>
+            <a
+              href="/api/pdf/normas"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex min-h-11 items-center text-label text-accent-ink underline underline-offset-4"
+            >
+              Si no se abre, abre el documento desde este enlace
+            </a>
+          </div>
+        ) : (
+          <div className="mt-6 flex h-24 items-center justify-center rounded-control border border-dashed border-line-strong/60 bg-surface-2 px-4 text-center">
+            <p className="text-body text-ink-3">El club no ha subido aún el documento de condiciones.</p>
+          </div>
+        )}
 
-          {typeof pdfUrl === 'string' && pdfUrl ? (
-            <div className="mb-6">
-              <button
-                type="button"
-                onClick={() => { window.open('/api/pdf/normas', '_blank') }}
-                className="flex w-full items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-left transition-colors hover:bg-gray-100"
-              >
-                <span className="text-3xl">📄</span>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">Leer las condiciones de uso</p>
-                  <p className="text-xs text-gray-400">Se abre en una nueva pestaña</p>
-                </div>
-                <span className="ml-auto text-gray-400">↗</span>
-              </button>
-              <a
-                href="/api/pdf/normas"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 block text-center text-xs text-brand-500 underline"
-              >
-                Si no se abre, pulsa aquí
-              </a>
-            </div>
-          ) : (
-            <div className="mb-6 flex h-28 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50">
-              <p className="text-sm text-gray-400">El club no ha subido aún el documento de condiciones.</p>
-            </div>
-          )}
-
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={accepted}
-              onChange={(e) => setAccepted(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 accent-brand-500"
-            />
-            <span className="text-sm text-gray-700">
-              He leído y acepto las condiciones de uso de <strong>{clubName}</strong>
-            </span>
+        <div className="mt-6 flex items-start gap-3">
+          <input
+            id={checkId}
+            type="checkbox"
+            checked={accepted}
+            onChange={(e) => setAccepted(e.target.checked)}
+            className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-line-strong accent-accent-ink"
+          />
+          <label htmlFor={checkId} className="cursor-pointer text-body text-ink">
+            He leído y acepto las condiciones de uso de <strong>{clubName}</strong>
           </label>
-
-          {error && (
-            <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-          )}
-
-          <button
-            onClick={handleAccept}
-            disabled={!accepted || loading}
-            className="mt-6 w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {loading ? 'Guardando...' : 'Aceptar y continuar'}
-          </button>
-
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="mt-3 w-full py-2 text-sm text-gray-400 hover:text-gray-600 disabled:opacity-40"
-          >
-            {loggingOut ? 'Cerrando sesión...' : 'No acepto — cerrar sesión'}
-          </button>
         </div>
-      </div>
-    </div>
+
+        {error && <Notice tone="danger" className="mt-4">{error}</Notice>}
+
+        <Button onClick={handleAccept} disabled={!accepted} loading={loading} size="lg" block className="mt-6">
+          Aceptar y continuar
+        </Button>
+
+        <Button onClick={handleLogout} loading={loggingOut} variant="ghost" block className="mt-2">
+          No acepto, cerrar sesión
+        </Button>
+      </Card>
+    </main>
   )
 }

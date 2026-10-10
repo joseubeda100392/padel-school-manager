@@ -1,7 +1,15 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { BookOpen, FileText } from 'lucide-react'
+import { formatLongDate } from '@/lib/format-date'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/feedback'
+import { LevelTag } from '@/components/ui/badge'
+import { List, ListRow } from '@/components/ui/list'
+import { buttonVariants } from '@/components/ui/button'
 
 export default async function StudentMaterialsPage() {
   const supabase = createClient()
@@ -42,53 +50,63 @@ export default async function StudentMaterialsPage() {
   const myLevel = levelData
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Materia didáctica</h1>
-        <p className="text-sm text-gray-500">
-          {myLevel ? (
-            <>PDFs para tu nivel: <span className="font-medium" style={{ color: myLevel.color }}>{myLevel.name}</span></>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader
+        title="Materia didáctica"
+        description={
+          myLevel ? (
+            <span className="inline-flex flex-wrap items-center gap-x-2">
+              PDFs para tu nivel: <LevelTag name={myLevel.name} color={myLevel.color} className="text-body" />
+            </span>
           ) : (
             'PDFs disponibles'
-          )}
-        </p>
-      </div>
+          )
+        }
+      />
 
       {materials.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-2xl mb-2">📚</p>
-          <p className="text-gray-400">No hay materias disponibles para tu nivel todavía.</p>
-          <p className="mt-1 text-xs text-gray-400">Tu monitor los irá subiendo próximamente.</p>
-        </div>
+        <Card>
+          <EmptyState
+            icon={<BookOpen />}
+            title="Todavía no hay materia para tu nivel"
+            description="Tu monitor la irá subiendo próximamente."
+          />
+        </Card>
       ) : (
-        <div className="space-y-3">
-          {materials.map((m: any) => (
-            <div key={m.id} className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100">
-                <span className="text-xs font-bold text-red-600">PDF</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-gray-900 truncate">{m.title}</p>
-                {m.description && (
-                  <p className="mt-0.5 text-sm text-gray-500 line-clamp-2">{m.description}</p>
-                )}
-                <p className="mt-1 text-xs text-gray-400">
-                  {new Date(m.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </p>
-              </div>
-              {m.file_url && (
-                <a
-                  href={`/api/pdf/material/${m.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shrink-0 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600"
-                >
-                  Abrir
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
+        <Card className="overflow-hidden">
+          <List>
+            {materials.map((m: any) => (
+              <ListRow
+                key={m.id}
+                leading={
+                  <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-control bg-ink/[0.05] text-ink-2">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                }
+                title={m.title}
+                subtitle={
+                  <>
+                    {m.description && <span className="line-clamp-2 block text-ink-2">{m.description}</span>}
+                    <span className="block">{formatLongDate(m.created_at, { weekday: false })}</span>
+                  </>
+                }
+                trailing={
+                  m.file_url ? (
+                    <a
+                      href={`/api/pdf/material/${m.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Abrir PDF: ${m.title}`}
+                      className={buttonVariants({ variant: 'secondary', size: 'md' })}
+                    >
+                      Abrir PDF
+                    </a>
+                  ) : undefined
+                }
+              />
+            ))}
+          </List>
+        </Card>
       )}
     </div>
   )

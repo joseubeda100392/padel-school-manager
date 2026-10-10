@@ -3,14 +3,18 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
-import Link from 'next/link'
+import { CircleCheck, Clock, Lock, MapPin, Tag, Users } from 'lucide-react'
+import { formatLongDate } from '@/lib/format-date'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
 import { TournamentDetailClient } from './tournament-detail-client'
 
-const statusLabel: Record<string, string> = { open: 'Abierto', closed: 'Cerrado', finished: 'Finalizado' }
-const statusColor: Record<string, string> = {
-  open: 'bg-green-100 text-green-700',
-  closed: 'bg-yellow-100 text-yellow-700',
-  finished: 'bg-gray-100 text-gray-500',
+function StatusBadge({ status }: { status: string }) {
+  if (status === 'open') return <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Abierto</Badge>
+  if (status === 'closed') return <Badge tone="warn"><Lock className="h-3.5 w-3.5" aria-hidden />Cerrado</Badge>
+  if (status === 'finished') return <Badge tone="neutral"><Clock className="h-3.5 w-3.5" aria-hidden />Finalizado</Badge>
+  return <Badge tone="neutral">{status}</Badge>
 }
 
 export default async function StudentTournamentDetailPage({ params }: { params: { id: string } }) {
@@ -51,50 +55,35 @@ export default async function StudentTournamentDetailPage({ params }: { params: 
   const registeredCount = (registrations ?? []).length
   const isRegistered = !!myReg
 
-  const dateLabel = new Date(tournament.tournament_date + 'T12:00:00').toLocaleDateString('es-ES', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
+  const dateLabel = formatLongDate(tournament.tournament_date)
 
   return (
-    <div className="max-w-xl">
-      <div className="mb-6">
-        <Link href="/student/tournaments" className="text-sm text-gray-400 hover:text-gray-600">
-          ← Torneos
-        </Link>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader
+        back={{ href: '/student/tournaments', label: 'Torneos' }}
+        title={tournament.name}
+        description={dateLabel}
+        actions={<StatusBadge status={tournament.status} />}
+      />
 
-      <div className="rounded-xl bg-white shadow-sm overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-br from-brand-500 to-brand-600 px-6 py-8 text-white">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold">{tournament.name}</h1>
-              <p className="mt-1 capitalize text-brand-100">{dateLabel}</p>
-            </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusColor[tournament.status] ?? 'bg-gray-100 text-gray-500'}`}>
-              {statusLabel[tournament.status] ?? tournament.status}
-            </span>
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="p-6 space-y-4">
+      <Card>
+        <div className="space-y-4 p-4 sm:p-5">
           {tournament.location && (
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 text-gray-400">📍</span>
-              <p className="text-sm text-gray-700">{tournament.location}</p>
+              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-ink-3" aria-label="Lugar" />
+              <p className="text-body text-ink">{tournament.location}</p>
             </div>
           )}
 
           <div className="flex items-start gap-3">
-            <span className="mt-0.5 text-gray-400">👥</span>
-            <div>
-              <p className="text-sm text-gray-700">
+            <Users className="mt-0.5 h-5 w-5 shrink-0 text-ink-3" aria-label="Plazas" />
+            <div className="min-w-0 flex-1">
+              <p className="text-body text-ink tabular-nums">
                 <span className="font-semibold">{registeredCount}</span> de <span className="font-semibold">{tournament.max_players}</span> plazas ocupadas
               </p>
-              <div className="mt-1.5 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-gray-100">
+              <div className="mt-1.5 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-ink/[0.07]">
                 <div
-                  className="h-1.5 rounded-full bg-brand-500 transition-all"
+                  className="h-1.5 rounded-full bg-accent-ink"
                   style={{ width: `${Math.min((registeredCount / tournament.max_players) * 100, 100)}%` }}
                 />
               </div>
@@ -102,8 +91,8 @@ export default async function StudentTournamentDetailPage({ params }: { params: 
           </div>
 
           <div className="flex items-start gap-3">
-            <span className="mt-0.5 text-gray-400">💰</span>
-            <p className="text-sm text-gray-700">
+            <Tag className="mt-0.5 h-5 w-5 shrink-0 text-ink-3" aria-label="Precio" />
+            <p className="text-body text-ink tabular-nums">
               {tournament.price_cents > 0
                 ? <><span className="font-semibold">{(tournament.price_cents / 100).toFixed(2)} €</span> por jugador</>
                 : 'Gratuito'}
@@ -111,31 +100,22 @@ export default async function StudentTournamentDetailPage({ params }: { params: 
           </div>
 
           {allowedLevels.length > 0 && (
-            <div className="flex items-start gap-3">
-              <span className="mt-0.5 text-gray-400">🎯</span>
-              <div className="flex flex-wrap gap-1.5">
-                {allowedLevels.map((l: any) => (
-                  <span
-                    key={l.id}
-                    className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-                    style={{ backgroundColor: l.color }}
-                  >
-                    {l.name}
-                  </span>
-                ))}
-              </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-meta text-ink-3">Niveles</span>
+              {allowedLevels.map((l: any) => (
+                <LevelTag key={l.id} name={l.name} color={l.color} />
+              ))}
             </div>
           )}
 
           {tournament.description && (
-            <div className="border-t border-gray-50 pt-4">
-              <p className="text-sm text-gray-600 whitespace-pre-line">{tournament.description}</p>
+            <div className="border-t border-line pt-4">
+              <p className="whitespace-pre-line text-body text-ink-2">{tournament.description}</p>
             </div>
           )}
         </div>
 
-        {/* Acción */}
-        <div className="border-t border-gray-50 px-6 pb-6 pt-4">
+        <div className="border-t border-line p-4 sm:p-5">
           <TournamentDetailClient
             tournamentId={tournament.id}
             status={tournament.status}
@@ -146,7 +126,7 @@ export default async function StudentTournamentDetailPage({ params }: { params: 
             cashOnly={features.cash_only_payments}
           />
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

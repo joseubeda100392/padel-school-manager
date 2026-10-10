@@ -6,6 +6,10 @@ import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import { IntensivosClient } from './intensivos-client'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { Sun } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/feedback'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -105,18 +109,17 @@ export default async function StudentIntensivosPage() {
   }).sort((a, b) => a.firstDate.localeCompare(b.firstDate))
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Intensivos</h1>
-        <p className="text-sm text-gray-500">Semanas de clases intensivas organizadas por tu club</p>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader title="Intensivos" description="Semanas de clases intensivas organizadas por tu club." />
 
       {packs.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-2xl mb-2">☀️</p>
-          <p className="text-gray-400">No hay intensivos disponibles por ahora.</p>
-          <p className="mt-1 text-xs text-gray-400">Tu club publicará los intensivos de verano próximamente.</p>
-        </div>
+        <Card>
+          <EmptyState
+            icon={<Sun />}
+            title="No hay intensivos disponibles por ahora"
+            description="Tu club publicará los intensivos próximamente."
+          />
+        </Card>
       ) : (
         <IntensivosClient packs={packs} enablePayments={features.enable_payments && billingActive} cashOnly={features.cash_only_payments} />
       )}

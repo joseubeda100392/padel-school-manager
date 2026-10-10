@@ -4,6 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { TournamentsClient } from './tournaments-client'
+import { Trophy } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/feedback'
 
 export default async function StudentTournamentsPage() {
   const supabase = createClient()
@@ -48,17 +52,17 @@ export default async function StudentTournamentsPage() {
   })
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Torneos</h1>
-        <p className="text-sm text-gray-500">Torneos organizados por tu club</p>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader title="Torneos" description="Torneos organizados por tu club." />
 
       {tournaments.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-2xl mb-2">🏆</p>
-          <p className="text-gray-400">No hay torneos disponibles para tu nivel por ahora.</p>
-        </div>
+        <Card>
+          <EmptyState
+            icon={<Trophy />}
+            title="No hay torneos para tu nivel por ahora"
+            description="Cuando el club abra uno para tu nivel, lo verás aquí."
+          />
+        </Card>
       ) : (
         <TournamentsClient
           tournaments={tournaments.map((t: any) => ({

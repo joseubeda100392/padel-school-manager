@@ -1,20 +1,25 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Bell, CalendarDays, CalendarPlus, CircleAlert, CircleCheck, CircleX, CreditCard, Megaphone, MessageCircle, Trash2, Trophy, type LucideIcon } from 'lucide-react'
+import { formatClock, formatLongDate } from '@/lib/format-date'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/feedback'
+import { Button } from '@/components/ui/button'
 
-const TYPE_ICON: Record<string, string> = {
-  spot_available: '🎾',
-  admin_message: '📢',
-  payment_reminder: '💳',
-  payment_succeeded: '✅',
-  payment_failed: '❌',
-  booking_confirmed: '✅',
-  booking_cancelled: '❌',
-  class_reminder: '📅',
-  level_updated: '🏆',
-  chat_message: '💬',
+const TYPE_ICON: Record<string, LucideIcon> = {
+  spot_available: CalendarPlus,
+  admin_message: Megaphone,
+  payment_reminder: CreditCard,
+  payment_succeeded: CircleCheck,
+  payment_failed: CircleAlert,
+  booking_confirmed: CircleCheck,
+  booking_cancelled: CircleX,
+  class_reminder: CalendarDays,
+  level_updated: Trophy,
+  chat_message: MessageCircle,
 }
 
 type Notification = {
@@ -59,71 +64,66 @@ export function NotificationList({ initial, targetUserId }: { initial: Notificat
 
   if (items.length === 0) {
     return (
-      <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-        <p className="text-2xl mb-2">🔔</p>
-        <p className="text-gray-400">No tienes notificaciones.</p>
-      </div>
+      <Card>
+        <EmptyState icon={<Bell />} title="No tienes notificaciones" description="Aquí verás los avisos del club y de tus clases." />
+      </Card>
     )
   }
 
   return (
-    <>
-      <div className="mb-3 flex justify-end">
-        <button
-          onClick={deleteAll}
-          disabled={clearingAll}
-          className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
-        >
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button variant="danger-ghost" size="sm" onClick={deleteAll} loading={clearingAll}>
           {clearingAll ? 'Borrando...' : 'Borrar todo'}
-        </button>
+        </Button>
       </div>
 
-      <div className="space-y-2">
-        {items.map(n => {
-          const icon = TYPE_ICON[n.type] ?? '🔔'
-          const url = (n.data as any)?.url
-          const dateLabel = new Date(n.created_at).toLocaleDateString('es-ES', {
-            day: 'numeric', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-          })
+      <Card className="overflow-hidden">
+        <ul className="divide-y divide-line">
+          {items.map(n => {
+            const Icon = TYPE_ICON[n.type] ?? Bell
+            const url = (n.data as any)?.url
+            const dateLabel = `${formatLongDate(n.created_at, { weekday: false })}, ${formatClock(n.created_at)}`
 
-          const card = (
-            <div className={`flex gap-4 rounded-xl p-4 shadow-sm transition-colors ${n.is_read ? 'bg-white' : 'bg-brand-50 border border-green-100'}`}>
-              <div className="mt-0.5 text-2xl">{icon}</div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className={`text-sm font-semibold ${n.is_read ? 'text-gray-800' : 'text-gray-900'}`}>
+            const content = (
+              <>
+                <span aria-hidden className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${n.is_read ? 'bg-ink/[0.05] text-ink-3' : 'bg-accent-soft text-accent-ink'}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-body text-ink ${n.is_read ? 'font-medium' : 'font-semibold'}`}>
+                    {!n.is_read && <span className="sr-only">Sin leer. </span>}
                     {n.title}
                   </p>
-                  {!n.is_read && (
-                    <span className="shrink-0 h-2 w-2 rounded-full bg-brand-500 mt-1.5" />
-                  )}
+                  <p className="mt-0.5 text-body text-ink-2">{n.body}</p>
+                  <p className="mt-1 text-meta tabular-nums text-ink-3">{dateLabel}</p>
                 </div>
-                <p className="mt-0.5 text-sm text-gray-600">{n.body}</p>
-                <p className="mt-1 text-xs text-gray-400">{dateLabel}</p>
-              </div>
-              <button
-                onClick={e => { e.preventDefault(); e.stopPropagation(); deleteOne(n.id) }}
-                disabled={deletingId === n.id}
-                className="ml-1 shrink-0 self-start rounded p-1 text-gray-300 hover:bg-red-50 hover:text-red-400 disabled:opacity-40"
-                aria-label="Borrar notificación"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
-          )
+                {!n.is_read && <span aria-hidden className="mt-2 h-2 w-2 shrink-0 rounded-full bg-accent-ink" />}
+              </>
+            )
+            const contentClass = 'flex min-w-0 flex-1 items-start gap-3 py-3 pl-4'
 
-          return url ? (
-            <Link key={n.id} href={url} className="block hover:opacity-90">
-              {card}
-            </Link>
-          ) : (
-            <div key={n.id}>{card}</div>
-          )
-        })}
-      </div>
-    </>
+            return (
+              <li key={n.id} className={`flex items-start ${n.is_read ? '' : 'bg-accent-soft/40'}`}>
+                {url ? (
+                  <Link href={url} className={`${contentClass} hover:bg-ink/[0.03]`}>{content}</Link>
+                ) : (
+                  <div className={contentClass}>{content}</div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => deleteOne(n.id)}
+                  disabled={deletingId === n.id}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-ink-3 hover:bg-danger-soft hover:text-danger-ink disabled:opacity-40"
+                  aria-label={`Borrar notificación: ${n.title}`}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </Card>
+    </div>
   )
 }
