@@ -38,6 +38,9 @@ export function Sheet({
     if (open && !dialog.open) {
       setClosing(false)
       dialog.showModal()
+      // Foco en la hoja (no en un botón): el lector anuncia el título y nadie
+      // confirma una acción por pulsar Intro sin querer.
+      dialog.focus()
     } else if (!open && dialog.open) {
       setClosing(true)
       const t = setTimeout(() => dialog.close(), 200)
@@ -82,7 +85,9 @@ export function Sheet({
         if (e.target === ref.current) onClose()
       }}
       aria-labelledby="sheet-title"
+      tabIndex={-1}
       className={cn(
+        'focus:outline-none',
         'group m-0 mt-auto max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-ink/40',
         'sm:m-auto sm:w-[min(32rem,calc(100vw-2rem))]',
         'backdrop:transition-opacity backdrop:duration-200',

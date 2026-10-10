@@ -54,7 +54,6 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               size="lg"
               className="sm:h-11"
               onClick={() => settle(true)}
-              autoFocus
             >
               {options?.confirmLabel}
             </Button>

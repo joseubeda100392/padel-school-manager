@@ -21,11 +21,13 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  // Cabecera de la app en blanco: barra de estado clara con iconos oscuros.
+  themeColor: '#FFFFFF',
 }
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://epadelschool.app'),
-  title: 'ePadel School — Panel Admin',
+  title: { default: 'ePadel School', template: '%s · ePadel School' },
   description: 'La plataforma digital para gestionar tu escuela de pádel. Clases, alumnos, reservas y pagos en un solo lugar.',
   robots: { index: false, follow: false },
   verification: { google: 'd855c92217cfc88d' },
@@ -45,7 +47,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'ePadel School',
   },
 }
@@ -58,7 +60,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${sora.variable} ${dmSans.variable} font-sans antialiased`}>
         <SwipeGuard />
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster
+          position="top-center"
+          offset="calc(var(--safe-top) + 12px)"
+          toastOptions={{
+            classNames: {
+              toast: 'font-sans rounded-card border border-line bg-surface text-ink shadow-overlay',
+              title: 'text-label text-ink',
+              description: 'text-meta text-ink-2',
+              success: '[&_[data-icon]]:text-accent-ink',
+              error: '[&_[data-icon]]:text-danger-ink',
+            },
+          }}
+        />
         <UpdateChecker currentVersion={currentVersion} />
       </body>
     </html>
