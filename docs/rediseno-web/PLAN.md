@@ -3,7 +3,33 @@
 Rama: `rediseno-web` (sale de `v2.1`, la versión en producción el 10 de octubre de 2026).
 Volver atrás en cualquier momento: `git checkout v2.1`.
 
-Revisado con las skills de diseño del proyecto: hallmark (auditoría y rediseño), ui-ux-pro-max (reglas de UX y accesibilidad), frontend-design (dirección visual), emil-design-eng (movimiento y detalle) y web-design-guidelines. Base: capturas reales de producción (login, alumna y monitor de la demo X7 PINTO, en móvil y escritorio) y mediciones sobre el código.
+Revisado con las skills de diseño del proyecto (en el punto 0 se explica cuáles sirven para una app y para qué). Base: capturas reales de producción (login, alumna y monitor de la demo X7 PINTO, en móvil y escritorio) y mediciones sobre el código.
+
+## 0. Punto de partida: es una app, no una web
+
+ePadel School es una **app que se usa desde el navegador del móvil**: se instala en la pantalla de inicio y se abre sin barra del navegador. Alumnos y monitores la usan casi siempre en el móvil; el admin, en móvil y en ordenador. Por eso el listón no es "una web bonita", sino que **se sienta como una app nativa**: navegación con pestañas abajo, hojas que suben desde abajo en lugar de ventanas centradas, respuesta inmediata al tocar, respeto de la muesca y la barra de gestos, y cero saltos al cargar.
+
+### Qué skills sirven para esto
+
+| Skill | ¿Sirve? | Para qué se usa |
+|---|---|---|
+| **ui-ux-pro-max** | Sí, la principal | Sus reglas están escritas para apps: zonas táctiles de 44 px, barra inferior de máximo 5 pestañas, zonas seguras, respuesta al pulsar, estados de carga y error, contraste. Es el checklist de cada pantalla |
+| **apple-design** | Sí, muy útil | Gestos, hojas que suben desde abajo, animaciones con física, tipografía y materiales al estilo iOS. Es la que da el "tacto" de app nativa |
+| **emil-design-eng** | Sí | Detalle de interacción: botones que responden al pulsar, hojas deslizables, avisos, tiempos y curvas de animación |
+| **web-design-guidelines** | Sí, para revisar | Revisión final de accesibilidad y buenas prácticas web, archivo por archivo |
+| **vercel-react-best-practices** | Sí, para rendimiento | Que la app cargue y responda rápido en móviles normales |
+| **hallmark** | En parte | Pensada sobre todo para webs y landings (portada, secciones, pie). De ella se usan las reglas anti-"diseño genérico", el sistema de tokens, `design.md` y los 8 estados de cada componente. Su parte de estructura de página solo se aplica al login y a las páginas públicas |
+| **frontend-design** | En parte | La forma de decidir una dirección visual propia y no genérica. Sus pautas de portada y web de marketing no aplican a las pantallas internas |
+
+### Qué cambia en el plan por ser app
+
+- **Barra de pestañas abajo** para alumno y monitor (4 accesos + "Más"); el admin, con la barra en móvil y el menú lateral en ordenador.
+- **Hojas inferiores** (se cierran deslizando hacia abajo) para confirmar pagos, apuntarse a un hueco, registrar una falta… en lugar de ventanas centradas y de los `confirm()` del navegador.
+- **Cabecera fija** de app, con título de pantalla y botón de volver en las pantallas de detalle.
+- **Botón de acción fijo abajo** en pantallas con una acción principal (pagar, apuntarse), por encima de la barra de gestos.
+- **Respuesta al tocar** en todo lo pulsable, sin el retardo ni el resaltado azul del navegador.
+- **Esqueletos de carga** y transiciones cortas entre pantallas, para que no "parpadee" como una web.
+- **Instalación y estado sin conexión** cuidados: pantalla de arranque, iconos y un aviso claro si no hay red.
 
 ## 1. Por qué no parece profesional
 
@@ -49,7 +75,7 @@ Cada fase se hace en `rediseno-web`, se revisa con capturas en móvil (375 px) y
 | Fase | Qué | Resultado visible | Tamaño |
 |---|---|---|---|
 | 0 · Sistema | `design.md` con la dirección elegida. Tokens en `tailwind.config` y `globals.css`: colores con significado (superficie, texto, acción, éxito, aviso, error), escala tipográfica, espaciado, radios, sombras, movimiento, números tabulares. Página interna `/dev/design` con todos los componentes | Nada todavía para el usuario | 1 día |
-| 1 · Componentes | `Button`, `Card`, `Badge`, `Field`/`Input`/`Select`, `Dialog` (sustituye a `confirm`/`alert`), `Toast`, `Skeleton`, `EmptyState`, `PageHeader`, `StatTile`, `DataTable`, `Tabs`, `Calendar`. Todos con estados de foco, pulsado, desactivado, cargando y error. Iconos Lucide en lugar de emojis | Nada todavía para el usuario | 2–3 días |
+| 1 · Componentes | `Button`, `Card`, `Badge`, `Field`/`Input`/`Select`, `Sheet` (hoja inferior en móvil, ventana en ordenador; sustituye a `confirm`/`alert`), `Toast`, `AppBar`, `TabBar`, `StickyAction`, `Skeleton`, `EmptyState`, `PageHeader`, `StatTile`, `DataTable`, `Tabs`, `Calendar`. Todos con estados de foco, pulsado, desactivado, cargando y error. Iconos Lucide en lugar de emojis | Nada todavía para el usuario | 2–3 días |
 | 2 · Estructura | Menús de alumno, monitor y admin rehechos: bottom bar en móvil, menú agrupado por secciones, cabecera con el club, aviso de notificaciones como banner que no tapa nada, título de pestaña correcto | Cambia toda la app de golpe | 1–2 días |
 | 3 · Alumno | Portada centrada en la próxima clase y el saldo; Mis clases, Huecos, Bolsa, Pagos, Perfil. Calendario con leyenda clara | Lo que más ve la gente | 2–3 días |
 | 4 · Monitor | Portada, Mis clases (semana), detalle de clase con asistencia, calendario maestro | | 1–2 días |
