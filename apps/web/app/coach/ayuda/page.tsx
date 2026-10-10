@@ -1,4 +1,8 @@
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card } from '@/components/ui/card'
+import { Notice } from '@/components/ui/feedback'
+import { buttonVariants } from '@/components/ui/button'
 
 const NAV_ITEMS = [
   { id: 'que-es',          label: '¿Qué es?' },
@@ -15,11 +19,8 @@ const NAV_ITEMS = [
 
 export default function CoachAyudaPage() {
   return (
-    <div className="max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Ayuda</h1>
-        <p className="text-sm text-gray-500">Todo lo que necesitas saber para usar el panel de monitor</p>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader title="Ayuda" description="Todo lo que necesitas saber para usar el panel de monitor" />
 
       <div className="lg:grid lg:grid-cols-[1fr_164px] lg:gap-8 lg:items-start">
 
@@ -30,7 +31,7 @@ export default function CoachAyudaPage() {
           </Section>
 
           <Section id="menu" title="El menú principal">
-            <div className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-200 overflow-hidden">
+            <div className="mt-2 divide-y divide-line overflow-hidden rounded-control border border-line">
               {[
                 ['Inicio', 'Resumen de tu día y accesos rápidos.'],
                 ['Mis Clases', 'Tus clases asignadas, en vista lista o calendario semanal.'],
@@ -40,13 +41,13 @@ export default function CoachAyudaPage() {
                 ['Chat soporte', 'Contacto directo con el club.'],
                 ['Ayuda', 'Este manual.'],
               ].map(([label, desc]) => (
-                <div key={label} className="flex gap-3 bg-white px-4 py-3">
-                  <span className="w-40 shrink-0 text-sm font-semibold text-gray-800">{label}</span>
-                  <span className="text-sm text-gray-500">{desc}</span>
+                <div key={label} className="flex flex-col gap-0.5 bg-surface px-4 py-3 sm:flex-row sm:gap-3">
+                  <span className="shrink-0 text-label text-ink sm:w-40">{label}</span>
+                  <span className="text-body text-ink-2">{desc}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-gray-400">Si alguna opción no aparece en tu menú, es que el club no la usa.</p>
+            <p className="mt-3 text-meta text-ink-3">Si alguna opción no aparece en tu menú, es que el club no la usa.</p>
           </Section>
 
           <Section id="mis-clases" title="Mis clases">
@@ -63,7 +64,7 @@ export default function CoachAyudaPage() {
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li><strong>Grupo fijo</strong>: los alumnos inscritos de forma permanente, con su nivel y un acceso directo a sus <strong>Objetivos</strong>.</li>
               <li><strong>Materia didáctica</strong>: los PDFs publicados para el nivel de esa clase, si el club usa este módulo.</li>
-              <li><strong>Lista de asistencia</strong>: alumnos que han reservado esa clase de forma puntual (bolsa o hueco libre) — márcalos con ✓ o ✗ según asistan.</li>
+              <li><strong>Lista de asistencia</strong>: alumnos que han reservado esa clase de forma puntual (bolsa o hueco libre) — márcalos como asistente o ausente según asistan.</li>
             </ul>
             <Nota>Los cambios de hora puntuales y los sustitutos de monitor para un día concreto los gestiona el club desde su panel de admin — si tu clase cambia de hora o la va a dar otro monitor un día, te llegará un aviso.</Nota>
           </Section>
@@ -80,7 +81,7 @@ export default function CoachAyudaPage() {
 
           <Section id="calendario" title="Calendario maestro">
             <p>Muestra la semana completa del club: todas las pistas, todos los monitores y los alumnos de cada grupo fijo — no solo tus propias clases. Útil para ver quién más da clase a la misma hora, en qué pista está libre un hueco, etc.</p>
-            <p className="mt-2 text-sm text-gray-500">Es solo de consulta: no puedes editar clases de otros monitores desde aquí.</p>
+            <p className="mt-2 text-body text-ink-3">Es solo de consulta: no puedes editar clases de otros monitores desde aquí.</p>
           </Section>
 
           <Section id="tambien-alumno" title="Si también eres alumno del club">
@@ -106,30 +107,30 @@ export default function CoachAyudaPage() {
             </div>
           </Section>
 
-          <div className="rounded-xl bg-brand-50 border border-brand-100 p-5 text-center">
-            <p className="text-sm font-semibold text-brand-700 mb-1">¿No encuentras lo que buscas?</p>
-            <p className="text-sm text-brand-600 mb-3">Escríbenos directamente y te respondemos lo antes posible.</p>
-            <Link href="/coach/chat" className="inline-block rounded-lg bg-brand-500 px-5 py-2 text-sm font-medium text-white hover:bg-brand-600">
+          <Card className="p-5 text-center">
+            <p className="text-heading text-ink">¿No encuentras lo que buscas?</p>
+            <p className="mb-4 mt-1 text-body text-ink-2">Escríbenos directamente y te respondemos lo antes posible.</p>
+            <Link href="/coach/chat" className={buttonVariants()}>
               Abrir chat de soporte
             </Link>
-          </div>
+          </Card>
         </div>
 
         <aside className="hidden lg:block">
-          <div className="sticky top-6 rounded-xl bg-white p-4 shadow-sm">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">Contenido</p>
-            <nav className="space-y-0.5">
+          <Card className="sticky top-6 p-4">
+            <p className="mb-3 text-label text-ink-2">Contenido</p>
+            <nav aria-label="Contenido de la ayuda" className="space-y-0.5">
               {NAV_ITEMS.map(({ id, label }) => (
                 <a
                   key={id}
                   href={`#${id}`}
-                  className="block rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                  className="block rounded-control px-3 py-1.5 text-body text-ink-2 transition-colors hover:bg-ink/5 hover:text-ink"
                 >
                   {label}
                 </a>
               ))}
             </nav>
-          </div>
+          </Card>
         </aside>
 
       </div>
@@ -139,10 +140,10 @@ export default function CoachAyudaPage() {
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <div id={id} className="scroll-mt-4 rounded-xl bg-white p-6 shadow-sm">
-      <h2 className="mb-3 text-base font-semibold text-gray-900">{title}</h2>
-      <div className="text-sm text-gray-600 leading-relaxed">{children}</div>
-    </div>
+    <Card id={id} className="scroll-mt-4 p-5 sm:p-6">
+      <h2 className="mb-3 text-heading text-ink">{title}</h2>
+      <div className="text-body text-ink-2">{children}</div>
+    </Card>
   )
 }
 
@@ -151,7 +152,7 @@ function Steps({ items }: { items: string[] }) {
     <ol className="mt-2 space-y-2">
       {items.map((item, i) => (
         <li key={i} className="flex gap-3">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600">{i + 1}</span>
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-meta font-medium tabular-nums text-accent-ink">{i + 1}</span>
           <span>{item}</span>
         </li>
       ))}
@@ -161,25 +162,25 @@ function Steps({ items }: { items: string[] }) {
 
 function Aviso({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+    <Notice tone="warn" className="mt-3">
       <strong>Importante: </strong>{children}
-    </div>
+    </Notice>
   )
 }
 
 function Nota({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+    <Notice tone="success" className="mt-3">
       {children}
-    </div>
+    </Notice>
   )
 }
 
 function FAQ({ q, a }: { q: string; a: string }) {
   return (
     <div>
-      <p className="font-semibold text-gray-800">{q}</p>
-      <p className="mt-1 text-gray-500">{a}</p>
+      <p className="text-label text-ink">{q}</p>
+      <p className="mt-1 text-body text-ink-2">{a}</p>
     </div>
   )
 }

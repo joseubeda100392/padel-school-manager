@@ -9,6 +9,12 @@ import { RealtimeRefresh } from '@/components/realtime-refresh'
 import CoachWeeklyCalendar from './coach-weekly-calendar'
 import { computeScheduleReviewMap, computeScheduleReviewByDate } from '@/lib/schedule-review'
 import { getHolidaySet } from '@/lib/club-holidays'
+import { CalendarOff, CircleAlert } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, SectionTitle } from '@/components/ui/card'
+import { LevelTag } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/feedback'
+import { List, ListRow } from '@/components/ui/list'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -124,8 +130,13 @@ export default async function CoachClassesPage({
     reference_date: referenceDateBySchedule[s.id],
   }))
 
+  const viewLink = (active: boolean) =>
+    `inline-flex min-h-11 flex-1 items-center justify-center px-4 text-label transition-colors sm:flex-none ${
+      active ? 'bg-ink text-surface' : 'bg-surface text-ink-2 hover:bg-surface-2'
+    }`
+
   return (
-    <div>
+    <div className={`mx-auto w-full space-y-6 ${view === 'week' ? 'max-w-5xl' : 'max-w-3xl'}`}>
       <RealtimeRefresh
         channelName={`coach-classes-${user.id}`}
         subs={[
@@ -134,99 +145,89 @@ export default async function CoachClassesPage({
           { table: 'bookings' },
         ]}
       />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>
-          <p className="text-sm text-gray-500">{schedules?.length ?? 0} clases asignadas</p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/coach/classes?view=list"
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${view === 'list' ? 'border-brand-500 bg-brand-50 text-brand-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-          >
-            Lista
-          </Link>
-          <Link
-            href="/coach/classes?view=week"
-            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${view === 'week' ? 'border-brand-500 bg-brand-50 text-brand-600' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-          >
-            Calendario
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Mis clases"
+        description={`${schedules?.length ?? 0} clases asignadas`}
+        actions={
+          <div role="group" aria-label="Vista" className="flex w-full overflow-hidden rounded-control border border-line-strong/60 sm:w-auto">
+            <Link href="/coach/classes?view=list" aria-pressed={view === 'list'} className={viewLink(view === 'list')}>
+              Lista
+            </Link>
+            <Link href="/coach/classes?view=week" aria-pressed={view === 'week'} className={`border-l border-line-strong/60 ${viewLink(view === 'week')}`}>
+              Calendario
+            </Link>
+          </div>
+        }
+      />
 
       {view === 'week' ? (
         <CoachWeeklyCalendar schedules={schedulesWithCount} holidays={[...holidays]} />
       ) : orderedDays.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-gray-400">No tienes clases asignadas.</p>
-        </div>
+        <Card>
+          <EmptyState
+            icon={<CalendarOff />}
+            title="No tienes clases asignadas"
+            description="Cuando el club te asigne una clase aparecerá aquí."
+          />
+        </Card>
       ) : (
-        <div className="max-w-2xl space-y-6">
+        <div className="space-y-6">
           {orderedDays.map(dow => (
-            <div key={dow}>
-              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">{DAYS[dow]}</h2>
-              <div className="space-y-3">
-                {byDay[dow]
-                  .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                  .map((s: any) => {
-                    const enrolled = countBySchedule[s.id] ?? 0
-                    const pct = Math.min((enrolled / s.max_students) * 100, 100)
-                    const review = reviewInfoMap[s.id] ?? null
-                    const referenceDate = referenceDateBySchedule[s.id]
-                    return (
-                      <Link
-                        key={s.id}
-                        href={`/coach/classes/${s.id}?date=${referenceDate}`}
-                        className="block rounded-xl bg-white p-5 shadow-sm transition hover:shadow-md"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-gray-900">
+            <section key={dow} className="space-y-3">
+              <SectionTitle>{DAYS[dow]}</SectionTitle>
+              <Card className="overflow-hidden">
+                <List>
+                  {byDay[dow]
+                    .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                    .map((s: any) => {
+                      const enrolled = countBySchedule[s.id] ?? 0
+                      const review = reviewInfoMap[s.id] ?? null
+                      const referenceDate = referenceDateBySchedule[s.id]
+                      return (
+                        <ListRow
+                          key={s.id}
+                          href={`/coach/classes/${s.id}?date=${referenceDate}`}
+                          title={
+                            <span className="font-display text-heading tabular-nums">
                               {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                            </p>
-                            <p className="mt-0.5 text-sm text-gray-500">{s.court?.name ?? '—'}</p>
-                            {s.level && (
-                              <span
-                                className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-                                style={{ backgroundColor: s.level.color }}
-                              >
-                                {s.level.name}
+                            </span>
+                          }
+                          subtitle={
+                            <span className="flex flex-col gap-0.5">
+                              <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                                <span>{s.court?.name ?? '—'}</span>
+                                {s.level && <LevelTag name={s.level.name} color={s.level.color} />}
                               </span>
-                            )}
-                            {review && (
-                              <div className="mt-2 flex items-start gap-1.5">
-                                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-500" title="Hay faltas registradas" />
-                                <div className="flex flex-col gap-0.5">
-                                  {review.substituteNames.map((name: string, i: number) => (
-                                    <span key={i} className="text-xs font-medium text-gray-700">{name} sustituye</span>
-                                  ))}
-                                  {review.uncoveredCount > 0 && (
-                                    <span className="text-xs font-medium text-red-600">
-                                      {review.uncoveredCount} plaza{review.uncoveredCount > 1 ? 's' : ''} libre{review.uncoveredCount > 1 ? 's' : ''} — avisa a los alumnos
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-gray-900">
-                              {enrolled}<span className="text-base font-normal text-gray-400">/{s.max_students}</span>
-                            </p>
-                            <p className="text-xs text-gray-400">alumnos</p>
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                            <div className="h-1.5 rounded-full bg-blue-500" style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                      </Link>
-                    )
-                  })}
-              </div>
-            </div>
+                              {review && (
+                                <span className="flex items-start gap-1.5 font-medium text-warn-ink">
+                                  <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                                  <span className="flex flex-col">
+                                    {review.substituteNames.map((name: string, i: number) => (
+                                      <span key={i}>{name} sustituye</span>
+                                    ))}
+                                    {review.uncoveredCount > 0 && (
+                                      <span>
+                                        {review.uncoveredCount} plaza{review.uncoveredCount > 1 ? 's' : ''} libre{review.uncoveredCount > 1 ? 's' : ''}: avisa a los alumnos
+                                      </span>
+                                    )}
+                                  </span>
+                                </span>
+                              )}
+                            </span>
+                          }
+                          trailing={
+                            <span className="text-ink">
+                              <span className="font-display text-heading tabular-nums">{enrolled}</span>
+                              <span className="text-meta tabular-nums text-ink-3">/{s.max_students}</span>
+                              <span className="block text-meta text-ink-3">alumnos</span>
+                            </span>
+                          }
+                        />
+                      )
+                    })}
+                </List>
+              </Card>
+            </section>
           ))}
         </div>
       )}

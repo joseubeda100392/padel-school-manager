@@ -5,6 +5,13 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatDate } from '@/lib/utils'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { FileText, FolderOpen } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card } from '@/components/ui/card'
+import { LevelTag } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/feedback'
+import { List, ListRow } from '@/components/ui/list'
+import { buttonVariants } from '@/components/ui/button'
 
 export default async function CoachMaterialsPage() {
   const supabase = createClient()
@@ -31,59 +38,55 @@ export default async function CoachMaterialsPage() {
   )
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Materia didáctica</h1>
-        <p className="text-sm text-gray-500">{materials?.length ?? 0} documentos</p>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader title="Materia didáctica" description={`${materials?.length ?? 0} documentos`} />
 
-      {materials?.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-gray-400">No hay materias publicadas.</p>
-        </div>
+      {!materials || materials.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<FolderOpen />}
+            title="No hay materias publicadas"
+            description="Cuando el club publique documentos aparecerán aquí."
+          />
+        </Card>
       ) : (
-        <div className="space-y-3">
-          {materials?.map((m: any) => (
-            <div key={m.id} className="flex items-center gap-4 rounded-xl bg-white p-4 shadow-sm">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100">
-                <span className="text-sm font-bold text-red-600">PDF</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">{m.title}</p>
-                {m.description && (
-                  <p className="mt-0.5 text-sm text-gray-500 truncate">{m.description}</p>
-                )}
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {m.material_levels?.map((ml: any, i: number) => (
-                    <span
-                      key={i}
-                      className="rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                      style={{ backgroundColor: ml.level?.color ?? '#6b7280' }}
+        <Card className="overflow-hidden">
+          <List>
+            {materials.map((m: any) => (
+              <ListRow
+                key={m.id}
+                leading={
+                  <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-control bg-ink/[0.05] text-ink-2">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                }
+                title={<span className="block whitespace-normal">{m.title}</span>}
+                subtitle={
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                    {m.description && <span className="w-full truncate">{m.description}</span>}
+                    {m.material_levels?.map((ml: any, i: number) => (
+                      <LevelTag key={i} name={ml.level?.name} color={ml.level?.color} />
+                    ))}
+                    {(!m.material_levels || m.material_levels.length === 0) && <span>Todos los niveles</span>}
+                    <span className="tabular-nums">{formatDate(m.created_at)}</span>
+                  </span>
+                }
+                trailing={
+                  m.file_url ? (
+                    <a
+                      href={`/api/pdf/material/${m.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={buttonVariants({ variant: 'secondary', size: 'sm' })}
                     >
-                      {ml.level?.name}
-                    </span>
-                  ))}
-                  {(!m.material_levels || m.material_levels.length === 0) && (
-                    <span className="text-xs text-gray-400">Todos los niveles</span>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <p className="text-xs text-gray-400">{formatDate(m.created_at)}</p>
-                {m.file_url && (
-                  <a
-                    href={`/api/pdf/material/${m.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-                  >
-                    Abrir
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                      Abrir PDF
+                    </a>
+                  ) : undefined
+                }
+              />
+            ))}
+          </List>
+        </Card>
       )}
     </div>
   )

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import { StudentObjectives } from '@/app/dashboard/students/[id]/student-objectives'
-import Link from 'next/link'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function CoachStudentPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -44,12 +44,8 @@ export default async function CoachStudentPage({ params }: { params: { id: strin
   if (!student || !enrollment) notFound()
 
   return (
-    <div className="max-w-lg">
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link href="/coach/classes" className="text-sm text-gray-500 hover:text-gray-700">← Mis Clases</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-xl font-bold text-gray-900">{student.name}</h1>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader title={student.name} back={{ href: '/coach/classes', label: 'Mis clases' }} />
 
       <StudentObjectives
         studentId={params.id}

@@ -12,6 +12,14 @@ import { ClassSessionMarker } from './class-session-marker'
 import { AdminAddSpotBooking } from '@/app/dashboard/schedule/[id]/add-spot-booking'
 import { SpotBookingsList } from '@/app/dashboard/schedule/[id]/spot-bookings-list'
 import { getHolidaySet } from '@/lib/club-holidays'
+import { CircleAlert, Clock, FileText } from 'lucide-react'
+import { formatLongDate } from '@/lib/format-date'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, SectionTitle } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
+import { Notice } from '@/components/ui/feedback'
+import { Avatar, List, ListRow } from '@/components/ui/list'
+import { buttonVariants } from '@/components/ui/button'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -189,7 +197,7 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
   const resolvedDateLabel = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ }).format(new Date(resolvedDate + 'T12:00:00Z'))
 
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <DevError errors={[errEnrollments?.message, errBookings?.message]} />
       <RealtimeRefresh
         channelName={`coach-class-${params.id}`}
@@ -199,178 +207,169 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
           { table: 'schedule_exclusions' },
         ]}
       />
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link href="/coach/classes" className="text-sm text-gray-500 hover:text-gray-700">← Mis Clases</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-xl font-bold text-gray-900">Detalle de clase</h1>
-      </div>
+      <PageHeader title="Detalle de clase" back={{ href: '/coach/classes', label: 'Mis clases' }} />
 
       {isHolidayOnResolvedDate && (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+        <Notice tone="warn" icon={<CircleAlert />}>
           Festivo: no hay clase este día.
-        </div>
+        </Notice>
       )}
 
-      {/* Info */}
-      <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
+      <Card className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-lg font-bold text-gray-900">
-              {DAYS[getDayOfWeek(start)]} · {formatTime(start)} – {formatTime(end)}
+          <div className="min-w-0">
+            <p className="font-display text-title tabular-nums text-ink">
+              {formatTime(start)} – {formatTime(end)}
             </p>
-            {dateOverride && <p className="text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual ese día</p>}
-            <p className="mt-0.5 text-sm text-gray-500">{schedule.court?.name ?? '—'}</p>
+            <p className="mt-0.5 text-body text-ink-2">{DAYS[getDayOfWeek(start)]} · {schedule.court?.name ?? '—'}</p>
+            {dateOverride && (
+              <p className="mt-1 inline-flex items-center gap-1 text-meta font-medium text-warn-ink">
+                <Clock className="h-3.5 w-3.5" aria-hidden />
+                Cambio de hora puntual ese día
+              </p>
+            )}
             {schedule.level && (
-              <span
-                className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-                style={{ backgroundColor: schedule.level.color }}
-              >
-                {schedule.level.name}
-              </span>
+              <div className="mt-2">
+                <LevelTag name={schedule.level.name} color={schedule.level.color} />
+              </div>
             )}
           </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold text-gray-900">
-              {enrolled}<span className="text-lg font-normal text-gray-400">/{schedule.max_students}</span>
+          <div className="shrink-0 text-right">
+            <p className="font-display text-display tabular-nums text-ink">
+              {enrolled}<span className="text-heading text-ink-3">/{schedule.max_students}</span>
             </p>
-            <p className="text-xs text-gray-400">alumnos</p>
-            <p className="mt-1 text-xs text-gray-400 capitalize">{resolvedDateLabel}</p>
+            <p className="text-meta text-ink-3">alumnos</p>
           </div>
         </div>
         <div className="mt-4">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+          <div
+            role="progressbar"
+            aria-label="Ocupación de la clase"
+            aria-valuemin={0}
+            aria-valuemax={schedule.max_students}
+            aria-valuenow={enrolled}
+            className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.07]"
+          >
             <div
-              className="h-2 rounded-full bg-blue-500"
+              className="h-1.5 rounded-full bg-accent"
               style={{ width: `${Math.min((enrolled / schedule.max_students) * 100, 100)}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-gray-400">{schedule.max_students - enrolled} plazas libres</p>
+          <p className="mt-1.5 flex flex-wrap justify-between gap-x-3 text-meta text-ink-3">
+            <span className="tabular-nums">{schedule.max_students - enrolled} plazas libres</span>
+            <span>{formatLongDate(resolvedDate)}</span>
+          </p>
         </div>
-      </div>
+      </Card>
 
       {features.enable_class_validation && isViewingRealToday && isClassDayOnResolvedDate && (
-        <div className="mb-6">
-          <ClassSessionMarker
-            scheduleId={params.id}
-            sessionDate={todaySpain}
-            sessionDateLabel={resolvedDateLabel}
-            students={groupActiveOnDate
-              .map((e: any) => ({ id: e.student?.id, name: e.student?.name }))
-              .filter((s: any) => s.id)}
-            existingSession={existingSessionData}
-          />
-        </div>
+        <ClassSessionMarker
+          scheduleId={params.id}
+          sessionDate={todaySpain}
+          sessionDateLabel={resolvedDateLabel}
+          students={groupActiveOnDate
+            .map((e: any) => ({ id: e.student?.id, name: e.student?.name }))
+            .filter((s: any) => s.id)}
+          existingSession={existingSessionData}
+        />
       )}
 
       {/* Grupo fijo — solo quien está activo en la fecha que se está viendo:
           un sustituto que aún no arranca o una baja ya efectiva ese día no
           deben aparecer mezclados con quien sí va a esa clase en concreto. */}
       {groupActiveOnDate.length > 0 && (
-        <div className="mb-6 rounded-xl bg-white shadow-sm">
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="font-semibold text-gray-900">Grupo fijo <span className="ml-1 text-sm font-normal text-gray-400">({groupActiveOnDate.length})</span></h2>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {groupActiveOnDate.map((e: any) => {
-              const s = e.student
-              const initials = (s?.name ?? '?').split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
-              const upcomingFaltas = exclusionsByEnrollment[e.id] ?? []
-              return (
-                <div key={e.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
-                    {initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900">{s?.name}</p>
-                    {s?.current_level_id && levelsMap[s.current_level_id] && (
-                      <span
-                        className="inline-block rounded-full px-2 py-0 text-xs font-medium text-white"
-                        style={{ backgroundColor: levelsMap[s.current_level_id].color }}
-                      >
-                        {levelsMap[s.current_level_id].name}
+        <section className="space-y-3">
+          <SectionTitle>Grupo fijo ({groupActiveOnDate.length})</SectionTitle>
+          <Card className="overflow-hidden">
+            <List>
+              {groupActiveOnDate.map((e: any) => {
+                const s = e.student
+                const upcomingFaltas = exclusionsByEnrollment[e.id] ?? []
+                const studentLevel = s?.current_level_id ? levelsMap[s.current_level_id] : null
+                return (
+                  <ListRow
+                    key={e.id}
+                    leading={<Avatar name={s?.name ?? '?'} />}
+                    title={s?.name}
+                    subtitle={
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {studentLevel && <LevelTag name={studentLevel.name} color={studentLevel.color} />}
+                        {upcomingFaltas.map((date: string) => (
+                          <Badge key={date} tone="warn">
+                            <CircleAlert className="h-3.5 w-3.5" aria-hidden />
+                            Falta {formatLongDate(date, { weekday: false })}
+                          </Badge>
+                        ))}
                       </span>
-                    )}
-                  </div>
-                  {upcomingFaltas.length > 0 && (
-                    <div className="flex flex-col items-end gap-0.5 text-right">
-                      {upcomingFaltas.map((date: string) => (
-                        <p key={date} className="text-xs text-orange-500">
-                          Falta {new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  <Link
-                    href={`/coach/students/${s?.id}`}
-                    className="shrink-0 rounded-lg px-2.5 py-1 text-xs font-medium text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                    title="Ver objetivos"
-                  >
-                    Objetivos
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+                    }
+                    trailing={
+                      <Link
+                        href={`/coach/students/${s?.id}`}
+                        className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+                      >
+                        Objetivos
+                      </Link>
+                    }
+                  />
+                )
+              })}
+            </List>
+          </Card>
+        </section>
       )}
 
-      {/* Materiales */}
       {materials.length > 0 && (
-        <div className="mb-6 rounded-xl bg-white shadow-sm">
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="font-semibold text-gray-900">
-              Materia didáctica
-              <span className="ml-1 text-sm font-normal text-gray-400">({materials.length})</span>
-            </h2>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {materials.map((m: any) => (
-              <div key={m.id} className="flex items-center gap-3 px-5 py-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100">
-                  <span className="text-xs font-bold text-red-600">PDF</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{m.title}</p>
-                  {m.description && (
-                    <p className="text-xs text-gray-400 truncate">{m.description}</p>
-                  )}
-                </div>
-                {m.file_url && (
-                  <a
-                    href={m.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-                  >
-                    Abrir
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <section className="space-y-3">
+          <SectionTitle>Materia didáctica ({materials.length})</SectionTitle>
+          <Card className="overflow-hidden">
+            <List>
+              {materials.map((m: any) => (
+                <ListRow
+                  key={m.id}
+                  leading={
+                    <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-control bg-ink/[0.05] text-ink-2">
+                      <FileText className="h-5 w-5" />
+                    </span>
+                  }
+                  title={m.title}
+                  subtitle={m.description ? <span className="block truncate">{m.description}</span> : undefined}
+                  trailing={
+                    m.file_url ? (
+                      <a
+                        href={m.file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+                      >
+                        Abrir PDF
+                      </a>
+                    ) : undefined
+                  }
+                />
+              ))}
+            </List>
+          </Card>
+        </section>
       )}
 
-      {/* Reservas puntuales (huecos) */}
       {features.enable_spots && (futureBookings ?? []).length > 0 && (
-        <div className="mb-6 rounded-xl bg-white shadow-sm">
-          <div className="border-b border-gray-100 px-6 py-4">
-            <h2 className="font-semibold text-gray-900">Reservas puntuales</h2>
-            <p className="mt-0.5 text-xs text-gray-400">Alumnos apuntados a un hueco libre en una fecha concreta</p>
-          </div>
-          <SpotBookingsList
-            bookings={(futureBookings ?? []).map((b: any) => ({
-              id: b.id,
-              source: b.source,
-              class_date: b.class_date,
-              student: b.student ? { name: b.student.name, email: b.student.email } : null,
-            }))}
-          />
-        </div>
+        <section className="space-y-3">
+          <SectionTitle>Reservas puntuales</SectionTitle>
+          <p className="text-meta text-ink-3">Alumnos apuntados a un hueco libre en una fecha concreta</p>
+          <Card className="overflow-hidden">
+            <SpotBookingsList
+              bookings={(futureBookings ?? []).map((b: any) => ({
+                id: b.id,
+                source: b.source,
+                class_date: b.class_date,
+                student: b.student ? { name: b.student.name, email: b.student.email } : null,
+              }))}
+            />
+          </Card>
+        </section>
       )}
 
-      {/* Añadir alumno a un hueco libre */}
-      <div className="rounded-xl bg-white shadow-sm">
+      <Card>
         <AdminAddSpotBooking
           scheduleId={params.id}
           nextDate={resolvedDate}
@@ -378,7 +377,7 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
           clubId={schedule.club_id ?? null}
           existingBookings={existingSpotBookings}
         />
-      </div>
+      </Card>
     </div>
   )
 }

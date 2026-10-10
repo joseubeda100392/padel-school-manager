@@ -2,6 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { CircleCheck, FileText } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { List, ListRow } from '@/components/ui/list'
+import { buttonVariants } from '@/components/ui/button'
 
 export default async function CoachTarifasPage() {
   const supabase = createClient()
@@ -20,48 +26,45 @@ export default async function CoachTarifasPage() {
   ]
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tarifas y documentos</h1>
-        <p className="text-sm text-gray-500">Documentos del club disponibles para consultar</p>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader title="Tarifas y documentos" description="Documentos del club disponibles para consultar" />
 
-      <div className="space-y-4">
-        {docs.map(doc => {
-          const hasUrl = !!features[doc.key as keyof typeof features]
-          return (
-            <div key={doc.key} className="rounded-xl bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-semibold text-gray-900">{doc.label}</h2>
-                  <p className="mt-0.5 text-xs text-gray-400">{doc.description}</p>
-                </div>
-                {hasUrl && (
-                  <a
-                    href={doc.apiPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-                  >
-                    Ver PDF
-                  </a>
-                )}
-              </div>
-              {!hasUrl && (
-                <div className="mt-4 flex h-16 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
-                  <p className="text-sm text-gray-400">No disponible todavía</p>
-                </div>
-              )}
-              {hasUrl && (
-                <div className="mt-4 flex items-center gap-3 rounded-lg border border-green-100 bg-green-50 px-4 py-3">
-                  <span className="text-xl">📄</span>
-                  <p className="text-sm font-medium text-green-700">PDF disponible</p>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+      <Card className="overflow-hidden">
+        <List>
+          {docs.map(doc => {
+            const hasUrl = !!features[doc.key as keyof typeof features]
+            return (
+              <ListRow
+                key={doc.key}
+                leading={
+                  <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-control bg-ink/[0.05] text-ink-2">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                }
+                title={doc.label}
+                subtitle={doc.description}
+                trailing={
+                  hasUrl ? (
+                    <span className="flex flex-col items-end gap-1.5">
+                      <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Disponible</Badge>
+                      <a
+                        href={doc.apiPath}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+                      >
+                        Ver PDF
+                      </a>
+                    </span>
+                  ) : (
+                    <Badge tone="neutral">No disponible todavía</Badge>
+                  )
+                }
+              />
+            )
+          })}
+        </List>
+      </Card>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import MasterWeeklyCalendar from '@/app/dashboard/schedule/master/master-weekly-calendar'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function CoachMasterCalendarPage() {
   const supabase = createClient()
@@ -46,7 +47,7 @@ export default async function CoachMasterCalendarPage() {
   }))
 
   return (
-    <div>
+    <div className="space-y-6">
       <RealtimeRefresh
         channelName="coach-schedule-master"
         subs={clubId ? [
@@ -54,10 +55,7 @@ export default async function CoachMasterCalendarPage() {
           { table: 'schedules', filter: `club_id=eq.${clubId}` },
         ] : [{ table: 'group_enrollments' }, { table: 'schedules' }]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Calendario maestro</h1>
-        <p className="text-sm text-gray-500">Todas las clases del club, con monitor y nivel</p>
-      </div>
+      <PageHeader title="Calendario maestro" description="Todas las clases del club, con monitor y nivel" />
 
       <MasterWeeklyCalendar schedules={schedules} readOnly />
     </div>

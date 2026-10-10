@@ -69,32 +69,30 @@ export default async function CoachChatPage({
     : (activeStudentThread as any)?.user?.name ?? 'Alumno'
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-xl bg-white shadow-sm md:h-[calc(100vh-8rem)]">
-      {/* Sidebar */}
-      <aside className="flex w-32 shrink-0 flex-col border-r border-gray-100 sm:w-48">
-        <div className="border-b border-gray-100 px-3 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Chat</p>
+    <div className="flex h-[calc(100dvh-var(--tabbar-h)-var(--safe-bottom)-8rem)] overflow-hidden rounded-card border border-line bg-surface shadow-card md:h-[calc(100dvh-6rem)]">
+      <aside className="flex w-32 shrink-0 flex-col border-r border-line sm:w-48">
+        <div className="border-b border-line px-3 py-3">
+          <h1 className="text-label text-ink-2">Chat</h1>
         </div>
-        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
-          {/* Admin thread */}
+        <nav aria-label="Conversaciones" className="flex-1 space-y-1 overflow-y-auto p-2">
           {adminThread && (
             <Link
               href={`/coach/chat?thread=${adminThread.id}`}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              aria-current={activeId === adminThread.id ? 'page' : undefined}
+              className={`flex min-h-11 items-center gap-2.5 rounded-control px-2 py-2 text-label transition-colors ${
                 activeId === adminThread.id
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-accent-soft text-accent-ink'
+                  : 'text-ink-2 hover:bg-ink/5'
               }`}
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-600">A</span>
+              <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chrome text-meta font-medium text-chrome-ink">A</span>
               <span className="truncate">Administración</span>
             </Link>
           )}
 
-          {/* Student threads */}
           {(studentThreads ?? []).length > 0 && (
             <>
-              <p className="mt-3 px-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Alumnos</p>
+              <p className="mt-3 px-2 text-meta text-ink-3">Alumnos</p>
               {(studentThreads ?? []).map((t: any) => {
                 const name = t.user?.name ?? 'Alumno'
                 const initials = name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -102,19 +100,20 @@ export default async function CoachChatPage({
                   <Link
                     key={t.id}
                     href={`/coach/chat?thread=${t.id}`}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    aria-current={activeId === t.id ? 'page' : undefined}
+                    className={`flex min-h-11 items-center gap-2.5 rounded-control px-2 py-2 text-label transition-colors ${
                       activeId === t.id
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'bg-accent-soft text-accent-ink'
+                        : 'text-ink-2 hover:bg-ink/5'
                     }`}
                   >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-600">
+                    <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chrome text-meta font-medium text-chrome-ink">
                       {initials}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate">{name}</p>
                       {t.status === 'resolved' && (
-                        <p className="text-xs text-gray-400">Resuelto</p>
+                        <p className="text-meta text-ink-3">Resuelto</p>
                       )}
                     </div>
                   </Link>
@@ -125,7 +124,6 @@ export default async function CoachChatPage({
         </nav>
       </aside>
 
-      {/* Chat window */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {activeThread ? (
           <StudentChatClient
@@ -136,7 +134,7 @@ export default async function CoachChatPage({
             recipientLabel={recipientLabel}
           />
         ) : (
-          <div className="flex flex-1 items-center justify-center text-gray-400">
+          <div className="flex flex-1 items-center justify-center p-4 text-center text-body text-ink-3">
             Selecciona una conversación
           </div>
         )}
