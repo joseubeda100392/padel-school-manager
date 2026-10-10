@@ -4,7 +4,14 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { PayButton } from '@/components/pay-button'
 import { MonthCalendar } from '@/components/month-calendar'
+import { CircleCheck, Package, Zap } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { formatLongDate } from '@/lib/format-date'
+import { Card } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm'
+import { EmptyState, Notice } from '@/components/ui/feedback'
 
 interface Spot {
   spotType: 'absence' | 'capacity'
@@ -29,6 +36,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
   const [booking, setBooking] = useState(false)
   const [booked, setBooked] = useState(false)
   const [error, setError] = useState('')
+  const confirm = useConfirm()
 
   const dateLabel = new Date(spot.excludedDate + 'T12:00:00').toLocaleDateString('es-ES', {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -53,7 +61,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
     : (durationType === '90' ? wholeClassPrice90 : wholeClassPrice60)
 
   async function handleUseBag() {
-    if (!confirm(`¿Confirmas que quieres usar 1 clase de tu bolsa para el ${dateLabel}?`)) return
+    if (!(await confirm({ title: '¿Usar 1 clase de tu bolsa?', description: `Te apuntas el ${dateLabel} de ${spot.startTime} a ${spot.endTime} en ${spot.courtName}.`, confirmLabel: 'Apuntarme' }))) return
     setBooking(true)
     setError('')
 
@@ -72,98 +80,94 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
       setBooked(true)
       router.refresh()
     } else {
-      setError(json.error ?? 'Error al reservar')
+      setError(json.error ?? 'No se ha podido reservar. Vuelve a intentarlo.')
     }
     setBooking(false)
   }
 
   if (booked) {
     return (
-      <div className="rounded-xl bg-brand-50 border border-brand-200 p-5">
-        <p className="text-brand-600 font-medium">✓ Plaza reservada — {dateLabel}</p>
-        <p className="text-xs text-brand-500 mt-1">{spot.startTime} – {spot.endTime} · {spot.courtName}</p>
-      </div>
+      <Card className="border-accent/40 bg-accent-soft/60 p-4 sm:p-5">
+        <p className="inline-flex items-center gap-2 text-[0.9375rem] font-semibold text-accent-ink">
+          <CircleCheck className="h-5 w-5" aria-hidden />
+          Te has apuntado
+        </p>
+        <p className="mt-1 text-body tabular-nums text-ink-2">
+          {formatLongDate(spot.excludedDate)} · {spot.startTime} – {spot.endTime} · {spot.courtName}
+        </p>
+      </Card>
     )
   }
 
+  const bagMismatch = !hasBalance && enable90min && durationType === '90' && balance60 > 0
+
   return (
-    <div className="rounded-xl bg-white shadow-sm p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            {spot.spotType === 'capacity' ? (
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Plaza libre</span>
-            ) : (
-              <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">Hueco por falta</span>
-            )}
-            {isIntensivo && (
-              <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Intensivo</span>
-            )}
-            {spot.enrolledCount !== null && (
-              <span className="text-xs text-gray-400">{spot.enrolledCount}/{spot.maxStudents} alumnos · {freePlaces} plaza{freePlaces !== 1 ? 's' : ''} libre{freePlaces !== 1 ? 's' : ''}</span>
-            )}
+    <Card className="overflow-hidden">
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-display text-title tabular-nums text-ink">{spot.startTime} – {spot.endTime}</p>
+            <p className="mt-1 text-body text-ink-2">
+              {spot.courtName}
+              {spot.coachName && <> · con {spot.coachName}</>}
+            </p>
           </div>
-          <p className="text-lg font-bold text-gray-900 capitalize">{dateLabel}</p>
-          <p className="mt-0.5 text-sm text-gray-500">
-            {spot.startTime} – {spot.endTime} · {spot.courtName}
-            {spot.coachName && <span className="text-gray-400"> · {spot.coachName}</span>}
-          </p>
-          {spot.level && (
-            <span
-              className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-              style={{ backgroundColor: spot.level.color }}
-            >
-              {spot.level.name}
-            </span>
-          )}
+          {spot.level && <LevelTag name={spot.level.name} color={spot.level.color} className="pt-1.5" />}
         </div>
-        <div className="flex flex-col items-end gap-2">
-          {hasBalance ? (
-            <button
-              onClick={handleUseBag}
-              disabled={booking}
-              className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50"
-            >
-              {booking ? '...' : '🎾 Usar 1 clase'}
-            </button>
-          ) : enablePayments ? (
-            <>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge tone="success">
+            {freePlaces} {freePlaces === 1 ? 'plaza libre' : 'plazas libres'}
+            {spot.enrolledCount !== null && <span className="font-normal"> · {spot.enrolledCount}/{spot.maxStudents}</span>}
+          </Badge>
+          <span className="text-meta text-ink-3">
+            {spot.spotType === 'absence' ? 'Un alumno del grupo no viene ese día' : 'El grupo tiene sitio'}
+          </span>
+          {isIntensivo && <Badge tone="outline">Intensivo</Badge>}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2/60 px-4 py-3 sm:px-5">
+        {hasBalance ? (
+          <Button onClick={handleUseBag} loading={booking} block className="sm:w-auto">
+            Apuntarme con 1 clase de la bolsa
+          </Button>
+        ) : enablePayments ? (
+          <>
+            {(bagMismatch || (!isIntensivo && balance60 === 0 && balance90 === 0)) && (
+              <p className="mr-auto text-meta text-ink-3">
+                {bagMismatch ? 'Tus clases de bolsa son de 1 h y esta dura 1 h 30.' : 'No tienes clases en la bolsa.'}
+              </p>
+            )}
+            {!isIntensivo && spot.spotType === 'capacity' && spot.maxStudents > 1 && spot.enrolledCount === 0 && (
+              // Solo clase suelta de verdad: sin alumnos de grupo fijo ya inscritos.
               <PayButton
                 type="single_class"
                 scheduleId={spot.scheduleId}
                 exclusionId={spot.exclusionId ?? undefined}
                 classDate={spot.excludedDate}
-                label={`💳 Pagar mi plaza — ${formatCurrency(singleClassPriceCents)}`}
-                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                wholeClass
+                variant="secondary"
+                label={`Pista entera · ${formatCurrency(wholeClassPriceCents)}`}
                 cashOnly={cashOnly}
               />
-              {/* Solo clase suelta de verdad: sin ningún alumno de grupo fijo ya
-                  inscrito. Si hubiera alumnos fijos, ellos ya pagan su cuota
-                  mensual — pagar "la clase entera" no tendría sentido ahí. */}
-              {!isIntensivo && spot.spotType === 'capacity' && spot.maxStudents > 1 && spot.enrolledCount === 0 && (
-                <PayButton
-                  type="single_class"
-                  scheduleId={spot.scheduleId}
-                  exclusionId={spot.exclusionId ?? undefined}
-                  classDate={spot.excludedDate}
-                  wholeClass
-                  label={`💳 Pagar la clase entera — ${formatCurrency(wholeClassPriceCents)}`}
-                  className="rounded-lg border border-brand-500 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
-                  cashOnly={cashOnly}
-                />
-              )}
-            </>
-          ) : null}
-          {!hasBalance && enable90min && durationType === '90' && balance60 > 0 && (
-            <p className="text-xs text-orange-600">Tu bono es de 60min — no válido para 1h 30min</p>
-          )}
-          {!isIntensivo && !hasBalance && balance60 === 0 && balance90 === 0 && (
-            <p className="text-xs text-gray-400">Sin saldo en bolsa</p>
-          )}
-        </div>
+            )}
+            <PayButton
+              type="single_class"
+              scheduleId={spot.scheduleId}
+              exclusionId={spot.exclusionId ?? undefined}
+              classDate={spot.excludedDate}
+              label={`Pagar mi plaza · ${formatCurrency(singleClassPriceCents)}`}
+              cashOnly={cashOnly}
+            />
+          </>
+        ) : (
+          <p className="text-meta text-ink-3">
+            {bagMismatch ? 'Tus clases de bolsa son de 1 h y esta dura 1 h 30.' : 'Necesitas una clase en la bolsa para apuntarte.'}
+          </p>
+        )}
       </div>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-    </div>
+      {error && <p role="alert" className="px-4 pb-3 text-meta font-medium text-danger-ink sm:px-5">{error}</p>}
+    </Card>
   )
 }
 
@@ -219,55 +223,65 @@ export function SpotsClient({
 
   const [selectedDate, setSelectedDate] = useState(defaultDate)
   const daySpots = spots.filter(s => s.excludedDate === selectedDate)
+  const bagParts = [
+    enable60min && balance60 > 0 && `${balance60} ${balance60 === 1 ? 'clase' : 'clases'} de 1 h`,
+    enable90min && balance90 > 0 && `${balance90} ${balance90 === 1 ? 'clase' : 'clases'} de 1 h 30`,
+  ].filter(Boolean)
 
   return (
-    <div className="space-y-4">
-      {visibleBalance > 0 && (
-        <div className="rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
-          <p className="text-sm text-orange-700">
-            Tu bolsa:{' '}
-            {enable60min && balance60 > 0 && <span><span className="font-bold">{balance60}</span> de 1h</span>}
-            {enable60min && balance60 > 0 && enable90min && balance90 > 0 && ' · '}
-            {enable90min && balance90 > 0 && <span><span className="font-bold">{balance90}</span> de 1h 30min</span>}
-            {' — úsalas para apuntarte a un hueco libre.'}
-          </p>
-        </div>
-      )}
-
-      <MonthCalendar
-        year={year}
-        month0={month0}
-        basePath="/student/spots"
-        eventCounts={eventCounts}
-        selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
-        todayStr={todayStr}
-        maxYear={maxYear}
-        maxMonth0={maxMonth0}
-      />
-
-      {daySpots.length === 0 ? (
-        <div className="rounded-xl bg-white p-6 text-center shadow-sm">
-          <p className="text-sm text-gray-400">Sin huecos libres ese día.</p>
-        </div>
-      ) : (
-        daySpots.map(spot => (
-          <SpotCard
-            key={`${spot.spotType}-${spot.exclusionId ?? spot.scheduleId}-${spot.excludedDate}`}
-            spot={spot}
-            balance60={balance60}
-            balance90={balance90}
-            enablePayments={enablePayments}
-            enable60min={enable60min}
-            enable90min={enable90min}
-            cashOnly={cashOnly}
-            payPerClassPrice60={payPerClassPrice60}
-            payPerClassPrice90={payPerClassPrice90}
-            wholeClassPrice60={wholeClassPrice60}
-            wholeClassPrice90={wholeClassPrice90}
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+      <div className="space-y-4 lg:sticky lg:top-0">
+        {visibleBalance > 0 && (
+          <Notice tone="success" icon={<Package />}>
+            Tienes {bagParts.join(' y ')} en la bolsa. {visibleBalance === 1 ? 'Úsala' : 'Úsalas'} para apuntarte a un hueco.
+          </Notice>
+        )}
+        <Card className="p-4 sm:p-5">
+          <MonthCalendar
+            year={year}
+            month0={month0}
+            basePath="/student/spots"
+            eventCounts={eventCounts}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            todayStr={todayStr}
+            maxYear={maxYear}
+            maxMonth0={maxMonth0}
+            eventLabel={['hueco', 'huecos']}
+            legend="Días con huecos libres de tu nivel"
           />
-        ))
-      )}
+        </Card>
+      </div>
+
+      <section aria-labelledby="huecos-dia" className="space-y-4">
+        <h2 id="huecos-dia" className="font-display text-title text-ink">{formatLongDate(selectedDate)}</h2>
+        {daySpots.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<Zap />}
+              title="Este día no hay huecos"
+              description={spots.length > 0 ? 'Elige en el calendario un día marcado con un punto.' : 'Ahora mismo no hay plazas libres de tu nivel este mes.'}
+            />
+          </Card>
+        ) : (
+          daySpots.map(spot => (
+            <SpotCard
+              key={`${spot.spotType}-${spot.exclusionId ?? spot.scheduleId}-${spot.excludedDate}`}
+              spot={spot}
+              balance60={balance60}
+              balance90={balance90}
+              enablePayments={enablePayments}
+              enable60min={enable60min}
+              enable90min={enable90min}
+              cashOnly={cashOnly}
+              payPerClassPrice60={payPerClassPrice60}
+              payPerClassPrice90={payPerClassPrice90}
+              wholeClassPrice60={wholeClassPrice60}
+              wholeClassPrice90={wholeClassPrice90}
+            />
+          ))
+        )}
+      </section>
     </div>
   )
 }

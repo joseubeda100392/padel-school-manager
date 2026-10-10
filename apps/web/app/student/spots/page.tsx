@@ -298,7 +298,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   const allSpots = [...absenceSpots, ...capacitySpots]
 
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto w-full max-w-5xl space-y-5">
       <RealtimeRefresh
         channelName={`student-spots-${user.id}`}
         subs={[
@@ -311,10 +311,10 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
           { table: 'bookings', filter: myClubId ? `club_id=eq.${myClubId}` : undefined },
         ]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Huecos Libres</h1>
-        <p className="text-sm text-gray-500">Plazas disponibles por ausencia de otro alumno o por capacidad libre</p>
-      </div>
+      <header>
+        <h1 className="font-display text-title text-ink sm:text-display">Huecos libres</h1>
+        <p className="mt-1 text-body text-ink-2">Plazas de tu nivel que han quedado libres. Apúntate con una clase de tu bolsa o pagando la clase.</p>
+      </header>
 
       <SpotsClient
         spots={allSpots}
