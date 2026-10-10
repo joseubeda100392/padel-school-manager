@@ -2,7 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { formatTime, formatCurrency } from '@/lib/utils'
+import { CircleAlert, CircleCheck } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+import { formatClock, formatLongDate, formatShortDay } from '@/lib/format-date'
+import { Card } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm'
+import { DateTile } from '@/components/ui/list'
 import { PayButton } from '@/components/pay-button'
 
 interface SpotBooking {
@@ -34,9 +41,10 @@ export function SpotBookingCard({ booking, cancellationHours, pendingPayment = n
   const [cancelling, setCancelling] = useState(false)
   const [payingWithBag, setPayingWithBag] = useState(false)
   const [error, setError] = useState('')
+  const confirm = useConfirm()
 
   async function handlePayWithBag() {
-    if (!confirm('¿Pagar esta clase particular con 1 clase de tu bono?')) return
+    if (!(await confirm({ title: '¿Pagar con tu bono?', description: 'Se usará 1 clase de tu bono de clases particulares.', confirmLabel: 'Usar 1 clase del bono' }))) return
     setPayingWithBag(true)
     setError('')
     const res = await fetch('/api/bookings/pay-private-with-bag', {
@@ -48,7 +56,7 @@ export function SpotBookingCard({ booking, cancellationHours, pendingPayment = n
     if (res.ok) {
       router.refresh()
     } else {
-      setError(json.error ?? 'Error al pagar con bono')
+      setError(json.error ?? 'No se ha podido pagar con el bono. Vuelve a intentarlo.')
       setPayingWithBag(false)
     }
   }
@@ -64,7 +72,7 @@ export function SpotBookingCard({ booking, cancellationHours, pendingPayment = n
   })
 
   async function handleCancel() {
-    if (!confirm(`¿Cancelar tu reserva del ${dateLabel}?`)) return
+    if (!(await confirm({ title: `¿Cancelar la clase del ${dateLabel}?`, description: booking.source === 'bag' ? 'Se te devolverá la clase a la bolsa.' : undefined, confirmLabel: 'Cancelar reserva', cancelLabel: 'Mantener', destructive: true }))) return
     setCancelling(true)
     setError('')
     const res = await fetch('/api/bookings', {
@@ -76,84 +84,66 @@ export function SpotBookingCard({ booking, cancellationHours, pendingPayment = n
     if (res.ok) {
       router.refresh()
     } else {
-      setError(json.error ?? 'Error al cancelar')
+      setError(json.error ?? 'No se ha podido cancelar. Vuelve a intentarlo.')
       setCancelling(false)
     }
   }
 
+  const { weekday, day } = formatShortDay(booking.class_date)
+
   return (
-    <div className="rounded-xl bg-white shadow-sm p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-semibold text-gray-900 capitalize">{dateLabel}</p>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {s ? `${formatTime(new Date(s.start_time))} – ${formatTime(new Date(s.end_time))}` : ''} · {s?.court?.name ?? '—'}
-            {s?.coach?.name && <span className="text-gray-400"> · {s.coach.name}</span>}
+    <Card className="flex flex-col">
+      <div className="flex items-start gap-3 p-4">
+        <DateTile weekday={weekday} day={day} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.9375rem] font-semibold text-ink">{formatLongDate(booking.class_date)}</p>
+          <p className="mt-0.5 text-meta tabular-nums text-ink-2">
+            {s ? `${formatClock(s.start_time)} – ${formatClock(s.end_time)}` : ''}
+            {s?.court?.name && <> · {s.court.name}</>}
+            {s?.coach?.name && <> · con {s.coach.name}</>}
           </p>
-          {s?.level && (
-            <span
-              className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-              style={{ backgroundColor: s.level.color }}
-            >
-              {s.level.name}
-            </span>
-          )}
-          {booking.isPrivate && (
-            <span className="mt-2 ml-2 inline-block rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-              Clase particular
-            </span>
-          )}
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${pendingPayment ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-            {pendingPayment ? 'Pendiente de pago' : 'Reservado'}
-          </span>
-          {pendingPayment ? (
-            <>
-              {pendingPayment.bagBalance > 0 && (
-                <button
-                  onClick={handlePayWithBag}
-                  disabled={payingWithBag}
-                  className="rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
-                >
-                  {payingWithBag ? '...' : `🎟️ Usar bono (te quedan ${pendingPayment.bagBalance})`}
-                </button>
-              )}
-              {pendingPayment.enablePayments ? (
-                <PayButton
-                  type="single_class"
-                  bookingId={booking.id}
-                  label={`💳 Pagar ${formatCurrency(pendingPayment.priceCents)}`}
-                  className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-                  cashOnly={pendingPayment.cashOnly}
-                />
-              ) : (
-                <span className="text-xs text-gray-400">Habla con tu escuela para pagarla</span>
-              )}
-              <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="text-xs text-gray-400 hover:text-red-600 disabled:opacity-50"
-              >
-                {cancelling ? '...' : 'No la quiero, cancelar'}
-              </button>
-            </>
-          ) : canCancel ? (
-            <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-            >
-              {cancelling ? '...' : 'Cancelar'}
-            </button>
-          ) : (
-            <span className="text-xs text-gray-400">
-              Plazo cerrado ({cancellationHours}h)
-            </span>
-          )}
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            {pendingPayment
+              ? <Badge tone="warn"><CircleAlert className="h-3.5 w-3.5" aria-hidden />Pendiente de pago</Badge>
+              : <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Reservada</Badge>}
+            {booking.isPrivate && <Badge tone="outline">Clase particular</Badge>}
+            {s?.level && <LevelTag name={s.level.name} color={s.level.color} />}
+          </div>
         </div>
       </div>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-    </div>
+
+      <div className="mt-auto flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3">
+        {pendingPayment ? (
+          <>
+            <Button variant="ghost" size="sm" onClick={handleCancel} loading={cancelling} className="mr-auto">
+              No la quiero
+            </Button>
+            {pendingPayment.bagBalance > 0 && (
+              <Button variant="secondary" size="sm" onClick={handlePayWithBag} loading={payingWithBag}>
+                Usar bono ({pendingPayment.bagBalance})
+              </Button>
+            )}
+            {pendingPayment.enablePayments ? (
+              <PayButton
+                type="single_class"
+                bookingId={booking.id}
+                label={`Pagar ${formatCurrency(pendingPayment.priceCents)}`}
+                className={buttonVariants({ size: 'sm' })}
+                cashOnly={pendingPayment.cashOnly}
+              />
+            ) : (
+              <span className="text-meta text-ink-3">Págala en el club</span>
+            )}
+          </>
+        ) : canCancel ? (
+          <Button variant="danger-ghost" size="sm" onClick={handleCancel} loading={cancelling}>
+            Cancelar reserva
+          </Button>
+        ) : (
+          <span className="text-meta text-ink-3">Ya no se puede cancelar (plazo de {cancellationHours} h)</span>
+        )}
+      </div>
+      {error && <p role="alert" className="px-4 pb-3 text-meta font-medium text-danger-ink">{error}</p>}
+    </Card>
   )
 }

@@ -1,9 +1,19 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
-const DAY_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const DAY_LETTERS = [
+  { short: 'L', name: 'lunes' },
+  { short: 'M', name: 'martes' },
+  { short: 'X', name: 'miércoles' },
+  { short: 'J', name: 'jueves' },
+  { short: 'V', name: 'viernes' },
+  { short: 'S', name: 'sábado' },
+  { short: 'D', name: 'domingo' },
+]
 
 // Rejilla de un mes, lunes-domingo, con huecos null para completar la primera
 // y la última semana.
@@ -22,10 +32,8 @@ function getMonthGrid(year: number, month0: number): (string | null)[] {
 
 // Componente puro: solo pinta la rejilla y avisa de selección/navegación —
 // no sabe nada de huecos libres, faltas, ni de ningún otro dato de negocio.
-// Navegación: si se pasa `onNavigate`, cambia de mes en estado local (para
-// varios calendarios independientes en la misma página, ej. una tarjeta por
-// clase); si no, navega por URL con `basePath` + `?month=` (para un único
-// calendario que controla toda la página, ej. Huecos Libres).
+// Navegación: si se pasa `onNavigate`, cambia de mes en estado local; si no,
+// navega por URL con `basePath` + `?month=` (calendario que controla la página).
 export function MonthCalendar({
   year,
   month0,
@@ -39,6 +47,8 @@ export function MonthCalendar({
   maxMonth0,
   minYear,
   minMonth0,
+  eventLabel = ['clase', 'clases'],
+  legend,
 }: {
   year: number
   month0: number
@@ -52,78 +62,117 @@ export function MonthCalendar({
   maxMonth0: number
   minYear?: number
   minMonth0?: number
+  /** Singular y plural de lo que marca el punto, para lectores de pantalla y la leyenda. */
+  eventLabel?: [string, string]
+  /** Texto de la leyenda bajo la rejilla. */
+  legend?: string
 }) {
   const router = useRouter()
   const cells = getMonthGrid(year, month0)
 
   function go(y: number, m: number) {
     if (onNavigate) onNavigate(y, m)
-    else if (basePath) router.push(`${basePath}?month=${y}-${String(m + 1).padStart(2, '0')}`)
+    else if (basePath) router.push(`${basePath}?month=${y}-${String(m + 1).padStart(2, '0')}`, { scroll: false })
   }
 
-  const isAtMin = minYear !== undefined && minMonth0 !== undefined && year === minYear && month0 === minMonth0
+  const isAtMin = minYear !== undefined && minMonth0 !== undefined && (year < minYear || (year === minYear && month0 <= minMonth0))
+  const isAtMax = year > maxYear || (year === maxYear && month0 >= maxMonth0)
+
   function prev() {
     if (isAtMin) return
     if (month0 === 0) go(year - 1, 11)
     else go(year, month0 - 1)
   }
 
-  const isAtMax = year === maxYear && month0 === maxMonth0
   function next() {
     if (isAtMax) return
     if (month0 === 11) go(year + 1, 0)
     else go(year, month0 + 1)
   }
 
+  const monthTitle = `${MONTH_NAMES[month0].charAt(0).toUpperCase()}${MONTH_NAMES[month0].slice(1)} ${year}`
+
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <button
-          onClick={prev}
-          disabled={isAtMin}
-          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          ← Anterior
-        </button>
-        <span className="text-sm font-semibold capitalize text-gray-900">{MONTH_NAMES[month0]} {year}</span>
-        <button
-          onClick={next}
-          disabled={isAtMax}
-          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Siguiente →
-        </button>
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="text-heading text-ink" aria-live="polite">{monthTitle}</h2>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={prev}
+            disabled={isAtMin}
+            aria-label="Mes anterior"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-ink/5 disabled:text-ink/20"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={next}
+            disabled={isAtMax}
+            aria-label="Mes siguiente"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-ink/5 disabled:text-ink/20"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-gray-400">
-        {DAY_LETTERS.map(l => <div key={l} className="py-1">{l}</div>)}
+      <div className="grid grid-cols-7 border-b border-line pb-1.5 text-center text-meta font-medium text-ink-3">
+        {DAY_LETTERS.map((d) => (
+          <abbr key={d.short} title={d.name} className="no-underline">{d.short}</abbr>
+        ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+
+      <div className="mt-1.5 grid grid-cols-7 gap-y-1">
         {cells.map((date, i) => {
-          if (!date) return <div key={i} />
+          if (!date) return <div key={i} aria-hidden />
           const count = eventCounts[date] ?? 0
           const isToday = date === todayStr
+          const isPast = date < todayStr
           const isSelected = date === selectedDate
+          const day = Number(date.slice(-2))
+          const label = `${day} de ${MONTH_NAMES[month0]}${count ? `, ${count} ${count === 1 ? eventLabel[0] : eventLabel[1]}` : ''}${isToday ? ', hoy' : ''}`
           return (
-            <button
-              key={date}
-              onClick={() => onSelectDate(date)}
-              className={`relative aspect-square rounded-lg text-xs font-medium transition-colors ${
-                isSelected ? 'bg-brand-500 text-white' : isToday ? 'bg-brand-50 text-brand-600' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {Number(date.slice(-2))}
-              {count > 0 && (
-                <span className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
-                  isSelected ? 'bg-white text-brand-600' : 'bg-orange-500 text-white'
-                }`}>
-                  {count}
-                </span>
-              )}
-            </button>
+            <div key={date} className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => onSelectDate(date)}
+                aria-label={label}
+                aria-pressed={isSelected}
+                aria-current={isToday ? 'date' : undefined}
+                className={cn(
+                  'relative flex h-11 w-11 flex-col items-center justify-center rounded-full text-body tabular-nums transition-colors duration-150',
+                  isSelected
+                    ? 'bg-chrome font-semibold text-white'
+                    : count > 0
+                      ? 'font-semibold text-ink hover:bg-ink/5'
+                      : isPast
+                        ? 'text-ink-3/70 hover:bg-ink/5'
+                        : 'text-ink-2 hover:bg-ink/5',
+                  isToday && !isSelected && 'ring-1 ring-inset ring-line-strong',
+                )}
+              >
+                {day}
+                {count > 0 && (
+                  <span aria-hidden className="absolute bottom-1.5 flex gap-0.5">
+                    {Array.from({ length: Math.min(count, 3) }, (_, k) => (
+                      <span key={k} className={cn('h-1 w-1 rounded-full', isSelected ? 'bg-accent' : 'bg-accent-ink')} />
+                    ))}
+                  </span>
+                )}
+              </button>
+            </div>
           )
         })}
       </div>
+
+      {legend && (
+        <p className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-meta text-ink-3">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent-ink" />
+          {legend}
+        </p>
+      )}
     </div>
   )
 }

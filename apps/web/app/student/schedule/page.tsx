@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
 import { SpotBookingCard } from './spot-booking-card'
+import { CalendarDays } from 'lucide-react'
+import { Card, SectionTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/feedback'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
@@ -241,7 +244,7 @@ export default async function StudentSchedulePage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="mx-auto w-full max-w-5xl space-y-8">
       <RealtimeRefresh
         channelName={`student-schedule-${user.id}`}
         subs={[
@@ -250,17 +253,20 @@ export default async function StudentSchedulePage() {
           { table: 'group_enrollments', filter: `student_id=eq.${user.id}` },
         ]}
       />
-      <div>
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>
-          <p className="text-sm text-gray-500">Tus clases de grupo fijo</p>
-        </div>
+      <section className="space-y-5">
+        <header>
+          <h1 className="font-display text-title text-ink sm:text-display">Mis clases</h1>
+          <p className="mt-1 text-body text-ink-2">Tu grupo fijo, tus cuotas y los días que no puedes ir.</p>
+        </header>
 
         {items.length === 0 ? (
-          <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-            <p className="text-gray-400">No estás inscrito en ninguna clase de grupo fijo.</p>
-            <p className="mt-1 text-xs text-gray-400">Habla con tu administrador para inscribirte.</p>
-          </div>
+          <Card>
+            <EmptyState
+              icon={<CalendarDays />}
+              title="Todavía no tienes grupo fijo"
+              description="Cuando el club te apunte a un grupo, aquí verás tus clases y tus cuotas."
+            />
+          </Card>
         ) : (
           <StudentScheduleClient
             items={items}
@@ -269,15 +275,12 @@ export default async function StudentSchedulePage() {
             cashOnly={features.cash_only_payments}
           />
         )}
-      </div>
+      </section>
 
       {(spotBookings ?? []).length > 0 && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Reservas puntuales</h2>
-            <p className="text-sm text-gray-500">Huecos libres en los que estás apuntado</p>
-          </div>
-          <div className="space-y-3">
+        <section className="space-y-4">
+          <SectionTitle>Clases sueltas reservadas</SectionTitle>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {(spotBookings ?? []).map(b => {
               const schedule = b.schedule as any
               const isPending = b.status === 'pending'
@@ -302,7 +305,7 @@ export default async function StudentSchedulePage() {
               )
             })}
           </div>
-        </div>
+        </section>
       )}
     </div>
   )
