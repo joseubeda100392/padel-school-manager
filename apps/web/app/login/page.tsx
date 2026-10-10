@@ -1,13 +1,34 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'motion/react'
 import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+
+function CourtDrawing() {
+  return (
+    <svg
+      viewBox="0 0 200 100"
+      fill="none"
+      aria-hidden
+      className="w-full max-w-md overflow-visible text-chrome-ink/20"
+      strokeLinecap="square"
+    >
+      <rect x="1" y="1" width="198" height="98" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="30.5" y1="1" x2="30.5" y2="99" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="169.5" y1="1" x2="169.5" y2="99" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="30.5" y1="50" x2="169.5" y2="50" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="100" y1="-3" x2="100" y2="103" className="stroke-accent" strokeWidth="2" />
+    </svg>
+  )
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const supabase = createClient()
@@ -46,123 +67,89 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen">
-      {/* Panel izquierdo — branding */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-court-900 p-12 lg:flex lg:w-[480px] xl:w-[560px]">
-        {/* Grid sutil de fondo */}
-        <div className="pointer-events-none absolute inset-0">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="court-grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" opacity="0.04" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#court-grid)" />
-          </svg>
-        </div>
-        {/* Orbs de luz ambiental */}
-        <div className="pointer-events-none absolute -bottom-40 -left-40 h-[500px] w-[500px] rounded-full bg-brand-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
+      <div className="hidden flex-col justify-between bg-chrome p-12 lg:flex lg:w-[480px] xl:w-[560px]">
+        <img src="/icon.svg" alt="ePadel School" width={40} height={40} className="h-10 w-10 rounded-xl" />
 
-        <motion.div
-          className="relative"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-        >
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl">
-            <img src="/apple-icon" alt="ePadel School" className="h-10 w-10 object-cover" />
+        <div className="space-y-10">
+          <CourtDrawing />
+          <div className="space-y-4">
+            <p className="font-display text-display text-white xl:text-[52px] xl:leading-[1.1]">
+              Gestiona<br />tu escuela<br />de <span className="text-accent">pádel.</span>
+            </p>
+            <p className="text-heading font-normal text-chrome-ink-2">
+              Alumnos, clases y pagos en un solo lugar.
+            </p>
           </div>
-        </motion.div>
-
-        <div className="relative space-y-6">
-          <motion.h1
-            className="font-display text-[52px] font-bold leading-[1.1] text-white"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
-          >
-            Gestiona<br />tu escuela<br />de <span className="text-brand-400">pádel.</span>
-          </motion.h1>
-          <motion.p
-            className="text-lg leading-relaxed text-court-300"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3, ease: 'easeOut' }}
-          >
-            Alumnos, clases y pagos<br />en un solo lugar.
-          </motion.p>
         </div>
 
-        <div className="relative text-xs text-court-400">
-          © 2026 ePadel School
-        </div>
+        <p className="text-meta text-chrome-ink-2">© 2026 ePadel School</p>
       </div>
 
-      {/* Panel derecho — formulario */}
-      <motion.div
-        className="flex flex-1 flex-col items-center justify-center bg-white px-6 py-12"
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
-      >
+      <div className="flex flex-1 flex-col items-center justify-center bg-surface px-4 py-12 sm:px-6">
         <div className="w-full max-w-sm">
-          <div className="mb-2 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl lg:hidden">
-            <img src="/apple-icon" alt="ePadel School" className="h-11 w-11 object-cover" />
-          </div>
+          <img
+            src="/icon.svg"
+            alt="ePadel School"
+            width={48}
+            height={48}
+            className="mb-6 h-12 w-12 rounded-xl lg:hidden"
+          />
 
-          <h2 className="mt-6 font-display text-2xl font-bold text-gray-900">Bienvenido</h2>
-          <p className="mt-1 text-sm text-gray-500">Accede a tu panel de administración</p>
+          <h1 className="font-display text-title text-ink">Bienvenido</h1>
+          <p className="mt-1 text-body text-ink-2">Entra con el email y la contraseña que te dio tu club</p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
-              <input
+            <Field label="Email">
+              <Input
                 type="email"
+                inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                placeholder="admin@tuescuela.com"
+                placeholder="tu@email.com"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                placeholder="••••••••"
-              />
-            </div>
+            <Field label="Contraseña">
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-pressed={showPassword}
+                  className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-control text-ink-3 hover:text-ink"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
+                </button>
+              </div>
+            </Field>
 
             {error && (
-              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+              <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>
             )}
 
-            <motion.button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            >
-              {loading ? 'Accediendo...' : 'Entrar'}
-            </motion.button>
+            <Button type="submit" size="lg" block loading={loading}>
+              {loading ? 'Entrando...' : 'Entrar'}
+            </Button>
           </form>
 
           <Link
             href="/login/forgot-password"
-            className="mt-5 block text-center text-sm text-gray-400 transition hover:text-brand-500"
+            className="mt-4 flex min-h-11 items-center justify-center text-label text-accent-ink underline-offset-4 hover:underline"
           >
-            ¿Olvidaste tu contraseña?
+            ¿Has olvidado la contraseña?
           </Link>
         </div>
-      </motion.div>
+      </div>
     </main>
   )
 }

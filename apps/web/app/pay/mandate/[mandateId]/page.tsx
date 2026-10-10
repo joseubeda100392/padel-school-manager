@@ -1,6 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { headers } from 'next/headers'
+import { buttonVariants } from '@/components/ui/button'
 import {
   generateOrderId,
   buildMerchantParameters,
@@ -75,15 +76,15 @@ export default async function MandatePayPage({ params }: { params: { mandateId: 
   const redsysUrl = getRedsysUrl(env)
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
       <div className="max-w-sm text-center">
-        <p className="mb-4 text-sm text-gray-500">Redirigiendo al sistema de pago seguro...</p>
+        <p role="status" className="mb-4 text-body text-ink-2">Redirigiendo al sistema de pago seguro...</p>
         <form id="redsys-form" method="POST" action={redsysUrl}>
           <input type="hidden" name="Ds_SignatureVersion" value="HMAC_SHA256_V1" />
           <input type="hidden" name="Ds_MerchantParameters" value={merchantParameters} />
           <input type="hidden" name="Ds_Signature" value={signature} />
-          <button type="submit" className="rounded-lg bg-brand-500 px-6 py-3 text-sm font-medium text-white hover:bg-brand-600">
-            Ir al pago →
+          <button type="submit" className={buttonVariants({ size: 'lg' })}>
+            Ir al pago
           </button>
         </form>
         <script dangerouslySetInnerHTML={{ __html: `document.getElementById('redsys-form').submit()` }} />

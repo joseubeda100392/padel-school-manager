@@ -1,16 +1,19 @@
+import { TriangleAlert } from 'lucide-react'
+import { Notice } from '@/components/ui/feedback'
+
 export function LegalSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-4 rounded-xl bg-white p-6 shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold text-gray-900">{title}</h2>
-      <div className="space-y-2 text-sm leading-relaxed text-gray-600">{children}</div>
-    </div>
+    <section className="border-t border-line py-6 first:border-t-0 first:pt-0">
+      <h2 className="mb-3 text-heading text-ink">{title}</h2>
+      <div className="max-w-prose space-y-3 text-body text-ink-2">{children}</div>
+    </section>
   )
 }
 
 export function LegalMissingData({ fields }: { fields: string[] }) {
   return (
-    <div className="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-xs text-yellow-800">
-      Falta configurar: {fields.join(', ')}. El club puede rellenarlo en Configuración → Pagos → Datos legales.
-    </div>
+    <Notice tone="warn" icon={<TriangleAlert />} className="mb-6">
+      Falta configurar: {fields.join(', ')}. El club puede rellenarlo en Configuración, Pagos, Datos legales.
+    </Notice>
   )
 }
