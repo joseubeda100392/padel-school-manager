@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { motion } from 'motion/react'
-import { usePathname } from 'next/navigation'
-import { Sidebar } from './sidebar'
-import { Header } from './header'
+import { useRouter } from 'next/navigation'
+import { LogOut } from 'lucide-react'
 import { InstallBanner } from '@/components/install-banner'
 import type { ClubFeatures } from '@/lib/get-club-features'
+import { AppShell } from './app-shell'
+import { adminNav } from './nav-config'
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -18,47 +17,47 @@ interface DashboardShellProps {
 }
 
 export function DashboardShell({ children, clubName, role, userName, features, saActiveClub }: DashboardShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const pathname = usePathname()
-  const mainRef = useRef<HTMLElement>(null)
+  const router = useRouter()
+  const isSuperAdmin = role === 'super_admin'
+  const managingClub = isSuperAdmin && !!saActiveClub && !!clubName
+  const title = isSuperAdmin && !managingClub ? 'Super admin' : (clubName ?? 'ePadel School')
 
-  useEffect(() => {
-    mainRef.current?.scrollTo(0, 0)
-  }, [pathname])
+  async function exitClub() {
+    await fetch('/api/superadmin/active-club', { method: 'DELETE' })
+    router.push('/dashboard/clubs')
+    router.refresh()
+  }
 
-  useEffect(() => {
-    document.body.classList.toggle('overflow-hidden', sidebarOpen)
-    return () => document.body.classList.remove('overflow-hidden')
-  }, [sidebarOpen])
+  const exitClubButton = managingClub ? (
+    <button
+      type="button"
+      onClick={exitClub}
+      className="flex w-full items-center justify-between gap-2 rounded-control bg-chrome-2 px-3 py-2.5 text-left hover:bg-chrome-2/70"
+    >
+      <span className="min-w-0">
+        <span className="block text-[0.75rem] text-chrome-ink-2">Gestionando</span>
+        <span className="block truncate text-label text-white">{clubName}</span>
+      </span>
+      <LogOut className="h-4 w-4 shrink-0 text-chrome-ink-2" aria-label="Salir del club" />
+    </button>
+  ) : undefined
 
   return (
-    <div className="flex min-h-dvh bg-court-50">
-      {/* Overlay móvil — siempre en DOM para evitar flash de un frame */}
-      <div
-        className={`fixed inset-0 z-20 bg-black/40 md:hidden transition-opacity duration-200 ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-        onClick={() => setSidebarOpen(false)}
-      />
-
-      {/* Sidebar */}
-      <div className={`fixed top-0 left-0 z-30 h-dvh transition-transform duration-200 md:static md:h-auto md:translate-x-0 md:z-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar clubName={clubName} role={role} userName={userName} features={features} saActiveClub={saActiveClub} onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Contenido */}
-      <div className="flex flex-1 flex-col min-w-0">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <InstallBanner />
-        <main ref={mainRef} className="flex-1 overflow-auto p-4 md:p-8">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-          >
-            {children}
-          </motion.div>
-        </main>
-      </div>
-    </div>
+    <AppShell
+      nav={adminNav({ features, isSuperAdmin })}
+      clubName={title}
+      identity={{ name: userName ?? 'Administrador', subtitle: isSuperAdmin ? 'Super admin' : `Admin · ${clubName ?? ''}` }}
+      sidebarExtra={exitClubButton}
+      headerActions={
+        managingClub ? (
+          <button type="button" onClick={exitClub} className="h-9 rounded-full border border-line px-3 text-meta font-medium text-ink-2 hover:bg-ink/5">
+            Salir del club
+          </button>
+        ) : undefined
+      }
+      overlays={<InstallBanner />}
+    >
+      {children}
+    </AppShell>
   )
 }

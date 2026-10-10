@@ -1,6 +1,28 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
+import { BellRing } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+const DISMISS_KEY = 'push-prompt-dismissed-until'
+const DISMISS_DAYS = 7
+
+// En el móvil, mientras la app no esté instalada, manda el aviso de instalar
+// (en iPhone los avisos solo funcionan con la app instalada) y así nunca salen
+// los dos a la vez.
+function shouldWaitForInstall() {
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true
+  const mobile = /iphone|ipad|ipod|android/i.test(navigator.userAgent) || (navigator as any).userAgentData?.mobile === true
+  return mobile && !standalone && !localStorage.getItem('pwa-install-dismissed')
+}
+
+function recentlyDismissed() {
+  try {
+    return Number(localStorage.getItem(DISMISS_KEY) ?? 0) > Date.now()
+  } catch {
+    return false
+  }
+}
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
 
@@ -22,11 +44,21 @@ export function PushNotificationProvider() {
       setPermission('denied')
       return
     }
-    setPermission(Notification.permission)
     if (Notification.permission === 'granted') {
+      setPermission('granted')
       registerAndSubscribe()
+      return
     }
+    if (recentlyDismissed() || shouldWaitForInstall()) return
+    setPermission(Notification.permission)
   }, [])
+
+  function dismiss() {
+    try {
+      localStorage.setItem(DISMISS_KEY, String(Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000))
+    } catch {}
+    setPermission('denied')
+  }
 
   async function registerAndSubscribe() {
     try {
@@ -68,24 +100,23 @@ export function PushNotificationProvider() {
   if (permission === null || permission === 'granted' || permission === 'denied') return null
 
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl bg-white shadow-lg border border-gray-100 p-4 md:bottom-6 md:left-auto md:right-6 md:max-w-xs">
-      <p className="text-sm font-semibold text-gray-900">Activa las notificaciones</p>
-      <p className="mt-1 text-xs text-gray-500">
-        Recibe avisos cuando se libere un hueco en tu grupo o el admin te mande un mensaje.
-      </p>
-      <div className="mt-3 flex gap-2">
-        <button
-          onClick={handleEnable}
-          className="flex-1 rounded-lg bg-brand-500 px-3 py-2 text-xs font-medium text-white hover:bg-brand-600"
-        >
-          Activar
-        </button>
-        <button
-          onClick={() => setPermission('denied')}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-500 hover:bg-gray-50"
-        >
-          Ahora no
-        </button>
+    <div
+      role="dialog"
+      aria-labelledby="push-prompt-title"
+      className="fixed inset-x-3 bottom-[calc(var(--tabbar-h)+var(--safe-bottom)+0.75rem)] z-40 mx-auto max-w-sm animate-in fade-in-0 slide-in-from-bottom-4 duration-300 md:inset-x-auto md:bottom-6 md:right-6"
+    >
+      <div className="flex gap-3 rounded-card border border-line bg-surface p-4 shadow-overlay">
+        <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-ink">
+          <BellRing className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p id="push-prompt-title" className="text-label font-semibold text-ink">Activa los avisos</p>
+          <p className="mt-0.5 text-meta text-ink-2">Te avisamos cuando se libere un hueco de tu nivel o el club te escriba.</p>
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" onClick={handleEnable}>Activar avisos</Button>
+            <Button size="sm" variant="ghost" onClick={dismiss}>Ahora no</Button>
+          </div>
+        </div>
       </div>
     </div>
   )

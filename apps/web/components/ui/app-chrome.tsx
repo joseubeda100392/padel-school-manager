@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils'
 export type TabItem = {
   href: string
   label: string
+  /** Nombre en la barra inferior cuando `label` no cabe en una línea. */
+  shortLabel?: string
   icon: LucideIcon
   exact?: boolean
   badge?: number
@@ -65,7 +67,7 @@ export function TabBar({ items, ariaLabel = 'Navegación principal' }: { items: 
       style={{ paddingBottom: 'var(--safe-bottom)' }}
     >
       <ul className="mx-auto grid h-tabbar max-w-lg" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
-        {items.map(({ href, label, icon: Icon, exact, badge }) => {
+        {items.map(({ href, label, shortLabel, icon: Icon, exact, badge }) => {
           const active = isActivePath(pathname, href, exact)
           return (
             <li key={href}>
@@ -91,7 +93,7 @@ export function TabBar({ items, ariaLabel = 'Navegación principal' }: { items: 
                     </span>
                   )}
                 </span>
-                {label}
+                <span className="max-w-full truncate px-1">{shortLabel ?? label}</span>
               </Link>
             </li>
           )

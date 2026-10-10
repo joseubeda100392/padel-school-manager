@@ -33,7 +33,7 @@ export function ListRow({
         {subtitle && <div className="mt-0.5 text-meta text-ink-3">{subtitle}</div>}
       </div>
       {trailing && <div className="shrink-0 text-right">{trailing}</div>}
-      {interactive && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-ink-3" />}
+      {href && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-ink-3" />}
     </>
   )
   const rowClass = cn(
