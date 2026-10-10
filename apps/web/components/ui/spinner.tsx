@@ -1,9 +1,7 @@
-import { Loader2 } from 'lucide-react'
+import { PageSkeleton } from './page-skeleton'
 
+// Se mantiene el nombre para las pantallas de carga existentes: ahora muestran
+// un esqueleto con la forma de la página en vez de un spinner a pantalla completa.
 export function Spinner() {
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
-    </div>
-  )
+  return <PageSkeleton />
 }

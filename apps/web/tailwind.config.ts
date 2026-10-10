@@ -46,6 +46,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Grises de Tailwind sustituidos por neutros azulados del sistema, con
+        // 400 en adelante legibles (≥ 4,5:1) sobre blanco y sobre el fondo.
+        gray: {
+          50: '#F6F8FA',
+          100: '#EEF2F6',
+          200: '#E2E8EF',
+          300: '#C6D0DB',
+          400: '#5E7185',
+          500: '#566A7F',
+          600: '#475A6E',
+          700: '#3A4D61',
+          800: '#23364A',
+          900: '#0E1C2C',
+          950: '#08121E',
+        },
         canvas: token('canvas'),
         surface: { DEFAULT: token('surface'), 2: token('surface-2') },
         line: { DEFAULT: token('line'), strong: token('line-strong') },
