@@ -36,6 +36,8 @@ const designTokens = {
 }
 
 const config: Config = {
+  // En móvil el :hover se queda pegado tras tocar; así solo aplica con ratón.
+  future: { hoverOnlyWhenSupported: true },
   content: [
     './app/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
