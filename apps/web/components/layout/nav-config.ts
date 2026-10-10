@@ -1,7 +1,7 @@
 import {
   Bell, BookOpen, Building2, CalendarDays, CalendarRange, CircleHelp, ClipboardCheck, Clock, CreditCard,
   Flame, Home, LayoutDashboard, Medal, MessageCircle, MoreHorizontal, Package, Receipt, Settings, Shield,
-  Target, Trophy, Users, Zap, type LucideIcon,
+  Target, Trophy, UserRound, Users, Zap, type LucideIcon,
 } from 'lucide-react'
 import type { ClubFeatures } from '@/lib/get-club-features'
 
@@ -102,6 +102,7 @@ export function studentNav({
       {
         title: 'Cuenta',
         items: [
+          { href: '/student/perfil', label: 'Mis datos', icon: UserRound },
           { href: '/student/ayuda', label: 'Ayuda', icon: CircleHelp },
           { href: '/student/privacidad', label: 'Privacidad y datos', icon: Shield },
         ],

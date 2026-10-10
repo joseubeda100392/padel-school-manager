@@ -52,7 +52,8 @@ function Preview() {
               eyebrow="Tu próxima clase"
               title="Lunes 12, 10:00"
               meta="Pista 1 · 60 min · Monitor: Álex Ruiz"
-              aside={<Badge tone="success" className="bg-accent text-accent-on"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagada</Badge>}
+              court="Pista 1"
+              status={<Badge tone="success" className="bg-accent text-accent-on"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagada</Badge>}
               footer={
                 <div className="flex flex-wrap items-center justify-between gap-2 text-meta text-chrome-ink-2">
                   <span>3 de 4 plazas ocupadas</span>

@@ -1,17 +1,21 @@
 ﻿import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { formatCurrency, formatTime, getDayOfWeek, matchesDayTimePreference } from '@/lib/utils'
+import { formatCurrency, getDayOfWeek, matchesDayTimePreference } from '@/lib/utils'
 import Link from 'next/link'
+import { CalendarDays, ChevronRight, CircleAlert, CircleCheck, Clock, Package, Zap } from 'lucide-react'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet } from '@/lib/club-holidays'
 import { getNextOccurrence } from '@/lib/next-class'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
-import { PasswordForm } from './password-form'
+import { formatClock, formatLongDate } from '@/lib/format-date'
+import { CourtCard } from '@/components/ui/court-card'
+import { Card } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
+import { EmptyState, Notice } from '@/components/ui/feedback'
+import { buttonVariants } from '@/components/ui/button'
 import { PistaVivaOptin } from './pista-viva-optin'
-
-const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
@@ -171,13 +175,43 @@ export default async function StudentHomePage() {
 
   const spotsCount = absenceCount + capacityCount
 
-  const userName = (userData as any)?.name
-  const userEmail = user.email ?? ''
-  const levelName = level?.name ?? null
-  const levelColor = level?.color ?? null
+  const firstName = ((userData as any)?.name as string | undefined)?.split(' ')[0]
+    ?? user.user_metadata?.name?.split(' ')[0]
+    ?? user.email?.split('@')[0]
+    ?? ''
+  const showPayment = !!nextClass && nextClass.monthly_price > 0 && billingActive && features.enable_payments
+    && (!nextClass.start_date || nextClass.start_date <= todaySpain)
+  const nextPaid = !!nextClass && isPaidThisMonth(nextClass.paid_until)
+
+  const summary = [
+    features.enable_bag && {
+      href: '/student/bag',
+      icon: Package,
+      label: 'En tu bolsa',
+      value: bagBalance,
+      unit: bagBalance === 1 ? 'clase' : 'clases',
+      highlight: bagBalance > 0,
+    },
+    features.enable_spots && {
+      href: '/student/spots',
+      icon: Zap,
+      label: 'Huecos libres',
+      value: spotsCount,
+      unit: spotsCount === 1 ? 'plaza' : 'plazas',
+      highlight: spotsCount > 0,
+    },
+    {
+      href: '/student/schedule',
+      icon: CalendarDays,
+      label: 'Tus grupos',
+      value: activeEnrollments.length,
+      unit: activeEnrollments.length === 1 ? 'grupo' : 'grupos',
+      highlight: false,
+    },
+  ].filter(Boolean) as { href: string; icon: typeof Package; label: string; value: number; unit: string; highlight: boolean }[]
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <RealtimeRefresh
         channelName={`student-home-${user.id}`}
         subs={[
@@ -187,107 +221,94 @@ export default async function StudentHomePage() {
         ]}
       />
 
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Hola, {userName?.split(' ')[0] ?? user.user_metadata?.full_name?.split(' ')[0] ?? user.user_metadata?.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'alumno'} 👋</h1>
-        <p className="text-sm text-gray-500">Bienvenido a tu área personal</p>
-      </div>
-
-      {/* Datos personales */}
-      <div className="rounded-xl bg-white p-6 shadow-sm space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">Datos personales</h2>
-        <div className="space-y-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Nombre</p>
-            <p className="mt-1 text-sm text-gray-800">{userName || <span className="italic text-gray-400">Sin nombre</span>}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Email</p>
-            <p className="mt-1 text-sm text-gray-800">{userEmail}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Nivel actual</p>
-            {levelName && levelColor ? (
-              <span className="mt-1 inline-block rounded-full px-3 py-1 text-sm font-semibold text-white" style={{ backgroundColor: levelColor }}>
-                {levelName}
-              </span>
-            ) : (
-              <p className="mt-1 text-sm italic text-gray-400">Sin asignar</p>
-            )}
-          </div>
+      <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <p className="text-meta text-ink-3">{formatLongDate(new Date())}</p>
+          <h1 className="mt-1 font-display text-display text-ink">Hola, {firstName}</h1>
         </div>
-        <p className="text-xs text-gray-400">Para cambiar tu nombre o email contacta con el club.</p>
-      </div>
+        {level?.name && <LevelTag name={`Nivel ${level.name.toLowerCase()}`} color={level.color} className="pb-1.5" />}
+      </header>
 
-      {/* Alerta cuota pendiente */}
       {features.enable_payments && billingActive && pendingEnrollments.length > 0 && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-          <p className="text-sm font-semibold text-red-700">
-            Tienes {pendingEnrollments.length} cuota{pendingEnrollments.length > 1 ? 's' : ''} pendiente{pendingEnrollments.length > 1 ? 's' : ''} de pago
-          </p>
-          <Link href="/student/schedule" className="mt-1 block text-xs text-red-600 underline">
-            Ver mis clases →
-          </Link>
-        </div>
+        <Notice
+          tone="warn"
+          icon={<CircleAlert />}
+          action={<Link href="/student/schedule" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>Pagar</Link>}
+        >
+          {pendingEnrollments.length === 1
+            ? 'Tienes una cuota pendiente de pago.'
+            : `Tienes ${pendingEnrollments.length} cuotas pendientes de pago.`}
+        </Notice>
       )}
 
-      {/* Cards resumen */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {features.enable_bag && (
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-xs font-medium uppercase text-gray-500">Clases disponibles</p>
-            <p className={`mt-2 text-4xl font-bold ${bagBalance > 0 ? 'text-brand-500' : 'text-gray-400'}`}>{bagBalance}</p>
-            <Link href="/student/bag" className="mt-2 block text-xs text-brand-500 hover:underline">Ver historial →</Link>
-          </div>
-        )}
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase text-gray-500">Mis clases</p>
-          <p className="mt-2 text-4xl font-bold text-gray-900">{activeEnrollments.length}</p>
-          <Link href="/student/schedule" className="mt-2 block text-xs text-brand-500 hover:underline">Ver clases →</Link>
-        </div>
-        {features.enable_spots && (
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-xs font-medium uppercase text-gray-500">Huecos libres</p>
-            <p className={`mt-2 text-4xl font-bold ${spotsCount > 0 ? 'text-orange-500' : 'text-gray-400'}`}>{spotsCount}</p>
-            <Link href="/student/spots" className="mt-2 block text-xs text-brand-500 hover:underline">Ver huecos →</Link>
-          </div>
-        )}
-      </div>
-
-      {/* Próxima clase */}
-      {nextClass && (
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="mb-3 text-xs font-medium uppercase text-gray-500">Próxima clase</p>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-bold text-gray-900">
-                {DAYS[nextClass.nextDate.getDay()]} {nextClass.nextDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
-              </p>
-              <p className="text-sm text-gray-500">
-                {formatTime(nextClass.override?.new_start_time ?? (nextClass.schedule as any)?.start_time)}
-                {' — '}
-                {formatTime(nextClass.override?.new_end_time ?? (nextClass.schedule as any)?.end_time)}
-                {' · '}
-                {(nextClass.schedule as any)?.court?.name}
-              </p>
-              {nextClass.override && (
-                <p className="mt-1 text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual solo este día</p>
-              )}
+      {nextClass ? (
+        <CourtCard
+          eyebrow="Tu próxima clase"
+          title={formatLongDate(nextClass.nextDate)}
+          meta={
+            <>
+              <span className="font-medium text-chrome-ink">
+                {formatClock(nextClass.override?.new_start_time ?? (nextClass.schedule as any)?.start_time)}
+                {' – '}
+                {formatClock(nextClass.override?.new_end_time ?? (nextClass.schedule as any)?.end_time)}
+              </span>
+              {(nextClass.schedule as any)?.court?.name && <> · {(nextClass.schedule as any).court.name}</>}
+            </>
+          }
+          court={(nextClass.schedule as any)?.court?.name ?? undefined}
+          status={
+            showPayment ? (
+              nextPaid
+                ? <Badge className="bg-accent text-accent-on"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Mes pagado</Badge>
+                : <Badge tone="warn"><CircleAlert className="h-3.5 w-3.5" aria-hidden />Cuota pendiente</Badge>
+            ) : undefined
+          }
+          footer={
+            <div className="flex flex-wrap items-center justify-between gap-2 text-meta text-chrome-ink-2">
+              {nextClass.override
+                ? <span className="inline-flex items-center gap-1.5 font-medium text-warn-soft"><Clock className="h-3.5 w-3.5" aria-hidden />Ese día cambia la hora</span>
+                : showPayment
+                  ? <span className="tabular-nums">{formatCurrency(nextClass.monthly_price)} al mes</span>
+                  : <span />}
+              <Link href="/student/schedule" className="inline-flex min-h-11 items-center font-medium text-accent hover:underline">
+                Ver mis clases
+              </Link>
             </div>
-            {nextClass.monthly_price > 0 && billingActive && (!nextClass.start_date || nextClass.start_date <= todaySpain) && (
-              <div className="text-right">
-                {features.enable_payments && (
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isPaidThisMonth(nextClass.paid_until) ? 'bg-brand-100 text-brand-600' : 'bg-red-100 text-red-600'}`}>
-                    {isPaidThisMonth(nextClass.paid_until) ? 'Pagado' : 'Pendiente'}
-                  </span>
-                )}
-                <p className="mt-1 text-xs text-gray-400">{formatCurrency(nextClass.monthly_price)}/mes</p>
-              </div>
-            )}
-          </div>
-        </div>
+          }
+        />
+      ) : (
+        <Card>
+          <EmptyState
+            icon={<CalendarDays />}
+            title="No tienes clases fijas"
+            description={features.enable_spots ? 'Puedes apuntarte a un hueco libre de tu nivel.' : 'Habla con el club para apuntarte a un grupo.'}
+            action={features.enable_spots ? <Link href="/student/spots" className={buttonVariants()}>Ver huecos libres</Link> : undefined}
+          />
+        </Card>
       )}
 
-      {/* Pista Viva */}
+      <Card className="overflow-hidden">
+        <ul className="grid grid-cols-1 divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {summary.map(({ href, icon: Icon, label, value, unit, highlight }) => (
+            <li key={href}>
+              <Link href={href} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-ink/[0.03] sm:flex-col sm:items-start sm:gap-2.5 sm:p-5">
+                <span aria-hidden className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control ${highlight ? 'bg-accent-soft text-accent-ink' : 'bg-ink/[0.05] text-ink-3'}`}>
+                  <Icon className="h-[18px] w-[18px]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-meta text-ink-3">{label}</span>
+                  <span className="mt-0.5 block text-ink">
+                    <span className="font-display text-title tabular-nums">{value}</span>
+                    <span className="ml-1.5 text-body text-ink-2">{unit}</span>
+                  </span>
+                </span>
+                <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-ink-3 sm:hidden" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Card>
+
       {features.enable_pista_viva && (
         <PistaVivaOptin
           optedIn={(userData as any)?.pista_viva_optin ?? false}
@@ -298,10 +319,6 @@ export default async function StudentHomePage() {
           preferredEnd={myPreferredEnd}
         />
       )}
-
-      {/* Cambiar contraseña */}
-      <PasswordForm />
     </div>
   )
 }
-
