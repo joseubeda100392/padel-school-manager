@@ -1,10 +1,16 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { Minus, Package, Plus } from 'lucide-react'
+import { formatLongDate } from '@/lib/format-date'
+import { Card, SectionTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/feedback'
+import { List, ListRow } from '@/components/ui/list'
+import { buttonVariants } from '@/components/ui/button'
 
 export default async function StudentBagPage() {
   const supabase = createClient()
@@ -81,8 +87,27 @@ export default async function StudentBagPage() {
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
+  const packs = [
+    features.enable_60min && pack60Classes > 0 && { key: 'p60', packType: '60' as const, title: 'Bono de 1 h', detail: 'Solo para clases de 1 h', classes: pack60Classes, price: pack60Price },
+    features.enable_90min && pack90Classes > 0 && { key: 'p90', packType: '90' as const, title: 'Bono de 1 h 30', detail: 'Vale para clases de 1 h y de 1 h 30', classes: pack90Classes, price: pack90Price },
+  ].filter(Boolean) as { key: string; packType: '60' | '90'; title: string; detail: string; classes: number; price: number }[]
+
+  const privatePacks = features.enable_private_lessons
+    ? (['60', '90'] as const).flatMap(dur => {
+        if (dur === '60' && !features.enable_60min) return []
+        if (dur === '90' && !features.enable_90min) return []
+        return [false, ...(hasPremiumCoach ? [true] : [])].flatMap(premium => {
+          const pack = privatePackFor(dur, premium)
+          if (!pack.classes || pack.classes <= 0) return []
+          return [{ dur, premium, ...pack }]
+        })
+      })
+    : []
+
+  const durationLabel = (d: string) => (d === '90' ? '1 h 30' : '1 h')
+
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto w-full max-w-3xl space-y-8">
       <RealtimeRefresh
         channelName={`student-bag-${user.id}`}
         subs={[
@@ -90,164 +115,127 @@ export default async function StudentBagPage() {
           { table: 'bag_transactions', filter: `user_id=eq.${user.id}` },
         ]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Mi Bolsa</h1>
-        <p className="text-sm text-gray-500">Clases disponibles para huecos libres</p>
-      </div>
+      <header>
+        <h1 className="font-display text-title text-ink sm:text-display">Bolsa</h1>
+        <p className="mt-1 text-body text-ink-2">Tus clases para recuperar faltas o apuntarte a huecos libres.</p>
+      </header>
 
-      {/* Saldos */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <Card className={`grid divide-x divide-line ${features.enable_60min && features.enable_90min ? 'grid-cols-2' : 'grid-cols-1'}`}>
         {features.enable_60min && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium uppercase text-gray-500">Clases 1h disponibles</p>
-            <p className={`mt-2 text-5xl font-bold ${balance60 > 0 ? 'text-brand-500' : 'text-gray-300'}`}>
-              {balance60}
-            </p>
-            <p className="mt-1 text-xs text-gray-400">Bono 60 min · válido para clases de 1h</p>
+          <div className="p-4 sm:p-6">
+            <p className="text-meta text-ink-3">Clases de 1 h</p>
+            <p className={`mt-1 font-display text-[2.5rem] font-semibold leading-none tabular-nums ${balance60 > 0 ? 'text-ink' : 'text-ink-3/60'}`}>{balance60}</p>
           </div>
         )}
         {features.enable_90min && (
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium uppercase text-gray-500">Clases 1h 30min disponibles</p>
-            <p className={`mt-2 text-5xl font-bold ${balance90 > 0 ? 'text-blue-600' : 'text-gray-300'}`}>
-              {balance90}
-            </p>
-            <p className="mt-1 text-xs text-gray-400">Bono 90 min · válido para 1h y 1h 30min</p>
+          <div className="p-4 sm:p-6">
+            <p className="text-meta text-ink-3">Clases de 1 h 30</p>
+            <p className={`mt-1 font-display text-[2.5rem] font-semibold leading-none tabular-nums ${balance90 > 0 ? 'text-ink' : 'text-ink-3/60'}`}>{balance90}</p>
+            <p className="mt-2 text-meta text-ink-3">También valen para clases de 1 h</p>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Comprar bono */}
       {features.enable_payments && billingActive && (
-        <div className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Comprar bono</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {features.enable_60min && pack60Classes > 0 && (
-              <div className="rounded-xl bg-white p-5 shadow-sm">
-                <p className="text-lg font-bold text-gray-900">Bono 1 hora{isExternal ? ' · externo' : ''}</p>
-                <p className="mt-1 text-sm text-gray-500">{pack60Classes} clases · solo clases de 60 min</p>
-                <p className="mt-3 text-2xl font-bold text-brand-500">{formatCurrency(pack60Price)}</p>
-                <PayButton
-                  type="class_pack"
-                  packType="60"
-                  label="💳 Comprar bono"
-                  className="mt-4 w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-                  cashOnly={features.cash_only_payments}
-                />
-              </div>
-            )}
-            {features.enable_90min && pack90Classes > 0 && (
-              <div className="rounded-xl bg-white p-5 shadow-sm">
-                <p className="text-lg font-bold text-gray-900">Bono 1h 30min{isExternal ? ' · externo' : ''}</p>
-                <p className="mt-1 text-sm text-gray-500">{pack90Classes} clases · vale para 1h y 1h 30min</p>
-                <p className="mt-3 text-2xl font-bold text-blue-600">{formatCurrency(pack90Price)}</p>
-                <PayButton
-                  type="class_pack"
-                  packType="90"
-                  label="💳 Comprar bono"
-                  className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                  cashOnly={features.cash_only_payments}
-                />
-              </div>
-            )}
-            {isExternal && pack60Classes === 0 && pack90Classes === 0 && (
-              <p className="text-sm text-gray-400">La escuela todavía no ha configurado el bono para alumnos externos.</p>
-            )}
-          </div>
-        </div>
+        <section className="space-y-4">
+          <SectionTitle>Comprar bono{isExternal ? ' (tarifa de alumno externo)' : ''}</SectionTitle>
+          {packs.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {packs.map(p => (
+                <Card key={p.key} className="flex flex-col p-4 sm:p-5">
+                  <p className="text-heading text-ink">{p.title}</p>
+                  <p className="mt-0.5 text-meta text-ink-3">{p.detail}</p>
+                  <p className="mt-4 flex items-baseline gap-2">
+                    <span className="font-display text-title tabular-nums text-ink">{formatCurrency(p.price)}</span>
+                    <span className="text-meta text-ink-3">{p.classes} clases · {formatCurrency(Math.round(p.price / p.classes))} cada una</span>
+                  </p>
+                  <div className="mt-4">
+                    <PayButton type="class_pack" packType={p.packType} label={`Comprar por ${formatCurrency(p.price)}`} block className={buttonVariants({ variant: 'secondary', block: true })} cashOnly={features.cash_only_payments} />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : isExternal ? (
+            <p className="text-body text-ink-3">El club todavía no ha configurado el bono para alumnos externos.</p>
+          ) : null}
+        </section>
       )}
 
-      {/* Bono de clase particular */}
       {features.enable_private_lessons && (
-        <div className="mb-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Bono de clase particular</h2>
-          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {features.enable_60min && (
-              <div className="rounded-xl bg-white p-5 shadow-sm">
-                <p className="text-xs font-medium uppercase text-gray-500">Particulares de 1h disponibles</p>
-                <p className="mt-1 text-3xl font-bold text-purple-600">{(bag as any)?.[balanceKey('60', false)] ?? 0}</p>
-                {hasPremiumCoach && (
-                  <p className="mt-1 text-xs text-gray-400">+ {(bag as any)?.[balanceKey('60', true)] ?? 0} con monitor premium</p>
-                )}
-              </div>
-            )}
-            {features.enable_90min && (
-              <div className="rounded-xl bg-white p-5 shadow-sm">
-                <p className="text-xs font-medium uppercase text-gray-500">Particulares de 1h30 disponibles</p>
-                <p className="mt-1 text-3xl font-bold text-purple-600">{(bag as any)?.[balanceKey('90', false)] ?? 0}</p>
-                {hasPremiumCoach && (
-                  <p className="mt-1 text-xs text-gray-400">+ {(bag as any)?.[balanceKey('90', true)] ?? 0} con monitor premium</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {features.enable_payments && billingActive && (
+        <section className="space-y-4">
+          <SectionTitle>Clases particulares</SectionTitle>
+          <Card className="overflow-hidden">
+            <List>
+              {(['60', '90'] as const).filter(d => (d === '60' ? features.enable_60min : features.enable_90min)).map(dur => (
+                <ListRow
+                  key={dur}
+                  title={`Particulares de ${durationLabel(dur)}`}
+                  subtitle={hasPremiumCoach ? `Y ${(bag as any)?.[balanceKey(dur, true)] ?? 0} con monitor premium` : undefined}
+                  trailing={<span className="font-display text-title tabular-nums text-ink">{(bag as any)?.[balanceKey(dur, false)] ?? 0}</span>}
+                />
+              ))}
+            </List>
+          </Card>
+          {features.enable_payments && billingActive && privatePacks.length > 0 && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {(['60', '90'] as const).flatMap(dur => {
-                if (dur === '60' && !features.enable_60min) return []
-                if (dur === '90' && !features.enable_90min) return []
-                return [false, ...(hasPremiumCoach ? [true] : [])].map(premium => {
-                  const pack = privatePackFor(dur, premium)
-                  if (!pack.classes || pack.classes <= 0) return null
-                  return (
-                    <div key={`${dur}-${premium}`} className="rounded-xl bg-white p-5 shadow-sm">
-                      <p className="text-lg font-bold text-gray-900">
-                        Particular {dur === '60' ? '1 hora' : '1h 30min'}{premium ? ' · monitor premium' : ''}
-                      </p>
-                      <p className="mt-1 text-sm text-gray-500">{pack.classes} clase{pack.classes === 1 ? '' : 's'}</p>
-                      <p className="mt-3 text-2xl font-bold text-purple-600">{formatCurrency(pack.price)}</p>
-                      <PayButton
-                        type="private_lesson_pack"
-                        packType={dur}
-                        privatePremium={premium}
-                        label="💳 Comprar bono"
-                        className="mt-4 w-full rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
-                        cashOnly={features.cash_only_payments}
-                      />
-                    </div>
-                  )
-                })
-              })}
+              {privatePacks.map(p => (
+                <Card key={`${p.dur}-${p.premium}`} className="flex flex-col p-4 sm:p-5">
+                  <p className="text-heading text-ink">Particular de {durationLabel(p.dur)}{p.premium ? ' · monitor premium' : ''}</p>
+                  <p className="mt-4 flex items-baseline gap-2">
+                    <span className="font-display text-title tabular-nums text-ink">{formatCurrency(p.price)}</span>
+                    <span className="text-meta text-ink-3">{p.classes} {p.classes === 1 ? 'clase' : 'clases'}</span>
+                  </p>
+                  <div className="mt-4">
+                    <PayButton
+                      type="private_lesson_pack"
+                      packType={p.dur}
+                      privatePremium={p.premium}
+                      label={`Comprar por ${formatCurrency(p.price)}`}
+                      variant="secondary"
+                      className={buttonVariants({ variant: 'secondary', block: true })}
+                      cashOnly={features.cash_only_payments}
+                    />
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* Historial */}
-      {(transactions ?? []).length > 0 && (
-        <div>
-          <h2 className="mb-3 text-sm font-semibold uppercase text-gray-500">Historial</h2>
-          <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead>
-                <tr className="text-left text-xs font-medium uppercase text-gray-400">
-                  <th className="px-4 py-3">Fecha</th>
-                  <th className="px-4 py-3">Concepto</th>
-                  <th className="px-4 py-3">Tipo</th>
-                  <th className="px-4 py-3 text-right">Clases</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {(transactions ?? []).map(tx => (
-                  <tr key={tx.id}>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                      {new Date(tx.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{tx.reason}</td>
-                    <td className="px-4 py-3 text-sm text-gray-400">
-                      {tx.class_duration ? `${tx.class_duration} min` : '—'}
-                    </td>
-                    <td className={`whitespace-nowrap px-4 py-3 text-right text-sm font-semibold ${tx.delta > 0 ? 'text-brand-500' : 'text-red-500'}`}>
-                      {tx.delta > 0 ? `+${tx.delta}` : tx.delta}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <section className="space-y-4">
+        <SectionTitle>Movimientos</SectionTitle>
+        {(transactions ?? []).length > 0 ? (
+          <Card className="overflow-hidden">
+            <List>
+              {(transactions ?? []).map(tx => {
+                const plus = tx.delta > 0
+                return (
+                  <ListRow
+                    key={tx.id}
+                    leading={
+                      <span aria-hidden className={`flex h-9 w-9 items-center justify-center rounded-full ${plus ? 'bg-accent-soft text-accent-ink' : 'bg-ink/[0.05] text-ink-3'}`}>
+                        {plus ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                      </span>
+                    }
+                    title={tx.reason}
+                    subtitle={`${formatLongDate(tx.created_at, { weekday: false })}${tx.class_duration ? ` · clase de ${durationLabel(tx.class_duration)}` : ''}`}
+                    trailing={
+                      <span className={`text-[0.9375rem] font-semibold tabular-nums ${plus ? 'text-accent-ink' : 'text-ink-2'}`}>
+                        <span className="sr-only">{plus ? 'Entra' : 'Sale'} </span>{plus ? `+${tx.delta}` : `−${Math.abs(tx.delta)}`}
+                      </span>
+                    }
+                  />
+                )
+              })}
+            </List>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyState icon={<Package />} title="Aún no hay movimientos" description="Cuando avises de una falta o uses una clase, lo verás aquí." />
+          </Card>
+        )}
+      </section>
     </div>
   )
 }
