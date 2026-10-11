@@ -1,10 +1,10 @@
-﻿'use client'
+'use client'
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { PayButton } from '@/components/pay-button'
 import { MonthCalendar } from '@/components/month-calendar'
-import { CircleCheck, Package, Zap } from 'lucide-react'
+import { CircleCheck, Package, UserPlus } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { formatLongDate } from '@/lib/format-date'
 import { Card } from '@/components/ui/card'
@@ -258,7 +258,7 @@ export function SpotsClient({
         {daySpots.length === 0 ? (
           <Card>
             <EmptyState
-              icon={<Zap />}
+              icon={<UserPlus />}
               title="Este día no hay huecos"
               description={spots.length > 0 ? 'Elige en el calendario un día marcado con un punto.' : 'Ahora mismo no hay plazas libres de tu nivel este mes.'}
             />

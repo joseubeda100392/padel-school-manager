@@ -1,7 +1,7 @@
 import {
   Bell, BookOpen, Building2, CalendarDays, CalendarRange, CircleHelp, ClipboardCheck, Clock, CreditCard,
   Flame, Home, LayoutDashboard, Medal, MessageCircle, MoreHorizontal, Package, Receipt, Settings, Shield,
-  Target, Trophy, UserRound, Users, Zap, type LucideIcon,
+  Target, Trophy, UserPlus, UserRound, Users, Zap, type LucideIcon,
 } from 'lucide-react'
 import type { ClubFeatures } from '@/lib/get-club-features'
 
@@ -78,7 +78,7 @@ export function studentNav({
         items: [
           { href: '/student', label: 'Inicio', icon: Home, exact: true },
           { href: '/student/schedule', label: 'Mis clases', icon: CalendarDays },
-          { href: '/student/spots', label: 'Huecos', icon: Zap, feature: 'enable_spots', hidden: hideSpots },
+          { href: '/student/spots', label: 'Huecos', icon: UserPlus, feature: 'enable_spots', hidden: hideSpots },
           { href: '/student/bag', label: 'Bolsa', icon: Package, feature: 'enable_bag' },
         ],
       },

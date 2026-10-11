@@ -1,9 +1,9 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, getDayOfWeek, matchesDayTimePreference } from '@/lib/utils'
 import Link from 'next/link'
-import { CalendarDays, ChevronRight, CircleAlert, CircleCheck, Clock, Package, Zap } from 'lucide-react'
+import { CalendarDays, ChevronRight, CircleAlert, CircleCheck, Clock, Package, UserPlus } from 'lucide-react'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet } from '@/lib/club-holidays'
@@ -201,7 +201,7 @@ export default async function StudentHomePage() {
     },
     features.enable_spots && {
       href: '/student/spots',
-      icon: Zap,
+      icon: UserPlus,
       label: 'Huecos libres',
       value: spotsCount,
       unit: spotsCount === 1 ? 'plaza' : 'plazas',
