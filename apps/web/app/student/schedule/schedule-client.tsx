@@ -61,6 +61,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
 
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
   const [todayYear, todayMonth0] = [Number(todayStr.slice(0, 4)), Number(todayStr.slice(5, 7)) - 1]
+  const currentMonthName = new Intl.DateTimeFormat('es-ES', { month: 'long', timeZone: 'Europe/Madrid' }).format(new Date())
   // ?date= desde un movimiento de la bolsa: abre directamente ese día.
   const [view, setView] = useState(initialDate
     ? { year: Number(initialDate.slice(0, 4)), month0: Number(initialDate.slice(5, 7)) - 1 }
@@ -241,29 +242,34 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                   </div>
 
                   {enablePayments && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-body text-ink-2">Cuota mensual</span>
-                        <span className="text-body font-semibold tabular-nums text-ink">{formatCurrency(item.monthlyPrice)}</span>
-                        {item.isPaid
-                          ? <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagada</Badge>
-                          : <Badge tone="warn"><CircleAlert className="h-3.5 w-3.5" aria-hidden />Pendiente</Badge>}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="space-y-3 border-t border-line px-4 py-3 sm:px-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-body text-ink-2">Cuota de {currentMonthName}</span>
+                          <span className="text-body font-semibold tabular-nums text-ink">{formatCurrency(item.monthlyPrice)}</span>
+                          {item.isPaid
+                            ? <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagada</Badge>
+                            : <Badge tone="warn"><CircleAlert className="h-3.5 w-3.5" aria-hidden />Pendiente</Badge>}
+                        </div>
                         {!item.isPaid && (
-                          <PayButton type="fixed_group_month" enrollmentId={item.enrollmentId} label={`Pagar ${formatCurrency(item.monthlyPrice)}`} cashOnly={cashOnly} />
+                          <PayButton type="fixed_group_month" enrollmentId={item.enrollmentId} label={`Pagar ${currentMonthName} · ${formatCurrency(item.monthlyPrice)}`} cashOnly={cashOnly} />
                         )}
-                        {item.canAdvance && (
+                      </div>
+                      {item.canAdvance && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-control bg-surface-2 px-3 py-2.5">
+                          <p className="min-w-0 flex-1 basis-56 text-meta text-ink-2">
+                            Si te vas de vacaciones o prefieres no estar pendiente, puedes dejar pagado {item.nextMonthLabel.split(' ')[0]} desde ahora.
+                          </p>
                           <PayButton
                             type="fixed_group_month"
                             enrollmentId={item.enrollmentId}
                             advance
                             variant="secondary"
-                            label={`Adelantar ${item.nextMonthLabel.split(' ')[0]}`}
+                            label={`Pagar ${item.nextMonthLabel.split(' ')[0]} ahora · ${formatCurrency(item.monthlyPrice)}`}
                             cashOnly={cashOnly}
                           />
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

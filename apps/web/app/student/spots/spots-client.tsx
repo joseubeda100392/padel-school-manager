@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PayButton } from '@/components/pay-button'
 import { MonthCalendar } from '@/components/month-calendar'
 import { CircleCheck, Package, UserPlus } from 'lucide-react'
+import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import { formatLongDate } from '@/lib/format-date'
 import { Card } from '@/components/ui/card'
@@ -78,6 +79,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
     const json = await res.json()
     if (res.ok) {
       setBooked(true)
+      toast.success(`Te has apuntado: ${dateLabel}, ${spot.startTime}`)
       router.refresh()
     } else {
       setError(json.error ?? 'No se ha podido reservar. Vuelve a intentarlo.')
