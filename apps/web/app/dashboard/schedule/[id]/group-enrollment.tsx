@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { toast } from 'sonner'
 import { Banknote, CalendarPlus, CalendarX, Check, CircleAlert, CircleCheck, Clock, CreditCard, Eye, EyeOff, Pencil, X } from 'lucide-react'
@@ -12,7 +12,7 @@ import { useConfirm } from '@/components/ui/confirm'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StudentCombobox } from '@/components/student-combobox'
-import { getDayOfWeek } from '@/lib/utils'
+import { getDayOfWeek, formatCurrency } from '@/lib/utils'
 import type { InClubMethod } from '@/lib/payment-method'
 
 interface Enrollment {
@@ -485,9 +485,9 @@ export default function GroupEnrollment({
                         size="sm"
                         onClick={() => { setEditingPriceId(e.id); setEditingPriceValue(e.monthly_price) }}
                         title="Editar cuota"
-                        aria-label={`Editar cuota: ${(e.monthly_price / 100).toFixed(2)} euros al mes`}
+                        aria-label={`Editar cuota: ${formatCurrency(e.monthly_price)} al mes`}
                       >
-                        <span className="tabular-nums">{(e.monthly_price / 100).toFixed(2)} €/mes</span>
+                        <span className="tabular-nums">{formatCurrency(e.monthly_price)}/mes</span>
                         <Pencil className="h-3.5 w-3.5 text-ink-3" aria-hidden />
                       </Button>
                     ))}
@@ -518,7 +518,7 @@ export default function GroupEnrollment({
                         onClick={() => { setEditingPerClassId(e.id); setEditingPerClassValue(e.price_per_class_cents ?? 0) }}
                         title="Precio por clase suelta (para el descuento de clases no dadas)"
                       >
-                        <span className="tabular-nums">{e.price_per_class_cents ? `${(e.price_per_class_cents / 100).toFixed(2)} €/clase` : 'Sin precio por clase'}</span>
+                        <span className="tabular-nums">{e.price_per_class_cents ? `${formatCurrency(e.price_per_class_cents)}/clase` : 'Sin precio por clase'}</span>
                         <Pencil className="h-3.5 w-3.5 text-ink-3" aria-hidden />
                       </Button>
                     ))}
@@ -670,7 +670,7 @@ export default function GroupEnrollment({
               <option value="" disabled>Elige una tarifa</option>
               {(['clase_suelta', 'con_pista', 'sin_pista'] as TariffChoice[]).map((tariff) => (
                 <option key={tariff} value={tariff}>
-                  {TARIFF_LABELS[tariff]} ({(tariffPricePerClass(tariff) / 100).toFixed(2)} €/clase)
+                  {TARIFF_LABELS[tariff]} ({formatCurrency(tariffPricePerClass(tariff))}/clase)
                 </option>
               ))}
             </Select>

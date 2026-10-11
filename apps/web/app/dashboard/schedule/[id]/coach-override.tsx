@@ -98,7 +98,7 @@ export function CoachOverride({ scheduleId, nextDate, nextDateLabel, coaches, ex
     return (
       <div className="mt-2">
         <Button variant="link" onClick={() => setShowForm(true)} className="h-auto whitespace-normal text-left text-meta">
-          Poner un sustituto solo el {nextDateLabel} (el titular no puede)
+          Poner un sustituto solo el {nextDateLabel.charAt(0).toLowerCase() + nextDateLabel.slice(1)} (el titular no puede)
         </Button>
       </div>
     )

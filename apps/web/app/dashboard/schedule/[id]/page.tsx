@@ -233,7 +233,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
                 )}
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <p className="font-display text-display tabular-nums text-ink">
                 {enrolled}<span className="text-heading text-ink-3">/{schedule.max_students}</span>
               </p>

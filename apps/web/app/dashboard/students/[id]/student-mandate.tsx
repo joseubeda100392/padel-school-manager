@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Field, Input, Select } from '@/components/ui/field'
 import { Notice } from '@/components/ui/feedback'
 import { useConfirm } from '@/components/ui/confirm'
+import { formatCurrency } from '@/lib/utils'
 
 interface Mandate {
   id: string
@@ -137,7 +138,7 @@ export function StudentMandate({ studentId }: { studentId: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <MandateStatus status={mandate.status} />
               <span className="text-label tabular-nums text-ink">
-                {(mandate.amount_cents / 100).toFixed(2)} € / mes · día {mandate.day_of_month}
+                {formatCurrency(mandate.amount_cents)}/mes · día {mandate.day_of_month}
               </span>
             </div>
             {mandate.last_charged_at && (

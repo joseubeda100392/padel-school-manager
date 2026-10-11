@@ -14,7 +14,7 @@ import { Notice, Skeleton } from '@/components/ui/feedback'
 import { Avatar } from '@/components/ui/list'
 import { useConfirm } from '@/components/ui/confirm'
 import { formatLongDate } from '@/lib/format-date'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 
 function downloadCsv(filename: string, rows: Record<string, unknown>[], columns?: { key: string; header: string }[]) {
   if (!rows.length) return
@@ -1059,7 +1059,7 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
                       <PriceField label="Precio del bono de 1 hora (€)" value={config.pack_price_60} onChange={v => setConfig({ ...config, pack_price_60: v })} />
                     </div>
                     <p className="mt-2 text-meta tabular-nums text-ink-3">
-                      Precio por clase: {config.classes_per_pack_60 > 0 ? ((config.pack_price_60 / config.classes_per_pack_60) / 100).toFixed(2) : '0.00'} €
+                      Precio por clase: {formatCurrency(config.classes_per_pack_60 > 0 ? Math.round(config.pack_price_60 / config.classes_per_pack_60) : 0)}
                     </p>
                   </div>
                 )}
@@ -1071,7 +1071,7 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
                       <PriceField label="Precio del bono de 1h 30min (€)" value={config.pack_price_90} onChange={v => setConfig({ ...config, pack_price_90: v })} />
                     </div>
                     <p className="mt-2 text-meta tabular-nums text-ink-3">
-                      Precio por clase: {config.classes_per_pack_90 > 0 ? ((config.pack_price_90 / config.classes_per_pack_90) / 100).toFixed(2) : '0.00'} €
+                      Precio por clase: {formatCurrency(config.classes_per_pack_90 > 0 ? Math.round(config.pack_price_90 / config.classes_per_pack_90) : 0)}
                     </p>
                   </div>
                 )}

@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/feedback'
 import { List, ListRow, Avatar } from '@/components/ui/list'
 import { buttonVariants } from '@/components/ui/button'
 import { formatLongDate } from '@/lib/format-date'
+import { formatCurrency } from '@/lib/utils'
 
 const statusLabel: Record<string, string> = { open: 'Abierto', closed: 'Cerrado', finished: 'Finalizado' }
 const statusTone: Record<string, 'success' | 'warn' | 'neutral'> = {
@@ -67,7 +68,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
             {tournament.description && <p className="mt-2 text-body text-ink-2">{tournament.description}</p>}
             <div className="mt-3 flex flex-wrap gap-4 text-body tabular-nums text-ink-2">
               <span>{(registrations ?? []).length} / {tournament.max_players} inscritos</span>
-              <span>{tournament.price_cents > 0 ? `${(tournament.price_cents / 100).toFixed(2)} €` : 'Gratuito'}</span>
+              <span>{tournament.price_cents > 0 ? formatCurrency(tournament.price_cents) : 'Gratuito'}</span>
             </div>
           </div>
           <TournamentActions tournamentId={tournament.id} currentStatus={tournament.status} />

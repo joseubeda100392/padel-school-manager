@@ -12,6 +12,7 @@ import { Field, Input } from '@/components/ui/field'
 import { EmptyState, Notice } from '@/components/ui/feedback'
 import { List, Stat } from '@/components/ui/list'
 import { useConfirm } from '@/components/ui/confirm'
+import { formatCurrency } from '@/lib/utils'
 
 interface PendingSession {
   id: string
@@ -45,7 +46,7 @@ function formatDate(d: string) {
   return new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 function euros(cents: number) {
-  return (cents / 100).toFixed(2) + ' €'
+  return formatCurrency(cents)
 }
 
 export function ClassValidationClient({

@@ -10,6 +10,7 @@ import { useConfirm } from '@/components/ui/confirm'
 import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { formatCurrency } from '@/lib/utils'
 
 type Tournament = {
   id: string
@@ -137,7 +138,7 @@ export function TournamentsClient({ tournaments, cashOnly = false }: { tournamen
                       <Users className="h-3.5 w-3.5" aria-hidden />
                       {state.count} / {t.max_players} inscritos
                     </span>
-                    <span className="tabular-nums">{t.price_cents > 0 ? `${(t.price_cents / 100).toFixed(2)} €` : 'Gratuito'}</span>
+                    <span className="tabular-nums">{t.price_cents > 0 ? formatCurrency(t.price_cents) : 'Gratuito'}</span>
                     {t.allowedLevels && t.allowedLevels.map(l => (
                       <LevelTag key={l.id} name={l.name} color={l.color} />
                     ))}
@@ -162,7 +163,7 @@ export function TournamentsClient({ tournaments, cashOnly = false }: { tournamen
                         <PayButton
                           type="tournament"
                           tournamentId={t.id}
-                          label={`Pagar y apuntarme · ${(t.price_cents / 100).toFixed(2)} €`}
+                          label={`Pagar y apuntarme · ${formatCurrency(t.price_cents)}`}
                           className={buttonVariants({ variant: 'primary', className: 'w-full sm:w-auto' })}
                           cashOnly={cashOnly}
                         />

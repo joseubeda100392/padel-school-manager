@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/feedback'
 import { buttonVariants } from '@/components/ui/button'
 import { formatLongDate } from '@/lib/format-date'
+import { formatCurrency } from '@/lib/utils'
 
 const statusLabel: Record<string, string> = { open: 'Abierto', closed: 'Cerrado', finished: 'Finalizado' }
 const statusTone: Record<string, 'success' | 'warn' | 'neutral'> = {
@@ -83,7 +84,7 @@ export default async function TournamentsPage() {
                       {t.description && <p className="mt-1 text-body text-ink-2">{t.description}</p>}
                       <div className="mt-2 flex flex-wrap gap-4 text-meta tabular-nums text-ink-3">
                         <span>{count} / {t.max_players} inscritos</span>
-                        {t.price_cents > 0 && <span>{(t.price_cents / 100).toFixed(2)} €</span>}
+                        {t.price_cents > 0 && <span>{formatCurrency(t.price_cents)}</span>}
                         {t.price_cents === 0 && <span>Gratuito</span>}
                       </div>
                     </div>

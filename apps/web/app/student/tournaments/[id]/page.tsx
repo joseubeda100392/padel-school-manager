@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { TournamentDetailClient } from './tournament-detail-client'
+import { formatCurrency } from '@/lib/utils'
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'open') return <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Abierto</Badge>
@@ -94,7 +95,7 @@ export default async function StudentTournamentDetailPage({ params }: { params: 
             <Tag className="mt-0.5 h-5 w-5 shrink-0 text-ink-3" aria-label="Precio" />
             <p className="text-body text-ink tabular-nums">
               {tournament.price_cents > 0
-                ? <><span className="font-semibold">{(tournament.price_cents / 100).toFixed(2)} €</span> por jugador</>
+                ? <><span className="font-semibold">{formatCurrency(tournament.price_cents)}</span> por jugador</>
                 : 'Gratuito'}
             </p>
           </div>

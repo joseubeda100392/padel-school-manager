@@ -150,10 +150,10 @@ export default async function CoachClassesPage({
         description={`${schedules?.length ?? 0} clases asignadas`}
         actions={
           <div role="group" aria-label="Vista" className="flex w-full overflow-hidden rounded-control border border-line-strong/60 sm:w-auto">
-            <Link href="/coach/classes?view=list" aria-pressed={view === 'list'} className={viewLink(view === 'list')}>
+            <Link href="/coach/classes?view=list" aria-current={view === 'list' ? 'page' : undefined} className={viewLink(view === 'list')}>
               Lista
             </Link>
-            <Link href="/coach/classes?view=week" aria-pressed={view === 'week'} className={`border-l border-line-strong/60 ${viewLink(view === 'week')}`}>
+            <Link href="/coach/classes?view=week" aria-current={view === 'week' ? 'page' : undefined} className={`border-l border-line-strong/60 ${viewLink(view === 'week')}`}>
               Calendario
             </Link>
           </div>

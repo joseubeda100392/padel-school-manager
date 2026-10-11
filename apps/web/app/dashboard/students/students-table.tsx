@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useMemo, useDeferredValue, useCallback, memo } from 'react'
 import { Check, CircleCheck, CircleOff, Download, Search, X } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatCurrency } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -362,7 +362,7 @@ const StudentRow = memo(function StudentRow({
               className={`min-h-11 whitespace-nowrap text-label tabular-nums ${enrollment?.id ? 'cursor-pointer text-ink hover:text-accent-ink' : 'cursor-default text-ink-2'}`}
               title={enrollment?.id ? 'Pulsa para editar' : 'Varias matrículas: edita desde el perfil del alumno'}
             >
-              {(cuotaCents / 100).toFixed(2)} €/mes{!enrollment?.id ? ' *' : ''}
+              {formatCurrency(cuotaCents)}/mes{!enrollment?.id ? ' *' : ''}
             </button>
           )}
         </td>

@@ -79,8 +79,11 @@ export function AppShell({
             <main
               ref={mainRef}
               id="contenido"
-              tabIndex={-1}
-              className="flex flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-[calc(var(--tabbar-h)+var(--safe-bottom)+1.5rem)] pt-5 md:px-8 md:pb-10 md:pt-8"
+              // Región con scroll propio: tiene que poder enfocarse con el
+              // teclado aunque la pantalla no tenga nada pulsable (WCAG 2.1.1).
+              tabIndex={0}
+              aria-label="Contenido"
+              className="flex flex-1 flex-col overflow-y-auto overscroll-contain px-4 focus-visible:outline-offset-[-2px] pb-[calc(var(--tabbar-h)+var(--safe-bottom)+1.5rem)] pt-5 md:px-8 md:pb-10 md:pt-8"
             >
               <div key={pathname} className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col animate-in fade-in-0 duration-150">
                 {/* Hay dos versiones de los tipos de React en el monorepo; el

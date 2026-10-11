@@ -6,6 +6,7 @@ import { formatLongDate } from '@/lib/format-date'
 import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
+import { formatCurrency } from '@/lib/utils'
 
 interface IntensivoPack {
   groupId: string
@@ -78,7 +79,7 @@ export function IntensivosClient({ packs, enablePayments = true, cashOnly = fals
                   </Badge>
                 ) : (
                   <>
-                    <p className="font-display text-title tabular-nums text-ink">{(pack.totalPriceCents / 100).toFixed(2)} €</p>
+                    <p className="font-display text-title tabular-nums text-ink">{formatCurrency(pack.totalPriceCents)}</p>
                     <p className="text-meta text-ink-3">Semana completa</p>
                     {enablePayments ? (
                       <PayButton

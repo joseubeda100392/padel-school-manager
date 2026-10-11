@@ -87,7 +87,7 @@ export function TimeOverride({ scheduleId, nextDate, nextDateLabel, existingOver
     return (
       <div className="mt-4">
         <Button variant="link" onClick={() => setShowForm(true)} className="h-auto whitespace-normal text-left text-meta">
-          Cambiar la hora solo el {nextDateLabel} (pista no disponible, etc.)
+          Cambiar la hora solo el {nextDateLabel.charAt(0).toLowerCase() + nextDateLabel.slice(1)} (pista no disponible, etc.)
         </Button>
       </div>
     )

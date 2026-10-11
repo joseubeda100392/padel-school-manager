@@ -7,6 +7,7 @@ import { PayButton } from '@/components/pay-button'
 import { useConfirm } from '@/components/ui/confirm'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { formatCurrency } from '@/lib/utils'
 
 export function TournamentDetailClient({
   tournamentId,
@@ -99,7 +100,7 @@ export function TournamentDetailClient({
         <PayButton
           type="tournament"
           tournamentId={tournamentId}
-          label={`Pagar y apuntarme · ${(priceCents / 100).toFixed(2)} €`}
+          label={`Pagar y apuntarme · ${formatCurrency(priceCents)}`}
           className={buttonVariants({ variant: 'primary', size: 'lg', block: true })}
           cashOnly={cashOnly}
         />
