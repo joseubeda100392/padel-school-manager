@@ -127,3 +127,7 @@ Fases 0 a 6 hechas en `rediseno-web`; la 7 (control de calidad) está hecha en l
 3. Los enlaces a `/dashboard/settings#playtomic` abren la pestaña Perfil (la pestaña no lee el ancla de la URL).
 4. Las notificaciones push automáticas de cuota y de bolsa llevan emoji en el título (💳, 🎾). Es contenido que reciben los alumnos; decidir si se quita.
 5. Al aprobarlo: merge a `master`, etiqueta `v3.0`, `/deploy-check` y comprobar el despliegue.
+
+## 8. Aparcado para más adelante
+
+- **Entrar sin contraseña con código por email** (pedido porque muchos alumnos no recuerdan la contraseña). Propuesta: "Entrar con un código" en el login con `signInWithOtp` (`shouldCreateUser: false`) + `verifyOtp`, plantilla de correo en español con el código, sin cambios para admins (siguen con MFA). Antes de hacerlo: revisar en Supabase **Authentication → Emails → SMTP Settings** si hay SMTP propio (el de Supabase por defecto manda muy pocos correos por hora). Más adelante, si los clubs lo piden, código por SMS (≈ 70–90 €/año para un club como R3, requiere proveedor tipo Twilio).
