@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, CalendarX, CircleAlert, CircleCheck, Clock } from 'lucide-react'
+import { CalendarDays, CalendarX, CircleAlert, CircleCheck, Clock, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import { formatLongDate, formatShortDay } from '@/lib/format-date'
@@ -47,7 +47,7 @@ interface CalendarEvent extends Occurrence {
   scheduleId: string
 }
 
-export function StudentScheduleClient({ items, cancellationHours, enablePayments = true, cashOnly = false }: { items: ScheduleItem[]; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean }) {
+export function StudentScheduleClient({ items, cancellationHours, enablePayments = true, cashOnly = false, showBag = true, creditedDates = [], initialDate }: { items: ScheduleItem[]; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean; showBag?: boolean; creditedDates?: string[]; initialDate?: string }) {
   const router = useRouter()
   const [exclusionsByEnrollment, setExclusionsByEnrollment] = useState<Record<string, ScheduleItem['exclusions']>>(
     () => Object.fromEntries(items.map(i => [i.enrollmentId, i.exclusions]))
@@ -61,7 +61,11 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
 
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
   const [todayYear, todayMonth0] = [Number(todayStr.slice(0, 4)), Number(todayStr.slice(5, 7)) - 1]
-  const [view, setView] = useState({ year: todayYear, month0: todayMonth0 })
+  // ?date= desde un movimiento de la bolsa: abre directamente ese día.
+  const [view, setView] = useState(initialDate
+    ? { year: Number(initialDate.slice(0, 4)), month0: Number(initialDate.slice(5, 7)) - 1 }
+    : { year: todayYear, month0: todayMonth0 })
+  const creditedSet = useMemo(() => new Set(creditedDates), [creditedDates])
 
   // Todas las ocurrencias de TODAS las clases, en una sola lista — el
   // calendario no distingue de qué clase es cada una hasta que se selecciona
@@ -71,7 +75,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
   ), [items])
 
   const [selectedDate, setSelectedDate] = useState<string | null>(
-    events.find(e => e.dateStr >= todayStr)?.dateStr ?? null
+    initialDate ?? events.find(e => e.dateStr >= todayStr)?.dateStr ?? null
   )
 
   const eventCounts = useMemo(() => {
@@ -266,10 +270,18 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                   <div className="border-t border-line bg-surface-2/60 px-4 py-3 sm:px-5">
                     {registered ? (
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="inline-flex items-center gap-2 text-body text-ink-2">
-                          <CalendarX className="h-[18px] w-[18px] shrink-0 text-ink-3" aria-hidden />
-                          {registered.publish_spot ? 'No vas: tu plaza está publicada' : 'No vas este día'}
-                        </p>
+                        <div className="min-w-0 space-y-0.5">
+                          <p className="flex items-center gap-2 text-body text-ink-2">
+                            <CalendarX className="h-[18px] w-[18px] shrink-0 text-ink-3" aria-hidden />
+                            {registered.publish_spot ? 'No vas: tu plaza está publicada' : 'No vas este día'}
+                          </p>
+                          {showBag && creditedSet.has(ev.dateStr) && (
+                            <p className="flex items-center gap-2 text-meta font-medium text-accent-ink">
+                              <Package className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                              Se sumó 1 clase a tu bolsa
+                            </p>
+                          )}
+                        </div>
                         {ev.dateStr >= todayStr && (
                           <Button variant="secondary" size="sm" onClick={() => handleCancelarFalta(ev.enrollmentId, registered.id, ev.dateStr)} loading={canceling === registered.id}>
                             Al final sí voy

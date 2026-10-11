@@ -12,6 +12,21 @@ import { EmptyState } from '@/components/ui/feedback'
 import { List, ListRow } from '@/components/ui/list'
 import { buttonVariants } from '@/components/ui/button'
 
+// Textos de los movimientos en lenguaje del alumno, y a dónde lleva cada uno:
+// las faltas al día en "Mis clases", las clases sueltas a su lista.
+function describeTx(tx: { reason: string | null; booking_id?: string | null; booking?: { class_date: string | null } | { class_date: string | null }[] | null }) {
+  const reason = tx.reason ?? 'Movimiento'
+  const falta = /^Falta registrada (\d{4}-\d{2}-\d{2})$/.exec(reason)
+  if (falta) return { title: `Falta avisada · ${formatLongDate(falta[1], { weekday: false })}`, href: `/student/schedule?date=${falta[1]}` }
+  if (/^Falta cancelada/.test(reason)) return { title: 'Falta anulada: al final vas a clase', href: undefined }
+  const booking = Array.isArray(tx.booking) ? tx.booking[0] : tx.booking
+  if (tx.booking_id && booking?.class_date) {
+    const title = reason === 'Cancelación de clase' ? `Clase suelta cancelada · ${formatLongDate(booking.class_date, { weekday: false })}` : reason
+    return { title, href: '/student/schedule#clases-sueltas' }
+  }
+  return { title: reason, href: undefined }
+}
+
 export default async function StudentBagPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -33,7 +48,7 @@ export default async function StudentBagPage() {
       .single(),
     admin
       .from('bag_transactions')
-      .select('id, delta, type, reason, class_duration, created_at')
+      .select('id, delta, type, reason, class_duration, created_at, booking_id, booking:bookings(class_date)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30),
@@ -136,6 +151,41 @@ export default async function StudentBagPage() {
         )}
       </Card>
 
+      <section className="space-y-4">
+        <SectionTitle>Movimientos</SectionTitle>
+        {(transactions ?? []).length > 0 ? (
+          <Card className="overflow-hidden">
+            <List>
+              {(transactions ?? []).map(tx => {
+                const plus = tx.delta > 0
+                return (
+                  <ListRow
+                    key={tx.id}
+                    leading={
+                      <span aria-hidden className={`flex h-9 w-9 items-center justify-center rounded-full ${plus ? 'bg-accent-soft text-accent-ink' : 'bg-ink/[0.05] text-ink-3'}`}>
+                        {plus ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                      </span>
+                    }
+                    title={describeTx(tx).title}
+                    href={describeTx(tx).href}
+                    subtitle={`${formatLongDate(tx.created_at, { weekday: false })}${tx.class_duration ? ` · clase de ${durationLabel(tx.class_duration)}` : ''}`}
+                    trailing={
+                      <span className={`text-[0.9375rem] font-semibold tabular-nums ${plus ? 'text-accent-ink' : 'text-ink-2'}`}>
+                        <span className="sr-only">{plus ? 'Entra' : 'Sale'} </span>{plus ? `+${tx.delta}` : `−${Math.abs(tx.delta)}`}
+                      </span>
+                    }
+                  />
+                )
+              })}
+            </List>
+          </Card>
+        ) : (
+          <Card>
+            <EmptyState icon={<Package />} title="Aún no hay movimientos" description="Cuando avises de una falta o uses una clase, lo verás aquí." />
+          </Card>
+        )}
+      </section>
+
       {features.enable_payments && billingActive && (
         <section className="space-y-4">
           <SectionTitle>Comprar bono{isExternal ? ' (tarifa de alumno externo)' : ''}</SectionTitle>
@@ -203,39 +253,6 @@ export default async function StudentBagPage() {
         </section>
       )}
 
-      <section className="space-y-4">
-        <SectionTitle>Movimientos</SectionTitle>
-        {(transactions ?? []).length > 0 ? (
-          <Card className="overflow-hidden">
-            <List>
-              {(transactions ?? []).map(tx => {
-                const plus = tx.delta > 0
-                return (
-                  <ListRow
-                    key={tx.id}
-                    leading={
-                      <span aria-hidden className={`flex h-9 w-9 items-center justify-center rounded-full ${plus ? 'bg-accent-soft text-accent-ink' : 'bg-ink/[0.05] text-ink-3'}`}>
-                        {plus ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
-                      </span>
-                    }
-                    title={tx.reason}
-                    subtitle={`${formatLongDate(tx.created_at, { weekday: false })}${tx.class_duration ? ` · clase de ${durationLabel(tx.class_duration)}` : ''}`}
-                    trailing={
-                      <span className={`text-[0.9375rem] font-semibold tabular-nums ${plus ? 'text-accent-ink' : 'text-ink-2'}`}>
-                        <span className="sr-only">{plus ? 'Entra' : 'Sale'} </span>{plus ? `+${tx.delta}` : `−${Math.abs(tx.delta)}`}
-                      </span>
-                    }
-                  />
-                )
-              })}
-            </List>
-          </Card>
-        ) : (
-          <Card>
-            <EmptyState icon={<Package />} title="Aún no hay movimientos" description="Cuando avises de una falta o uses una clase, lo verás aquí." />
-          </Card>
-        )}
-      </section>
     </div>
   )
 }

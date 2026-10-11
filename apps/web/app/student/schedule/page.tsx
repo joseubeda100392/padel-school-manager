@@ -78,7 +78,7 @@ function nextMonthLabel() {
   return `${MONTH_NAMES[nextMonth0]} ${nextYear}`
 }
 
-export default async function StudentSchedulePage() {
+export default async function StudentSchedulePage({ searchParams }: { searchParams: { date?: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -140,6 +140,7 @@ export default async function StudentSchedulePage() {
     { data: clubRow },
     features,
     { data: timeOverrides },
+    { data: faltaCredits },
   ] = await Promise.all([
     enrollmentIds.length
       ? getAdminClient()
@@ -160,7 +161,19 @@ export default async function StudentSchedulePage() {
           .in('schedule_id', scheduleIdsForOverrides)
           .gte('override_date', todaySpain)
       : { data: [] },
+    // Las faltas que de verdad sumaron una clase a la bolsa (solo si el alumno
+    // tiene bolsa): así "se sumó 1 clase" nunca se muestra sin ser cierto.
+    getAdminClient()
+      .from('bag_transactions')
+      .select('reason')
+      .eq('user_id', user.id)
+      .like('reason', 'Falta registrada %'),
   ])
+
+  const creditedDates = (faltaCredits ?? [])
+    .map((t: any) => /(\d{4}-\d{2}-\d{2})$/.exec(t.reason ?? '')?.[1])
+    .filter((d: string | undefined): d is string => !!d)
+  const initialDate = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? '') ? searchParams.date : undefined
 
   const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
   const holidaySet = getHolidaySet((clubRow as any)?.config)
@@ -273,12 +286,15 @@ export default async function StudentSchedulePage() {
             cancellationHours={cancellationHours}
             enablePayments={features.enable_payments && billingActive}
             cashOnly={features.cash_only_payments}
+            showBag={features.enable_bag}
+            creditedDates={creditedDates}
+            initialDate={initialDate}
           />
         )}
       </section>
 
       {(spotBookings ?? []).length > 0 && (
-        <section className="space-y-4">
+        <section id="clases-sueltas" className="scroll-mt-4 space-y-4">
           <SectionTitle>Clases sueltas reservadas</SectionTitle>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {(spotBookings ?? []).map(b => {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CircleAlert, CircleCheck } from 'lucide-react'
+import { CircleAlert, CircleCheck, CreditCard, Package } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { formatClock, formatLongDate, formatShortDay } from '@/lib/format-date'
 import { Card } from '@/components/ui/card'
@@ -72,7 +72,7 @@ export function SpotBookingCard({ booking, cancellationHours, pendingPayment = n
   })
 
   async function handleCancel() {
-    if (!(await confirm({ title: `¿Cancelar la clase del ${dateLabel}?`, description: booking.source === 'bag' ? 'Se te devolverá la clase a la bolsa.' : undefined, confirmLabel: 'Cancelar reserva', cancelLabel: 'Mantener', destructive: true }))) return
+    if (!(await confirm({ title: `¿Cancelar la clase del ${dateLabel}?`, description: booking.source === 'bag' ? 'Se te devolverá la clase a la bolsa.' : booking.source === 'pay_per_class' ? 'Se te devolverá como 1 clase en tu bolsa (no el dinero).' : undefined, confirmLabel: 'Cancelar reserva', cancelLabel: 'Mantener', destructive: true }))) return
     setCancelling(true)
     setError('')
     const res = await fetch('/api/bookings', {
@@ -109,6 +109,19 @@ export function SpotBookingCard({ booking, cancellationHours, pendingPayment = n
             {booking.isPrivate && <Badge tone="outline">Clase particular</Badge>}
             {s?.level && <LevelTag name={s.level.name} color={s.level.color} />}
           </div>
+          {!pendingPayment && (booking.source === 'bag' || booking.source === 'pay_per_class') && (
+            <p className="mt-2.5 flex items-start gap-2 text-meta text-ink-2">
+              {booking.source === 'bag'
+                ? <Package className="h-4 w-4 shrink-0 text-ink-3" aria-hidden />
+                : <CreditCard className="h-4 w-4 shrink-0 text-ink-3" aria-hidden />}
+              <span>
+                {booking.source === 'bag' ? 'Pagada con 1 clase de tu bolsa.' : 'Pagada con tarjeta.'}
+                {canCancel && (booking.source === 'bag'
+                  ? ' Si la cancelas, se te devuelve.'
+                  : ' Si la cancelas, se te devuelve como 1 clase en tu bolsa.')}
+              </span>
+            </p>
+          )}
         </div>
       </div>
 
