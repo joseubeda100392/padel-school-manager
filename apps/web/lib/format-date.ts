@@ -31,3 +31,13 @@ export function formatShortDay(value: Date | string) {
 export function formatClock(value: Date | string) {
   return new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ }).format(new Date(value))
 }
+
+// "hoy", "ayer", "hace 3 días" o, pasada una semana, "el 12 de octubre".
+export function formatRelativeDay(value: Date | string, now: Date = new Date()) {
+  const day = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d)
+  const diff = Math.round((Date.parse(day(now)) - Date.parse(day(new Date(value)))) / 86_400_000)
+  if (diff <= 0) return 'hoy'
+  if (diff === 1) return 'ayer'
+  if (diff < 7) return `hace ${diff} días`
+  return `el ${formatLongDate(value, { weekday: false })}`
+}

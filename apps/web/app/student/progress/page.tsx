@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { Check, Circle, CircleCheck, Target } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
+import { formatRelativeDay } from '@/lib/format-date'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/feedback'
 import { Badge } from '@/components/ui/badge'
@@ -109,12 +110,15 @@ export default async function StudentProgressPage() {
                 {checklist.items.map((item: any) => (
                   <li key={item.id} className="flex items-start gap-3">
                     {item.completed_at ? (
-                      <Check className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" aria-label="Conseguido" />
+                      <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" aria-label="Conseguido" />
                     ) : (
                       <Circle className="mt-0.5 h-5 w-5 shrink-0 text-ink-3" aria-label="Pendiente" />
                     )}
-                    <span className={`text-body ${item.completed_at ? 'text-ink-3 line-through' : 'text-ink'}`}>
-                      {item.text}
+                    <span className="min-w-0">
+                      <span className="block text-body text-ink">{item.text}</span>
+                      {item.completed_at && (
+                        <span className="block text-meta text-accent-ink">Conseguido {formatRelativeDay(item.completed_at)}</span>
+                      )}
                     </span>
                   </li>
                 ))}

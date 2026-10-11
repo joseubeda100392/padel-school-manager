@@ -16,6 +16,7 @@ import { Badge, LevelTag } from '@/components/ui/badge'
 import { EmptyState, Notice } from '@/components/ui/feedback'
 import { buttonVariants } from '@/components/ui/button'
 import { PistaVivaOptin } from './pista-viva-optin'
+import { ProgressCard, type ProgressChecklist } from './progress-card'
 
 function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
@@ -44,7 +45,7 @@ export default async function StudentHomePage() {
   // Pista Viva está activa en este club antes de decidir si consultar sus partidos.
   const features = await getClubFeatures(clubId)
 
-  const [{ data: bag }, { data: enrollments }, { data: spots }, { data: capacitySchedules }, { data: mySpotBookings }, { data: clubRow }, { data: pistaVivaMatches }] = await Promise.all([
+  const [{ data: bag }, { data: enrollments }, { data: spots }, { data: capacitySchedules }, { data: mySpotBookings }, { data: clubRow }, { data: pistaVivaMatches }, { data: checklists }] = await Promise.all([
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
       .from('group_enrollments')
@@ -73,6 +74,12 @@ export default async function StudentHomePage() {
           .gte('level_max', myPistaVivaLevel)
           .gt('slot_datetime', new Date().toISOString())
           .order('slot_datetime', { ascending: true })
+      : Promise.resolve({ data: [] }),
+    features.enable_objectives
+      ? admin
+          .from('student_checklists')
+          .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at)')
+          .eq('student_id', user.id)
       : Promise.resolve({ data: [] }),
   ])
 
@@ -286,6 +293,8 @@ export default async function StudentHomePage() {
           />
         </Card>
       )}
+
+      <ProgressCard checklists={(checklists ?? []) as ProgressChecklist[]} />
 
       <Card className="overflow-hidden">
         <ul className="grid grid-cols-1 divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
