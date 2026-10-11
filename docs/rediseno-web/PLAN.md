@@ -110,3 +110,20 @@ En ambos casos la app usa la **misma base de datos de producción**, porque no h
 3. ¿Modo oscuro ahora o más adelante? (recomendado: más adelante)
 4. Entorno de revisión: ¿te creo uno en Railway para la rama o lo vemos en local?
 5. Para revisar el panel de admin necesito un admin de prueba en X7 PINTO. Ahora mismo solo hay alumnos y monitores ficticios, y el admin de la demo es una persona real.
+
+## 7. Estado (11 de octubre de 2026)
+
+Fases 0 a 6 hechas en `rediseno-web`; la 7 (control de calidad) está hecha en local.
+
+- **Sistema y componentes:** `design.md`, tokens AA y `components/ui`.
+- **Navegación de app** para alumno, monitor y admin (pestañas abajo + "Más", menú lateral agrupado).
+- **Todas las pantallas migradas:** alumno, monitor, admin, login, recuperación, MFA, legales y pagos.
+- **Accesibilidad:** axe-core WCAG 2.2 AA sin fallos en las pantallas principales de los tres roles y del login, en móvil y ordenador.
+- **Lógica intacta:** se han comparado con `v2.1` todas las líneas de `fetch`, consultas, `rpc` y navegación; ninguna llamada a la API ha cambiado. Tipos limpios; los tests pasan salvo el de `/api/bookings` que ya fallaba antes.
+
+**Pendiente antes de pasar a producción:**
+1. Probarlo en un móvil de verdad (iPhone y Android), sobre todo las hojas que se cierran deslizando, la barra de estado y las zonas seguras.
+2. Archivos de la navegación antigua sin uso (`components/layout/sidebar.tsx`, `components/layout/header.tsx`), `app/student/perfil/perfil-client.tsx` y `components/ui/animated-stats.tsx`: borrarlos cuando se apruebe.
+3. Los enlaces a `/dashboard/settings#playtomic` abren la pestaña Perfil (la pestaña no lee el ancla de la URL).
+4. Las notificaciones push automáticas de cuota y de bolsa llevan emoji en el título (💳, 🎾). Es contenido que reciben los alumnos; decidir si se quita.
+5. Al aprobarlo: merge a `master`, etiqueta `v3.0`, `/deploy-check` y comprobar el despliegue.
