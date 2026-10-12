@@ -122,7 +122,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
           <option value="intensivo">Intensivo</option>
         </Select>
         <label
-          className="flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-line-strong/70 bg-surface px-3.5 text-label text-ink hover:border-line-strong"
+          className="flex min-h-11 cursor-pointer items-center gap-2 rounded-control border border-line-strong bg-surface px-3.5 text-label text-ink hover:border-ink-3"
           title="Grupos con menos alumnos fijos activos que plazas"
         >
           <input

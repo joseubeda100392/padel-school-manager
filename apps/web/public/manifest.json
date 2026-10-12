@@ -4,7 +4,7 @@
   "description": "Tu escuela de pádel en tu bolsillo",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F2F5F8",
+  "background_color": "#EEF7F3",
   "theme_color": "#FFFFFF",
   "orientation": "portrait",
   "icons": [

@@ -6,11 +6,11 @@
    Canales RGB para que Tailwind pueda aplicar opacidad (bg-ink/40). */
 @layer base {
   :root {
-    --canvas: 242 245 248;
+    --canvas: 238 247 243;
     --surface: 255 255 255;
     --surface-2: 246 248 250;
     --line: 226 232 239;
-    --line-strong: 132 150 169;
+    --line-strong: 122 141 159;
     --ink: 14 28 44;
     --ink-2: 58 77 97;
     --ink-3: 86 106 127;
@@ -25,6 +25,7 @@
     --danger-soft: 253 236 234;
     --chrome: 14 28 44;
     --chrome-2: 21 36 52;
+    --chrome-deep: 18 58 76;
     --chrome-line: 34 54 77;
     --chrome-ink: 232 238 244;
     --chrome-ink-2: 157 176 195;

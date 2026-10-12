@@ -54,7 +54,7 @@ export function StudentCombobox({ students, value, onChange, placeholder = 'Busc
   return (
     <div ref={ref} className="relative min-w-[200px] flex-1">
       <div
-        className="flex min-h-11 items-center rounded-control border border-line-strong/70 bg-surface transition-[border-color,box-shadow] focus-within:border-accent-ink focus-within:ring-2 focus-within:ring-accent/30"
+        className="flex min-h-11 items-center rounded-control border border-line-strong bg-surface transition-[border-color,box-shadow] focus-within:border-accent-ink focus-within:ring-2 focus-within:ring-accent/30"
         onClick={() => setOpen(true)}
       >
         {selected && !open ? (

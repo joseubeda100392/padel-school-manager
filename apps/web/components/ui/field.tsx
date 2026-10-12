@@ -43,9 +43,9 @@ export function Field({
 }
 
 const controlClass = cn(
-  'w-full rounded-control border border-line-strong/70 bg-surface px-3.5 text-base text-ink sm:text-body',
+  'w-full rounded-control border border-line-strong bg-surface px-3.5 text-base text-ink sm:text-body',
   'placeholder:text-ink-3/80 transition-[border-color,box-shadow] duration-150',
-  'hover:border-line-strong focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent/30',
+  'hover:border-ink-3 focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-accent/30',
   'disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-3',
   'aria-[invalid=true]:border-danger-ink aria-[invalid=true]:focus:ring-danger-ink/20',
 )

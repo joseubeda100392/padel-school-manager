@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import { HomeBand } from '@/components/ui/home-band'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
@@ -89,9 +90,10 @@ export default async function CoachHomePage() {
           { table: 'schedule_exclusions' },
         ]}
       />
+      <HomeBand>
       <header>
-        <p className="text-meta text-ink-3">{formatLongDate(new Date())}</p>
-        <h1 className="mt-1 font-display text-display text-ink">Hola, {firstName}</h1>
+        <p className="text-meta text-ink-3 max-md:text-chrome-ink-2">{formatLongDate(new Date())}</p>
+        <h1 className="mt-1 font-display text-display text-ink max-md:text-white">Hola, {firstName}</h1>
       </header>
 
       <Card className="overflow-hidden">
@@ -106,6 +108,7 @@ export default async function CoachHomePage() {
           </div>
         </dl>
       </Card>
+      </HomeBand>
 
       <section className="space-y-3">
         <h2 className="border-b border-line pb-2 text-label text-ink-2">Clases de hoy</h2>

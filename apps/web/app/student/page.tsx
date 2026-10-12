@@ -16,6 +16,7 @@ import { Badge, LevelTag } from '@/components/ui/badge'
 import { EmptyState, Notice } from '@/components/ui/feedback'
 import { buttonVariants } from '@/components/ui/button'
 import { PistaVivaOptin } from './pista-viva-optin'
+import { HomeBand } from '@/components/ui/home-band'
 import { ProgressCard, type ProgressChecklist } from './progress-card'
 
 function isPaidThisMonth(paidUntil: string | null) {
@@ -228,12 +229,13 @@ export default async function StudentHomePage() {
         ]}
       />
 
+      <HomeBand>
       <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <p className="text-meta text-ink-3">{formatLongDate(new Date())}</p>
-          <h1 className="mt-1 font-display text-display text-ink">Hola, {firstName}</h1>
+          <p className="text-meta text-ink-3 max-md:text-chrome-ink-2">{formatLongDate(new Date())}</p>
+          <h1 className="mt-1 font-display text-display text-ink max-md:text-white">Hola, {firstName}</h1>
         </div>
-        {level?.name && <LevelTag name={`Nivel ${level.name.toLowerCase()}`} color={level.color} className="pb-1.5" />}
+        {level?.name && <LevelTag name={`Nivel ${level.name.toLowerCase()}`} color={level.color} className="pb-1.5 max-md:text-chrome-ink" />}
       </header>
 
       {features.enable_payments && billingActive && pendingEnrollments.length > 0 && (
@@ -293,6 +295,7 @@ export default async function StudentHomePage() {
           />
         </Card>
       )}
+      </HomeBand>
 
       <ProgressCard checklists={(checklists ?? []) as ProgressChecklist[]} />
 

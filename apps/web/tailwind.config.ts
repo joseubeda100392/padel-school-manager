@@ -77,6 +77,7 @@ const config: Config = {
         chrome: {
           DEFAULT: token('chrome'),
           2: token('chrome-2'),
+          deep: token('chrome-deep'),
           line: token('chrome-line'),
           ink: token('chrome-ink'),
           'ink-2': token('chrome-ink-2'),

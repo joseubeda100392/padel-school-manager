@@ -10,12 +10,15 @@ export function PageHeader({
   description,
   actions,
   back,
+  onBand = false,
   className,
 }: {
   title: React.ReactNode
   description?: React.ReactNode
   actions?: React.ReactNode
   back?: { href: string; label: string }
+  /** Va sobre la franja azul de HomeBand: textos claros en móvil. */
+  onBand?: boolean
   className?: string
 }) {
   return (
@@ -31,8 +34,8 @@ export function PageHeader({
       )}
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
-          <h1 className="font-display text-title text-ink sm:text-display">{title}</h1>
-          {description && <p className="mt-1 max-w-2xl text-body text-ink-2">{description}</p>}
+          <h1 className={cn('font-display text-title text-ink sm:text-display', onBand && 'max-md:text-white')}>{title}</h1>
+          {description && <p className={cn('mt-1 max-w-2xl text-body text-ink-2', onBand && 'max-md:text-chrome-ink-2')}>{description}</p>}
         </div>
         {actions && <div className="flex w-full flex-wrap gap-2 sm:w-auto">{actions}</div>}
       </div>

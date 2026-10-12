@@ -21,10 +21,14 @@ function describeTx(tx: { reason: string | null; booking_id?: string | null; boo
   if (/^Falta cancelada/.test(reason)) return { title: 'Falta anulada: al final vas a clase', href: undefined }
   const booking = Array.isArray(tx.booking) ? tx.booking[0] : tx.booking
   if (tx.booking_id && booking?.class_date) {
-    const title = reason === 'Cancelación de clase' ? `Clase suelta cancelada · ${formatLongDate(booking.class_date, { weekday: false })}` : reason
+    const title = reason === 'Cancelación de clase'
+      ? `Clase suelta cancelada · ${formatLongDate(booking.class_date, { weekday: false })}`
+      : reason.replace(/\d{4}-\d{2}-\d{2}/g, (d) => formatLongDate(d, { weekday: false }))
     return { title, href: '/student/schedule#clases-sueltas' }
   }
-  return { title: reason, href: undefined }
+  // Cualquier otra fecha en bruto del motivo ('Plaza libre del 2026-10-14') se
+  // muestra en español.
+  return { title: reason.replace(/\d{4}-\d{2}-\d{2}/g, (d) => formatLongDate(d, { weekday: false })), href: undefined }
 }
 
 export default async function StudentBagPage() {

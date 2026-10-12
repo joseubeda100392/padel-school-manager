@@ -13,6 +13,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { LevelTag } from '@/components/ui/badge'
 import { List, ListRow, Avatar } from '@/components/ui/list'
 import { EmptyState } from '@/components/ui/feedback'
+import { HomeBand } from '@/components/ui/home-band'
 import { PageHeader } from '@/components/ui/page-header'
 import { formatLongDate } from '@/lib/format-date'
 
@@ -123,7 +124,8 @@ export default async function DashboardPage() {
         ] : [{ table: 'group_enrollments' }, { table: 'users' }, { table: 'payments' }]}
       />
 
-      <PageHeader title={club?.name ?? 'Panel de control'} description={todayLabel} />
+      <HomeBand>
+      <PageHeader onBand title={club?.name ?? 'Panel de control'} description={todayLabel} />
 
       <Card className="overflow-hidden">
         <div className="-mb-px -mr-px grid grid-cols-2 lg:grid-cols-3">
@@ -152,6 +154,7 @@ export default async function DashboardPage() {
           })}
         </div>
       </Card>
+      </HomeBand>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {features.enable_payments && (

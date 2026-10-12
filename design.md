@@ -40,11 +40,11 @@ cómo se usan, para que todo cumpla contraste AA.
 
 | Token | Valor | Uso | Contraste |
 |---|---|---|---|
-| `canvas` | `#F2F5F8` | Fondo de la app | — |
+| `canvas` | `#EEF7F3` | Fondo de la app: neutro con un tinte de la marca (nunca el verde saturado de fondo: lo diluye y rompe el contraste) | — |
 | `surface` | `#FFFFFF` | Tarjetas, hojas, cabecera | — |
 | `surface-2` | `#F6F8FA` | Relleno suave: filas alternas, campos en reposo | — |
 | `line` | `#E2E8EF` | Bordes de tarjetas y separadores | decorativo |
-| `line-strong` | `#8496A9` | Borde de campos de formulario | 3,0:1 (no-texto AA) |
+| `line-strong` | `#7A8D9F` | Borde de campos de formulario | 3,1:1 sobre el fondo · 3,4:1 sobre blanco |
 | `ink` | `#0E1C2C` | Texto principal y títulos | 17,2:1 |
 | `ink-2` | `#3A4D61` | Texto secundario | 8,7:1 |
 | `ink-3` | `#566A7F` | Metadatos y ayudas; el texto más claro permitido | 5,6:1 |
