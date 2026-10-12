@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -31,12 +31,13 @@ export function Sheet({
   const panelRef = useRef<HTMLDivElement>(null)
   const drag = useRef<{ startY: number; startT: number; dy: number } | null>(null)
   const [closing, setClosing] = useState(false)
+  const titleId = useId()
 
   useEffect(() => {
     const dialog = ref.current
     if (!dialog) return
+    if (open) setClosing(false)
     if (open && !dialog.open) {
-      setClosing(false)
       dialog.showModal()
       // Foco en la hoja (no en un botón): el lector anuncia el título y nadie
       // confirma una acción por pulsar Intro sin querer.
@@ -84,7 +85,7 @@ export function Sheet({
       onClick={(e) => {
         if (e.target === ref.current) onClose()
       }}
-      aria-labelledby="sheet-title"
+      aria-labelledby={titleId}
       tabIndex={-1}
       className={cn(
         'focus:outline-none',
@@ -116,14 +117,14 @@ export function Sheet({
         </div>
         <div className="flex items-start justify-between gap-3 px-5 pt-2 sm:pt-5">
           <div className="min-w-0">
-            <h2 id="sheet-title" className="text-title text-ink">{title}</h2>
+            <h2 id={titleId} className="text-title text-ink">{title}</h2>
             {description && <p className="mt-1 text-body text-ink-2">{description}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="-mr-2 -mt-1 hidden h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-3 hover:bg-ink/5 hover:text-ink sm:flex"
+            className="-mr-2 -mt-1 h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-3 hover:bg-ink/5 hover:text-ink flex"
           >
             <X className="h-5 w-5" />
           </button>

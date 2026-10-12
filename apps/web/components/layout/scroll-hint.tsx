@@ -18,21 +18,24 @@ export function ScrollHint({ target }: { target: RefObject<HTMLElement> }) {
   useEffect(() => {
     const el = target.current
     if (!el) return
+    let frame = 0
     const update = () => {
-      const remaining = el.scrollHeight - el.clientHeight - el.scrollTop
-      setVisible(remaining > MIN_HIDDEN_PX && el.scrollTop < SCROLLED_PX)
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const remaining = el.scrollHeight - el.clientHeight - el.scrollTop
+        setVisible(remaining > MIN_HIDDEN_PX && el.scrollTop < SCROLLED_PX)
+      })
     }
     update()
     el.addEventListener('scroll', update, { passive: true })
+    // El contenido cambia de alto al cargar datos: basta con vigilar su caja.
     const ro = new ResizeObserver(update)
     ro.observe(el)
-    for (const child of Array.from(el.children)) ro.observe(child)
-    const mo = new MutationObserver(update)
-    mo.observe(el, { childList: true, subtree: true })
+    if (el.firstElementChild) ro.observe(el.firstElementChild)
     return () => {
+      cancelAnimationFrame(frame)
       el.removeEventListener('scroll', update)
       ro.disconnect()
-      mo.disconnect()
     }
   }, [target, pathname])
 
@@ -46,6 +49,7 @@ export function ScrollHint({ target }: { target: RefObject<HTMLElement> }) {
   return (
     <div
       aria-hidden={!visible}
+      inert={!visible ? ('' as unknown as boolean) : undefined}
       className={cn(
         'pointer-events-none absolute inset-x-0 bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 flex h-20 items-end justify-center pb-3 md:bottom-0',
         'bg-gradient-to-t from-canvas via-canvas/80 to-transparent transition-opacity duration-200',

@@ -76,7 +76,8 @@ export function MoreMenu() {
       {legalLinks.length > 0 && (
         <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-meta text-ink-3">
           {legalLinks.map((l) => (
-            <Link key={l.href} href={l.href} target={l.external ? '_blank' : undefined} className="underline-offset-4 hover:underline">
+            <Link key={l.href} href={l.href} target={l.external ? '_blank' : undefined}
+                rel={l.external ? 'noopener noreferrer' : undefined} className="underline-offset-4 hover:underline">
               {l.label}
             </Link>
           ))}

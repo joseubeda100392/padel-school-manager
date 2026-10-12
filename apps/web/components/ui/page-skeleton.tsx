@@ -4,7 +4,8 @@ import { Skeleton } from './feedback'
 // lista. Mantiene la forma de la página para que no haya saltos.
 export function PageSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6" aria-busy="true" aria-label="Cargando">
+    <div className="mx-auto w-full max-w-3xl space-y-6" role="status" aria-busy="true">
+      <span className="sr-only">Cargando…</span>
       <div className="space-y-2">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-8 w-56" />

@@ -380,7 +380,8 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
       await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id)
       setProfile((prev) => prev ? { ...prev, avatar_url: publicUrl } : prev)
     } catch (err: any) {
-      toast.error('Error al subir la foto: ' + (err.message ?? err))
+      console.error(err)
+      toast.error('No se ha podido subir la foto. Prueba con otra imagen o vuelve a intentarlo.')
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''

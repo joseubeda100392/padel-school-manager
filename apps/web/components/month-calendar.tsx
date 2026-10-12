@@ -100,18 +100,18 @@ export function MonthCalendar({
           <button
             type="button"
             onClick={prev}
-            disabled={isAtMin}
+            aria-disabled={isAtMin}
             aria-label="Mes anterior"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-ink/5 disabled:text-ink/20"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-ink/5 aria-disabled:cursor-default aria-disabled:text-ink/20 aria-disabled:hover:bg-transparent"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             type="button"
             onClick={next}
-            disabled={isAtMax}
+            aria-disabled={isAtMax}
             aria-label="Mes siguiente"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-ink/5 disabled:text-ink/20"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-ink/5 aria-disabled:cursor-default aria-disabled:text-ink/20 aria-disabled:hover:bg-transparent"
           >
             <ChevronRight className="h-5 w-5" />
           </button>

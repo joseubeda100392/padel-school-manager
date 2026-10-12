@@ -50,6 +50,8 @@ export function ScheduleActions({ scheduleId, nextDate }: { scheduleId: string; 
       setCancelMsg(creditBags
         ? `Sesión cancelada. +1 clase añadida a la bolsa de ${json.credited} alumnos.`
         : 'Sesión cancelada sin crédito a bolsas.')
+    } else {
+      toast.error(json.error ?? 'No se ha podido cancelar la sesión. Vuelve a intentarlo.')
     }
   }
 

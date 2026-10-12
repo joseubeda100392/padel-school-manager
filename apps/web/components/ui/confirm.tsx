@@ -26,6 +26,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     setOptions(opts)
     setOpen(true)
     return new Promise<boolean>((resolve) => {
+      resolver.current?.(false)
       resolver.current = resolve
     })
   }, [])

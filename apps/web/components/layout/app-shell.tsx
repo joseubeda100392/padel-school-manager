@@ -85,7 +85,7 @@ export function AppShell({
               // teclado aunque la pantalla no tenga nada pulsable (WCAG 2.1.1).
               tabIndex={0}
               aria-label="Contenido"
-              className="flex flex-1 flex-col overflow-y-auto overscroll-contain px-4 focus-visible:outline-offset-[-2px] pb-[calc(var(--tabbar-h)+var(--safe-bottom)+1.5rem)] pt-5 md:px-8 md:pb-10 md:pt-8"
+              className="flex flex-1 flex-col overflow-y-auto overscroll-contain scroll-pb-[calc(var(--tabbar-h)+var(--safe-bottom)+5rem)] md:scroll-pb-20 px-4 focus-visible:outline-offset-[-2px] pb-[calc(var(--tabbar-h)+var(--safe-bottom)+1.5rem)] pt-5 md:px-8 md:pb-10 md:pt-8"
             >
               <div key={pathname} className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col animate-in fade-in-0 duration-150">
                 {/* Hay dos versiones de los tipos de React en el monorepo; el
@@ -208,6 +208,7 @@ function Sidebar({
                 key={l.href}
                 href={l.href}
                 target={l.external ? '_blank' : undefined}
+                rel={l.external ? 'noopener noreferrer' : undefined}
                 className="text-meta text-chrome-ink-2 hover:text-white"
               >
                 {l.label}

@@ -153,7 +153,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
               type="button"
               aria-pressed={active}
               onClick={() => setRole(tab.value)}
-              className={`flex min-h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] px-4 text-label transition-colors sm:flex-none ${
+              className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] px-4 text-label transition-colors sm:flex-none ${
                 active ? 'bg-surface text-ink shadow-card' : 'text-ink-2 hover:text-ink'
               }`}
             >
