@@ -238,7 +238,7 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
               </Button>
               {previewError && <p role="alert" className="text-meta font-medium text-danger-ink">{previewError}</p>}
               {preview && (
-                <pre className="max-h-64 overflow-auto rounded-control bg-chrome p-3 text-meta leading-snug text-chrome-ink">
+                <pre className="scroll-chrome max-h-64 overflow-auto rounded-control bg-chrome p-3 text-meta leading-snug text-chrome-ink">
                   {JSON.stringify(preview, null, 2)}
                 </pre>
               )}

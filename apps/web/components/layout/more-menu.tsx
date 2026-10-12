@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { List, ListRow } from '@/components/ui/list'
 import { Badge } from '@/components/ui/badge'
 import { useShell } from './app-shell'
+import { PoweredBy } from '@/components/brand/brand'
 
 function RowIcon({ children }: { children: React.ReactNode }) {
   return (
@@ -73,7 +74,7 @@ export function MoreMenu() {
       </Card>
 
       {legalLinks.length > 0 && (
-        <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 pb-2 text-meta text-ink-3">
+        <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-meta text-ink-3">
           {legalLinks.map((l) => (
             <Link key={l.href} href={l.href} target={l.external ? '_blank' : undefined} className="underline-offset-4 hover:underline">
               {l.label}
@@ -81,6 +82,8 @@ export function MoreMenu() {
           ))}
         </p>
       )}
+
+      <PoweredBy showVersion className="pb-2 text-center" />
     </div>
   )
 }

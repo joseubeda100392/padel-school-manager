@@ -6,6 +6,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
+import { BrandLockup } from '@/components/brand/brand'
 
 function CourtDrawing() {
   return (
@@ -68,7 +69,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen">
       <div className="hidden flex-col justify-between bg-chrome p-12 lg:flex lg:w-[480px] xl:w-[560px]">
-        <img src="/icon.svg" alt="ePadel School" width={40} height={40} className="h-10 w-10 rounded-xl" />
+        <BrandLockup tone="dark" />
 
         <div className="space-y-10">
           <CourtDrawing />
@@ -87,13 +88,7 @@ export default function LoginPage() {
 
       <div className="flex flex-1 flex-col items-center justify-center bg-surface px-4 py-12 sm:px-6">
         <div className="w-full max-w-sm">
-          <img
-            src="/icon.svg"
-            alt="ePadel School"
-            width={48}
-            height={48}
-            className="mb-6 h-12 w-12 rounded-xl lg:hidden"
-          />
+          <BrandLockup className="mb-8 lg:hidden" />
 
           <h1 className="font-display text-title text-ink">Bienvenido</h1>
           <p className="mt-1 text-body text-ink-2">Entra con el email y la contraseña que te dio tu club</p>

@@ -10,6 +10,7 @@ import { TabBar, isActivePath } from '@/components/ui/app-chrome'
 import { ConfirmProvider } from '@/components/ui/confirm'
 import type { AppNav } from './nav-config'
 import { ScrollHint } from './scroll-hint'
+import { PoweredBy } from '@/components/brand/brand'
 
 export type ShellLink = { href: string; label: string; external?: boolean }
 
@@ -146,7 +147,7 @@ function Sidebar({
 
       {extra && <div className="px-3 pb-2">{extra}</div>}
 
-      <nav aria-label="Menú principal" className="flex-1 overflow-y-auto px-3 pb-4">
+      <nav aria-label="Menú principal" className="scroll-chrome flex-1 overflow-y-auto px-3 pb-4">
         {nav.groups.map((group) => (
           <div key={group.title} className="pt-3">
             <p className="px-3 pb-1.5 text-[0.75rem] font-medium text-chrome-ink-2">{group.title}</p>
@@ -214,6 +215,7 @@ function Sidebar({
             ))}
           </div>
         )}
+        <PoweredBy tone="dark" className="px-3 pt-3" />
       </div>
     </aside>
   )
