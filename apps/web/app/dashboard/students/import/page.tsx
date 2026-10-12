@@ -284,7 +284,7 @@ export default function ImportStudentsPage() {
               </div>
             }
           />
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de la importación">
             <table className="w-full min-w-[500px] text-body">
               <thead>
                 <tr className="bg-surface-2 text-left text-meta font-medium text-ink-3">
@@ -341,7 +341,7 @@ export default function ImportStudentsPage() {
               </div>
             }
           />
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de la importación">
             <table className="w-full min-w-[500px] text-body">
               <thead>
                 <tr className="bg-surface-2 text-left text-meta font-medium text-ink-3">

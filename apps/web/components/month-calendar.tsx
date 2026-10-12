@@ -148,7 +148,7 @@ export function MonthCalendar({
                     : count > 0
                       ? 'font-semibold text-ink hover:bg-ink/5'
                       : isPast
-                        ? 'text-ink-3/70 hover:bg-ink/5'
+                        ? 'text-ink-3 hover:bg-ink/5'
                         : 'text-ink-2 hover:bg-ink/5',
                   isToday && !isSelected && 'ring-1 ring-inset ring-line-strong',
                 )}

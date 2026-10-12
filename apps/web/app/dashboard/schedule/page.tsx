@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
@@ -173,8 +173,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       />
       <DevError errors={[errSchedules?.message, errCourts?.message, errEnrollments?.message]} />
       <PageHeader
-        title="Horarios"
-        description={`${schedules.length} clases programadas`}
+        title="Clases"
+        description={`${schedules.length} clases. Entra en una para ver su grupo, cobrar cuotas o registrar faltas.`}
         actions={
           <>
             <ScheduleViewToggle current={view} />

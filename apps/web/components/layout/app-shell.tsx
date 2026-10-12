@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { TabBar, isActivePath } from '@/components/ui/app-chrome'
 import { ConfirmProvider } from '@/components/ui/confirm'
 import type { AppNav } from './nav-config'
+import { ScrollHint } from './scroll-hint'
 
 export type ShellLink = { href: string; label: string; external?: boolean }
 
@@ -74,7 +75,7 @@ export function AppShell({
           </a>
           <Sidebar nav={nav} clubName={clubName} identity={identity} extra={sidebarExtra} roleSwitch={roleSwitch} legalLinks={legalLinks} onLogout={logout} />
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="relative flex min-w-0 flex-1 flex-col">
             <MobileHeader clubName={clubName} actions={headerActions} />
             <main
               ref={mainRef}
@@ -91,6 +92,7 @@ export function AppShell({
                 {children as ReactNode}
               </div>
             </main>
+            <ScrollHint target={mainRef} />
           </div>
 
           <TabBar items={nav.tabs.map((t) => (t.href === nav.moreHref ? { ...t, exact: true } : t))} />
@@ -149,13 +151,14 @@ function Sidebar({
           <div key={group.title} className="pt-3">
             <p className="px-3 pb-1.5 text-[0.75rem] font-medium text-chrome-ink-2">{group.title}</p>
             <ul className="space-y-0.5">
-              {group.items.map(({ href, label, icon: Icon, exact, badge }) => {
+              {group.items.map(({ href, label, description, icon: Icon, exact, badge }) => {
                 const active = isActivePath(pathname, href, exact)
                 return (
                   <li key={href}>
                     <Link
                       href={href}
                       aria-current={active ? 'page' : undefined}
+                      title={description}
                       className={cn(
                         'relative flex h-9 items-center gap-3 rounded-control px-3 text-label transition-colors duration-150',
                         active ? 'bg-chrome-2 text-white' : 'text-chrome-ink/80 hover:bg-chrome-2/60 hover:text-white',

@@ -72,8 +72,8 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <PageHeader
-        title="Notificaciones push"
-        description="Envía mensajes a los alumnos que hayan activado las notificaciones."
+        title="Enviar avisos"
+        description="Manda un aviso al móvil de tus alumnos (les llega a quienes tienen los avisos activados)."
       />
 
       <Card>

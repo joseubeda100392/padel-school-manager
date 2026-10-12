@@ -141,20 +141,20 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
 
       <Card>
         <CardBody>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-line">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-4 lg:divide-x lg:divide-line">
             <div className="lg:pr-5">
-              <Stat label={`Total cobrado en ${monthLabel}`} value={formatCurrency(total)} className="[&_p:nth-child(2)]:text-accent-ink" />
+              <Stat label="Cobrado" value={formatCurrency(total)} className="[&_p:nth-child(2)]:text-accent-ink" />
             </div>
             <div className="lg:px-5">
               <Stat
-                label="Pendiente de cobro"
+                label="Pendiente"
                 value={formatCurrency(pendingAmount)}
                 hint={`${unpaid.length} alumno${unpaid.length !== 1 ? 's' : ''}`}
                 className={unpaid.length > 0 ? '[&_p:nth-child(2)]:text-warn-ink' : ''}
               />
             </div>
             <div className="lg:px-5">
-              <Stat label={`Total generado en ${monthLabel}`} value={formatCurrency(generatedAmount)} hint="Cobrado + pendiente" />
+              <Stat label="Total del mes" value={formatCurrency(generatedAmount)} hint="Cobrado + pendiente" />
             </div>
             <div className="lg:pl-5">
               <Stat label="Transacciones" value={transactionCount} />

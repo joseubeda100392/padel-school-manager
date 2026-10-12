@@ -304,6 +304,13 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
   const [holidaysSaving, setHolidaysSaving] = useState(false)
 
   const [activeTab, setActiveTab] = useState<'perfil' | 'pistas' | 'modulos' | 'pagos' | 'tarifas' | 'playtomic'>('perfil')
+  // Enlaces como /dashboard/settings#playtomic abren directamente esa pestaña.
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '')
+    if (['perfil', 'pistas', 'modulos', 'pagos', 'tarifas', 'playtomic'].includes(hash)) {
+      setActiveTab(hash as typeof activeTab)
+    }
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -613,7 +620,7 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <PageHeader title="Configuración" description="Datos del club, módulos, pagos y tarifas." />
 
-      <div role="tablist" aria-label="Secciones de configuración" className="-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 sm:mx-0 sm:px-0">
+      <div role="tablist" aria-label="Secciones de configuración" className="-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 [mask-image:linear-gradient(to_right,black_80%,transparent)] sm:mx-0 sm:px-0 sm:[mask-image:none]">
         {tabs.map((t, index) => {
           const selected = activeTab === t.id
           return (
@@ -625,7 +632,7 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
               aria-selected={selected}
               aria-controls={`settings-panel-${t.id}`}
               tabIndex={selected ? 0 : -1}
-              onClick={() => setActiveTab(t.id)}
+              onClick={(e) => { setActiveTab(t.id); e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'center' }) }}
               onKeyDown={(e) => handleTabKeyDown(e, index)}
               className={cn(
                 '-mb-px inline-flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 px-4 text-label transition-colors',

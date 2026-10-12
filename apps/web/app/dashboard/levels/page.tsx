@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
@@ -39,8 +39,8 @@ export default async function LevelsPage() {
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <DevError errors={[errLevels?.message]} />
       <PageHeader
-        title="Niveles de juego"
-        description="Gestiona los niveles y asígnalos a tus alumnos."
+        title="Niveles"
+        description="Los niveles de juego del club. Cada alumno y cada clase tiene uno."
         actions={
           <Link href="/dashboard/levels/new" className={buttonVariants({ variant: 'primary' })}>
             <Plus className="h-4 w-4" aria-hidden />

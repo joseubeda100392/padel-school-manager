@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { id: 'validacion',      label: 'Validación de clases' },
   { id: 'calendario',      label: 'Calendario maestro' },
   { id: 'tambien-alumno',  label: 'Perfil de alumno' },
-  { id: 'material',        label: 'Materia' },
+  { id: 'material',        label: 'Material' },
   { id: 'chat',            label: 'Chat soporte' },
   { id: 'faq',             label: 'Preguntas frecuentes' },
 ]
@@ -21,6 +21,16 @@ export default function CoachAyudaPage() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <PageHeader title="Ayuda" description="Todo lo que necesitas saber para usar el panel de monitor" />
+      <nav aria-label="Temas de la ayuda" className="lg:hidden">
+        <p className="mb-2 text-label text-ink-2">Salta a un tema</p>
+        <ul className="flex flex-wrap gap-2">
+          {NAV_ITEMS.map(({ id, label }) => (
+            <li key={id}>
+              <a href={`#${id}`} className="inline-flex min-h-10 items-center rounded-full border border-line bg-surface px-3 text-label text-ink-2 hover:bg-surface-2 hover:text-ink">{label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       <div className="lg:grid lg:grid-cols-[1fr_164px] lg:gap-8 lg:items-start">
 
@@ -89,7 +99,7 @@ export default function CoachAyudaPage() {
             <p className="mt-2">Para volver, usa el enlace <strong>"Volver a Monitor"</strong> que aparece en el panel de alumno.</p>
           </Section>
 
-          <Section id="material" title="Materia didáctica">
+          <Section id="material" title="Material">
             <p>Consulta los PDFs y ejercicios publicados por el club, filtrados por nivel. Puedes verlos también desde dentro de cada clase, ya filtrados al nivel de esa clase concreta.</p>
           </Section>
 

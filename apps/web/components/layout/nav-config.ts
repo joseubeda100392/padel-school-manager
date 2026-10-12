@@ -9,6 +9,8 @@ export type NavItem = {
   href: string
   label: string
   shortLabel?: string
+  /** Frase corta de para qué sirve; se muestra en la pantalla "Más". */
+  description?: string
   icon: LucideIcon
   exact?: boolean
   badge?: number
@@ -76,35 +78,35 @@ export function studentNav({
       {
         title: 'Mis clases',
         items: [
-          { href: '/student', label: 'Inicio', icon: Home, exact: true },
-          { href: '/student/schedule', label: 'Mis clases', icon: CalendarDays },
-          { href: '/student/spots', label: 'Huecos', icon: UserPlus, feature: 'enable_spots', hidden: hideSpots },
-          { href: '/student/bag', label: 'Bolsa', icon: Package, feature: 'enable_bag' },
+          { href: '/student', description: 'Tu próxima clase, tu progreso y tus avisos', label: 'Inicio', icon: Home, exact: true },
+          { href: '/student/schedule', description: 'Tu grupo fijo, tus cuotas y avisar de que no vas', label: 'Mis clases', icon: CalendarDays },
+          { href: '/student/spots', description: 'Plazas libres de tu nivel para recuperar o jugar más', label: 'Huecos', icon: UserPlus, feature: 'enable_spots', hidden: hideSpots },
+          { href: '/student/bag', description: 'Tus clases guardadas, movimientos y compra de bonos', label: 'Bolsa', icon: Package, feature: 'enable_bag' },
         ],
       },
       {
         title: 'Mi pádel',
         items: [
-          { href: '/student/progress', label: 'Mi progreso', shortLabel: 'Progreso', icon: Target, feature: 'enable_objectives' },
-          { href: '/student/intensivos', label: 'Intensivos', icon: Flame, feature: 'enable_intensivos' },
-          { href: '/student/tournaments', label: 'Torneos', icon: Medal, feature: 'enable_tournaments' },
-          { href: '/student/materials', label: 'Material', icon: BookOpen, feature: 'enable_materials' },
+          { href: '/student/progress', description: 'Los objetivos que te marca tu monitor', label: 'Mi progreso', shortLabel: 'Progreso', icon: Target, feature: 'enable_objectives' },
+          { href: '/student/intensivos', description: 'Semanas de clases intensivas que organiza el club', label: 'Intensivos', icon: Flame, feature: 'enable_intensivos' },
+          { href: '/student/tournaments', description: 'Torneos del club a los que te puedes apuntar', label: 'Torneos', icon: Medal, feature: 'enable_tournaments' },
+          { href: '/student/materials', description: 'Fichas y vídeos para tu nivel', label: 'Material', icon: BookOpen, feature: 'enable_materials' },
         ],
       },
       {
         title: 'Club',
         items: [
-          { href: '/student/tarifas', label: 'Tarifas y normas', icon: Receipt },
-          { href: '/student/chat', label: 'Hablar con el club', shortLabel: 'Chat', icon: MessageCircle, feature: 'enable_chat' },
-          { href: '/student/notifications', label: 'Notificaciones', icon: Bell, badge: unreadCount },
+          { href: '/student/tarifas', description: 'Precios, normas y calendario de la temporada', label: 'Tarifas y normas', icon: Receipt },
+          { href: '/student/chat', description: 'Escribe al club o a tu monitor', label: 'Hablar con el club', shortLabel: 'Chat', icon: MessageCircle, feature: 'enable_chat' },
+          { href: '/student/notifications', description: 'Los avisos que te ha enviado el club', label: 'Notificaciones', icon: Bell, badge: unreadCount },
         ],
       },
       {
         title: 'Cuenta',
         items: [
-          { href: '/student/perfil', label: 'Mis datos', icon: UserRound },
-          { href: '/student/ayuda', label: 'Ayuda', icon: CircleHelp },
-          { href: '/student/privacidad', label: 'Privacidad y datos', icon: Shield },
+          { href: '/student/perfil', description: 'Tus datos y tu contraseña', label: 'Mis datos', icon: UserRound },
+          { href: '/student/ayuda', description: 'Cómo funciona cada parte de la app', label: 'Ayuda', icon: CircleHelp },
+          { href: '/student/privacidad', description: 'Tus datos personales y cómo se usan', label: 'Privacidad y datos', icon: Shield },
         ],
       },
     ],
@@ -120,22 +122,22 @@ export function coachNav({ features }: { features?: ClubFeatures }): AppNav {
       {
         title: 'Clases',
         items: [
-          { href: '/coach', label: 'Inicio', icon: Home, exact: true },
-          { href: '/coach/classes', label: 'Mis clases', icon: CalendarDays },
-          { href: '/coach/calendario', label: 'Calendario maestro', shortLabel: 'Calendario', icon: CalendarRange },
+          { href: '/coach', description: 'Tus clases de hoy', label: 'Inicio', icon: Home, exact: true },
+          { href: '/coach/classes', description: 'Tu semana de clases y la asistencia', label: 'Mis clases', icon: CalendarDays },
+          { href: '/coach/calendario', description: 'Todas las clases del club con sus alumnos', label: 'Calendario maestro', shortLabel: 'Calendario', icon: CalendarRange },
         ],
       },
       {
         title: 'Club',
         items: [
-          { href: '/coach/materials', label: 'Material', icon: BookOpen, feature: 'enable_materials' },
-          { href: '/coach/chat', label: 'Chat', icon: MessageCircle, feature: 'enable_chat' },
-          { href: '/coach/tarifas', label: 'Tarifas y normas', icon: Receipt },
+          { href: '/coach/materials', description: 'Fichas y vídeos de todos los niveles', label: 'Material', icon: BookOpen, feature: 'enable_materials' },
+          { href: '/coach/chat', description: 'Habla con el club y con tus alumnos', label: 'Chat', icon: MessageCircle, feature: 'enable_chat' },
+          { href: '/coach/tarifas', description: 'Precios, normas y calendario de la temporada', label: 'Tarifas y normas', icon: Receipt },
         ],
       },
       {
         title: 'Cuenta',
-        items: [{ href: '/coach/ayuda', label: 'Ayuda', icon: CircleHelp }],
+        items: [{ href: '/coach/ayuda', description: 'Cómo funciona cada parte de la app', label: 'Ayuda', icon: CircleHelp }],
       },
     ],
     ['/coach', '/coach/classes', '/coach/calendario', '/coach/chat'],
@@ -148,46 +150,46 @@ export function adminNav({ features, isSuperAdmin }: { features?: ClubFeatures; 
     features,
     [
       ...(isSuperAdmin
-        ? [{ title: 'Super admin', items: [{ href: '/dashboard/clubs', label: 'Clubes', icon: Building2 }] }]
+        ? [{ title: 'Super admin', items: [{ href: '/dashboard/clubs', description: 'Todos los clubs de la plataforma', label: 'Clubes', icon: Building2 }] }]
         : []),
       {
         title: 'Escuela',
         items: [
-          { href: '/dashboard', label: 'Panel', icon: LayoutDashboard, exact: true },
-          { href: '/dashboard/schedule', label: 'Clases', icon: CalendarDays },
-          { href: '/dashboard/students', label: 'Usuarios', icon: Users },
-          { href: '/dashboard/levels', label: 'Niveles', icon: Trophy },
+          { href: '/dashboard', description: 'Lo importante de hoy de un vistazo', label: 'Panel', icon: LayoutDashboard, exact: true },
+          { href: '/dashboard/schedule', description: 'Horarios, grupos, cobros y faltas', label: 'Clases', icon: CalendarDays },
+          { href: '/dashboard/students', description: 'Alumnos y monitores: altas, fichas y bajas', label: 'Usuarios', icon: Users },
+          { href: '/dashboard/levels', description: 'Los niveles de juego y quién está en cada uno', label: 'Niveles', icon: Trophy },
         ],
       },
       {
         title: 'Actividad',
         items: [
-          { href: '/dashboard/tournaments', label: 'Torneos', icon: Medal, feature: 'enable_tournaments' },
-          { href: '/dashboard/pista-viva', label: 'Pista Viva', icon: Zap, feature: 'enable_pista_viva' },
-          { href: '/dashboard/class-validation', label: 'Validación de clases', shortLabel: 'Validación', icon: ClipboardCheck, feature: 'enable_class_validation' },
-          { href: '/dashboard/coach-hours', label: 'Horas de monitores', shortLabel: 'Horas', icon: Clock, hideFeature: 'enable_class_validation' },
-          { href: '/dashboard/materials', label: 'Material', icon: BookOpen, feature: 'enable_materials' },
+          { href: '/dashboard/tournaments', description: 'Crear torneos y gestionar inscripciones', label: 'Torneos', icon: Medal, feature: 'enable_tournaments' },
+          { href: '/dashboard/pista-viva', description: 'Avisa a alumnos cuando falta gente en Playtomic', label: 'Pista Viva', icon: Zap, feature: 'enable_pista_viva' },
+          { href: '/dashboard/class-validation', description: 'Confirmar las clases dadas por los monitores', label: 'Validación de clases', shortLabel: 'Validación', icon: ClipboardCheck, feature: 'enable_class_validation' },
+          { href: '/dashboard/coach-hours', description: 'Horas de cada monitor en el mes', label: 'Horas de monitores', shortLabel: 'Horas', icon: Clock, hideFeature: 'enable_class_validation' },
+          { href: '/dashboard/materials', description: 'Subir fichas y vídeos para cada nivel', label: 'Material', icon: BookOpen, feature: 'enable_materials' },
         ],
       },
       {
         title: 'Cobros',
         items: [
-          { href: '/dashboard/payments', label: 'Pagos', icon: CreditCard, feature: 'enable_payments' },
-          { href: '/dashboard/tarifas', label: 'Tarifas y normas', icon: Receipt },
+          { href: '/dashboard/payments', description: 'Cobros del mes, pendientes y caja', label: 'Pagos', icon: CreditCard, feature: 'enable_payments' },
+          { href: '/dashboard/tarifas', description: 'PDF de precios, normas y calendario', label: 'Tarifas y normas', icon: Receipt },
         ],
       },
       {
         title: 'Comunicación',
         items: [
-          { href: '/dashboard/chat', label: 'Chat', icon: MessageCircle, feature: 'enable_chat' },
-          { href: '/dashboard/notifications', label: 'Enviar avisos', icon: Bell },
+          { href: '/dashboard/chat', description: 'Conversaciones con alumnos y monitores', label: 'Chat', icon: MessageCircle, feature: 'enable_chat' },
+          { href: '/dashboard/notifications', description: 'Mandar avisos al móvil de los alumnos', label: 'Enviar avisos', icon: Bell },
         ],
       },
       {
         title: 'Club',
         items: [
-          { href: '/dashboard/settings', label: 'Configuración', icon: Settings },
-          { href: '/dashboard/ayuda', label: 'Ayuda', icon: CircleHelp },
+          { href: '/dashboard/settings', description: 'Datos del club, módulos, pagos y tarifas', label: 'Configuración', icon: Settings },
+          { href: '/dashboard/ayuda', description: 'Cómo funciona cada parte del panel', label: 'Ayuda', icon: CircleHelp },
         ],
       },
     ],

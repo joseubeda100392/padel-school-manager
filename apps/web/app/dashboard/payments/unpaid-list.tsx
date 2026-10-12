@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { toast } from 'sonner'
 import { useState } from 'react'
@@ -78,7 +78,7 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
           />
         </div>
       </div>
-      <div className="overflow-x-auto border-t border-line">
+      <div className="overflow-x-auto border-t border-line" tabIndex={0} role="region" aria-label="Tabla de mensualidades pendientes">
         <table className="w-full min-w-[560px]">
           <thead>
             <tr className="border-b border-line bg-surface-2 text-left text-meta font-medium text-ink-3">

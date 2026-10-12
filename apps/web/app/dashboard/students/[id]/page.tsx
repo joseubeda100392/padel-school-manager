@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
@@ -177,7 +177,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const phone = (student as any).phone
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <DevError errors={[makeupsError?.message]} />
       <PageHeader title="Ficha del usuario" back={{ href: '/dashboard/students', label: 'Usuarios' }} />
 
@@ -226,6 +226,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </CardBody>
       </Card>
 
+      {/* Editar datos y dar de baja van al final: al entrar en una ficha lo
+          habitual es consultar clases, cuotas y bolsa, no cambiar sus datos. */}
+      <div className="order-last">
       <StudentEditForm student={{
         id: student.id as string,
         name: student.name as string,
@@ -239,9 +242,10 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         is_external: (student as any).is_external ?? false,
         is_premium_private_coach: (student as any).is_premium_private_coach ?? false,
       }} isSuperAdmin={viewerRole === 'super_admin'} enablePrivateLessons={features.enable_private_lessons} />
+      </div>
 
       {actsAsStudent && (student as any).role === 'student' && (
-        <div className="flex sm:justify-end">
+        <div className="order-last flex sm:justify-end">
           <CausarBajaButton
             studentId={student.id as string}
             hasFixedEnrollments={(enrollments ?? []).length > 0}
@@ -328,7 +332,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           {!payments?.length ? (
             <EmptyState icon={<Receipt />} title="Sin pagos registrados" description="Cuando este usuario pague algo, aparecerá aquí." />
           ) : (
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de pagos del alumno">
               <table className="w-full min-w-[520px]">
                 <thead>
                   <tr className="bg-surface-2 text-left text-meta font-medium text-ink-3">

@@ -39,7 +39,7 @@ export default async function CoachMaterialsPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <PageHeader title="Materia didáctica" description={`${materials?.length ?? 0} documentos`} />
+      <PageHeader title="Material" description="Fichas y vídeos de todos los niveles para preparar tus clases." />
 
       {!materials || materials.length === 0 ? (
         <Card>

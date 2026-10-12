@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { id: 'recuperar',      label: 'Recuperar clase' },
   { id: 'pista-viva',     label: 'Pista Viva' },
   { id: 'bolsa',          label: 'Bolsa de clases' },
-  { id: 'material',       label: 'Materia' },
+  { id: 'material',       label: 'Material' },
   { id: 'notificaciones', label: 'Notificaciones' },
   { id: 'pagos',          label: 'Pagos' },
   { id: 'chat',           label: 'Chat soporte' },
@@ -25,6 +25,16 @@ export default function AyudaPage() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <PageHeader title="Ayuda" description="Todo lo que necesitas saber para usar la aplicación." />
+      <nav aria-label="Temas de la ayuda" className="lg:hidden">
+        <p className="mb-2 text-label text-ink-2">Salta a un tema</p>
+        <ul className="flex flex-wrap gap-2">
+          {NAV_ITEMS.map(({ id, label }) => (
+            <li key={id}>
+              <a href={`#${id}`} className="inline-flex min-h-10 items-center rounded-full border border-line bg-surface px-3 text-label text-ink-2 hover:bg-surface-2 hover:text-ink">{label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       <div className="lg:grid lg:grid-cols-[1fr_200px] lg:items-start lg:gap-8">
 
@@ -105,7 +115,7 @@ export default function AyudaPage() {
             <p className="mt-2">Si cancelas con suficiente antelación, el crédito se devuelve solo. Si tu saldo llega a 0, consulta con el club si puedes pagar una clase suelta.</p>
           </Section>
 
-          <Section id="material" title="Materia didáctica">
+          <Section id="material" title="Material">
             <p>El club publica PDFs y ejercicios adaptados a tu nivel. Ve a la sección <strong>Materia</strong> para verlos y descargarlos. A medida que subas de nivel tendrás acceso a nuevos contenidos.</p>
             <Nota>Si no ves materias, puede que el club aún no haya publicado contenido para tu nivel. Consúltalo con tu monitor.</Nota>
           </Section>

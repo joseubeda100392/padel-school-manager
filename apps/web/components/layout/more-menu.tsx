@@ -44,12 +44,13 @@ export function MoreMenu() {
           <h2 id={`mas-${group.title}`} className="px-1 pb-2 text-meta font-medium text-ink-3">{group.title}</h2>
           <Card className="overflow-hidden">
             <List>
-              {group.items.map(({ href, label, icon: Icon, badge }) => (
+              {group.items.map(({ href, label, description, icon: Icon, badge }) => (
                 <ListRow
                   key={href}
                   href={href}
                   leading={<RowIcon><Icon aria-hidden /></RowIcon>}
                   title={label}
+                  subtitle={description}
                   trailing={badge ? <Badge tone="danger">{badge > 9 ? '9+' : badge}<span className="sr-only"> sin leer</span></Badge> : undefined}
                 />
               ))}

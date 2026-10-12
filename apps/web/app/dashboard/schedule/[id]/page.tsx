@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
@@ -40,7 +40,7 @@ function getNextDate(startTime: string): string {
 
 export default async function ScheduleDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { from?: string; date?: string } }) {
   const backHref = searchParams.from === 'master' ? '/dashboard/schedule/master' : '/dashboard/schedule'
-  const backLabel = searchParams.from === 'master' ? 'Calendario maestro' : 'Horarios'
+  const backLabel = searchParams.from === 'master' ? 'Calendario maestro' : 'Clases'
 
   const supabase = createClient()
   const admin = getAdminClient()
@@ -193,7 +193,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     .map((b: any) => ({ studentId: b.student_id as string, classDate: b.class_date as string }))
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <DevError errors={[errGroupEnrollments?.message]} />
       <RealtimeRefresh
         channelName={`admin-schedule-${params.id}`}
@@ -206,8 +206,19 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       <PageHeader
         back={{ href: backHref, label: backLabel }}
         title="Detalle de clase"
-        actions={<ScheduleActions scheduleId={params.id} nextDate={nextDate} />}
+        description="El grupo, sus cobros y las faltas de esta clase."
       />
+
+      {/* En móvil, las acciones de gestión van al final: lo primero es el
+          grupo y sus cobros, que es para lo que se entra aquí. */}
+      <section
+        aria-labelledby="gestionar-clase"
+        className="order-last rounded-card border border-line bg-surface p-4 shadow-card md:order-none md:-mt-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none"
+      >
+        <h2 id="gestionar-clase" className="text-heading text-ink md:sr-only">Gestionar la clase</h2>
+        <p className="mb-3 mt-0.5 text-meta text-ink-3 md:hidden">Editar el horario, cancelar una sesión o eliminar la clase.</p>
+        <ScheduleActions scheduleId={params.id} nextDate={nextDate} />
+      </section>
 
       <Card>
         <CardBody>

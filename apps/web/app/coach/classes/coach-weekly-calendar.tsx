@@ -190,7 +190,7 @@ export default function CoachWeeklyCalendar({ schedules, holidays = [] }: { sche
       </div>
 
       {/* Desde md: rejilla de 7 columnas */}
-      <div className="hidden overflow-x-auto pb-2 md:block">
+      <div className="hidden overflow-x-auto pb-2 md:block" tabIndex={0} role="region" aria-label="Semana de clases">
         <div className="grid grid-cols-7 gap-2">
           {days.map(({ dayName, date, dateStr, isHoliday, isToday, classes }) => (
             <div key={dayName} className="min-w-0">

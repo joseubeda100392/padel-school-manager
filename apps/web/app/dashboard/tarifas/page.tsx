@@ -23,7 +23,7 @@ export default async function DashboardTarifasPage() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <PageHeader
-        title="Tarifas y documentos"
+        title="Tarifas y normas"
         description="Sube los PDF del club. Todos los alumnos y monitores pueden consultarlos."
       />
       <DocumentosClient clubId={clubId} isAdmin />

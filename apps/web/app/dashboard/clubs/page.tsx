@@ -56,7 +56,7 @@ export default async function ClubsPage() {
         }
       />
 
-      <Card className="overflow-x-auto">
+      <Card className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de clubs">
         <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b border-line bg-surface-2">

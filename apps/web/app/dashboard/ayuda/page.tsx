@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { id: 'torneos',         label: 'Torneos' },
   { id: 'pagos',           label: 'Pagos' },
   { id: 'descuentos',      label: 'Descuentos en cuota' },
-  { id: 'materia',         label: 'Materia' },
+  { id: 'materia',         label: 'Material' },
   { id: 'chat',            label: 'Chat soporte' },
   { id: 'notificaciones',  label: 'Notificaciones' },
   { id: 'configuracion',   label: 'Configuración' },
@@ -27,6 +27,16 @@ export default function AdminAyudaPage() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <PageHeader title="Ayuda" description="Guía completa del panel de administración." />
+      <nav aria-label="Temas de la ayuda" className="lg:hidden">
+        <p className="mb-2 text-label text-ink-2">Salta a un tema</p>
+        <ul className="flex flex-wrap gap-2">
+          {NAV_ITEMS.map(({ id, label }) => (
+            <li key={id}>
+              <a href={`#${id}`} className="inline-flex min-h-10 items-center rounded-full border border-line bg-surface px-3 text-label text-ink-2 hover:bg-surface-2 hover:text-ink">{label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       <div className="lg:grid lg:grid-cols-[1fr_200px] lg:items-start lg:gap-8">
 
@@ -110,7 +120,7 @@ export default function AdminAyudaPage() {
             <Aviso>El descuento es puntual, no permanente: en cuanto se registra el cobro de ese mes (efectivo o tarjeta), el check se desmarca solo y el mes siguiente vuelve a su cuota de siempre. Si el alumno debe seguir con descuento, hay que volver a marcarlo cada mes.</Aviso>
           </Section>
 
-          <Section id="materia" title="Materia didáctica">
+          <Section id="materia" title="Material">
             <p>Sube PDFs y ejercicios, y asígnalos a uno o varios niveles. Los alumnos y monitores los ven filtrados automáticamente según el nivel correspondiente.</p>
           </Section>
 

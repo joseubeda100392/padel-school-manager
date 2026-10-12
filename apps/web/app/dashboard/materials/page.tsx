@@ -32,8 +32,8 @@ export default async function MaterialsPage() {
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <DevError errors={[errMaterials?.message]} />
       <PageHeader
-        title="Materias didácticas"
-        description={`${materials?.length ?? 0} documentos`}
+        title="Material"
+        description={`Fichas y vídeos para tus alumnos, por nivel · ${materials?.length ?? 0} subidos`}
         actions={
           <Link href="/dashboard/materials/new" className={buttonVariants({ className: 'w-full sm:w-auto' })}>
             <Plus className="h-4 w-4" aria-hidden />

@@ -52,7 +52,7 @@ export default async function StudentMaterialsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <PageHeader
-        title="Materia didáctica"
+        title="Material"
         description={
           myLevel ? (
             <span className="inline-flex flex-wrap items-center gap-x-2">

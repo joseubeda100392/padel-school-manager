@@ -313,7 +313,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
       />
       <header>
         <h1 className="font-display text-title text-ink sm:text-display">Huecos libres</h1>
-        <p className="mt-1 text-body text-ink-2">Plazas de tu nivel que han quedado libres. Apúntate con una clase de tu bolsa o pagando la clase.</p>
+        <p className="mt-1 text-body text-ink-2">Plazas libres de tu nivel para recuperar una falta o jugar más.</p>
       </header>
 
       <SpotsClient

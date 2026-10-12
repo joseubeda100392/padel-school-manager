@@ -27,7 +27,7 @@ export default async function CoachTarifasPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <PageHeader title="Tarifas y documentos" description="Documentos del club disponibles para consultar" />
+      <PageHeader title="Tarifas y normas" description="Precios, normas y calendario de la temporada del club." />
 
       <Card className="overflow-hidden">
         <List>

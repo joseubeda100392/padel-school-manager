@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm'
-import { EmptyState, Notice } from '@/components/ui/feedback'
+import { EmptyState } from '@/components/ui/feedback'
 
 interface Spot {
   spotType: 'absence' | 'capacity'
@@ -234,9 +234,10 @@ export function SpotsClient({
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
       <div className="space-y-4 lg:sticky lg:top-0">
         {visibleBalance > 0 && (
-          <Notice tone="success" icon={<Package />}>
-            Tienes {bagParts.join(' y ')} en la bolsa. {visibleBalance === 1 ? 'Úsala' : 'Úsalas'} para apuntarte a un hueco.
-          </Notice>
+          <p className="flex items-center gap-2 text-label text-accent-ink">
+            <Package className="h-[18px] w-[18px] shrink-0" aria-hidden />
+            Tienes {bagParts.join(' y ')} en la bolsa para apuntarte
+          </p>
         )}
         <Card className="p-4 sm:p-5">
           <MonthCalendar

@@ -150,7 +150,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
       )}
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de clases">
           <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-line bg-surface-2">

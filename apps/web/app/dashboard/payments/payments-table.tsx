@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/utils'
@@ -192,7 +192,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
             description={hasFilters ? 'Prueba con otra búsqueda o quita algún filtro.' : 'Los pagos de este mes aparecerán aquí.'}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de pagos">
             <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-line bg-surface-2 text-left text-meta font-medium text-ink-3">

@@ -110,7 +110,7 @@ export default async function PistaVivaPage() {
 
       <Card>
         <CardHeader title="Partidos detectados" />
-        <div className="mt-3 overflow-x-auto">
+        <div className="mt-3 overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de partidos detectados">
           <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-y border-line bg-surface-2">

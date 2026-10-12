@@ -203,7 +203,7 @@ export default function RestoreSchedulePage() {
               </div>
             }
           />
-          <div className="mt-4 overflow-x-auto border-t border-line">
+          <div className="mt-4 overflow-x-auto border-t border-line" tabIndex={0} role="region" aria-label="Tabla de clases">
             <table className="w-full min-w-[600px] text-body">
               <thead>
                 <tr className="bg-surface-2">
@@ -244,7 +244,7 @@ export default function RestoreSchedulePage() {
               </span>
             }
           />
-          <div className="mt-4 overflow-x-auto border-t border-line">
+          <div className="mt-4 overflow-x-auto border-t border-line" tabIndex={0} role="region" aria-label="Tabla de clases">
             <table className="w-full min-w-[500px] text-body">
               <thead>
                 <tr className="bg-surface-2">

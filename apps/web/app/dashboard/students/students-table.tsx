@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useMemo, useDeferredValue, useCallback, memo } from 'react'
-import { Check, CircleCheck, CircleOff, Download, Search, X } from 'lucide-react'
+import { Check, CircleCheck, CircleOff, Download, Search, SlidersHorizontal, X } from 'lucide-react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
@@ -39,6 +39,9 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
   const [role, setRole] = useState(defaultTab)
   const [status, setStatus] = useState('')
   const [levelFilter, setLevelFilter] = useState('')
+  // En móvil los filtros van plegados para que la lista se vea sin bajar.
+  const [showFilters, setShowFilters] = useState(false)
+  const activeFilters = (status ? 1 : 0) + (levelFilter ? 1 : 0)
   const [editingCuotaId, setEditingCuotaId] = useState<string | null>(null)
   const [editingCuotaValue, setEditingCuotaValue] = useState('')
   const [savingCuota, setSavingCuota] = useState(false)
@@ -116,6 +119,31 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
 
   return (
     <div className="space-y-4">
+      <div className="flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <label htmlFor="students-search" className="sr-only">Buscar por nombre o email</label>
+          <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+          <Input
+            id="students-search"
+            type="search"
+            placeholder="Buscar por nombre o email"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Button
+          variant="secondary"
+          className="sm:hidden"
+          aria-expanded={showFilters}
+          aria-controls="filtros-usuarios"
+          onClick={() => setShowFilters(v => !v)}
+        >
+          <SlidersHorizontal className="h-4 w-4" aria-hidden />
+          Filtros{activeFilters > 0 && <span className="rounded-full bg-accent-soft px-1.5 text-meta tabular-nums text-accent-ink">{activeFilters}</span>}
+        </Button>
+      </div>
+
       <div role="group" aria-label="Filtrar por rol" className="flex gap-1 overflow-x-auto rounded-control border border-line bg-surface-2 p-1">
         {TABS.map((tab) => {
           const active = role === tab.value
@@ -138,19 +166,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
         })}
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="relative min-w-[200px] flex-1">
-          <label htmlFor="students-search" className="sr-only">Buscar por nombre o email</label>
-          <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
-          <Input
-            id="students-search"
-            type="search"
-            placeholder="Buscar por nombre o email"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      <div id="filtros-usuarios" className={`${showFilters ? 'flex' : 'hidden'} flex-wrap items-end gap-3 sm:flex`}>
         <Field label="Estado" className="w-full sm:w-auto">
           <Select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Todos los estados</option>
@@ -218,7 +234,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
                 )
               })}
             </List>
-            <div className="hidden overflow-x-auto sm:block">
+            <div className="hidden overflow-x-auto sm:block" tabIndex={0} role="region" aria-label="Tabla de usuarios">
               <table className="w-full min-w-[880px]">
                 <thead>
                   <tr className="border-b border-line bg-surface-2 text-left text-meta font-medium text-ink-3">

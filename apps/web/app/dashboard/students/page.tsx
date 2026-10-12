@@ -56,14 +56,14 @@ export default async function StudentsPage({ searchParams }: { searchParams: { t
       />
       <PageHeader
         title="Usuarios"
-        description={`${students?.length ?? 0} usuarios registrados`}
+        description={`${students?.length ?? 0} alumnos y monitores. Busca a alguien para ver su ficha, sus clases y sus pagos.`}
         actions={
           <>
-            <Link href="/dashboard/students/import" className={buttonVariants({ variant: 'secondary', className: 'flex-1 sm:flex-none' })}>
+            <Link href="/dashboard/students/import" className={buttonVariants({ variant: 'secondary', className: 'order-2 sm:order-1' })}>
               <Upload className="h-4 w-4" aria-hidden />
               Importar Excel
             </Link>
-            <Link href="/dashboard/students/new" className={buttonVariants({ variant: 'primary', className: 'flex-1 sm:flex-none' })}>
+            <Link href="/dashboard/students/new" className={buttonVariants({ variant: 'primary', className: 'order-1 flex-1 sm:order-2 sm:flex-none' })}>
               <Plus className="h-4 w-4" aria-hidden />
               Nuevo usuario
             </Link>
