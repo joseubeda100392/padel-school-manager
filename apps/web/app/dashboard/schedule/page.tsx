@@ -15,6 +15,7 @@ import { Plus, CircleAlert } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
 import { Notice } from '@/components/ui/feedback'
+import { parseClubFeatures } from '@/lib/get-club-features'
 
 const TZ = 'Europe/Madrid'
 
@@ -59,11 +60,10 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       .from('group_enrollments')
       .select('id, schedule_id, schedule_exclusions(excluded_date)')
       .eq('status', 'active'),
-    clubId ? admin.from('clubs').select('config').eq('id', clubId).single() : Promise.resolve({ data: null }),
+    clubId ? admin.from('clubs').select('config, features').eq('id', clubId).single() : Promise.resolve({ data: null }),
   ])
 
-  const { getClubFeatures } = await import('@/lib/get-club-features')
-  const features = await getClubFeatures(clubId ?? undefined)
+  const features = parseClubFeatures((clubRow as any)?.features)
 
   const holidays: string[] = (clubRow as any)?.config?.holidays ?? []
   const holidaySet = new Set(holidays)

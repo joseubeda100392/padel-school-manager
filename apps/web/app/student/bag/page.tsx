@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
-import { getClubFeatures } from '@/lib/get-club-features'
+import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { Minus, Package, Plus } from 'lucide-react'
 import { formatLongDate } from '@/lib/format-date'
 import { Card, SectionTitle } from '@/components/ui/card'
@@ -37,14 +37,8 @@ export default async function StudentBagPage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: bagProfile } = await admin.from('users').select('club_id, is_external').eq('id', user.id).single()
-  const features = await getClubFeatures((bagProfile as any)?.club_id)
-  if (!features.enable_bag) redirect('/student')
-  const isExternal = (bagProfile as any)?.is_external === true
-
-  const clubId = (bagProfile as any)?.club_id ?? null
-
-  const [{ data: bag }, { data: transactions }, { data: clubRow }, { count: premiumCoachCount }] = await Promise.all([
+  const [{ data: bagProfile }, { data: bag }, { data: transactions }] = await Promise.all([
+    admin.from('users').select('club_id, is_external, club:clubs(features, config)').eq('id', user.id).single(),
     admin
       .from('class_bag')
       .select('balance_60, balance_90, balance_private_60, balance_private_90, balance_private_60_external, balance_private_90_external, balance_private_60_premium, balance_private_90_premium, balance_private_60_premium_external, balance_private_90_premium_external')
@@ -56,13 +50,16 @@ export default async function StudentBagPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30),
-    clubId
-      ? admin.from('clubs').select('config').eq('id', clubId).single()
-      : { data: null },
-    clubId
-      ? admin.from('users').select('id', { count: 'exact', head: true }).eq('club_id', clubId).eq('role', 'coach').eq('is_premium_private_coach', true)
-      : Promise.resolve({ count: 0 }),
   ])
+  const clubId = (bagProfile as any)?.club_id ?? null
+  const features = clubId ? parseClubFeatures((bagProfile as any)?.club?.features) : DEFAULT_FEATURES
+  if (!features.enable_bag) redirect('/student')
+  const isExternal = (bagProfile as any)?.is_external === true
+  const clubRow = clubId ? { config: (bagProfile as any)?.club?.config ?? null } : null
+
+  const { count: premiumCoachCount } = clubId
+    ? await admin.from('users').select('id', { count: 'exact', head: true }).eq('club_id', clubId).eq('role', 'coach').eq('is_premium_private_coach', true)
+    : { count: 0 }
 
   const balance60 = bag?.balance_60 ?? 0
   const balance90 = bag?.balance_90 ?? 0

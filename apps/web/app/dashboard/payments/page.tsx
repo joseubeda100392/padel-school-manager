@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
-import { getClubFeatures } from '@/lib/get-club-features'
+import { parseClubFeatures } from '@/lib/get-club-features'
 import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import PaymentsTable from './payments-table'
@@ -23,14 +23,14 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const admin = getAdminClient()
   const clubId = await getClubId()
 
-  const features = await getClubFeatures(clubId ?? undefined)
+  const { data: clubConfigRow } = clubId
+    ? await admin.from('clubs').select('config, features').eq('id', clubId).single()
+    : { data: null }
+  const features = parseClubFeatures((clubConfigRow as any)?.features)
   if (!features.enable_payments) redirect('/dashboard')
 
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
-  const { data: clubConfigRow } = clubId
-    ? await admin.from('clubs').select('config').eq('id', clubId).single()
-    : { data: null }
   const billingStartDate: string | null = (clubConfigRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
 

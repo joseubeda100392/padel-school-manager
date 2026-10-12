@@ -44,15 +44,21 @@ export const DEFAULT_FEATURES: ClubFeatures = {
   calendario_pdf_url: '',
 }
 
-export const getClubFeatures = cache(async (clubId: string | null | undefined): Promise<ClubFeatures> => {
-  if (!clubId) return DEFAULT_FEATURES
-  const admin = getAdminClient()
-  const { data } = await admin.from('clubs').select('features').eq('id', clubId).single()
-  const merged = { ...DEFAULT_FEATURES, ...(data?.features ?? {}) }
+// Para páginas que ya traen `clubs.features` embebido en otra consulta y así
+// se ahorran un viaje a la base de datos.
+export function parseClubFeatures(raw: unknown): ClubFeatures {
+  const merged = { ...DEFAULT_FEATURES, ...((raw as Partial<ClubFeatures> | null) ?? {}) }
   return {
     ...merged,
     terms_pdf_url: typeof merged.terms_pdf_url === 'string' ? merged.terms_pdf_url : '',
     tarifas_pdf_url: typeof merged.tarifas_pdf_url === 'string' ? merged.tarifas_pdf_url : '',
     calendario_pdf_url: typeof merged.calendario_pdf_url === 'string' ? merged.calendario_pdf_url : '',
   }
+}
+
+export const getClubFeatures = cache(async (clubId: string | null | undefined): Promise<ClubFeatures> => {
+  if (!clubId) return DEFAULT_FEATURES
+  const admin = getAdminClient()
+  const { data } = await admin.from('clubs').select('features').eq('id', clubId).single()
+  return parseClubFeatures(data?.features)
 })

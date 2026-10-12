@@ -5,7 +5,7 @@ import { formatCurrency, getDayOfWeek, matchesDayTimePreference } from '@/lib/ut
 import Link from 'next/link'
 import { CalendarDays, ChevronRight, CircleAlert, CircleCheck, Clock, Package, UserPlus } from 'lucide-react'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
-import { getClubFeatures } from '@/lib/get-club-features'
+import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet } from '@/lib/club-holidays'
 import { getNextOccurrence } from '@/lib/next-class'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
@@ -32,21 +32,18 @@ export default async function StudentHomePage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: userData } = await admin.from('users').select('name, email, current_level_id, club_id, pista_viva_optin, playtomic_level, pista_viva_preferred_days, pista_viva_preferred_start, pista_viva_preferred_end').eq('id', user.id).single()
-  const clubId = (userData as any)?.club_id as string | undefined
-  const myPistaVivaLevel = (userData as any)?.playtomic_level as number | null
-  const myPreferredDays = (userData as any)?.pista_viva_preferred_days as number[] | null
-  const myPreferredStart = (userData as any)?.pista_viva_preferred_start as string | null
-  const myPreferredEnd = (userData as any)?.pista_viva_preferred_end as string | null
-
   const today = new Date().toISOString().split('T')[0]
   const TZ = 'Europe/Madrid'
+  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
 
-  // features se resuelve antes del resto porque el resto necesita saber si
-  // Pista Viva está activa en este club antes de decidir si consultar sus partidos.
-  const features = await getClubFeatures(clubId)
-
-  const [{ data: bag }, { data: enrollments }, { data: spots }, { data: capacitySchedules }, { data: mySpotBookings }, { data: clubRow }, { data: pistaVivaMatches }, { data: checklists }] = await Promise.all([
+  // Dos tandas en paralelo en vez de siete consultas en fila: la primera solo
+  // necesita el id del alumno; la segunda, el club, el nivel y sus grupos.
+  const [{ data: userData }, { data: bag }, { data: enrollments }, { data: spots }, { data: mySpotBookings }, { data: allChecklists }] = await Promise.all([
+    admin
+      .from('users')
+      .select('name, email, current_level_id, club_id, pista_viva_optin, playtomic_level, pista_viva_preferred_days, pista_viva_preferred_start, pista_viva_preferred_end, club:clubs(features, config)')
+      .eq('id', user.id)
+      .single(),
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
       .from('group_enrollments')
@@ -58,13 +55,29 @@ export default async function StudentHomePage() {
       .select('id, excluded_date, group_enrollment:group_enrollments!group_enrollment_id(schedule_id, schedule:schedules!schedule_id(club_id, level_id))')
       .eq('publish_spot', true)
       .gte('excluded_date', today),
+    admin.from('bookings').select('schedule_id, class_date').eq('student_id', user.id).eq('status', 'confirmed').not('class_date', 'is', null),
+    admin
+      .from('student_checklists')
+      .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at)')
+      .eq('student_id', user.id),
+  ])
+
+  const clubId = (userData as any)?.club_id as string | undefined
+  const clubRow = (userData as any)?.club ?? null
+  const features = clubId ? parseClubFeatures(clubRow?.features) : DEFAULT_FEATURES
+  const checklists = features.enable_objectives ? allChecklists : []
+  const myPistaVivaLevel = (userData as any)?.playtomic_level as number | null
+  const myPreferredDays = (userData as any)?.pista_viva_preferred_days as number[] | null
+  const myPreferredStart = (userData as any)?.pista_viva_preferred_start as string | null
+  const myPreferredEnd = (userData as any)?.pista_viva_preferred_end as string | null
+  const myLevelId = (userData as any)?.current_level_id ?? null
+  const activeEnrollments = enrollments ?? []
+  const enrolledScheduleIds = activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean)
+
+  const [{ data: capacitySchedules }, { data: pistaVivaMatches }, { data: levelData }, { data: timeOverrides }] = await Promise.all([
     clubId
       ? admin.from('schedules').select('id, max_students, type, recurrence, recurrence_end_date, start_time, level:levels(id), enrollments:group_enrollments(student_id, status)').eq('club_id', clubId).neq('type', 'intensivo')
       : Promise.resolve({ data: [] }),
-    admin.from('bookings').select('schedule_id, class_date').eq('student_id', user.id).eq('status', 'confirmed').not('class_date', 'is', null),
-    clubId
-      ? admin.from('clubs').select('config').eq('id', clubId).single()
-      : Promise.resolve({ data: null }),
     features.enable_pista_viva && clubId && myPistaVivaLevel != null
       ? admin
           .from('pista_viva_open_match_alerts')
@@ -76,11 +89,15 @@ export default async function StudentHomePage() {
           .gt('slot_datetime', new Date().toISOString())
           .order('slot_datetime', { ascending: true })
       : Promise.resolve({ data: [] }),
-    features.enable_objectives
+    myLevelId
+      ? admin.from('levels').select('name, color').eq('id', myLevelId).single()
+      : Promise.resolve({ data: null }),
+    enrolledScheduleIds.length
       ? admin
-          .from('student_checklists')
-          .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at)')
-          .eq('student_id', user.id)
+          .from('schedule_time_overrides')
+          .select('schedule_id, override_date, new_start_time, new_end_time')
+          .in('schedule_id', enrolledScheduleIds)
+          .gte('override_date', todaySpain)
       : Promise.resolve({ data: [] }),
   ])
 
@@ -88,17 +105,10 @@ export default async function StudentHomePage() {
     matchesDayTimePreference(new Date(m.slot_datetime), myPreferredDays, myPreferredStart, myPreferredEnd),
   )
 
-  const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
-  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
+  const billingStartDate: string | null = clubRow?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
-  const myLevelId = (userData as any)?.current_level_id ?? null
-  const { data: levelData } = myLevelId
-    ? await admin.from('levels').select('name, color').eq('id', myLevelId).single()
-    : { data: null }
-
   const bagBalance = (bag?.balance_60 ?? 0) + (bag?.balance_90 ?? 0)
-  const activeEnrollments = enrollments ?? []
   // No contar como "pendiente" una inscripción cuya facturación todavía no
   // ha arrancado (start_date en el futuro) — si no, un alumno recién
   // matriculado para una clase que aún no ha dado ni una sesión vería un
@@ -106,15 +116,6 @@ export default async function StudentHomePage() {
   const pendingEnrollments = activeEnrollments.filter((e: any) =>
     (!e.start_date || e.start_date <= todaySpain) && !isPaidThisMonth(e.paid_until)
   )
-
-  const enrolledScheduleIds = activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean)
-  const { data: timeOverrides } = enrolledScheduleIds.length
-    ? await admin
-        .from('schedule_time_overrides')
-        .select('schedule_id, override_date, new_start_time, new_end_time')
-        .in('schedule_id', enrolledScheduleIds)
-        .gte('override_date', todaySpain)
-    : { data: [] }
 
   const holidaySet = getHolidaySet((clubRow as any)?.config)
   const nextClass = (activeEnrollments as any[])

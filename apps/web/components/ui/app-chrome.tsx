@@ -1,7 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -57,9 +58,34 @@ export function AppBar({
   )
 }
 
+const PREFETCH_START_MS = 1500
+const PREFETCH_GAP_MS = 400
+
+// Carga en segundo plano las pestañas, una a una y cuando el móvil está libre,
+// para que el primer toque no espere al servidor. Se respeta el ahorro de datos.
+function usePrefetchTabs(hrefs: string[]) {
+  const router = useRouter()
+  const key = hrefs.join('|')
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+    if (connection?.saveData) return
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const start = setTimeout(() => {
+      key.split('|').forEach((href, i) => {
+        timers.push(setTimeout(() => router.prefetch(href), i * PREFETCH_GAP_MS))
+      })
+    }, PREFETCH_START_MS)
+    return () => {
+      clearTimeout(start)
+      timers.forEach(clearTimeout)
+    }
+  }, [key, router])
+}
+
 // Barra de pestañas inferior (solo móvil). Máximo 5 elementos.
 export function TabBar({ items, ariaLabel = 'Navegación principal' }: { items: TabItem[]; ariaLabel?: string }) {
   const pathname = usePathname()
+  usePrefetchTabs(items.filter((i) => !isActivePath(pathname, i.href, i.exact)).map((i) => i.href))
   return (
     <nav
       aria-label={ariaLabel}

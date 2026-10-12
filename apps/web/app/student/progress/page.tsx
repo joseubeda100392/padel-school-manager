@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { getClubFeatures } from '@/lib/get-club-features'
+import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { Check, Circle, CircleCheck, Target } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { formatRelativeDay } from '@/lib/format-date'
@@ -15,15 +15,16 @@ export default async function StudentProgressPage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: progressProfile } = await admin.from('users').select('club_id').eq('id', user.id).single()
-  const features = await getClubFeatures((progressProfile as any)?.club_id)
+  const [{ data: progressProfile }, { data: checklists }] = await Promise.all([
+    admin.from('users').select('club_id, club:clubs(features)').eq('id', user.id).single(),
+    admin
+      .from('student_checklists')
+      .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at)')
+      .eq('student_id', user.id)
+      .order('created_at', { ascending: false }),
+  ])
+  const features = (progressProfile as any)?.club_id ? parseClubFeatures((progressProfile as any)?.club?.features) : DEFAULT_FEATURES
   if (!features.enable_objectives) redirect('/student')
-
-  const { data: checklists } = await admin
-    .from('student_checklists')
-    .select('id, title, created_at, completed_at, items:checklist_items(id, text, sort_order, completed_at)')
-    .eq('student_id', user.id)
-    .order('created_at', { ascending: false })
 
   const list = (checklists ?? []).map((c: any) => ({
     ...c,

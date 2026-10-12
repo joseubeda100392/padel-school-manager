@@ -26,16 +26,15 @@ export default async function CoachHomePage() {
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   const todayDow = getDayOfWeek(new Date())
 
-  const { data: allSchedules, error: errSchedules } = await admin
-    .from('schedules')
-    .select('id, start_time, end_time, max_students, recurrence, recurrence_end_date, court:courts(name), level:levels(name, color)')
-    .eq('coach_id', user.id)
-    .eq('is_active', true)
-
-  const { data: coachRow } = await admin.from('users').select('club_id').eq('id', user.id).single()
-  const { data: clubRow } = coachRow?.club_id
-    ? await admin.from('clubs').select('config').eq('id', coachRow.club_id).single()
-    : { data: null }
+  const [{ data: allSchedules, error: errSchedules }, { data: coachRow }] = await Promise.all([
+    admin
+      .from('schedules')
+      .select('id, start_time, end_time, max_students, recurrence, recurrence_end_date, court:courts(name), level:levels(name, color)')
+      .eq('coach_id', user.id)
+      .eq('is_active', true),
+    admin.from('users').select('club_id, club:clubs(config)').eq('id', user.id).single(),
+  ])
+  const clubRow = coachRow?.club_id ? { config: (coachRow as any)?.club?.config ?? null } : null
   const isHolidayToday = getHolidaySet((clubRow as any)?.config).has(todaySpain)
 
   const todaySchedules = isHolidayToday ? [] : (allSchedules ?? []).filter((s: any) => {

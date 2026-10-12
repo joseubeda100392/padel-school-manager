@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { StudentShell } from '@/components/layout/student-shell'
-import { getClubFeatures } from '@/lib/get-club-features'
+import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { TermsGate } from './terms-gate'
 import { PasswordChangeGate } from './password-change-gate'
 
@@ -12,11 +12,15 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const { data: userData, error: userError } = await admin
-    .from('users')
-    .select('role, also_student, is_external, name, club_id, clubs(name, slug), force_password_change')
-    .eq('id', user.id)
-    .single()
+  const [{ data: userData, error: userError }, { data: bag }, { count: unreadCount }] = await Promise.all([
+    admin
+      .from('users')
+      .select('role, also_student, is_external, name, club_id, clubs(name, slug, features), force_password_change, terms_accepted_at')
+      .eq('id', user.id)
+      .single(),
+    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
+    admin.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
+  ])
 
   if (userError) console.error('[student/layout] users query failed:', userError.message)
 
@@ -30,12 +34,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (role !== 'student' && !(role === 'coach' && alsoStudent)) redirect('/dashboard')
 
   const clubId = (userData as any)?.club_id as string | undefined
-
-  const [{ data: bag }, { count: unreadCount }, features] = await Promise.all([
-    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
-    admin.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
-    getClubFeatures(clubId),
-  ])
+  const features = clubId ? parseClubFeatures((userData as any)?.clubs?.features) : DEFAULT_FEATURES
 
   const clubName = (userData as any)?.clubs?.name ?? 'Tu Club'
   const clubSlug = (userData as any)?.clubs?.slug ?? null
@@ -44,15 +43,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
     return <PasswordChangeGate clubName={clubName} />
   }
 
-  let termsAcceptedAt: string | null = null
-  if (features.enable_terms) {
-    const { data: termsRow } = await admin
-      .from('users')
-      .select('terms_accepted_at')
-      .eq('id', user.id)
-      .single()
-    termsAcceptedAt = (termsRow as any)?.terms_accepted_at ?? null
-  }
+  const termsAcceptedAt: string | null = (userData as any)?.terms_accepted_at ?? null
 
   if (features.enable_terms && !termsAcceptedAt) {
     return <TermsGate pdfUrl={features.terms_pdf_url} clubName={clubName} />

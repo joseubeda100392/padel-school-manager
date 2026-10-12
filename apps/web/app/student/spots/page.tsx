@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import { SpotsClient } from './spots-client'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
-import { getClubFeatures } from '@/lib/get-club-features'
+import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet } from '@/lib/club-holidays'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -48,30 +48,6 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
 
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
 
-  const { data: userRow } = await admin
-    .from('users')
-    .select('current_level_id, club_id, is_external')
-    .eq('id', user.id)
-    .single()
-  const myLevelId: string | null = userRow?.current_level_id ?? null
-  const myClubId: string | null = (userRow as any)?.club_id ?? null
-  // Alumno externo: no ve los huecos libres de las clases fijas de la
-  // escuela — el enlace ya se oculta en el menú, esto cubre entrar por URL.
-  if ((userRow as any)?.is_external === true) redirect('/student')
-
-  // features y clubRow dependen solo de myClubId, ninguno del otro: en paralelo.
-  const [features, { data: clubRow }] = await Promise.all([
-    getClubFeatures((userRow as any)?.club_id),
-    myClubId
-      ? admin.from('clubs').select('config').eq('id', myClubId).single()
-      : Promise.resolve({ data: null }),
-  ])
-  if (!features.enable_spots) redirect('/student')
-
-  const holidaySet = getHolidaySet((clubRow as any)?.config)
-  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
-  const billingActive = !billingStartDate || today >= billingStartDate
-
   // Mes que se está viendo — por defecto el actual. La navegación no puede
   // pasar de la misma ventana de antelación que ya limita el registro de
   // faltas (Configuración → "Antelación para registrar falta"), porque más
@@ -81,17 +57,16 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   const year = parsedMonth && !isNaN(parsedMonth.getTime()) ? parsedMonth.getFullYear() : todayYear
   const month0 = parsedMonth && !isNaN(parsedMonth.getTime()) ? parsedMonth.getMonth() : todayMonth0
 
-  const advanceMonthsConfig = (clubRow as any)?.config?.falta_advance_months ?? 0
-  const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
-  const maxDateObj = new Date(todayYear, todayMonth0 + effectiveAdvanceMonths, 1)
-  const maxYear = maxDateObj.getFullYear()
-  const maxMonth0 = maxDateObj.getMonth()
-
   const monthStart = `${year}-${String(month0 + 1).padStart(2, '0')}-01`
   const monthEnd = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(year, month0 + 1, 0, 12))
   const rangeStart = monthStart > today ? monthStart : today
 
-  const [{ data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: schedulesRaw }, { data: mySpotBookings }] = await Promise.all([
+  const [{ data: userRow }, { data: spotsRaw }, { data: myEnrollments }, { data: bag }, { data: mySpotBookings }] = await Promise.all([
+    admin
+      .from('users')
+      .select('current_level_id, club_id, is_external, club:clubs(features, config)')
+      .eq('id', user.id)
+      .single(),
     admin
       .from('schedule_exclusions')
       .select(`
@@ -117,22 +92,42 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
       .eq('status', 'active'),
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
-      .from('schedules')
-      .select(`
-        id, start_time, end_time, max_students, recurrence_end_date, type, price_cents, recurrence, intensivo_group_id, is_private,
-        court:courts(name),
-        level:levels(id, name, color),
-        coach:users!schedules_coach_id_fkey(name),
-        enrollments:group_enrollments(student_id, status, start_date, end_date)
-      `)
-      .eq('club_id', myClubId ?? ''),
-    admin
       .from('bookings')
       .select('schedule_id, class_date')
       .eq('student_id', user.id)
       .eq('status', 'confirmed')
       .not('class_date', 'is', null),
   ])
+  const myLevelId: string | null = userRow?.current_level_id ?? null
+  const myClubId: string | null = (userRow as any)?.club_id ?? null
+  // Alumno externo: no ve los huecos libres de las clases fijas de la
+  // escuela — el enlace ya se oculta en el menú, esto cubre entrar por URL.
+  if ((userRow as any)?.is_external === true) redirect('/student')
+
+  const features = myClubId ? parseClubFeatures((userRow as any)?.club?.features) : DEFAULT_FEATURES
+  const clubRow = myClubId ? { config: (userRow as any)?.club?.config ?? null } : null
+  if (!features.enable_spots) redirect('/student')
+
+  const holidaySet = getHolidaySet((clubRow as any)?.config)
+  const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
+  const billingActive = !billingStartDate || today >= billingStartDate
+
+  const advanceMonthsConfig = (clubRow as any)?.config?.falta_advance_months ?? 0
+  const effectiveAdvanceMonths = advanceMonthsConfig > 0 ? advanceMonthsConfig : 2
+  const maxDateObj = new Date(todayYear, todayMonth0 + effectiveAdvanceMonths, 1)
+  const maxYear = maxDateObj.getFullYear()
+  const maxMonth0 = maxDateObj.getMonth()
+
+  const { data: schedulesRaw } = await admin
+    .from('schedules')
+    .select(`
+      id, start_time, end_time, max_students, recurrence_end_date, type, price_cents, recurrence, intensivo_group_id, is_private,
+      court:courts(name),
+      level:levels(id, name, color),
+      coach:users!schedules_coach_id_fkey(name),
+      enrollments:group_enrollments(student_id, status, start_date, end_date)
+    `)
+    .eq('club_id', myClubId ?? '')
 
   const myScheduleIds = new Set((myEnrollments ?? []).map(e => e.schedule_id))
   const balance60 = bag?.balance_60 ?? 0
