@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
     // puntual de la temporada. Aplicarlo aquí facturaría cada dos meses en
     // vez de cada mes para cualquier día de cobro cercano a fin de mes.
     const nowForPaidUntil = new Date()
-    const paidUntil = lastDayOfMonthStr(nowForPaidUntil.getFullYear(), nowForPaidUntil.getMonth() + 1)
+    const paidUntil = lastDayOfMonthStr(nowForPaidUntil.getFullYear(), nowForPaidUntil.getMonth())
     await Promise.all([
       admin.from('payments').update({ status: success ? 'succeeded' : 'failed' }).eq('id', payment!.id),
       admin.from('payment_mandates').update({
