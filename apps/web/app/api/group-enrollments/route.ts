@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
 
   const alreadyCoversNewPrice = !!recentPayment && recentPayment.amount >= (monthlyPrice ?? 0)
   const paidUntil = alreadyCoversNewPrice
-    ? lastDayOfMonthStr(nowYear, nowMonth0 + 1)
+    ? lastDayOfMonthStr(nowYear, nowMonth0)
     : null
 
   // start_date marca desde qué mes debe dinero de verdad esta inscripción —
