@@ -4,7 +4,10 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
-import { firstBillableMonth, lastDayOfMonthStr } from '@/lib/billing-cycle'
+import { firstBillableMonth } from '@/lib/billing-cycle'
+import { carriedOverPaidUntil, type CarryoverPayment } from '@/lib/enrollment-carryover'
+
+const CARRYOVER_LOOKBACK_MONTHS = 3
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -36,7 +39,7 @@ export async function POST(req: NextRequest) {
       .eq('schedule_id', scheduleId)
       .eq('status', 'active'),
     admin.from('group_enrollments')
-      .select('schedule:schedules!inner(id, start_time, end_time, recurrence_end_date)')
+      .select('paid_until, schedule:schedules!inner(id, start_time, end_time, recurrence_end_date)')
       .eq('student_id', studentId)
       .eq('status', 'active')
       .neq('schedule_id', scheduleId),
@@ -53,6 +56,11 @@ export async function POST(req: NextRequest) {
     (!e.start_date || e.start_date <= todaySpain0) && (!e.end_date || e.end_date >= todaySpain0)
   )
   const alreadyEnrolled = (existingEnrollments ?? []).some((e: any) => e.student_id === studentId)
+  // La inscripción se guarda con upsert: volver a meter a alguien que ya está
+  // en el grupo reescribiría su "pagado hasta", su alta y sus descuentos.
+  if (alreadyEnrolled) {
+    return NextResponse.json({ error: 'El alumno ya está en este grupo.' }, { status: 409 })
+  }
   if (!alreadyEnrolled && schedule?.max_students && activeTodayEnrollments.length >= schedule.max_students) {
     return NextResponse.json({ error: `La clase ya tiene ${schedule.max_students}/${schedule.max_students} plazas ocupadas.` }, { status: 409 })
   }
@@ -144,42 +152,28 @@ export async function POST(req: NextRequest) {
     if (clash) return NextResponse.json({ error: 'El alumno ya tiene otra clase a esa hora.' }, { status: 409 })
   }
 
-  // Si el alumno ya pagó la cuota de este mes (p. ej. se le está moviendo de
-  // grupo tras haber pagado en el anterior), se respeta ese pago en la
-  // inscripción nueva en vez de marcarla como "sin pagar" — el pago queda
-  // registrado en payments independientemente de qué inscripción existiera
-  // en el momento de pagar, así que sobrevive aunque se borre la antigua.
-  // Solo se respeta si la cuota nueva es igual o más barata que lo ya
-  // pagado — si es más cara, no se da por buena automáticamente para no
-  // dejar de cobrar la diferencia (queda "sin pagar" y se marca a mano).
-  // Fechas por texto ('YYYY-MM-DD'), nunca por Date().toISOString() — ese
-  // método serializa en UTC, y en un servidor con hora local por delante de
-  // UTC (Madrid en verano, UTC+2) "medianoche del día 1" se convierte al
-  // día anterior. Ver el mismo caso arreglado en create-order/route.ts.
+  // Pago ya hecho que pasa al grupo nuevo (cambio de grupo sí, doblar clase
+  // no): ver carriedOverPaidUntil. Se miran pagos de los últimos meses para
+  // incluir adelantos pagados antes del mes en curso.
   const [nowYearStr, nowMonthStr] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()).split('-')
-  const nowYear = Number(nowYearStr)
-  const nowMonth0 = Number(nowMonthStr) - 1
-  // Margen de un par de horas alrededor de la medianoche del día 1 es
-  // aceptable aquí (solo decide si se respeta un pago ya hecho "este mes");
-  // lo importante es no fijar un offset +02:00 fijo que estaría mal medio
-  // año (horario de invierno es +01:00) — se deja en UTC sin más.
-  const startOfMonth = `${nowYear}-${nowMonthStr}-01`
-  const { data: recentPayment } = await admin
+  const currentMonth = `${nowYearStr}-${nowMonthStr}`
+  const lookback = new Date(Number(nowYearStr), Number(nowMonthStr) - 1 - CARRYOVER_LOOKBACK_MONTHS, 1)
+  const lookbackStr = `${lookback.getFullYear()}-${String(lookback.getMonth() + 1).padStart(2, '0')}-01`
+  const { data: recentPayments } = await admin
     .from('payments')
-    .select('amount')
+    .select('amount, created_at, metadata')
     .eq('user_id', studentId)
     .eq('club_id', (schedule as any)?.club_id ?? null)
     .eq('type', 'fixed_group_month')
     .eq('status', 'succeeded')
-    .gte('created_at', startOfMonth)
-    .order('amount', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .gte('created_at', lookbackStr)
 
-  const alreadyCoversNewPrice = !!recentPayment && recentPayment.amount >= (monthlyPrice ?? 0)
-  const paidUntil = alreadyCoversNewPrice
-    ? lastDayOfMonthStr(nowYear, nowMonth0)
-    : null
+  const paidUntil = carriedOverPaidUntil({
+    payments: (recentPayments ?? []) as CarryoverPayment[],
+    otherActivePaidUntil: (studentSchedules ?? []).map((e: any) => e.paid_until ?? null),
+    monthlyPrice: monthlyPrice ?? 0,
+    currentMonth,
+  })
 
   // start_date marca desde qué mes debe dinero de verdad esta inscripción —
   // NO cuándo se dio de alta en el sistema (enrolled_at), que puede ser
