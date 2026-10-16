@@ -337,7 +337,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         </div>
       )}
 
-      {features.enable_payments && actsAsStudent && (
+      {features.enable_payments && features.enable_auto_pay && actsAsStudent && (
         <div className="mb-6">
           <StudentMandate studentId={student.id as string} />
         </div>

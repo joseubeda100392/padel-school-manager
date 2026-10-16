@@ -9,12 +9,12 @@ export default function MandateOkPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Domiciliación activada</h1>
+        <h1 className="text-xl font-bold text-gray-900">Pago automático activado</h1>
         <p className="mt-2 text-sm text-gray-500">
-          Tu pago se ha procesado correctamente. A partir de ahora tu cuota mensual se cobrará automáticamente.
+          Tu pago se ha procesado correctamente y tu tarjeta ha quedado guardada. A partir de ahora tus cuotas se cobrarán solas cada mes.
         </p>
-        <Link href="/dashboard" className="mt-6 inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
-          Volver al panel
+        <Link href="/student/schedule" className="mt-6 inline-block rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+          Volver a mis clases
         </Link>
       </div>
     </div>

@@ -11,6 +11,7 @@ import {
   getRedsysUrl,
 } from '@/lib/redsys'
 import { loadMandateItems } from '@/lib/mandate-charge'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 export async function GET(req: NextRequest) {
   const supabase = createClient()
@@ -78,6 +79,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!clubId) return NextResponse.json({ error: 'Club no configurado' }, { status: 400 })
+  const features = await getClubFeatures(clubId)
+  if (!features.enable_auto_pay) {
+    return NextResponse.json({ error: 'El pago automático con tarjeta no está activado en este club (Configuración → Módulos)' }, { status: 400 })
+  }
 
   // El importe sale de las cuotas de sus grupos, no lo escribe el admin: con
   // un importe fijo, un alumno en dos grupos pagaba uno y se le daban los dos.

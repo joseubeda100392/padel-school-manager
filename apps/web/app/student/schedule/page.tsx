@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
+import { StudentAutoPay } from '@/components/student-autopay'
 import { SpotBookingCard } from './spot-booking-card'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -262,12 +263,15 @@ export default async function StudentSchedulePage() {
             <p className="mt-1 text-xs text-gray-400">Habla con tu administrador para inscribirte.</p>
           </div>
         ) : (
-          <StudentScheduleClient
-            items={items}
-            cancellationHours={cancellationHours}
-            enablePayments={features.enable_payments && billingActive}
-            cashOnly={features.cash_only_payments}
-          />
+          <div className="space-y-4">
+            <StudentScheduleClient
+              items={items}
+              cancellationHours={cancellationHours}
+              enablePayments={features.enable_payments && billingActive}
+              cashOnly={features.cash_only_payments}
+            />
+            {features.enable_payments && features.enable_auto_pay && billingActive && !features.cash_only_payments && <StudentAutoPay />}
+          </div>
         )}
       </div>
 
