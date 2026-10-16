@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { StudentScheduleClient } from './schedule-client'
+import { StudentAutoPay } from '@/components/student-autopay'
 import { SpotBookingCard } from './spot-booking-card'
 import { CalendarDays } from 'lucide-react'
 import { Card, SectionTitle } from '@/components/ui/card'
@@ -281,15 +282,18 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
             />
           </Card>
         ) : (
-          <StudentScheduleClient
-            items={items}
-            cancellationHours={cancellationHours}
-            enablePayments={features.enable_payments && billingActive}
-            cashOnly={features.cash_only_payments}
-            showBag={features.enable_bag}
-            creditedDates={creditedDates}
-            initialDate={initialDate}
-          />
+          <div className="space-y-4">
+            <StudentScheduleClient
+              items={items}
+              cancellationHours={cancellationHours}
+              enablePayments={features.enable_payments && billingActive}
+              cashOnly={features.cash_only_payments}
+              showBag={features.enable_bag}
+              creditedDates={creditedDates}
+              initialDate={initialDate}
+            />
+            {features.enable_payments && features.enable_auto_pay && billingActive && !features.cash_only_payments && <StudentAutoPay />}
+          </div>
         )}
       </section>
 

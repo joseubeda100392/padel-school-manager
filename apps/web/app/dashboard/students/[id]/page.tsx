@@ -344,7 +344,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         }))} />
       )}
 
-      {features.enable_payments && actsAsStudent && <StudentMandate studentId={student.id as string} />}
+      {features.enable_payments && features.enable_auto_pay && actsAsStudent && <StudentMandate studentId={student.id as string} />}
 
       {features.enable_payments && actsAsStudent && (
         <Card className="overflow-hidden">
