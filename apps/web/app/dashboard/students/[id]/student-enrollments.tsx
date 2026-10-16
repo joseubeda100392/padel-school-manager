@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { currentBillingMonth } from '@/lib/billing-cycle'
 import { halfFeeDiscountCents, restoreDiscountedPrice } from '@/lib/enrollment-discount'
@@ -10,7 +11,7 @@ import { CalendarX, Check, CircleCheck, Clock, Pencil, X } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/field'
+import { Input, Select } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/feedback'
 import { List } from '@/components/ui/list'
 
@@ -23,6 +24,12 @@ interface Enrollment {
   discount_applied: boolean
   discount_cents: number | null
   schedule: { id: string; start_time: string; court: { name: string } | null } | null
+}
+
+interface AvailableGroup {
+  id: string
+  label: string
+  full: boolean
 }
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -38,11 +45,20 @@ function isPaidThisMonth(paidUntil: string | null) {
 export function StudentEnrollments({
   initialEnrollments,
   legacyDiscountCents,
+  studentId,
+  availableGroups,
 }: {
   initialEnrollments: Enrollment[]
   legacyDiscountCents: number
+  studentId: string
+  availableGroups: AvailableGroup[]
 }) {
+  const router = useRouter()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
+  const [movingId, setMovingId] = useState<string | null>(null)
+  const [moveTarget, setMoveTarget] = useState('')
+  const [movePrice, setMovePrice] = useState(0)
+  const [moving, setMoving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingPrice, setEditingPrice] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -94,6 +110,48 @@ export function StudentEnrollments({
       if (ok) toast.success(`Descuento del 50% aplicado — ${formatCurrency(discountedPrice)}/mes este mes`)
     }
     setDiscountLoadingId(null)
+  }
+
+  function openMove(e: Enrollment) {
+    setMovingId(e.id)
+    setMoveTarget('')
+    setMovePrice(e.monthly_price)
+  }
+
+  // Cambio de grupo en un solo paso: el grupo nuevo hereda lo pagado, lo
+  // pendiente y los descuentos del viejo, y el viejo se quita solo si el
+  // nuevo se ha creado bien.
+  async function handleMove(e: Enrollment) {
+    const target = availableGroups.find(g => g.id === moveTarget)
+    if (!target) return
+    const priceChanged = movePrice !== e.monthly_price
+    const lines = [
+      `¿Cambiar a este alumno al grupo ${target.label}?`,
+      'Se le quita de su grupo actual y lo pagado o pendiente pasa al nuevo.',
+      priceChanged ? `Cuota nueva: ${formatCurrency(movePrice)}/mes.` : '',
+      priceChanged && e.discount_applied ? 'El descuento marcado no se mantiene al cambiar la cuota.' : '',
+    ].filter(Boolean)
+    if (!confirm(lines.join(' '))) return
+    setMoving(true)
+    try {
+      const res = await fetch('/api/group-enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleId: target.id, studentId, monthlyPrice: movePrice, replacesEnrollmentId: e.id }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(json.error ?? 'No se pudo cambiar de grupo')
+        return
+      }
+      toast.success('Cambio de grupo hecho')
+      setMovingId(null)
+      router.refresh()
+    } catch {
+      toast.error('Error de conexión. No se ha cambiado de grupo.')
+    } finally {
+      setMoving(false)
+    }
   }
 
   if (!enrollments.length) {
@@ -184,12 +242,60 @@ export function StudentEnrollments({
                 <Badge tone="warn"><Clock className="h-3.5 w-3.5" aria-hidden />Pendiente de {currentMonth}</Badge>
               )}
 
+              {!e.end_date && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => (movingId === e.id ? setMovingId(null) : openMove(e))}
+                >
+                  Cambiar de grupo
+                </Button>
+              )}
               <Link
                 href={`/dashboard/schedule/${e.schedule?.id}`}
                 className={buttonVariants({ variant: 'link', size: 'sm', className: 'min-h-11 shrink-0' })}
               >
                 Ver clase
               </Link>
+              {movingId === e.id && (
+                <div className="w-full basis-full rounded-card border border-line bg-surface-2 p-3">
+                  <p className="mb-2 text-meta text-ink-2">Lo pagado y lo pendiente de este grupo pasan al nuevo.</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select
+                      value={moveTarget}
+                      onChange={(ev) => setMoveTarget(ev.target.value)}
+                      className="w-full sm:w-auto sm:min-w-[320px]"
+                      aria-label="Grupo nuevo"
+                    >
+                      <option value="">Elige el grupo nuevo…</option>
+                      {availableGroups
+                        .filter(g => !enrollments.some(x => x.schedule?.id === g.id))
+                        .map(g => (
+                          <option key={g.id} value={g.id} disabled={g.full}>
+                            {g.label}{g.full ? ' (completo)' : ''}
+                          </option>
+                        ))}
+                    </Select>
+                    <label className="flex items-center gap-1.5 text-meta text-ink-2">
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        onFocus={ev => ev.target.select()}
+                        value={movePrice === 0 ? '' : String(movePrice / 100)}
+                        onChange={(ev) => setMovePrice(Math.round(Number(ev.target.value) * 100))}
+                        className="w-24"
+                        aria-label="Cuota en el grupo nuevo"
+                      />
+                      €/mes
+                    </label>
+                    <Button size="sm" className="w-full sm:w-auto" onClick={() => handleMove(e)} disabled={!moveTarget || moving}>
+                      {moving ? 'Cambiando…' : 'Confirmar cambio'}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setMovingId(null)}>Cancelar</Button>
+                  </div>
+                </div>
+              )}
             </li>
           )
         })}

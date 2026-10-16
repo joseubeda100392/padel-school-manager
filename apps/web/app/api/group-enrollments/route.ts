@@ -20,9 +20,10 @@ export async function POST(req: NextRequest) {
     monthlyPrice: z.number().nonnegative().optional(),
     pricePerClassCents: z.number().nonnegative().nullish(),
     courtPricing: z.enum(['con_pista', 'sin_pista']).nullish(),
+    replacesEnrollmentId: z.string().uuid().optional(),
   }))
   if (badRequest) return badRequest
-  const { scheduleId, studentId, monthlyPrice, pricePerClassCents, courtPricing } = body
+  const { scheduleId, studentId, monthlyPrice, pricePerClassCents, courtPricing, replacesEnrollmentId } = body
 
   const admin = getAdminClient()
 
@@ -31,7 +32,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const [{ data: schedule }, { data: student }, { data: existingEnrollments }, { data: studentSchedules }] = await Promise.all([
+  // Cambio de grupo: la inscripción vieja se sustituye por la nueva en un
+  // solo paso, heredando lo pagado, la deuda y los descuentos. Así no importa
+  // en qué orden lo haría el admin a mano (añadir y luego quitar dejaba el
+  // grupo nuevo pendiente aunque ya hubiera pagado).
+  let replaced: any = null
+  if (replacesEnrollmentId) {
+    const { data: old } = await admin
+      .from('group_enrollments')
+      .select('id, schedule_id, student_id, club_id, status, end_date, paid_until, start_date, monthly_price, discount_applied, discount_cents, discount_classes_pending, price_per_class_cents, court_pricing')
+      .eq('id', replacesEnrollmentId)
+      .single()
+    if (!old || old.student_id !== studentId || old.status !== 'active') {
+      return NextResponse.json({ error: 'La clase de origen no existe o no es de este alumno.' }, { status: 404 })
+    }
+    if (old.schedule_id === scheduleId) {
+      return NextResponse.json({ error: 'El grupo de destino es el mismo que el de origen.' }, { status: 400 })
+    }
+    if (old.end_date) {
+      return NextResponse.json({ error: 'Esta clase tiene una baja programada. Cancela la baja antes de cambiarle de grupo.' }, { status: 409 })
+    }
+    if (adminUser.role !== 'super_admin' && old.club_id !== adminUser.club_id) {
+      return NextResponse.json({ error: 'Sin permisos: la clase de origen no pertenece a tu club' }, { status: 403 })
+    }
+    replaced = old
+  }
+
+  const [{ data: schedule }, { data: student }, { data: existingEnrollments }, { data: studentSchedulesAll }] = await Promise.all([
     admin.from('schedules').select('level_id, start_time, end_time, recurrence_end_date, club_id, max_students').eq('id', scheduleId).single(),
     admin.from('users').select('current_level_id, club_id').eq('id', studentId).single(),
     admin.from('group_enrollments')
@@ -44,6 +71,10 @@ export async function POST(req: NextRequest) {
       .eq('status', 'active')
       .neq('schedule_id', scheduleId),
   ])
+  const studentSchedules = (studentSchedulesAll ?? []).filter((e: any) => !replaced || e.schedule?.id !== replaced.schedule_id)
+  if (replaced && (schedule as any)?.club_id !== replaced.club_id) {
+    return NextResponse.json({ error: 'El grupo de destino es de otro club.' }, { status: 400 })
+  }
 
   // Un enrollment 'active' con baja programada (end_date en el pasado ya
   // procesado no debería existir, pero uno con end_date futuro sigue
@@ -152,28 +183,32 @@ export async function POST(req: NextRequest) {
     if (clash) return NextResponse.json({ error: 'El alumno ya tiene otra clase a esa hora.' }, { status: 409 })
   }
 
-  // Pago ya hecho que pasa al grupo nuevo (cambio de grupo sí, doblar clase
-  // no): ver carriedOverPaidUntil. Se miran pagos de los últimos meses para
-  // incluir adelantos pagados antes del mes en curso.
-  const [nowYearStr, nowMonthStr] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()).split('-')
-  const currentMonth = `${nowYearStr}-${nowMonthStr}`
-  const lookback = new Date(Number(nowYearStr), Number(nowMonthStr) - 1 - CARRYOVER_LOOKBACK_MONTHS, 1)
-  const lookbackStr = `${lookback.getFullYear()}-${String(lookback.getMonth() + 1).padStart(2, '0')}-01`
-  const { data: recentPayments } = await admin
-    .from('payments')
-    .select('amount, created_at, metadata')
-    .eq('user_id', studentId)
-    .eq('club_id', (schedule as any)?.club_id ?? null)
-    .eq('type', 'fixed_group_month')
-    .eq('status', 'succeeded')
-    .gte('created_at', lookbackStr)
+  // Pago ya hecho que pasa al grupo nuevo al AÑADIR (doblar clase no hereda;
+  // ver carriedOverPaidUntil). Se miran pagos de los últimos meses para
+  // incluir adelantos pagados antes del mes en curso. En un cambio de grupo
+  // no hace falta: se hereda tal cual lo que tenía la inscripción vieja.
+  let paidUntil: string | null = replaced?.paid_until ?? null
+  if (!replaced) {
+    const [nowYearStr, nowMonthStr] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()).split('-')
+    const currentMonth = `${nowYearStr}-${nowMonthStr}`
+    const lookback = new Date(Number(nowYearStr), Number(nowMonthStr) - 1 - CARRYOVER_LOOKBACK_MONTHS, 1)
+    const lookbackStr = `${lookback.getFullYear()}-${String(lookback.getMonth() + 1).padStart(2, '0')}-01`
+    const { data: recentPayments } = await admin
+      .from('payments')
+      .select('amount, created_at, metadata')
+      .eq('user_id', studentId)
+      .eq('club_id', (schedule as any)?.club_id ?? null)
+      .eq('type', 'fixed_group_month')
+      .eq('status', 'succeeded')
+      .gte('created_at', lookbackStr)
 
-  const paidUntil = carriedOverPaidUntil({
-    payments: (recentPayments ?? []) as CarryoverPayment[],
-    otherActivePaidUntil: (studentSchedules ?? []).map((e: any) => e.paid_until ?? null),
-    monthlyPrice: monthlyPrice ?? 0,
-    currentMonth,
-  })
+    paidUntil = carriedOverPaidUntil({
+      payments: (recentPayments ?? []) as CarryoverPayment[],
+      otherActivePaidUntil: studentSchedules.map((e: any) => e.paid_until ?? null),
+      monthlyPrice: monthlyPrice ?? 0,
+      currentMonth,
+    })
+  }
 
   // start_date marca desde qué mes debe dinero de verdad esta inscripción —
   // NO cuándo se dio de alta en el sistema (enrolled_at), que puede ser
@@ -181,7 +216,19 @@ export async function POST(req: NextRequest) {
   // get_pending_payments() usa enrolled_at como respaldo y reclama meses en
   // los que la clase no llegó a dar ni una sola sesión.
   const usesPerClassPricing = !!(pricePerClassCents || courtPricing)
-  const startDate = schedule?.start_time ? firstBillableMonth(schedule.start_time, usesPerClassPricing) : null
+  const computedStartDate = schedule?.start_time ? firstBillableMonth(schedule.start_time, usesPerClassPricing) : null
+  const startDate = replaced?.start_date ?? computedStartDate
+
+  // Al cambiar de grupo con la misma cuota se hereda el descuento puntual
+  // marcado (cuota ya rebajada + importe descontado). Con otra cuota no, para
+  // que al cobrar no se "restaure" una cuota que ya no es la suya.
+  const newMonthlyPrice = monthlyPrice ?? replaced?.monthly_price ?? 0
+  const keepsDiscount = !!replaced && newMonthlyPrice === replaced.monthly_price
+  const inherited = replaced ? {
+    discount_classes_pending: replaced.discount_classes_pending ?? 0,
+    discount_applied: keepsDiscount ? replaced.discount_applied : false,
+    discount_cents: keepsDiscount ? replaced.discount_cents : null,
+  } : {}
 
   // El club de la inscripción es el del propio horario, no el del admin
   // logueado — para un super_admin gestionando otro club, adminUser.club_id
@@ -191,17 +238,32 @@ export async function POST(req: NextRequest) {
     schedule_id: scheduleId,
     student_id: studentId,
     club_id: (schedule as any)?.club_id ?? null,
-    monthly_price: monthlyPrice ?? 0,
-    price_per_class_cents: pricePerClassCents ?? null,
-    court_pricing: courtPricing ?? null,
+    monthly_price: newMonthlyPrice,
+    price_per_class_cents: pricePerClassCents ?? replaced?.price_per_class_cents ?? null,
+    court_pricing: courtPricing ?? replaced?.court_pricing ?? null,
     status: 'active',
     enrolled_by: user.id,
     enrolled_at: new Date().toISOString(),
     start_date: startDate,
     paid_until: paidUntil,
+    ...inherited,
   }, { onConflict: 'schedule_id,student_id' }).select().single()
 
   if (error) return NextResponse.json({ error: 'Error al inscribir el alumno' }, { status: 400 })
+
+  // Solo con el grupo nuevo ya creado se quita el viejo (igual que "Quitar":
+  // sus faltas y la inscripción). Si falla, se deshace el nuevo para no dejar
+  // al alumno en los dos.
+  if (replaced) {
+    const { error: exclErr } = await admin.from('schedule_exclusions').delete().eq('group_enrollment_id', replaced.id)
+    const { error: delErr } = exclErr
+      ? { error: exclErr }
+      : await admin.from('group_enrollments').delete().eq('id', replaced.id).eq('student_id', studentId)
+    if (delErr) {
+      await admin.from('group_enrollments').delete().eq('id', data.id)
+      return NextResponse.json({ error: 'No se pudo completar el cambio de grupo' }, { status: 500 })
+    }
+  }
 
   // Cancelar reservas puntuales futuras del alumno en esta clase (ya no las necesita)
   const today = new Date().toISOString().split('T')[0]
