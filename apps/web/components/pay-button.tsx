@@ -8,6 +8,8 @@ import { useState } from 'react'
 interface PayButtonProps {
   type: 'fixed_group_month' | 'class_pack' | 'private_lesson_pack' | 'single_class' | 'tournament' | 'intensivo_group'
   enrollmentId?: string
+  // Cuota de todos los grupos del alumno en un solo pago (type: 'fixed_group_month').
+  allGroups?: boolean
   // Adelantar la cuota del mes siguiente (solo type: 'fixed_group_month').
   advance?: boolean
   packType?: '60' | '90'
@@ -36,7 +38,7 @@ interface PayButtonProps {
   cashOnly?: boolean
 }
 
-export function PayButton({ type, enrollmentId, advance, packType, privatePremium, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, label, className, variant = 'primary', block = false, disabled, cashOnly }: PayButtonProps) {
+export function PayButton({ type, enrollmentId, allGroups, advance, packType, privatePremium, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, label, className, variant = 'primary', block = false, disabled, cashOnly }: PayButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -47,7 +49,7 @@ export function PayButton({ type, enrollmentId, advance, packType, privatePremiu
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, enrollmentId, advance, packType, privatePremium, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates }),
+        body: JSON.stringify({ type, enrollmentId, allGroups, advance, packType, privatePremium, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates }),
       })
 
       let json: any

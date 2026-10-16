@@ -76,6 +76,26 @@ function buildItems(enrollments: MandateEnrollment[], currentMonth: string, clas
   return items
 }
 
+function addMonth(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`
+}
+
+// Adelantar el mes siguiente de TODOS sus grupos a la vez: solo si no debe
+// nada (todos tienen pagado el mes en curso). Solo entran los grupos que aún
+// no tienen pagado el mes siguiente.
+export function planAdvanceItems(params: {
+  enrollments: MandateEnrollment[]
+  currentMonth: string
+  classValidation: boolean
+}): MandateItem[] {
+  const { enrollments, currentMonth, classValidation } = params
+  if (buildItems(enrollments, currentMonth, classValidation, true).length) return []
+  const nextMonth = addMonth(currentMonth)
+  return buildItems(enrollments, currentMonth, classValidation, false)
+    .filter(i => i.paid_until.slice(0, 7) === nextMonth)
+}
+
 export const madridMonth = (d: Date = new Date()): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(d).slice(0, 7)
 
@@ -85,26 +105,42 @@ export function nextChargeDate(dayOfMonth: number, today: Date = new Date()): st
   return d < dayOfMonth ? dateStr(y, m - 1, dayOfMonth) : dateStr(y, m, dayOfMonth)
 }
 
-export async function loadMandateItems(
-  admin: SupabaseClient,
-  params: { userId: string; clubId: string; mode: 'init' | 'monthly' },
-): Promise<MandateItem[]> {
+async function loadFeeContext(admin: SupabaseClient, userId: string, clubId: string) {
   const [{ data: enrollments, error }, { data: club }] = await Promise.all([
     admin
       .from('group_enrollments')
       .select('id, monthly_price, paid_until, start_date, price_per_class_cents, discount_classes_pending')
-      .eq('student_id', params.userId)
-      .eq('club_id', params.clubId)
+      .eq('student_id', userId)
+      .eq('club_id', clubId)
       .eq('status', 'active'),
-    admin.from('clubs').select('features').eq('id', params.clubId).single(),
+    admin.from('clubs').select('features').eq('id', clubId).single(),
   ])
   if (error) throw new Error(error.message)
-  return planMandateItems({
+  return {
     enrollments: (enrollments ?? []) as MandateEnrollment[],
-    mode: params.mode,
-    currentMonth: madridMonth(),
     classValidation: !!(club as any)?.features?.enable_class_validation,
-  })
+  }
+}
+
+// Cuotas de todos los grupos del alumno en un solo pago: 'due' = lo que debe
+// hasta el mes en curso; 'advance' = el mes siguiente de cada grupo.
+export async function loadStudentFeeItems(
+  admin: SupabaseClient,
+  params: { userId: string; clubId: string; kind: 'due' | 'advance' },
+): Promise<MandateItem[]> {
+  const { enrollments, classValidation } = await loadFeeContext(admin, params.userId, params.clubId)
+  const currentMonth = madridMonth()
+  return params.kind === 'due'
+    ? planMandateItems({ enrollments, mode: 'monthly', currentMonth, classValidation })
+    : planAdvanceItems({ enrollments, currentMonth, classValidation })
+}
+
+export async function loadMandateItems(
+  admin: SupabaseClient,
+  params: { userId: string; clubId: string; mode: 'init' | 'monthly' },
+): Promise<MandateItem[]> {
+  const { enrollments, classValidation } = await loadFeeContext(admin, params.userId, params.clubId)
+  return planMandateItems({ enrollments, mode: params.mode, currentMonth: madridMonth(), classValidation })
 }
 
 // Marca como pagado lo que cubrió un cobro ya confirmado. Si mientras tanto

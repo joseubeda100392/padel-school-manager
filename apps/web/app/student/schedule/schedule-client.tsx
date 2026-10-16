@@ -42,12 +42,17 @@ interface ScheduleItem {
   exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
 }
 
+export interface GroupFees {
+  due: { amount: number; lines: { label: string; month: string; amount: number }[] }
+  advance: { amount: number; lines: { label: string; month: string; amount: number }[]; monthName: string }
+}
+
 interface CalendarEvent extends Occurrence {
   enrollmentId: string
   scheduleId: string
 }
 
-export function StudentScheduleClient({ items, cancellationHours, enablePayments = true, cashOnly = false, showBag = true, creditedDates = [], initialDate }: { items: ScheduleItem[]; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean; showBag?: boolean; creditedDates?: string[]; initialDate?: string }) {
+export function StudentScheduleClient({ items, cancellationHours, enablePayments = true, cashOnly = false, showBag = true, creditedDates = [], initialDate, groupFees = null }: { items: ScheduleItem[]; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean; showBag?: boolean; creditedDates?: string[]; initialDate?: string; groupFees?: GroupFees | null }) {
   const router = useRouter()
   const [exclusionsByEnrollment, setExclusionsByEnrollment] = useState<Record<string, ScheduleItem['exclusions']>>(
     () => Object.fromEntries(items.map(i => [i.enrollmentId, i.exclusions]))
@@ -159,10 +164,51 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
     .sort((a, b) => a.excluded_date.localeCompare(b.excluded_date))
 
   const unpaidItems = enablePayments ? items.filter(i => !i.isPaid) : []
+  // Con varios grupos se paga todo junto (un solo pago) y no grupo a grupo.
+  const perGroupPayments = enablePayments && !groupFees
+
+  const feeBlock = groupFees && enablePayments
+    ? (groupFees.due.lines.length
+        ? { title: 'Cuotas pendientes', lines: groupFees.due.lines, total: groupFees.due.amount, advance: false }
+        : groupFees.advance.lines.length
+          ? { title: `Adelantar ${groupFees.advance.monthName}`, lines: groupFees.advance.lines, total: groupFees.advance.amount, advance: true }
+          : null)
+    : null
 
   return (
     <div className="space-y-6">
-      {unpaidItems.length > 0 && (
+      {feeBlock ? (
+        <Notice
+          tone={feeBlock.advance ? 'neutral' : 'warn'}
+          icon={feeBlock.advance ? <CalendarDays /> : <CircleAlert />}
+          action={
+            <PayButton
+              type="fixed_group_month"
+              allGroups
+              advance={feeBlock.advance}
+              variant={feeBlock.advance ? 'secondary' : 'primary'}
+              label={feeBlock.advance ? `Pagar ${groupFees!.advance.monthName.split(' ')[0]} ahora · ${formatCurrency(feeBlock.total)}` : `Pagar todo · ${formatCurrency(feeBlock.total)}`}
+              cashOnly={cashOnly}
+            />
+          }
+        >
+          <p>
+            {feeBlock.advance
+              ? `Tienes todo pagado. Si quieres, deja pagado ${groupFees!.advance.monthName.split(' ')[0]} de todos tus grupos en un solo pago.`
+              : feeBlock.lines.length === 1
+                ? 'Tienes 1 cuota pendiente.'
+                : `Tienes ${feeBlock.lines.length} cuotas pendientes. Págalas juntas en un solo pago.`}
+          </p>
+          <ul className="mt-2 space-y-0.5 text-meta">
+            {feeBlock.lines.map((l, idx) => (
+              <li key={idx} className="flex justify-between gap-3">
+                <span>{l.label} · {l.month}</span>
+                <span className="tabular-nums">{formatCurrency(l.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        </Notice>
+      ) : perGroupPayments && unpaidItems.length > 0 && (
         <Notice
           tone="warn"
           icon={<CircleAlert />}
@@ -249,11 +295,11 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                               ? <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagada</Badge>
                               : <Badge tone="warn"><CircleAlert className="h-3.5 w-3.5" aria-hidden />Pendiente</Badge>}
                           </div>
-                          {!item.isPaid && (
+                          {!item.isPaid && perGroupPayments && (
                             <PayButton type="fixed_group_month" enrollmentId={item.enrollmentId} label={`Pagar ${currentMonthName} · ${formatCurrency(item.monthlyPrice)}`} cashOnly={cashOnly} />
                           )}
                         </div>
-                        {item.canAdvance && (
+                        {item.canAdvance && perGroupPayments && (
                           <div className="flex flex-wrap items-center justify-between gap-3 rounded-control bg-surface-2 px-3 py-2.5">
                             <p className="min-w-0 flex-1 basis-56 text-meta text-ink-2">
                               Si te vas de vacaciones o prefieres no estar pendiente, puedes dejar pagado {item.nextMonthLabel.split(' ')[0]} desde ahora.

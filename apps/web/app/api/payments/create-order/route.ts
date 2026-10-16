@@ -13,6 +13,7 @@ import {
 } from '@/lib/redsys'
 import { rateLimit } from '@/lib/rate-limit'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
+import { loadStudentFeeItems, type MandateItem } from '@/lib/mandate-charge'
 
 type PaymentType = 'single_class' | 'class_pack' | 'private_lesson_pack' | 'fixed_group_month' | 'tournament' | 'intensivo_group'
 
@@ -119,6 +120,7 @@ export async function POST(req: NextRequest) {
     // monitor lleva la tarifa premium marcada en su ficha.
     privatePremium: z.boolean().optional(),
     enrollmentId: z.string().uuid().optional(),
+    allGroups: z.boolean().optional(),
     exclusionId: z.string().uuid().optional(),
     classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     tournamentId: z.string().uuid().optional(),
@@ -130,11 +132,12 @@ export async function POST(req: NextRequest) {
     advance: z.boolean().optional(),
   }))
   if (badRequest) return badRequest
-  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, privatePremium, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates, advance } = orderBody
+  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, privatePremium, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates, advance, allGroups } = orderBody
   let scheduleId = bodyScheduleId
   let classDate = bodyClassDate
 
   let amount: number
+  let feeItems: MandateItem[] | null = null
   let productDesc: string
   let classesToAdd = 0
 
@@ -269,6 +272,21 @@ export async function POST(req: NextRequest) {
       amount = cfg[priceKey]
       productDesc = durationMin >= 80 ? 'Clase de pádel 1h 30min' : 'Clase de pádel 1h'
     }
+
+  } else if (type === 'fixed_group_month' && allGroups) {
+    // Cuota de todos sus grupos en un solo pago. El importe y los grupos/meses
+    // que cubre se calculan aquí, nunca se fía de lo que muestre el cliente;
+    // el webhook marca cada grupo con lo guardado en metadata.items.
+    if (!clubId) return NextResponse.json({ error: 'Club no encontrado' }, { status: 400 })
+    feeItems = await loadStudentFeeItems(admin, { userId: user.id, clubId, kind: advance ? 'advance' : 'due' })
+    if (!feeItems.length) {
+      return NextResponse.json({ error: advance ? 'No hay ninguna cuota que adelantar' : 'No tienes ninguna cuota pendiente' }, { status: 409 })
+    }
+    amount = feeItems.reduce((sum, i) => sum + i.amount, 0)
+    const lastMonth = feeItems.map(i => i.paid_until).sort().at(-1)!
+    const monthName = MONTH_NAMES[Number(lastMonth.slice(5, 7)) - 1]
+    const groups = new Set(feeItems.map(i => i.enrollment_id)).size
+    productDesc = `Cuotas grupo fijo ${monthName} ${lastMonth.slice(0, 4)} (${groups} grupo${groups === 1 ? '' : 's'})${advance ? ' adelantadas' : ''}`
 
   } else if (type === 'fixed_group_month') {
     if (!enrollmentId) return NextResponse.json({ error: 'enrollmentId requerido' }, { status: 400 })
@@ -451,6 +469,7 @@ export async function POST(req: NextRequest) {
       intensivo_group_id: intensivoGroupId ?? null,
       class_dates: classDates ?? null,
       advance: advance ?? false,
+      ...(feeItems ? { items: feeItems } : {}),
     },
   })
   if (insertErr) {

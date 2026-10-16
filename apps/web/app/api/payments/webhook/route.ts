@@ -235,6 +235,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'credit_failed' }, { status: 500 })
     }
 
+  } else if (payment.type === 'fixed_group_month' && Array.isArray(meta.items) && meta.items.length) {
+    // Cuota de varios grupos en un solo pago: cada grupo avanza el mes o los
+    // meses que se calcularon al crear el pago (metadata.items).
+    try {
+      await applyMandateItems(adminSupabase, payment.user_id, meta.items as MandateItem[])
+    } catch (err) {
+      console.error('[webhook] fixed_group_month (varios grupos) enrollment update failed:', err)
+      await revertToPending()
+      return NextResponse.json({ error: 'enrollment_update_failed' }, { status: 500 })
+    }
+    const lastPaidUntil = (meta.items as MandateItem[]).map(i => i.paid_until).sort().at(-1)
+    await adminSupabase.from('payments').update({ metadata: { ...meta, paid_until: lastPaidUntil } }).eq('id', payment.id)
+
   } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
     // Igual para pago normal y adelanto: un mes más a partir de lo que YA
     // tiene cubierto (paid_until), o del mes de start_date si es su primer
