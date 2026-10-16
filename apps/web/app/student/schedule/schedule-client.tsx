@@ -33,12 +33,20 @@ interface ScheduleItem {
   exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
 }
 
+export interface GroupFees {
+  due: { amount: number; lines: { label: string; month: string; amount: number }[] }
+  advance: { amount: number; lines: { label: string; month: string; amount: number }[]; monthName: string }
+}
+
 interface CalendarEvent extends Occurrence {
   enrollmentId: string
   scheduleId: string
 }
 
-export function StudentScheduleClient({ items, cancellationHours, enablePayments = true, cashOnly = false }: { items: ScheduleItem[]; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean }) {
+export function StudentScheduleClient({ items, cancellationHours, enablePayments = true, cashOnly = false, groupFees = null }: { items: ScheduleItem[]; cancellationHours: number; enablePayments?: boolean; cashOnly?: boolean; groupFees?: GroupFees | null }) {
+  // Con varios grupos se paga todo junto desde el recuadro de arriba y no
+  // grupo a grupo.
+  const perGroupPayments = enablePayments && !groupFees
   const router = useRouter()
   const [exclusionsByEnrollment, setExclusionsByEnrollment] = useState<Record<string, ScheduleItem['exclusions']>>(
     () => Object.fromEntries(items.map(i => [i.enrollmentId, i.exclusions]))
@@ -130,8 +138,49 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
     [items, exclusionsByEnrollment]
   )
 
+  const feeBlock = groupFees && enablePayments
+    ? (groupFees.due.lines.length
+        ? { title: 'Cuotas pendientes', lines: groupFees.due.lines, total: groupFees.due.amount, advance: false }
+        : groupFees.advance.lines.length
+          ? { title: `Adelantar ${groupFees.advance.monthName}`, lines: groupFees.advance.lines, total: groupFees.advance.amount, advance: true }
+          : null)
+    : null
+
   return (
     <div className="space-y-4">
+      {feeBlock && (
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <h2 className="font-semibold text-gray-900">{feeBlock.title}</h2>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {feeBlock.advance ? 'Tienes todo pagado. Puedes dejar pagado el mes siguiente de todos tus grupos en un solo pago.' : 'Un solo pago para todos tus grupos.'}
+          </p>
+          <ul className="mt-3 space-y-1 text-sm text-gray-600">
+            {feeBlock.lines.map((l, idx) => (
+              <li key={idx} className="flex justify-between gap-3">
+                <span>{l.label} · {l.month}</span>
+                <span className="tabular-nums">{formatCurrency(l.amount)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 flex justify-between border-t border-gray-100 pt-2 text-sm font-semibold text-gray-900">
+            <span>Total</span>
+            <span className="tabular-nums">{formatCurrency(feeBlock.total)}</span>
+          </p>
+          <div className="mt-4">
+            <PayButton
+              type="fixed_group_month"
+              allGroups
+              advance={feeBlock.advance}
+              label={feeBlock.advance ? `📅 Adelantar ${groupFees!.advance.monthName} · ${formatCurrency(feeBlock.total)}` : `💳 Pagar cuota · ${formatCurrency(feeBlock.total)}`}
+              className={feeBlock.advance
+                ? 'w-full rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 sm:w-auto'
+                : 'w-full rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 sm:w-auto'}
+              cashOnly={cashOnly}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl bg-white p-5 shadow-sm">
         <MonthCalendar
           year={view.year}
@@ -194,7 +243,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                     )}
                   </div>
 
-                  {enablePayments && !item.isPaid && (
+                  {perGroupPayments && !item.isPaid && (
                     <div className="mt-4">
                       <PayButton
                         type="fixed_group_month"
@@ -206,7 +255,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                     </div>
                   )}
 
-                  {enablePayments && item.canAdvance && (
+                  {perGroupPayments && item.canAdvance && (
                     <div className="mt-4">
                       <PayButton
                         type="fixed_group_month"

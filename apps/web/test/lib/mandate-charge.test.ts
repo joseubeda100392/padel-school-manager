@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { planMandateItems, nextChargeDate, type MandateEnrollment } from '@/lib/mandate-charge'
+import { planMandateItems, planAdvanceItems, nextChargeDate, type MandateEnrollment } from '@/lib/mandate-charge'
 
 const enr = (id: string, price: number, paid_until: string | null, start_date = '2026-09-01', extra: Partial<MandateEnrollment> = {}): MandateEnrollment => ({
   id, monthly_price: price, paid_until, start_date, price_per_class_cents: null, discount_classes_pending: 0, ...extra,
@@ -103,5 +103,26 @@ describe('nextChargeDate', () => {
   })
   it('usa la fecha de Madrid: 31-oct 23:30 UTC ya es 1-nov en España', () => {
     expect(nextChargeDate(1, at('2026-10-31T23:30:00Z'))).toBe('2026-12-01')
+  })
+})
+
+describe('planAdvanceItems: adelantar el mes siguiente de todos los grupos', () => {
+  const adv = (enrollments: MandateEnrollment[]) => planAdvanceItems({ enrollments, currentMonth: '2026-10', classValidation: false })
+
+  it('al día en sus dos grupos: adelanta noviembre de los dos', () => {
+    expect(adv([enr('a', 8000, '2026-10-31'), enr('b', 4000, '2026-10-31', '2026-10-01')]).map(i => `${i.enrollment_id}:${i.paid_until}:${i.amount}`))
+      .toEqual(['a:2026-11-30:8000', 'b:2026-11-30:4000'])
+  })
+
+  it('debe el mes en curso de algún grupo: no se ofrece adelantar', () => {
+    expect(adv([enr('a', 8000, '2026-10-31'), enr('b', 4000, null, '2026-10-01')])).toEqual([])
+  })
+
+  it('un grupo ya tiene noviembre adelantado: solo adelanta el otro', () => {
+    expect(adv([enr('a', 8000, '2026-11-30'), enr('b', 4000, '2026-10-31', '2026-10-01')]).map(i => i.enrollment_id)).toEqual(['b'])
+  })
+
+  it('todos con noviembre adelantado: nada que adelantar', () => {
+    expect(adv([enr('a', 8000, '2026-11-30')])).toEqual([])
   })
 })

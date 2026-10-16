@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
-import { StudentScheduleClient } from './schedule-client'
+import { StudentScheduleClient, type GroupFees } from './schedule-client'
+import { loadStudentFeeItems, type MandateItem } from '@/lib/mandate-charge'
 import { StudentAutoPay } from '@/components/student-autopay'
 import { SpotBookingCard } from './spot-booking-card'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
@@ -212,6 +213,31 @@ export default async function StudentSchedulePage() {
     }
   })
 
+  // Con 2 o más grupos de pago se cobra todo junto: un solo pago con lo que
+  // deba cada grupo (o el mes siguiente de todos, para adelantar). Lo mismo
+  // que calcula create-order al pagar, aquí solo para mostrar el desglose.
+  let groupFees: GroupFees | null = null
+  if (clubId && items.filter(i => i.monthlyPrice > 0).length >= 2) {
+    const admin = getAdminClient()
+    const [due, advance] = await Promise.all([
+      loadStudentFeeItems(admin, { userId: user.id, clubId, kind: 'due' }),
+      loadStudentFeeItems(admin, { userId: user.id, clubId, kind: 'advance' }),
+    ])
+    const toLine = (fee: MandateItem) => {
+      const item = items.find(x => x.enrollmentId === fee.enrollment_id)
+      return {
+        label: item ? `${item.schedule.dayLabel} ${item.schedule.startTime} · ${item.schedule.courtName}` : 'Grupo',
+        month: MONTH_NAMES[Number(fee.paid_until.slice(5, 7)) - 1],
+        amount: fee.amount,
+      }
+    }
+    const sum = (list: MandateItem[]) => list.reduce((s, i) => s + i.amount, 0)
+    groupFees = {
+      due: { amount: sum(due), lines: due.map(toLine) },
+      advance: { amount: sum(advance), lines: advance.map(toLine), monthName: nextMonthLabel() },
+    }
+  }
+
   // Precio de una reserva pendiente de pago — misma lógica que
   // /api/payments/create-order, aquí solo para MOSTRAR el importe antes de
   // pagar. Dos casos posibles: clase particular (matriz interno/externo ×
@@ -269,6 +295,7 @@ export default async function StudentSchedulePage() {
               cancellationHours={cancellationHours}
               enablePayments={features.enable_payments && billingActive}
               cashOnly={features.cash_only_payments}
+              groupFees={groupFees}
             />
             {features.enable_payments && features.enable_auto_pay && billingActive && !features.cash_only_payments && <StudentAutoPay />}
           </div>
