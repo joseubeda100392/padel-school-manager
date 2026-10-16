@@ -8,6 +8,7 @@ import {
   generateSignature,
   getRedsysUrl,
 } from '@/lib/redsys'
+import { loadMandateItems } from '@/lib/mandate-charge'
 
 export default async function MandatePayPage({ params }: { params: { mandateId: string } }) {
   const admin = getAdminClient()
@@ -38,6 +39,21 @@ export default async function MandatePayPage({ params }: { params: { mandateId: 
     .eq('status', 'pending')
     .contains('metadata', { mandate_id: mandate.id })
 
+  // El importe se calcula ahora, con los grupos que tenga el alumno al abrir
+  // el enlace: la siguiente cuota sin pagar de cada uno.
+  const items = await loadMandateItems(admin, { userId: mandate.user_id, clubId: mandate.club_id, mode: 'init' })
+  const amountCents = items.reduce((sum, i) => sum + i.amount, 0)
+  if (!items.length || amountCents <= 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
+        <p className="max-w-sm text-center text-sm text-gray-500">
+          No hay ninguna cuota que cobrar todavía. Habla con tu club para activar el pago automático.
+        </p>
+      </div>
+    )
+  }
+  await admin.from('payment_mandates').update({ amount_cents: amountCents }).eq('id', mandate.id)
+
   const orderId = generateOrderId()
   // Dominio real por el que se accedió a este enlace, no la variable de
   // entorno — mismo motivo que en create-order.
@@ -49,19 +65,19 @@ export default async function MandatePayPage({ params }: { params: { mandateId: 
   await admin.from('payments').insert({
     user_id: mandate.user_id,
     club_id: mandate.club_id,
-    amount: mandate.amount_cents,
+    amount: amountCents,
     currency: 'eur',
     type: 'mandate_init',
     status: 'pending',
     redsys_order_id: orderId,
-    metadata: { mandate_id: mandate.id },
+    metadata: { mandate_id: mandate.id, items },
   })
 
   const baseParams: Record<string, string> = {
     DS_MERCHANT_MERCHANTCODE: merchantCode,
     DS_MERCHANT_TERMINAL: terminal,
     DS_MERCHANT_TRANSACTIONTYPE: '0',
-    DS_MERCHANT_AMOUNT: String(mandate.amount_cents),
+    DS_MERCHANT_AMOUNT: String(amountCents),
     DS_MERCHANT_ORDER: orderId,
     DS_MERCHANT_CURRENCY: '978',
     DS_MERCHANT_URLOK: `${baseUrl}/pay/mandate-ok`,

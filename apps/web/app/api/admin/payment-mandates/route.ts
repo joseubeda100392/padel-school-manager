@@ -10,6 +10,7 @@ import {
   generateSignature,
   getRedsysUrl,
 } from '@/lib/redsys'
+import { loadMandateItems } from '@/lib/mandate-charge'
 
 export async function GET(req: NextRequest) {
   const supabase = createClient()
@@ -52,8 +53,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
-  const { userId, amountCents, dayOfMonth = 1 } = await req.json()
-  if (!userId || !amountCents) return NextResponse.json({ error: 'userId y amountCents requeridos' }, { status: 400 })
+  const { userId, dayOfMonth = 1 } = await req.json()
+  if (!userId) return NextResponse.json({ error: 'userId requerido' }, { status: 400 })
+  if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 28) {
+    return NextResponse.json({ error: 'El día de cobro debe estar entre 1 y 28' }, { status: 400 })
+  }
 
   if (caller.role !== 'super_admin') {
     const { data: targetUser } = await admin.from('users').select('club_id').eq('id', userId).single()
@@ -74,6 +78,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (!clubId) return NextResponse.json({ error: 'Club no configurado' }, { status: 400 })
+
+  // El importe sale de las cuotas de sus grupos, no lo escribe el admin: con
+  // un importe fijo, un alumno en dos grupos pagaba uno y se le daban los dos.
+  const items = await loadMandateItems(admin, { userId, clubId, mode: 'init' })
+  const amountCents = items.reduce((sum, i) => sum + i.amount, 0)
+  if (!items.length || amountCents <= 0) {
+    return NextResponse.json({ error: 'El alumno no tiene ninguna cuota de grupo que cobrar' }, { status: 400 })
+  }
 
   // Cancelar mandato previo activo si existe
   await admin
@@ -123,7 +135,7 @@ export async function POST(req: NextRequest) {
     type: 'mandate_init',
     status: 'pending',
     redsys_order_id: orderId,
-    metadata: { mandate_id: mandate.id },
+    metadata: { mandate_id: mandate.id, items },
   })
 
   const baseParams: Record<string, string> = {

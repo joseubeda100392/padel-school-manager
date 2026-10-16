@@ -12,7 +12,7 @@ export interface AuditPayment {
   user_id: string
   club_id: string | null
   created_at: string
-  metadata: { paid_until?: string | null; advance?: boolean | null } | null
+  metadata: { paid_until?: string | null; advance?: boolean | null; items?: { paid_until: string }[] | null } | null
 }
 
 export interface AuditClub {
@@ -82,10 +82,15 @@ export function findBillingDiscrepancies(
   // pago se queda con el enrollment_id del grupo antiguo. Un pago de 0 € es
   // un mes saldado igual (cuota que entonces era 0, descuento total).
   const paymentsByKey = new Map<string, AuditPayment[]>()
+  // Un cobro automático con tarjeta puede pagar varios grupos a la vez
+  // (metadata.items): cuenta como un pago por cada grupo y mes que cubrió.
   for (const p of payments) {
     if (!p.club_id) continue
     const key = `${p.club_id}|${p.user_id}`
-    paymentsByKey.set(key, [...(paymentsByKey.get(key) ?? []), p])
+    const parts = Array.isArray(p.metadata?.items) && p.metadata.items.length
+      ? p.metadata.items.map(i => ({ ...p, metadata: { paid_until: i.paid_until } }))
+      : [p]
+    paymentsByKey.set(key, [...(paymentsByKey.get(key) ?? []), ...parts])
   }
 
   const result: BillingDiscrepancy[] = []

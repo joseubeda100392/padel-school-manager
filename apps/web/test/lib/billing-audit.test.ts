@@ -73,6 +73,19 @@ describe('findBillingDiscrepancies', () => {
     expect(r).toEqual([])
   })
 
+  it('cobro automático con tarjeta que paga dos grupos (items): cuenta como dos pagos', () => {
+    const mandateCharge: AuditPayment = {
+      user_id: 'laura', club_id: CLUB, created_at: '2026-10-01T07:00:00Z',
+      metadata: { paid_until: '2026-10-31', items: [{ paid_until: '2026-10-31' }, { paid_until: '2026-10-31' }] },
+    }
+    const r = findBillingDiscrepancies(
+      [enr('laura', '2026-09-01', '2026-10-31'), enr('laura', '2026-10-01', '2026-10-31')],
+      [pay('laura', '2026-09-14T13:03:00Z', '2026-09-30'), mandateCharge],
+      clubs,
+    )
+    expect(r).toEqual([])
+  })
+
   it('clubs fuera de la lista (pruebas) se ignoran', () => {
     const other = { ...enr('demo', '2026-07-01', '2026-10-31'), club_id: 'x7-pinto' }
     expect(findBillingDiscrepancies([other], [], clubs)).toEqual([])
