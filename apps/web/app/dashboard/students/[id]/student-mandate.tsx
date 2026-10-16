@@ -31,7 +31,7 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   const [mandate, setMandate] = useState<Mandate | null>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [amount, setAmount] = useState('')
+  const [createError, setCreateError] = useState('')
   const [day, setDay] = useState('1')
   const [submitting, setSubmitting] = useState(false)
   const [payLink, setPayLink] = useState('')
@@ -50,13 +50,18 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
+    setCreateError('')
     const res = await fetch('/api/admin/payment-mandates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: studentId, amountCents: Math.round(parseFloat(amount) * 100), dayOfMonth: parseInt(day) }),
+      body: JSON.stringify({ userId: studentId, dayOfMonth: parseInt(day) }),
     })
-    const json = await res.json()
-    if (!res.ok) { setSubmitting(false); return }
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setCreateError(json.error ?? 'No se pudo activar el pago automático')
+      setSubmitting(false)
+      return
+    }
 
     // Construir URL de pago para enviar al alumno
     const payUrl = `${window.location.origin}/pay/mandate/${json.mandateId}`
@@ -79,9 +84,9 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   async function handleCancel() {
     if (!mandate) return
     const ok = await confirm({
-      title: '¿Cancelar la domiciliación?',
-      description: 'Se dejarán de cobrar las cuotas automáticamente y el alumno tendrá que pagar a mano cada mes.',
-      confirmLabel: 'Cancelar domiciliación',
+      title: '¿Cancelar el pago automático?',
+      description: 'Se dejará de cobrar con su tarjeta guardada y el alumno tendrá que pagar a mano cada mes.',
+      confirmLabel: 'Cancelar pago automático',
       cancelLabel: 'Mantenerla',
       destructive: true,
     })
@@ -100,12 +105,12 @@ export function StudentMandate({ studentId }: { studentId: string }) {
   return (
     <Card>
       <CardHeader
-        title="Domiciliación mensual"
-        description="Cobro recurrente por Redsys"
+        title="Pago automático con tarjeta"
+        description="Tarjeta guardada en Redsys · cada mes se cobra la cuota de sus grupos"
         action={
           !mandate ? (
             <Button size="sm" onClick={() => setShowForm(v => !v)} aria-expanded={showForm}>
-              Activar domiciliación
+              Activar pago automático
             </Button>
           ) : undefined
         }
@@ -138,7 +143,7 @@ export function StudentMandate({ studentId }: { studentId: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <MandateStatus status={mandate.status} />
               <span className="text-label tabular-nums text-ink">
-                {formatCurrency(mandate.amount_cents)}/mes · día {mandate.day_of_month}
+                Día {mandate.day_of_month} de cada mes · último importe {formatCurrency(mandate.amount_cents)}
               </span>
             </div>
             {mandate.last_charged_at && (
@@ -158,7 +163,7 @@ export function StudentMandate({ studentId }: { studentId: string }) {
                 </Button>
               )}
               <Button variant="danger-ghost" size="sm" onClick={handleCancel}>
-                Cancelar domiciliación
+                Cancelar pago automático
               </Button>
             </div>
           </div>
@@ -166,18 +171,6 @@ export function StudentMandate({ studentId }: { studentId: string }) {
 
         {showForm && !mandate && (
           <form onSubmit={handleCreate} className="space-y-4 border-t border-line pt-4">
-            <Field label="Importe mensual (€)">
-              <Input
-                type="text"
-                inputMode="decimal"
-                onFocus={e => e.target.select()}
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                required
-                placeholder="60.00"
-                className="tabular-nums"
-              />
-            </Field>
             <Field label="Día de cobro">
               <Select value={day} onChange={e => setDay(e.target.value)}>
                 {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
@@ -186,8 +179,9 @@ export function StudentMandate({ studentId }: { studentId: string }) {
               </Select>
             </Field>
             <p className="text-meta text-ink-3">
-              Se generará un enlace de pago para enviar al alumno. Al pagarlo, la tarjeta queda vinculada y los cobros son automáticos.
+              Se generará un enlace de pago para enviar al alumno. Al pagarlo se cobra lo que deba de sus grupos este mes (si está al día, la cuota del mes siguiente) y la tarjeta queda guardada. Después, cada mes se cobra solo lo que deba de sus grupos (lo ya pagado en efectivo o adelantado no se cobra).
             </p>
+            {createError && <p className="text-meta font-medium text-danger-ink">{createError}</p>}
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
               <Button variant="secondary" onClick={() => setShowForm(false)} className="sm:flex-1">
                 Cancelar

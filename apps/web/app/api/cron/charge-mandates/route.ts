@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { generateOrderId, chargeMit } from '@/lib/redsys'
-import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
+import { applyMandateItems, loadMandateItems, nextChargeDate, type MandateItem } from '@/lib/mandate-charge'
 import { timingSafeEqual } from 'crypto'
 
 const MAX_AMOUNT_CENTS = 99_999
@@ -48,32 +48,29 @@ export async function POST(req: NextRequest) {
     const terminal = club?.redsys_merchant_terminal ?? process.env.REDSYS_MERCHANT_TERMINAL ?? '001'
     const env = club?.redsys_env ?? null
 
-    if (mandate.amount_cents > MAX_AMOUNT_CENTS) {
-      console.error('[charge-mandates] amount_cents excede cap para mandate', mandate.id, mandate.amount_cents)
+    // Solo se cobran los grupos que deben el mes (los ya pagados en efectivo
+    // o adelantados no), y el importe es la suma de sus cuotas.
+    let items: MandateItem[]
+    try {
+      items = await loadMandateItems(admin, { userId: mandate.user_id, clubId: mandate.club_id, mode: 'monthly' })
+    } catch (err) {
+      console.error('[charge-mandates] enrollment lookup failed for mandate', mandate.id, err)
+      results.push({ mandateId: mandate.id, success: false, code: 'LOOKUP_ERROR' })
+      continue
+    }
+    const chargeAmountCents = items.reduce((sum, i) => sum + i.amount, 0)
+    if (!items.length || chargeAmountCents <= 0) {
+      await admin.from('payment_mandates')
+        .update({ next_charge_at: nextChargeDate(mandate.day_of_month), updated_at: new Date().toISOString() })
+        .eq('id', mandate.id)
+      results.push({ mandateId: mandate.id, success: true, code: 'NOTHING_DUE' })
+      continue
+    }
+    if (chargeAmountCents > MAX_AMOUNT_CENTS) {
+      console.error('[charge-mandates] importe excede el máximo para mandate', mandate.id, chargeAmountCents)
       results.push({ mandateId: mandate.id, success: false, code: 'AMOUNT_EXCEEDS_CAP' })
       continue
     }
-
-    // Módulo de validación de clases: descontar clases no dadas por causa
-    // del club de las inscripciones activas de este alumno, si aplica.
-    let discountedEnrollmentIds: string[] = []
-    let mandateDiscountCents = 0
-    if ((club as any)?.features?.enable_class_validation) {
-      const { data: studentEnrollments, error: enrollmentsErr } = await admin
-        .from('group_enrollments')
-        .select('id, price_per_class_cents, discount_classes_pending')
-        .eq('student_id', mandate.user_id)
-        .eq('club_id', mandate.club_id)
-        .eq('status', 'active')
-        .gt('discount_classes_pending', 0)
-      if (enrollmentsErr) console.error('[charge-mandates] discount lookup failed for mandate', mandate.id, enrollmentsErr.message)
-      for (const e of studentEnrollments ?? []) {
-        if (!e.price_per_class_cents) continue
-        mandateDiscountCents += e.discount_classes_pending * e.price_per_class_cents
-        discountedEnrollmentIds.push(e.id)
-      }
-    }
-    const chargeAmountCents = Math.max(0, mandate.amount_cents - mandateDiscountCents)
 
     const orderId = generateOrderId()
 
@@ -86,7 +83,7 @@ export async function POST(req: NextRequest) {
       type: 'mandate_charge',
       status: 'pending',
       redsys_order_id: orderId,
-      metadata: { mandate_id: mandate.id, ...(mandateDiscountCents > 0 ? { discount_applied_cents: mandateDiscountCents } : {}) },
+      metadata: { mandate_id: mandate.id, items, paid_until: items[0].paid_until },
     }).select('id').single()
 
     if (payInsertErr || !payment) {
@@ -112,16 +109,8 @@ export async function POST(req: NextRequest) {
     }
     const { success, responseCode } = chargeResult
 
-    const nextChargeAt = getNextChargeDate(mandate)
+    const nextChargeAt = nextChargeDate(mandate.day_of_month)
     const now = new Date().toISOString()
-
-    // Cobro recurrente: "hoy" está anclado a mandate.day_of_month cada ciclo
-    // (no es un momento arbitrario del mes), así que aquí NO se aplica el
-    // salto de mes de billing-cycle.ts — eso es solo para el primer cobro
-    // puntual de la temporada. Aplicarlo aquí facturaría cada dos meses en
-    // vez de cada mes para cualquier día de cobro cercano a fin de mes.
-    const nowForPaidUntil = new Date()
-    const paidUntil = lastDayOfMonthStr(nowForPaidUntil.getFullYear(), nowForPaidUntil.getMonth())
     await Promise.all([
       admin.from('payments').update({ status: success ? 'succeeded' : 'failed' }).eq('id', payment!.id),
       admin.from('payment_mandates').update({
@@ -130,23 +119,18 @@ export async function POST(req: NextRequest) {
         updated_at: now,
         ...(success ? {} : { status: 'paused' }),
       }).eq('id', mandate.id),
-      ...(success ? [
-        admin.from('group_enrollments')
-          .update({ paid_until: paidUntil, discount_classes_pending: 0 })
-          .eq('student_id', mandate.user_id)
-          .eq('club_id', mandate.club_id)
-          .eq('status', 'active'),
-      ] : []),
     ])
+    if (success) {
+      try {
+        await applyMandateItems(admin, mandate.user_id, items)
+      } catch (err) {
+        console.error('[charge-mandates] cobro hecho pero no se pudo marcar como pagado, mandate', mandate.id, err)
+      }
+    }
 
     results.push({ mandateId: mandate.id, success, code: responseCode })
   }
 
   const charged = results.filter(r => r.success).length
   return NextResponse.json({ ok: true, charged, total: mandates.length, results })
-}
-
-function getNextChargeDate(mandate: { day_of_month: number }): string {
-  const now = new Date()
-  return dateStr(now.getFullYear(), now.getMonth() + 1, mandate.day_of_month)
 }

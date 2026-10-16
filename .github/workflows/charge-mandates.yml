@@ -1,0 +1,15 @@
+name: Cobro mensual de pagos automáticos con tarjeta
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  charge-mandates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call charge-mandates
+        run: |
+          curl -sf -X POST "https://epadelschool.app/api/cron/charge-mandates" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

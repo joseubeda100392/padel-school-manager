@@ -4,7 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 import { verifySignature, parseRedsysResponse, isPaymentSuccessful } from '@/lib/redsys'
 import { sendPushToUsers } from '@/lib/push'
 import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
-import { computeBillingCycle, nextPaidUntilForEnrollment } from '@/lib/billing-cycle'
+import { nextPaidUntilForEnrollment } from '@/lib/billing-cycle'
+import { applyMandateItems, loadMandateItems, nextChargeDate, type MandateItem } from '@/lib/mandate-charge'
 
 export async function POST(req: NextRequest) {
   const adminSupabase = createClient(
@@ -309,7 +310,7 @@ export async function POST(req: NextRequest) {
       .single()
     const dayOfMonth = mandate?.day_of_month ?? 1
     const now = new Date()
-    const { paidUntil, nextChargeAt } = computeBillingCycle(now, dayOfMonth)
+    const nextChargeAt = nextChargeDate(dayOfMonth, now)
     const { error: mandateErr } = await adminSupabase
       .from('payment_mandates')
       .update({
@@ -326,15 +327,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'mandate_update_failed' }, { status: 500 })
     }
 
-    // Marcar inscripciones activas del alumno como pagadas hasta paidUntil
-    const { error: mandEnrolErr } = await adminSupabase
-      .from('group_enrollments')
-      .update({ paid_until: paidUntil })
-      .eq('student_id', payment.user_id)
-      .eq('club_id', payment.club_id)
-      .eq('status', 'active')
-    if (mandEnrolErr) {
-      console.error('[webhook] mandate_init enrollment update failed:', mandEnrolErr.message)
+    // Cada grupo avanza el mes que pagó este cobro (metadata.items). Los
+    // cobros de alta creados antes de guardar items se recalculan ahora.
+    try {
+      const items: MandateItem[] = Array.isArray(meta.items)
+        ? meta.items
+        : await loadMandateItems(adminSupabase, { userId: payment.user_id, clubId: payment.club_id, mode: 'init' })
+      await applyMandateItems(adminSupabase, payment.user_id, items)
+      if (items[0]) {
+        await adminSupabase.from('payments').update({ metadata: { ...meta, items, paid_until: items[0].paid_until } }).eq('id', payment.id)
+      }
+    } catch (err) {
+      console.error('[webhook] mandate_init enrollment update failed:', err)
     }
 
   } else if (payment.type === 'intensivo_group' && meta.intensivo_group_id) {
