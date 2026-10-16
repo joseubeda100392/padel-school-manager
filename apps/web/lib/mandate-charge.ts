@@ -21,8 +21,9 @@ export interface MandateItem {
   discount_cents: number
 }
 
-// - 'monthly' (cobro mensual): solo los grupos que deben el mes en curso o
-//   uno anterior. Uno ya pagado (en efectivo, adelantado...) no se cobra.
+// - 'monthly' (cobro mensual): los meses que deba cada grupo hasta el actual
+//   (un item por grupo y mes). Uno ya pagado (en efectivo, adelantado...) no
+//   se cobra.
 // - 'init' (alta del pago automático): lo mismo; y si no debe nada, la
 //   cuota del mes siguiente de cada grupo, porque Redsys necesita un primer
 //   cobro para guardar la tarjeta.
@@ -41,17 +42,36 @@ export function planMandateItems(params: {
   return buildItems(enrollments, currentMonth, classValidation, false)
 }
 
+// Tope de meses atrasados que se cobran de golpe a un mismo grupo (por si
+// alguien lleva muchísimo sin pagar; el resto quedaría pendiente a la vista).
+const MAX_CATCHUP_MONTHS = 12
+
 function buildItems(enrollments: MandateEnrollment[], currentMonth: string, classValidation: boolean, onlyDue: boolean): MandateItem[] {
   const items: MandateItem[] = []
   for (const e of enrollments) {
     if (e.monthly_price <= 0) continue
-    const paidUntil = nextPaidUntilForEnrollment(e.paid_until, e.start_date)
-    if (onlyDue && paidUntil.slice(0, 7) > currentMonth) continue
     const pending = e.discount_classes_pending ?? 0
     const discount = classValidation && e.price_per_class_cents && pending > 0
       ? Math.min(e.monthly_price, pending * e.price_per_class_cents)
       : 0
-    items.push({ enrollment_id: e.id, amount: e.monthly_price - discount, paid_until: paidUntil, discount_cents: discount })
+
+    if (!onlyDue) {
+      const paidUntil = nextPaidUntilForEnrollment(e.paid_until, e.start_date)
+      items.push({ enrollment_id: e.id, amount: e.monthly_price - discount, paid_until: paidUntil, discount_cents: discount })
+      continue
+    }
+
+    // Todos los meses que deba hasta el actual, no solo uno: si no, un grupo
+    // que empieza con un mes pendiente (p. ej. se une a mitad de mes) se
+    // quedaba un mes por detrás para siempre.
+    let paidUntil = e.paid_until
+    for (let i = 0; i < MAX_CATCHUP_MONTHS; i++) {
+      const next = nextPaidUntilForEnrollment(paidUntil, e.start_date)
+      if (next.slice(0, 7) > currentMonth) break
+      const monthDiscount = i === 0 ? discount : 0
+      items.push({ enrollment_id: e.id, amount: e.monthly_price - monthDiscount, paid_until: next, discount_cents: monthDiscount })
+      paidUntil = next
+    }
   }
   return items
 }

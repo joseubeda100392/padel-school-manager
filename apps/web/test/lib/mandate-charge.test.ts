@@ -26,10 +26,25 @@ describe('planMandateItems: cobro mensual', () => {
     expect(plan([enr('adelantado', 8000, '2026-11-30')], 'monthly')).toEqual([])
   })
 
-  it('va atrasado: se cobra un mes y avanza desde lo pagado, no salta a fin de este mes', () => {
+  it('va atrasado: cobra cada mes que debe hasta el actual, desde lo pagado', () => {
     expect(plan([enr('atrasado', 8000, '2026-08-31')], 'monthly')).toEqual([
       { enrollment_id: 'atrasado', amount: 8000, paid_until: '2026-09-30', discount_cents: 0 },
+      { enrollment_id: 'atrasado', amount: 8000, paid_until: '2026-10-31', discount_cents: 0 },
     ])
+  })
+
+  it('se une a otro grupo a mitad de mes (caso Laura): el día 1 se cobra el mes pendiente y el nuevo, sin quedar un mes por detrás', () => {
+    const items = planMandateItems({
+      enrollments: [enr('miercoles', 8000, '2026-10-31'), enr('lunes', 4000, null, '2026-10-01')],
+      mode: 'monthly', currentMonth: '2026-11', classValidation: false,
+    })
+    expect(items.map(i => `${i.enrollment_id}:${i.paid_until}`)).toEqual(['miercoles:2026-11-30', 'lunes:2026-10-31', 'lunes:2026-11-30'])
+    expect(items.reduce((s, i) => s + i.amount, 0)).toBe(16000)
+  })
+
+  it('el descuento por clases no dadas se aplica solo una vez aunque cobre varios meses', () => {
+    const e = enr('validacion', 8000, '2026-08-31', '2026-09-01', { price_per_class_cents: 1000, discount_classes_pending: 2 })
+    expect(plan([e], 'monthly', true).map(i => i.amount)).toEqual([6000, 8000])
   })
 
   it('grupo que empieza el mes que viene: todavía no se cobra', () => {
