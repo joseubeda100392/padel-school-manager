@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { currentBillingMonth } from '@/lib/billing-cycle'
 import { halfFeeDiscountCents, restoreDiscountedPrice } from '@/lib/enrollment-discount'
@@ -18,6 +19,12 @@ interface Enrollment {
   schedule: { id: string; start_time: string; court: { name: string } | null } | null
 }
 
+interface AvailableGroup {
+  id: string
+  label: string
+  full: boolean
+}
+
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -31,11 +38,20 @@ function isPaidThisMonth(paidUntil: string | null) {
 export function StudentEnrollments({
   initialEnrollments,
   legacyDiscountCents,
+  studentId,
+  availableGroups,
 }: {
   initialEnrollments: Enrollment[]
   legacyDiscountCents: number
+  studentId: string
+  availableGroups: AvailableGroup[]
 }) {
+  const router = useRouter()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
+  const [movingId, setMovingId] = useState<string | null>(null)
+  const [moveTarget, setMoveTarget] = useState('')
+  const [movePrice, setMovePrice] = useState(0)
+  const [moving, setMoving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingPrice, setEditingPrice] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -87,6 +103,48 @@ export function StudentEnrollments({
       if (ok) toast.success(`Descuento del 50% aplicado — ${formatCurrency(discountedPrice)}/mes este mes`)
     }
     setDiscountLoadingId(null)
+  }
+
+  function openMove(e: Enrollment) {
+    setMovingId(e.id)
+    setMoveTarget('')
+    setMovePrice(e.monthly_price)
+  }
+
+  // Cambio de grupo en un solo paso: el grupo nuevo hereda lo pagado, lo
+  // pendiente y los descuentos del viejo, y el viejo se quita solo si el
+  // nuevo se ha creado bien.
+  async function handleMove(e: Enrollment) {
+    const target = availableGroups.find(g => g.id === moveTarget)
+    if (!target) return
+    const priceChanged = movePrice !== e.monthly_price
+    const lines = [
+      `¿Cambiar a este alumno al grupo ${target.label}?`,
+      'Se le quita de su grupo actual y lo pagado o pendiente pasa al nuevo.',
+      priceChanged ? `Cuota nueva: ${formatCurrency(movePrice)}/mes.` : '',
+      priceChanged && e.discount_applied ? 'El descuento marcado no se mantiene al cambiar la cuota.' : '',
+    ].filter(Boolean)
+    if (!confirm(lines.join(' '))) return
+    setMoving(true)
+    try {
+      const res = await fetch('/api/group-enrollments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleId: target.id, studentId, monthlyPrice: movePrice, replacesEnrollmentId: e.id }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(json.error ?? 'No se pudo cambiar de grupo')
+        return
+      }
+      toast.success('Cambio de grupo hecho')
+      setMovingId(null)
+      router.refresh()
+    } catch {
+      toast.error('Error de conexión. No se ha cambiado de grupo.')
+    } finally {
+      setMoving(false)
+    }
   }
 
   if (!enrollments.length) {
@@ -170,10 +228,61 @@ export function StudentEnrollments({
                 {paid ? 'Al día' : `Pdte. ${currentMonth}`}
               </span>
 
+              {!e.end_date && (
+                <button
+                  onClick={() => (movingId === e.id ? setMovingId(null) : openMove(e))}
+                  className="shrink-0 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Cambiar de grupo
+                </button>
+              )}
+
               <Link href={`/dashboard/schedule/${e.schedule?.id}`}
                 className="text-xs font-medium text-brand-500 hover:underline shrink-0">
                 Ver clase →
               </Link>
+
+              {movingId === e.id && (
+                <div className="w-full rounded-lg border border-gray-100 bg-gray-50 p-3">
+                  <p className="mb-2 text-xs text-gray-500">Lo pagado y lo pendiente de este grupo pasan al nuevo.</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={moveTarget}
+                      onChange={(ev) => setMoveTarget(ev.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none sm:w-auto sm:min-w-[320px]"
+                    >
+                      <option value="">Elige el grupo nuevo…</option>
+                      {availableGroups
+                        .filter(g => !enrollments.some(x => x.schedule?.id === g.id))
+                        .map(g => (
+                          <option key={g.id} value={g.id} disabled={g.full}>
+                            {g.label}{g.full ? ' (completo)' : ''}
+                          </option>
+                        ))}
+                    </select>
+                    <label className="flex items-center gap-1 text-sm text-gray-500">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        onFocus={ev => ev.target.select()}
+                        value={movePrice === 0 ? '' : String(movePrice / 100)}
+                        onChange={(ev) => setMovePrice(Math.round(Number(ev.target.value) * 100))}
+                        className="w-20 rounded border border-gray-200 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+                        aria-label="Cuota en el grupo nuevo"
+                      />
+                      €/mes
+                    </label>
+                    <button
+                      onClick={() => handleMove(e)}
+                      disabled={!moveTarget || moving}
+                      className="w-full rounded-lg bg-brand-500 px-3 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50 sm:w-auto"
+                    >
+                      {moving ? 'Cambiando…' : 'Confirmar cambio'}
+                    </button>
+                    <button onClick={() => setMovingId(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}

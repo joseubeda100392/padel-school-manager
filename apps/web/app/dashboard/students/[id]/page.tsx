@@ -148,6 +148,33 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
   if (clubId && (student as any).club_id && (student as any).club_id !== clubId) notFound()
 
+  // Grupos a los que se le puede cambiar (botón "Cambiar de grupo"): fijos
+  // normales del club, con la ocupación actual solo como orientación; la
+  // ruta comprueba plaza y horario de verdad al guardar.
+  const studentClubId = (student as any)?.club_id as string | null
+  const { data: clubSchedules } = studentClubId && (enrollments ?? []).length
+    ? await admin
+        .from('schedules')
+        .select('id, start_time, end_time, max_students, type, is_private, court:courts(name), level:levels(name), group_enrollments(status)')
+        .eq('club_id', studentClubId)
+        .eq('is_active', true)
+    : { data: [] }
+  const madridDay = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'short' })
+  const madridTime = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' })
+  const availableGroups = (clubSchedules ?? [])
+    .filter((sc: any) => (sc.type ?? 'regular') === 'regular' && !sc.is_private)
+    .map((sc: any) => {
+      const occupied = (sc.group_enrollments ?? []).filter((g: any) => g.status === 'active').length
+      const start = new Date(sc.start_time)
+      return {
+        id: sc.id as string,
+        sortKey: `${(start.getUTCDay() + 6) % 7}-${madridTime.format(start)}`,
+        label: `${madridDay.format(start)} ${madridTime.format(start)}–${madridTime.format(new Date(sc.end_time))} · ${sc.court?.name ?? '—'}${sc.level?.name ? ` · ${sc.level.name}` : ''} · ${occupied}/${sc.max_students}`,
+        full: !!sc.max_students && occupied >= sc.max_students,
+      }
+    })
+    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+
   if (makeupsError) console.error('[students/[id]] makeups query failed:', makeupsError.message)
 
   // Un monitor marcado como also_student usa las secciones de alumno
@@ -237,7 +264,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
       {actsAsStudent && (
         <div className="mb-6">
-          <StudentEnrollments initialEnrollments={(enrollments ?? []).map((e: any) => ({
+          <StudentEnrollments key={(enrollments ?? []).map((e: any) => `${e.id}:${e.paid_until}:${e.monthly_price}`).join('|')} initialEnrollments={(enrollments ?? []).map((e: any) => ({
             id: e.id,
             monthly_price: e.monthly_price,
             paid_until: e.paid_until,
@@ -246,7 +273,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
             discount_applied: e.discount_applied ?? false,
             discount_cents: e.discount_cents ?? null,
             schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
-          }))} legacyDiscountCents={legacyDiscountCents} />
+          }))} legacyDiscountCents={legacyDiscountCents} studentId={params.id} availableGroups={availableGroups} />
         </div>
       )}
 
