@@ -1,11 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { BellRing } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
 const DISMISS_KEY = 'push-prompt-dismissed-until'
 const DISMISS_DAYS = 7
+const REFRESH_MIN_MS = 30_000
 
 // En el móvil, mientras la app no esté instalada, manda el aviso de instalar
 // (en iPhone los avisos solo funcionan con la app instalada) y así nunca salen
@@ -59,6 +62,7 @@ export function PushNotificationProvider({
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
   const regRef = useRef<ServiceWorkerRegistration | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return
@@ -82,6 +86,35 @@ export function PushNotificationProvider({
       .catch(err => console.error('[push] service worker registration failed:', err))
     return () => { cancelled = true }
   }, [])
+
+  // La campanita se calcula en el servidor al cargar: con la app abierta no se
+  // enteraba de los avisos nuevos. Ahora se refresca cuando llega un aviso
+  // (el service worker lo avisa) y cuando la app vuelve de segundo plano.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; title?: string; body?: string; url?: string } | null
+      if (data?.type !== 'push') return
+      toast(data.title ?? 'Aviso nuevo', {
+        description: data.body,
+        action: data.url ? { label: 'Ver', onClick: () => router.push(data.url!) } : undefined,
+      })
+      router.refresh()
+    }
+    let lastRefresh = Date.now()
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - lastRefresh < REFRESH_MIN_MS) return
+      lastRefresh = Date.now()
+      router.refresh()
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage)
+    navigator.serviceWorker.startMessages()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', onMessage)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [router])
 
   function dismiss() {
     try {
