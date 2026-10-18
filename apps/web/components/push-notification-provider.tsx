@@ -94,6 +94,7 @@ export function PushNotificationProvider({
     if (!('serviceWorker' in navigator)) return
     const onMessage = (event: MessageEvent) => {
       const data = event.data as { type?: string; title?: string; body?: string; url?: string } | null
+      if (data?.type === 'refresh') { router.refresh(); return }
       if (data?.type !== 'push') return
       toast(data.title ?? 'Aviso nuevo', {
         description: data.body,

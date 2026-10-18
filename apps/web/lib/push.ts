@@ -32,7 +32,7 @@ export async function sendPushToUsers(
   const clubIdByUser = new Map((recipients ?? []).map(r => [r.id, r.club_id]))
 
   // Persistir notificación en DB para cada usuario
-  await admin.from('notifications').insert(
+  const { data: inserted } = await admin.from('notifications').insert(
     userIds.map(userId => ({
       user_id: userId,
       club_id: clubIdByUser.get(userId) ?? null,
@@ -42,12 +42,15 @@ export async function sendPushToUsers(
       data: payload.url ? { url: payload.url } : null,
       is_read: false,
     }))
-  )
+  ).select('id, user_id')
+  // Cada aviso del móvil lleva el id de su notificación para que, al tocarlo,
+  // quede como leída y no siga contando en la campanita.
+  const notificationIdByUser = new Map((inserted ?? []).map(n => [n.user_id, n.id]))
 
   // Enviar push a los que tengan suscripción activa
   const { data: subs } = await admin
     .from('push_subscriptions')
-    .select('endpoint, p256dh, auth')
+    .select('user_id, endpoint, p256dh, auth')
     .in('user_id', userIds)
 
   if (!subs?.length) return { pushed: 0 }
@@ -56,7 +59,7 @@ export async function sendPushToUsers(
     subs.map(sub =>
       webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        JSON.stringify(payload),
+        JSON.stringify({ ...payload, notificationId: notificationIdByUser.get(sub.user_id) }),
       )
     )
   )
