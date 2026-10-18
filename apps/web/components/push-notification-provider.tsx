@@ -62,6 +62,7 @@ export function PushNotificationProvider() {
     setWorking(true)
     setError('')
     try {
+      if (!VAPID_PUBLIC_KEY) throw new Error('falta la clave de avisos en la configuración de la app')
       const reg = regRef.current ?? await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
