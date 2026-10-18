@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BellRing } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -26,78 +26,92 @@ function recentlyDismissed() {
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
 
-function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = window.atob(base64)
   const arr = new Uint8Array(rawData.length)
   for (let i = 0; i < rawData.length; i++) arr[i] = rawData.charCodeAt(i)
-  return arr.buffer
+  return arr
 }
 
-export function PushNotificationProvider() {
-  const [permission, setPermission] = useState<NotificationPermission | null>(null)
-  const [subscribed, setSubscribed] = useState(false)
+async function saveSubscription(sub: PushSubscription) {
+  const json = sub.toJSON()
+  const res = await fetch('/api/push/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint: sub.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth }),
+  })
+  if (!res.ok) throw new Error(`el servidor respondió ${res.status}`)
+}
+
+// En iPhone (app instalada en la pantalla de inicio) Safari solo deja
+// suscribirse a avisos si pushManager.subscribe() se llama directamente en
+// el toque del usuario. Antes se pedía el permiso, se esperaba al service
+// worker y DESPUÉS se suscribía: iOS lo rechazaba, el error se tragaba y,
+// como el permiso ya estaba concedido, el aviso no volvía a salir (en oct.
+// 2026 había 0 alumnos suscritos en toda la app). Ahora el service worker se
+// prepara al cargar y en el toque lo primero es subscribe().
+export function PushNotificationProvider({
+  description = 'Te avisamos cuando se libere un hueco de tu nivel o el club te escriba.',
+}: { description?: string } = {}) {
+  const [show, setShow] = useState(false)
+  const [working, setWorking] = useState(false)
+  const [error, setError] = useState('')
+  const regRef = useRef<ServiceWorkerRegistration | null>(null)
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setPermission('denied')
-      return
-    }
-    if (Notification.permission === 'granted') {
-      setPermission('granted')
-      registerAndSubscribe()
-      return
-    }
-    if (recentlyDismissed() || shouldWaitForInstall()) return
-    setPermission(Notification.permission)
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return
+    if (Notification.permission === 'denied') return
+    let cancelled = false
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => navigator.serviceWorker.ready)
+      .then(async (reg) => {
+        if (cancelled) return
+        regRef.current = reg
+        const existing = await reg.pushManager.getSubscription()
+        if (existing) {
+          // Ya suscrito en este móvil: se vuelve a guardar por si el
+          // servidor no la tenía (p. ej. falló el guardado la primera vez).
+          await saveSubscription(existing).catch(err => console.error('[push] re-sync failed:', err))
+          return
+        }
+        if (recentlyDismissed() || shouldWaitForInstall()) return
+        setShow(true)
+      })
+      .catch(err => console.error('[push] service worker registration failed:', err))
+    return () => { cancelled = true }
   }, [])
 
   function dismiss() {
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000))
     } catch {}
-    setPermission('denied')
-  }
-
-  async function registerAndSubscribe() {
-    try {
-      const reg = await navigator.serviceWorker.register('/sw.js')
-      await navigator.serviceWorker.ready
-      const existing = await reg.pushManager.getSubscription()
-      if (existing) {
-        setSubscribed(true)
-        return
-      }
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      })
-      const json = sub.toJSON()
-      await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          endpoint: sub.endpoint,
-          p256dh: json.keys?.p256dh,
-          auth: json.keys?.auth,
-        }),
-      })
-      setSubscribed(true)
-    } catch {
-      // SW registration or subscription failed silently
-    }
+    setShow(false)
   }
 
   async function handleEnable() {
-    const result = await Notification.requestPermission()
-    setPermission(result)
-    if (result === 'granted') {
-      await registerAndSubscribe()
+    setWorking(true)
+    setError('')
+    try {
+      if (!VAPID_PUBLIC_KEY) throw new Error('falta la clave de avisos en la configuración de la app')
+      const reg = regRef.current ?? await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+      })
+      await saveSubscription(sub)
+      setShow(false)
+    } catch (err) {
+      setError(Notification.permission === 'denied'
+        ? 'Has bloqueado los avisos. Puedes activarlos en los ajustes del móvil.'
+        : `No se pudieron activar los avisos: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setWorking(false)
     }
   }
 
-  if (permission === null || permission === 'granted' || permission === 'denied') return null
+  if (!show) return null
 
   return (
     <div
@@ -111,9 +125,10 @@ export function PushNotificationProvider() {
         </span>
         <div className="min-w-0 flex-1">
           <p id="push-prompt-title" className="text-label font-semibold text-ink">Activa los avisos</p>
-          <p className="mt-0.5 text-meta text-ink-2">Te avisamos cuando se libere un hueco de tu nivel o el club te escriba.</p>
+          <p className="mt-0.5 text-meta text-ink-2">{description}</p>
+          {error && <p role="alert" className="mt-2 text-meta font-medium text-danger-ink">{error}</p>}
           <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={handleEnable}>Activar avisos</Button>
+            <Button size="sm" onClick={handleEnable} loading={working}>Activar avisos</Button>
             <Button size="sm" variant="ghost" onClick={dismiss}>Ahora no</Button>
           </div>
         </div>
