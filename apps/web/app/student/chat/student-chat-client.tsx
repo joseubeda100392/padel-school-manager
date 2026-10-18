@@ -74,12 +74,13 @@ export function StudentChatClient({ threadId, threadStatus, initialMessages, cur
   async function send() {
     if (!text.trim()) return
     setSending(true)
-    await supabase.from('chat_messages').insert({
-      thread_id: threadId,
-      sender_id: currentUserId,
-      content: text.trim(),
-    })
-    setText('')
+    const res = await fetch('/api/chat/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ thread_id: threadId, content: text.trim() }),
+    }).catch(() => null)
+    if (res?.ok) setText('')
+    else alert('No se pudo enviar el mensaje. Inténtalo de nuevo.')
     setSending(false)
   }
 

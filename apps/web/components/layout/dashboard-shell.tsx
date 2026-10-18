@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { InstallBanner } from '@/components/install-banner'
+import { PushNotificationProvider } from '@/components/push-notification-provider'
 import type { ClubFeatures } from '@/lib/get-club-features'
 import { AppShell } from './app-shell'
 import { adminNav } from './nav-config'
@@ -55,7 +56,12 @@ export function DashboardShell({ children, clubName, role, userName, features, s
           </button>
         ) : undefined
       }
-      overlays={<InstallBanner />}
+      overlays={
+        <>
+          <PushNotificationProvider description="Recibe en el móvil los mensajes del chat de los alumnos y los avisos de cobros." />
+          <InstallBanner />
+        </>
+      }
     >
       {children}
     </AppShell>

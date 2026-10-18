@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { sendPushToUsers } from '@/lib/push'
 import { findBillingDiscrepancies, type AuditClub, type BillingDiscrepancy } from '@/lib/billing-audit'
 
 const REPORT_TO = ['joseubeda10@gmail.com']
@@ -124,6 +125,18 @@ export async function POST(req: NextRequest) {
     if (discrepancies.length || always) {
       await sendReportEmail(discrepancies)
       emailed = true
+    }
+
+    if (discrepancies.length) {
+      const { data: recipients } = await admin.from('users').select('id').eq('role', 'super_admin').in('email', REPORT_TO)
+      const ids = (recipients ?? []).map(r => r.id)
+      if (ids.length) {
+        await sendPushToUsers(ids, {
+          title: 'Cobros: descuadres para revisar',
+          body: `${discrepancies.length} alumno${discrepancies.length === 1 ? '' : 's'} con el pago sin cuadrar. Detalle en tu email.`,
+          url: '/dashboard/payments',
+        }).catch(err => console.error('[billing-audit] push failed:', err))
+      }
     }
 
     return NextResponse.json({ ok: true, clubs: clubIds.length, discrepancies: discrepancies.length, emailed })

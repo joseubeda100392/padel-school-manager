@@ -11,8 +11,8 @@ export async function sendPushToUsers(
   userIds: string[],
   payload: PushPayload,
   notificationType: string = 'admin_message',
-) {
-  if (!userIds.length) return
+): Promise<{ pushed: number }> {
+  if (!userIds.length) return { pushed: 0 }
 
   // Lazy init: evita crash en build (las env vars solo existen en runtime)
   webpush.setVapidDetails(
@@ -50,7 +50,7 @@ export async function sendPushToUsers(
     .select('endpoint, p256dh, auth')
     .in('user_id', userIds)
 
-  if (!subs?.length) return
+  if (!subs?.length) return { pushed: 0 }
 
   const results = await Promise.allSettled(
     subs.map(sub =>
@@ -71,4 +71,5 @@ export async function sendPushToUsers(
   if (gone.length) {
     await admin.from('push_subscriptions').delete().in('endpoint', gone)
   }
+  return { pushed: results.filter(r => r.status === 'fulfilled').length }
 }
