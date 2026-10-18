@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
 import { InstallBanner } from '@/components/install-banner'
+import { PushNotificationProvider } from '@/components/push-notification-provider'
 import type { ClubFeatures } from '@/lib/get-club-features'
 
 interface DashboardShellProps {
@@ -48,6 +49,7 @@ export function DashboardShell({ children, clubName, role, userName, features, s
       <div className="flex flex-1 flex-col min-w-0">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <InstallBanner />
+        <PushNotificationProvider description="Recibe en el móvil los mensajes del chat de los alumnos y los avisos de cobros." />
         <main ref={mainRef} className="flex-1 overflow-auto p-4 md:p-8">
           <motion.div
             key={pathname}

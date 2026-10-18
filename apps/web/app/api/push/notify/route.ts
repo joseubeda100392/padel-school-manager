@@ -90,9 +90,9 @@ export async function POST(req: NextRequest) {
     const notifType = target === 'payment_pending' ? 'payment_reminder'
       : target === 'bag_pending' ? 'bag_reminder'
       : 'admin_message'
-    await sendPushToUsers(userIds, { title, body, url: url || '/student' }, notifType)
+    const { pushed } = await sendPushToUsers(userIds, { title, body, url: url || '/student' }, notifType)
 
-    return NextResponse.json({ ok: true, sent: userIds.length })
+    return NextResponse.json({ ok: true, sent: userIds.length, pushed })
 
   } catch (err: any) {
     return NextResponse.json({ error: err?.message ?? 'Error interno' }, { status: 500 })

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 
 type Target = 'all' | 'level' | 'payment_pending' | 'bag_pending'
 
-export function NotificationsClient({ enablePayments }: { enablePayments: boolean }) {
+export function NotificationsClient({ enablePayments, pushStats }: { enablePayments: boolean; pushStats: { withPush: number; students: number } }) {
   const defaultTarget: Target = 'all'
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
@@ -12,7 +12,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
   const [levelId, setLevelId] = useState('')
   const [levels, setLevels] = useState<{ id: string; name: string; color: string }[]>([])
   const [sending, setSending] = useState(false)
-  const [result, setResult] = useState<{ ok: boolean; sent?: number; error?: string } | null>(null)
+  const [result, setResult] = useState<{ ok: boolean; sent?: number; pushed?: number; error?: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/levels').then(r => r.json()).then(({ levels }) => {
@@ -42,7 +42,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
       })
       let json: any = {}
       try { json = await res.json() } catch { /* respuesta no-JSON */ }
-      setResult(res.ok ? { ok: true, sent: json.sent ?? 0 } : { ok: false, error: json.error ?? `Error ${res.status}` })
+      setResult(res.ok ? { ok: true, sent: json.sent ?? 0, pushed: json.pushed ?? 0 } : { ok: false, error: json.error ?? `Error ${res.status}` })
       if (res.ok && !isAutoTarget) {
         setTitle('')
         setBody('')
@@ -65,7 +65,10 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
     <div className="max-w-2xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Notificaciones push</h1>
-        <p className="text-sm text-gray-500">Envía mensajes a los alumnos que hayan activado las notificaciones</p>
+        <p className="text-sm text-gray-500">Todos los alumnos lo ven en la app; además les llega al móvil a los que tienen los avisos activados.</p>
+        <p className="mt-2 inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+          {pushStats.withPush} de {pushStats.students} alumnos con avisos en el móvil
+        </p>
       </div>
 
       {/* Acciones rápidas */}
@@ -190,7 +193,7 @@ export function NotificationsClient({ enablePayments }: { enablePayments: boolea
           {result && (
             <div className={`rounded-lg px-4 py-3 text-sm ${result.ok ? 'bg-brand-50 text-brand-600' : 'bg-red-50 text-red-600'}`}>
               {result.ok
-                ? `✓ Enviado a ${result.sent} dispositivo${result.sent !== 1 ? 's' : ''}`
+                ? `✓ Enviado a ${result.sent} alumno${result.sent !== 1 ? 's' : ''} (lo ven en la app) · llegó al móvil de ${result.pushed}`
                 : `Error: ${result.error}`}
             </div>
           )}

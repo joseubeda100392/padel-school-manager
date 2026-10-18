@@ -30,7 +30,9 @@ async function saveSubscription(sub: PushSubscription) {
 // como el permiso ya estaba concedido, el aviso no volvía a salir (en oct.
 // 2026 había 0 alumnos suscritos en toda la app). Ahora el service worker se
 // prepara al cargar y en el toque lo primero es subscribe().
-export function PushNotificationProvider() {
+export function PushNotificationProvider({
+  description = 'Recibe avisos cuando se libere un hueco en tu grupo o el admin te mande un mensaje.',
+}: { description?: string } = {}) {
   const [show, setShow] = useState(false)
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
@@ -84,9 +86,7 @@ export function PushNotificationProvider() {
   return (
     <div className="fixed bottom-24 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl bg-white shadow-lg border border-gray-100 p-4 md:bottom-6 md:left-auto md:right-6 md:max-w-xs">
       <p className="text-sm font-semibold text-gray-900">Activa las notificaciones</p>
-      <p className="mt-1 text-xs text-gray-500">
-        Recibe avisos cuando se libere un hueco en tu grupo o el admin te mande un mensaje.
-      </p>
+      <p className="mt-1 text-xs text-gray-500">{description}</p>
       {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
       <div className="mt-3 flex gap-2">
         <button
