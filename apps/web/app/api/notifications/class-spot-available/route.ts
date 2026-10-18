@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   const messages = candidates.map((s: any) => ({
     to: s.push_token,
-    title: `¡Plaza libre! 🎾`,
+    title: '🎾 ¡Hueco libre disponible!',
     body: `${court} · ${day} ${hour}. ¡${freePlaces} ${freePlaces === 1 ? 'hueco' : 'huecos'} disponible${freePlaces === 1 ? '' : 's'}!`,
     sound: 'default',
     data: { scheduleId },

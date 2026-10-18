@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       const price = (e.monthly_price / 100).toFixed(2)
       return {
         to: e.student.push_token,
-        title: `Cuota de ${monthName} pendiente`,
+        title: `💳 Cuota de ${monthName} pendiente`,
         body: `Tu grupo del ${day} ${hour} · ${price}€. Paga desde la app para reservar tu plaza.`,
         sound: 'default',
         data: { enrollmentId: e.id, type: 'monthly_fee' },

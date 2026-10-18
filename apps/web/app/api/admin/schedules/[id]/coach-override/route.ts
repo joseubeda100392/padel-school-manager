@@ -79,7 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (notifyIds.length) {
     const dateLabel = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(overrideDate + 'T12:00:00Z'))
     await sendPushToUsers(notifyIds, {
-      title: 'Cambio de monitor puntual',
+      title: '🔁 Cambio de monitor puntual',
       body: `${newCoach.name} sustituye al monitor habitual el ${dateLabel}.`,
     }, 'class_reminder')
   }

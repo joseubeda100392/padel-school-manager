@@ -9,6 +9,12 @@ import { Button } from '@/components/ui/button'
 import { Notice } from '@/components/ui/feedback'
 import { List, ListRow } from '@/components/ui/list'
 import { cn } from '@/lib/utils'
+import { currentBillingMonth } from '@/lib/billing-cycle'
+
+// Mismo mes que la cuota pendiente: el ciclo de cobro, no el mes del calendario.
+function billingMonthName() {
+  return new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(new Date(2000, currentBillingMonth().month0, 15))
+}
 
 type Target = 'all' | 'level' | 'payment_pending' | 'bag_pending'
 
@@ -37,9 +43,9 @@ export function NotificationsClient({ enablePayments, pushStats }: { enablePayme
 
     const payload =
       target === 'payment_pending'
-        ? { title: '💳 Cuota pendiente de pago', body: 'Tienes una cuota mensual sin pagar. Entra en la app para regularizarla.', target, url: '/student/schedule' }
+        ? { title: `💳 Cuota de ${billingMonthName()} pendiente`, body: 'Tienes una cuota mensual sin pagar. Entra en la app para regularizarla.', target, url: '/student/schedule' }
         : target === 'bag_pending'
-        ? { title: '🎾 Tienes clases disponibles', body: 'Tienes clases en tu bolsa sin usar. ¡Apúntate a tu próxima clase!', target, url: '/student/schedule' }
+        ? { title: '🎟️ Tienes clases en tu bolsa', body: 'Tienes clases en tu bolsa sin usar. ¡Apúntate a tu próxima clase!', target, url: '/student/schedule' }
         : { title: title.trim(), body: body.trim(), target, levelId: levelId || undefined, url: '/student' }
 
     try {
