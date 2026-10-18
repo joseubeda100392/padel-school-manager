@@ -214,7 +214,7 @@ export function NotificationsClient({ enablePayments, pushStats }: { enablePayme
       </Card>
 
       <p className="text-center text-meta text-ink-3">
-        Solo recibirán la notificación los alumnos que hayan aceptado los permisos en el navegador.
+        Al móvil solo les llega a los alumnos que han activado los avisos; el resto lo verá al entrar en la app.
       </p>
     </div>
   )

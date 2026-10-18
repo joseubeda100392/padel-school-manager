@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useId } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { SendHorizontal } from 'lucide-react'
 import { formatClock, formatLongDate } from '@/lib/format-date'
@@ -80,7 +81,7 @@ export function StudentChatClient({ threadId, threadStatus, initialMessages, cur
       body: JSON.stringify({ thread_id: threadId, content: text.trim() }),
     }).catch(() => null)
     if (res?.ok) setText('')
-    else alert('No se pudo enviar el mensaje. Inténtalo de nuevo.')
+    else toast.error('No se pudo enviar el mensaje. Inténtalo de nuevo.')
     setSending(false)
   }
 

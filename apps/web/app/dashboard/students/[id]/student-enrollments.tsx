@@ -14,6 +14,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Input, Select } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/feedback'
 import { List } from '@/components/ui/list'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface Enrollment {
   id: string
@@ -54,6 +55,7 @@ export function StudentEnrollments({
   availableGroups: AvailableGroup[]
 }) {
   const router = useRouter()
+  const confirm = useConfirm()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
   const [movingId, setMovingId] = useState<string | null>(null)
   const [moveTarget, setMoveTarget] = useState('')
@@ -126,12 +128,17 @@ export function StudentEnrollments({
     if (!target) return
     const priceChanged = movePrice !== e.monthly_price
     const lines = [
-      `¿Cambiar a este alumno al grupo ${target.label}?`,
       'Se le quita de su grupo actual y lo pagado o pendiente pasa al nuevo.',
       priceChanged ? `Cuota nueva: ${formatCurrency(movePrice)}/mes.` : '',
       priceChanged && e.discount_applied ? 'El descuento marcado no se mantiene al cambiar la cuota.' : '',
     ].filter(Boolean)
-    if (!confirm(lines.join(' '))) return
+    const ok = await confirm({
+      title: `¿Cambiar al grupo ${target.label}?`,
+      description: lines.join(' '),
+      confirmLabel: 'Cambiar de grupo',
+      cancelLabel: 'Cancelar',
+    })
+    if (!ok) return
     setMoving(true)
     try {
       const res = await fetch('/api/group-enrollments', {
