@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { PayButton } from '@/components/pay-button'
 import { MonthCalendar } from '@/components/month-calendar'
-import { CircleCheck, Package, UserPlus } from 'lucide-react'
+import { CircleCheck, Hourglass, Package, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import { formatLongDate } from '@/lib/format-date'
@@ -173,6 +173,154 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
   )
 }
 
+export interface WaitlistData {
+  max: number
+  full: {
+    scheduleId: string
+    date: string
+    startTime: string
+    endTime: string
+    durationMin: number
+    courtName: string
+    coachName: string | null
+    level: { name: string; color: string } | null
+    maxStudents: number
+    waitingCount: number
+    myEntryId?: string
+    myPosition?: number
+  }[]
+  mine: { id: string; date: string; startTime: string; endTime: string; courtName: string; position: number }[]
+}
+
+const ordinal = (n: number) => `${n}º`
+
+async function leaveWaitlist(id: string): Promise<string | null> {
+  const res = await fetch('/api/waitlist', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  }).catch(() => null)
+  if (!res) return 'Error de conexión. Inténtalo de nuevo.'
+  if (res.ok) return null
+  const json = await res.json().catch(() => ({}))
+  return json.error ?? 'No se ha podido quitar la reserva'
+}
+
+function FullClassCard({ cls, max, balance60, balance90 }: { cls: WaitlistData['full'][number]; max: number; balance60: number; balance90: number }) {
+  const router = useRouter()
+  const confirm = useConfirm()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const hasBalance = cls.durationMin >= 80 ? balance90 > 0 : balance60 > 0 || balance90 > 0
+  const isFullQueue = cls.waitingCount >= max && !cls.myEntryId
+
+  async function join() {
+    const ok = await confirm({
+      title: '¿Apuntarte en reserva?',
+      description: `Si se libera una plaza el ${formatLongDate(cls.date)} a las ${cls.startTime} con más de 24 h de antelación, entrarás tú solo y se te descontará 1 clase de la bolsa. Te avisaremos al móvil.`,
+      confirmLabel: 'Apuntarme en reserva',
+    })
+    if (!ok) return
+    setBusy(true)
+    setError('')
+    const res = await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduleId: cls.scheduleId, date: cls.date }),
+    }).catch(() => null)
+    const json = res ? await res.json().catch(() => ({})) : {}
+    if (res?.ok) {
+      toast.success(`Estás el ${ordinal(json.position)} en reserva`)
+      router.refresh()
+    } else {
+      setError(json.error ?? 'Error de conexión. Inténtalo de nuevo.')
+    }
+    setBusy(false)
+  }
+
+  async function leave() {
+    if (!cls.myEntryId) return
+    setBusy(true)
+    const err = await leaveWaitlist(cls.myEntryId)
+    if (err) setError(err)
+    else { toast.success('Te has quitado de la reserva'); router.refresh() }
+    setBusy(false)
+  }
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-display text-title tabular-nums text-ink">{cls.startTime} – {cls.endTime}</p>
+            <p className="mt-1 text-body text-ink-2">
+              {cls.courtName}
+              {cls.coachName && <> · con {cls.coachName}</>}
+            </p>
+          </div>
+          {cls.level && <LevelTag name={cls.level.name} color={cls.level.color} className="pt-1.5" />}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge tone="neutral">Completa · {cls.maxStudents}/{cls.maxStudents}</Badge>
+          {cls.myPosition
+            ? <Badge tone="success"><Hourglass className="h-3.5 w-3.5" aria-hidden />Eres el {ordinal(cls.myPosition)} en reserva</Badge>
+            : <span className="text-meta text-ink-3">En reserva: {cls.waitingCount}/{max}</span>}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2/60 px-4 py-3 sm:px-5">
+        {cls.myEntryId ? (
+          <Button variant="secondary" onClick={leave} loading={busy} block className="sm:w-auto">Quitarme de la reserva</Button>
+        ) : isFullQueue ? (
+          <p className="text-meta text-ink-3">La reserva de esta clase ya está completa.</p>
+        ) : !hasBalance ? (
+          <p className="text-meta text-ink-3">Necesitas 1 clase en la bolsa para apuntarte en reserva.</p>
+        ) : (
+          <Button variant="secondary" onClick={join} loading={busy} block className="sm:w-auto">
+            <Hourglass className="h-4 w-4" aria-hidden />
+            Apuntarme en reserva
+          </Button>
+        )}
+      </div>
+      {error && <p role="alert" className="px-4 pb-3 text-meta font-medium text-danger-ink sm:px-5">{error}</p>}
+    </Card>
+  )
+}
+
+function MyWaitlist({ mine }: { mine: WaitlistData['mine'] }) {
+  const router = useRouter()
+  const [busyId, setBusyId] = useState<string | null>(null)
+  if (!mine.length) return null
+
+  async function leave(id: string) {
+    setBusyId(id)
+    const err = await leaveWaitlist(id)
+    if (err) toast.error(err)
+    else { toast.success('Te has quitado de la reserva'); router.refresh() }
+    setBusyId(null)
+  }
+
+  return (
+    <Card className="p-4 sm:p-5">
+      <h2 className="flex items-center gap-2 text-label font-semibold text-ink">
+        <Hourglass className="h-[18px] w-[18px] text-accent-ink" aria-hidden />
+        Tus reservas
+      </h2>
+      <p className="mt-0.5 text-meta text-ink-3">Si se libera la plaza, entras tú solo y te avisamos.</p>
+      <ul className="mt-3 divide-y divide-line">
+        {mine.map(w => (
+          <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+            <div className="min-w-0">
+              <p className="text-body font-medium text-ink">{formatLongDate(w.date)}</p>
+              <p className="text-meta tabular-nums text-ink-2">{w.startTime} – {w.endTime} · {w.courtName} · {ordinal(w.position)} en reserva</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => leave(w.id)} loading={busyId === w.id}>Quitarme</Button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
 export function SpotsClient({
   spots,
   balance60,
@@ -190,6 +338,7 @@ export function SpotsClient({
   todayStr,
   maxYear,
   maxMonth0,
+  waitlist = null,
 }: {
   spots: Spot[]
   balance60: number
@@ -207,24 +356,27 @@ export function SpotsClient({
   todayStr: string
   maxYear: number
   maxMonth0: number
+  waitlist?: WaitlistData | null
 }) {
   const visibleBalance = (enable60min ? balance60 : 0) + (enable90min ? balance90 : 0)
 
   const eventCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const s of spots) counts[s.excludedDate] = (counts[s.excludedDate] ?? 0) + 1
+    for (const f of waitlist?.full ?? []) counts[f.date] = (counts[f.date] ?? 0) + 1
     return counts
-  }, [spots])
+  }, [spots, waitlist])
 
   const defaultDate = useMemo(() => {
     const isCurrentMonth = year === Number(todayStr.slice(0, 4)) && month0 === Number(todayStr.slice(5, 7)) - 1
     if (isCurrentMonth && eventCounts[todayStr]) return todayStr
-    const firstWithEvents = spots.map(s => s.excludedDate).sort()[0]
+    const firstWithEvents = Object.keys(eventCounts).sort()[0]
     return firstWithEvents ?? (isCurrentMonth ? todayStr : `${year}-${String(month0 + 1).padStart(2, '0')}-01`)
   }, [spots, eventCounts, year, month0, todayStr])
 
   const [selectedDate, setSelectedDate] = useState(defaultDate)
   const daySpots = spots.filter(s => s.excludedDate === selectedDate)
+  const dayFull = (waitlist?.full ?? []).filter(f => f.date === selectedDate)
   const bagParts = [
     enable60min && balance60 > 0 && `${balance60} ${balance60 === 1 ? 'clase' : 'clases'} de 1 h`,
     enable90min && balance90 > 0 && `${balance90} ${balance90 === 1 ? 'clase' : 'clases'} de 1 h 30`,
@@ -239,6 +391,7 @@ export function SpotsClient({
             Tienes {bagParts.join(' y ')} en la bolsa para apuntarte
           </p>
         )}
+        {waitlist && <MyWaitlist mine={waitlist.mine} />}
         <Card className="p-4 sm:p-5">
           <MonthCalendar
             year={year}
@@ -250,15 +403,15 @@ export function SpotsClient({
             todayStr={todayStr}
             maxYear={maxYear}
             maxMonth0={maxMonth0}
-            eventLabel={['hueco', 'huecos']}
-            legend="Días con huecos libres de tu nivel"
+            eventLabel={waitlist ? ['clase', 'clases'] : ['hueco', 'huecos']}
+            legend={waitlist ? 'Días con huecos libres o clases en las que puedes reservar' : 'Días con huecos libres de tu nivel'}
           />
         </Card>
       </div>
 
       <section aria-labelledby="huecos-dia" className="space-y-4">
         <h2 id="huecos-dia" className="font-display text-title text-ink">{formatLongDate(selectedDate)}</h2>
-        {daySpots.length === 0 ? (
+        {daySpots.length === 0 && dayFull.length > 0 ? null : daySpots.length === 0 ? (
           <Card>
             <EmptyState
               icon={<UserPlus />}
@@ -283,6 +436,17 @@ export function SpotsClient({
               wholeClassPrice90={wholeClassPrice90}
             />
           ))
+        )}
+        {dayFull.length > 0 && (
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-label font-semibold text-ink">Clases completas</h3>
+              <p className="text-meta text-ink-3">Apúntate en reserva: si alguien deja su plaza, entras tú.</p>
+            </div>
+            {dayFull.map(cls => (
+              <FullClassCard key={`${cls.scheduleId}-${cls.date}`} cls={cls} max={waitlist!.max} balance60={balance60} balance90={balance90} />
+            ))}
+          </div>
         )}
       </section>
     </div>

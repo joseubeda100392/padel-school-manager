@@ -5,6 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
+import { processWaitlist } from '@/lib/waitlist'
 import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
 import { dateStr as buildDateStr } from '@/lib/billing-cycle'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
@@ -122,6 +123,13 @@ export async function POST(req: NextRequest) {
       reason: `Falta registrada ${dateStr}`,
       class_duration: durationType,
     })
+  }
+
+  // Si hay alguien en reserva para ese día, la plaza es suya y no se anuncia
+  // como hueco libre a todo el nivel.
+  const waitlist = await processWaitlist(admin, scheduleId, dateStr, { notifyIfLate: false })
+  if (waitlist.promoted.length > 0) {
+    return NextResponse.json({ data, publishedSpot: true, excludedDate: dateStr })
   }
 
   try {

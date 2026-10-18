@@ -5,6 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
+import { processWaitlist } from '@/lib/waitlist'
 import { formatTime } from '@/lib/utils'
 import { sanitizeDbError } from '@/lib/sanitize-error'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
@@ -50,6 +51,13 @@ async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, sch
   } catch {
     // No interrumpir la respuesta si falla el push
   }
+}
+
+// Una plaza publicada va primero a quien esté en reserva ese día; si nadie
+// entra, se anuncia como hueco libre al nivel, como siempre.
+async function publishFreedSpot(admin: ReturnType<typeof getAdminClient>, scheduleId: string, excludedDate: string) {
+  const waitlist = await processWaitlist(admin, scheduleId, excludedDate, { notifyIfLate: false })
+  if (waitlist.promoted.length === 0) await notifySpotAvailable(admin, scheduleId, excludedDate)
 }
 
 export async function POST(req: NextRequest) {
@@ -106,7 +114,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: sanitizeDbError(error) }, { status: 500 })
 
   if (publish_spot && enrollment?.schedule_id) {
-    await notifySpotAvailable(admin, enrollment.schedule_id, excluded_date)
+    await publishFreedSpot(admin, enrollment.schedule_id, excluded_date)
   }
 
   let newBagBalance: number | null = null
@@ -201,7 +209,7 @@ export async function PATCH(req: NextRequest) {
       .eq('id', exclusionBefore.group_enrollment_id)
       .single()
     if (ge?.schedule_id) {
-      await notifySpotAvailable(admin, ge.schedule_id, exclusionBefore.excluded_date)
+      await publishFreedSpot(admin, ge.schedule_id, exclusionBefore.excluded_date)
     }
   }
 

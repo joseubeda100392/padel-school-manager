@@ -15,6 +15,7 @@ import { CoachOverride } from './coach-override'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { ClassWaitlistPanel } from '@/components/class-waitlist-panel'
 import { DevError } from '@/components/dev-error'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
@@ -319,6 +320,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           enableClassValidation={features.enable_class_validation}
         />
       )}
+
+      {features.enable_waitlist && <ClassWaitlistPanel scheduleId={params.id} />}
 
       {features.enable_materials && <ScheduleMaterials scheduleId={params.id} />}
 

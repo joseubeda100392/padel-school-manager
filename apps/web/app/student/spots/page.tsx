@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { formatTime, getDayOfWeek } from '@/lib/utils'
-import { SpotsClient } from './spots-client'
+import { formatTime, getDayOfWeek, getScheduleDateTimeInMadrid } from '@/lib/utils'
+import { WAITLIST_MAX, isWaitlistable } from '@/lib/waitlist'
+import { SpotsClient, type WaitlistData } from './spots-client'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet } from '@/lib/club-holidays'
@@ -292,6 +293,79 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
 
   const allSpots = [...absenceSpots, ...capacitySpots]
 
+  // Reservas en espera: clases llenas de su nivel en las que alguien ocupa
+  // una plaza puntual (la que puede volver a quedar libre), y las reservas en
+  // las que ya está. Si la tabla aún no existe o falla, la sección no sale.
+  let waitlist: WaitlistData | null = null
+  if (features.enable_waitlist) {
+    const nowMs = Date.now()
+    const fullClasses: WaitlistData['full'] = []
+    for (const s of schedulesRaw ?? []) {
+      if (s.type === 'intensivo' || (s as any).is_private || myScheduleIds.has(s.id)) continue
+      const levelId = (s.level as any)?.id ?? null
+      if (myLevelId && levelId && levelId !== myLevelId) continue
+      const active = ((s.enrollments ?? []) as any[]).filter((e: any) => e.status === 'active')
+      for (const classDate of occurrencesBySchedule[s.id] ?? getMonthOccurrences(s, rangeStart, monthEnd, holidaySet)) {
+        if (getScheduleDateTimeInMadrid(s.start_time, classDate).getTime() <= nowMs) continue
+        if ((mySpotBookings ?? []).some(b => b.schedule_id === s.id && b.class_date === classDate)) continue
+        const bookedCount = (bookingsForCapacity ?? []).filter((b: any) => b.schedule_id === s.id && b.class_date === classDate).length
+        const occupied = realAttendingCount(s.id, active, classDate)
+        if (!isWaitlistable({ capacity: s.max_students, presentFixed: occupied - bookedCount, bookedCount })) continue
+        const startDt = new Date(s.start_time)
+        const endDt = new Date(s.end_time)
+        fullClasses.push({
+          scheduleId: s.id,
+          date: classDate,
+          startTime: formatTime(startDt),
+          endTime: formatTime(endDt),
+          durationMin: Math.round((endDt.getTime() - startDt.getTime()) / 60000),
+          courtName: (s.court as any)?.name ?? '—',
+          coachName: (s.coach as any)?.name ?? null,
+          level: (s.level as any) ?? null,
+          maxStudents: s.max_students,
+          waitingCount: 0,
+        })
+      }
+    }
+
+    const { data: myWaiting, error: myWaitingErr } = await admin
+      .from('class_waitlist')
+      .select('id, schedule_id, class_date')
+      .eq('student_id', user.id)
+      .eq('status', 'waiting')
+      .gte('class_date', today)
+      .order('class_date')
+    const scheduleIdsForQueues = [...new Set([...fullClasses.map(f => f.scheduleId), ...(myWaiting ?? []).map(w => w.schedule_id)])]
+    const { data: queues, error: queuesErr } = scheduleIdsForQueues.length
+      ? await admin.from('class_waitlist').select('id, schedule_id, class_date, student_id')
+          .in('schedule_id', scheduleIdsForQueues).eq('status', 'waiting').gte('class_date', today).order('created_at')
+      : { data: [], error: null }
+
+    if (!myWaitingErr && !queuesErr) {
+      const queueOf = (scheduleId: string, date: string) => (queues ?? []).filter((q: any) => q.schedule_id === scheduleId && q.class_date === date)
+      for (const f of fullClasses) {
+        const q = queueOf(f.scheduleId, f.date)
+        f.waitingCount = q.length
+        const mine = q.findIndex((x: any) => x.student_id === user.id)
+        if (mine >= 0) { f.myEntryId = q[mine].id; f.myPosition = mine + 1 }
+      }
+      const mineList: WaitlistData['mine'] = (myWaiting ?? []).map((w: any) => {
+        const sched = schedulesById[w.schedule_id]
+        const startDt = new Date(sched?.start_time)
+        const endDt = new Date(sched?.end_time)
+        return {
+          id: w.id,
+          date: w.class_date,
+          startTime: sched ? formatTime(startDt) : '',
+          endTime: sched ? formatTime(endDt) : '',
+          courtName: (sched?.court as any)?.name ?? '—',
+          position: queueOf(w.schedule_id, w.class_date).findIndex((x: any) => x.id === w.id) + 1,
+        }
+      })
+      waitlist = { full: fullClasses, mine: mineList, max: WAITLIST_MAX }
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-5xl space-y-5">
       <RealtimeRefresh
@@ -328,6 +402,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
         todayStr={today}
         maxYear={maxYear}
         maxMonth0={maxMonth0}
+        waitlist={waitlist}
       />
     </div>
   )

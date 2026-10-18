@@ -17,6 +17,7 @@ export type ClubFeatures = {
   enable_class_validation: boolean
   cash_only_payments: boolean
   enable_auto_pay: boolean
+  enable_waitlist: boolean
   enable_private_lessons: boolean
   enable_terms: boolean
   terms_pdf_url: string
@@ -39,6 +40,7 @@ export const DEFAULT_FEATURES: ClubFeatures = {
   enable_class_validation: false,
   cash_only_payments: false,
   enable_auto_pay: false,
+  enable_waitlist: false,
   enable_private_lessons: false,
   enable_terms: false,
   terms_pdf_url: '',

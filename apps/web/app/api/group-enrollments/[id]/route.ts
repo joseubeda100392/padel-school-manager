@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { processWaitlistForSchedule } from '@/lib/waitlist'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -66,7 +67,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     }
   }
 
+  const { data: removed } = await admin.from('group_enrollments').select('schedule_id').eq('id', params.id).maybeSingle()
   await admin.from('schedule_exclusions').delete().eq('group_enrollment_id', params.id)
   await admin.from('group_enrollments').delete().eq('id', params.id)
+  // Su plaza queda libre en todas las fechas: entran los que estén en reserva.
+  if (removed?.schedule_id) await processWaitlistForSchedule(admin, removed.schedule_id)
   return NextResponse.json({ ok: true })
 }

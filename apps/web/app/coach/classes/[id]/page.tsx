@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { ClassWaitlistPanel } from '@/components/class-waitlist-panel'
 import { ClassSessionMarker } from './class-session-marker'
 import { AdminAddSpotBooking } from '@/app/dashboard/schedule/[id]/add-spot-booking'
 import { SpotBookingsList } from '@/app/dashboard/schedule/[id]/spot-bookings-list'
@@ -273,6 +274,8 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
           existingSession={existingSessionData}
         />
       )}
+
+      {features.enable_waitlist && <ClassWaitlistPanel scheduleId={params.id} />}
 
       {/* Grupo fijo — solo quien está activo en la fecha que se está viendo:
           un sustituto que aún no arranca o una baja ya efectiva ese día no

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { processWaitlist } from '@/lib/waitlist'
 import { getScheduleDateTimeInMadrid } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
@@ -182,6 +183,8 @@ export async function DELETE(req: NextRequest) {
         await admin.from('schedule_exclusions').update({ publish_spot: true }).eq('id', exclusionToRepublish.id)
       }
     }
+    // Plaza libre: si hay alguien en reserva, entra el primero.
+    await processWaitlist(admin, booking.schedule_id, (booking as any).class_date)
   }
 
   if (refundBag && (booking.source === 'bag' || booking.source === 'pay_per_class')) {
