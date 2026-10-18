@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 const DISMISS_KEY = 'push-prompt-dismissed-until'
 const DISMISS_DAYS = 7
 const REFRESH_MIN_MS = 30_000
+const PUSH_TOAST_MS = 8_000
 
 // En el móvil, mientras la app no esté instalada, manda el aviso de instalar
 // (en iPhone los avisos solo funcionan con la app instalada) y así nunca salen
@@ -96,8 +97,12 @@ export function PushNotificationProvider({
       const data = event.data as { type?: string; title?: string; body?: string; url?: string } | null
       if (data?.type === 'refresh') { router.refresh(); return }
       if (data?.type !== 'push') return
+      // Abajo y más rato: arriba lo tapaba el propio aviso del iPhone, que
+      // ocupa esa zona unos segundos, y desaparecía sin llegar a verse.
       toast(data.title ?? 'Aviso nuevo', {
         description: data.body,
+        position: 'bottom-center',
+        duration: PUSH_TOAST_MS,
         action: data.url ? { label: 'Ver', onClick: () => router.push(data.url!) } : undefined,
       })
       router.refresh()

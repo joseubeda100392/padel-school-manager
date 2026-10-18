@@ -62,7 +62,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Toaster
           position="top-center"
-          offset="calc(var(--safe-top) + 12px)"
+          offset={{ top: 'calc(var(--safe-top) + 12px)', bottom: '24px' }}
+          mobileOffset={{ top: 'calc(var(--safe-top) + 12px)', bottom: 'calc(var(--tabbar-h) + var(--safe-bottom) + 12px)' }}
           toastOptions={{
             classNames: {
               toast: 'font-sans rounded-card border border-line bg-surface text-ink shadow-overlay',
