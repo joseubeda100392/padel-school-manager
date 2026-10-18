@@ -1,10 +1,17 @@
 FROM node:20-alpine
 WORKDIR /app
 
+# Las NEXT_PUBLIC_* se incrustan en el código al construir: si no se declaran
+# aquí, el navegador las recibe vacías aunque existan en Railway (pasó con la
+# clave de avisos: nadie podía activar las notificaciones).
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
 RUN npm install -g pnpm@9
 
