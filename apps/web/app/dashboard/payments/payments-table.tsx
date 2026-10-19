@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PAYMENT_METHODS, paymentMethodKey, type PaymentMethodKey } from '@/lib/payment-method'
+import { PAYMENT_TYPE_LABELS } from '@/lib/payments-month'
 import { CircleAlert, CircleCheck, Clock, Download, Receipt, Search, Undo2, X } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -27,19 +28,7 @@ const statusLabel: Record<string, string> = {
   refunded:  'Reembolsado',
 }
 
-const typeLabel: Record<string, string> = {
-  fixed_group_month: 'Cuota mensual',
-  single_class:      'Clase suelta',
-  class_pack:        'Bono de clases',
-  pay_per_class:     'Clase suelta',
-  subscription:      'Suscripción',
-  bag_pack:          'Bono de clases',
-  tournament:        'Inscripción torneo',
-  intensivo_group:   'Semana intensiva',
-  mandate_init:      'Activación domiciliación',
-  mandate_charge:    'Cuota mensual (domiciliada)',
-  manual:            'Manual',
-}
+const typeLabel = PAYMENT_TYPE_LABELS
 
 function methodLabel(p: any): { label: string; cls: string } {
   return PAYMENT_METHODS[paymentMethodKey(p)]

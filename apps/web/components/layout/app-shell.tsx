@@ -67,16 +67,16 @@ export function AppShell({
   return (
     <ShellContext.Provider value={{ nav, identity, roleSwitch, legalLinks, logout }}>
       <ConfirmProvider>
-        <div className="flex h-dvh overflow-hidden bg-canvas text-ink">
+        <div className="flex h-dvh overflow-hidden bg-canvas text-ink print:block print:h-auto print:overflow-visible print:bg-white">
           <a
             href="#contenido"
-            className="fixed left-3 top-3 z-50 -translate-y-20 rounded-control bg-surface px-4 py-2.5 text-label text-ink shadow-overlay focus:translate-y-0"
+            className="fixed left-3 top-3 z-50 -translate-y-20 rounded-control bg-surface px-4 py-2.5 text-label text-ink shadow-overlay focus:translate-y-0 print:hidden"
           >
             Saltar al contenido
           </a>
           <Sidebar nav={nav} clubName={clubName} identity={identity} extra={sidebarExtra} roleSwitch={roleSwitch} legalLinks={legalLinks} onLogout={logout} />
 
-          <div className="relative flex min-w-0 flex-1 flex-col">
+          <div className="relative flex min-w-0 flex-1 flex-col print:block">
             <MobileHeader clubName={clubName} actions={headerActions} />
             <main
               ref={mainRef}
@@ -85,7 +85,7 @@ export function AppShell({
               // teclado aunque la pantalla no tenga nada pulsable (WCAG 2.1.1).
               tabIndex={0}
               aria-label="Contenido"
-              className="flex flex-1 flex-col overflow-y-auto overscroll-contain scroll-pb-[calc(var(--tabbar-h)+var(--safe-bottom)+5rem)] md:scroll-pb-20 px-4 focus-visible:outline-offset-[-2px] pb-[calc(var(--tabbar-h)+var(--safe-bottom)+1.5rem)] pt-5 md:px-8 md:pb-10 md:pt-8"
+              className="flex flex-1 flex-col overflow-y-auto overscroll-contain scroll-pb-[calc(var(--tabbar-h)+var(--safe-bottom)+5rem)] md:scroll-pb-20 px-4 focus-visible:outline-offset-[-2px] pb-[calc(var(--tabbar-h)+var(--safe-bottom)+1.5rem)] pt-5 md:px-8 md:pb-10 md:pt-8 print:block print:overflow-visible print:p-0"
             >
               <div key={pathname} className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col animate-in fade-in-0 duration-150">
                 {/* Hay dos versiones de los tipos de React en el monorepo; el
@@ -93,11 +93,11 @@ export function AppShell({
                 {children as ReactNode}
               </div>
             </main>
-            <ScrollHint target={mainRef} />
+            <div className="print:hidden"><ScrollHint target={mainRef} /></div>
           </div>
 
           <TabBar items={nav.tabs.map((t) => (t.href === nav.moreHref ? { ...t, exact: true } : t))} />
-          {overlays}
+          <div className="print:hidden">{overlays}</div>
         </div>
       </ConfirmProvider>
     </ShellContext.Provider>
@@ -106,7 +106,7 @@ export function AppShell({
 
 function MobileHeader({ clubName, actions }: { clubName: string; actions?: ReactNode }) {
   return (
-    <header className="shrink-0 border-b border-line bg-surface md:hidden" style={{ paddingTop: 'var(--safe-top)' }}>
+    <header className="shrink-0 border-b border-line bg-surface md:hidden print:hidden" style={{ paddingTop: 'var(--safe-top)' }}>
       <div className="flex h-14 items-center gap-2.5 pl-4 pr-2">
         <img src="/icon.svg" alt="" width={28} height={28} className="h-7 w-7 shrink-0 rounded-lg" />
         <p className="min-w-0 flex-1 truncate text-heading text-ink">{clubName}</p>
@@ -136,7 +136,7 @@ function Sidebar({
   const pathname = usePathname()
 
   return (
-    <aside className="hidden w-[248px] shrink-0 flex-col bg-chrome text-chrome-ink md:flex">
+    <aside className="hidden w-[248px] shrink-0 flex-col bg-chrome text-chrome-ink md:flex print:hidden">
       <div className="flex items-center gap-3 px-5 pb-4 pt-5">
         <img src="/icon.svg" alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-lg" />
         <div className="min-w-0">

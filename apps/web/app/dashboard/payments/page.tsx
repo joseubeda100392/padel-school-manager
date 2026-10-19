@@ -10,8 +10,11 @@ import { UnpaidList } from './unpaid-list'
 import { MonthNavigator } from './month-navigator'
 import { DevError } from '@/components/dev-error'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
-import { currentBillingMonth, lastDayOfMonthStr } from '@/lib/billing-cycle'
-import { CalendarClock, CircleAlert } from 'lucide-react'
+import { currentBillingMonth } from '@/lib/billing-cycle'
+import { loadMonthPayments } from '@/lib/payments-month'
+import Link from 'next/link'
+import { buttonVariants } from '@/components/ui/button'
+import { CalendarClock, CircleAlert, Printer } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card, CardBody, CardHeader, SectionTitle } from '@/components/ui/card'
 import { EmptyState, Notice } from '@/components/ui/feedback'
@@ -47,43 +50,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const selectedMonth = selectedDate.getMonth()
   const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`
 
-  const startOfMonth = new Date(selectedYear, selectedMonth, 1).toISOString()
-  const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999).toISOString()
-  // Cuota mensual: se contabiliza en el mes que CUBRE (metadata.paid_until),
-  // no en el mes en que se pagó — con adelantos, o un pago normal hecho en
-  // los últimos días de mes que ya salta al siguiente, pagar en junio la
-  // cuota de julio no debe inflar junio ni vaciar julio en el panel. Pagos
-  // antiguos sin ese campo (antes de este cambio) caen al criterio de
-  // siempre (created_at) como respaldo.
-  const targetPaidUntil = lastDayOfMonthStr(selectedYear, selectedMonth)
-
-  function withClub<T extends { eq: (col: string, val: string) => T }>(query: T): T {
-    return clubId ? query.eq('club_id', clubId) : query
-  }
-
-  const cuotaByCoverageQuery = withClub(
-    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
-      .eq('type', 'fixed_group_month')
-      .eq('metadata->>paid_until', targetPaidUntil)
-  )
-  const cuotaLegacyQuery = withClub(
-    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
-      .eq('type', 'fixed_group_month')
-      .is('metadata->paid_until', null)
-      .gte('created_at', startOfMonth)
-      .lte('created_at', endOfMonth)
-  )
-  const otherTypesQuery = withClub(
-    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
-      .neq('type', 'fixed_group_month')
-      .gte('created_at', startOfMonth)
-      .lte('created_at', endOfMonth)
-  )
-
-  const [cuotaByCoverageRes, cuotaLegacyRes, otherTypesRes, unpaidResult] = await Promise.all([
-    cuotaByCoverageQuery,
-    cuotaLegacyQuery,
-    otherTypesQuery,
+  const [monthPayments, unpaidResult] = await Promise.all([
+    loadMonthPayments(admin, clubId, selectedYear, selectedMonth),
     billingActive
       ? admin.rpc('get_pending_payments', {
           p_club_id: clubId ?? null,
@@ -93,13 +61,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
       : Promise.resolve({ data: [] as any[], error: null }),
   ])
 
-  const errPayments = cuotaByCoverageRes.error ?? cuotaLegacyRes.error ?? otherTypesRes.error
-  const allPayments = [
-    ...(cuotaByCoverageRes.data ?? []),
-    ...(cuotaLegacyRes.data ?? []),
-    ...(otherTypesRes.data ?? []),
-  ]
-  const totalCount = (cuotaByCoverageRes.count ?? 0) + (cuotaLegacyRes.count ?? 0) + (otherTypesRes.count ?? 0)
+  const errPayments = monthPayments.error
+  const allPayments = monthPayments.payments
+  const totalCount = monthPayments.count
   const payments = [...allPayments].sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200)
 
   const errUnpaid = (unpaidResult as any).error ?? null
@@ -136,7 +100,18 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
       <PageHeader
         title="Pagos"
         description={`${transactionCount} transacciones en ${monthLabel}`}
-        actions={<MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/payments" maxYear={defaultBilling.year} maxMonth={defaultBilling.month0} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/payments" maxYear={defaultBilling.year} maxMonth={defaultBilling.month0} />
+            <Link
+              href={`/dashboard/payments/imprimir?month=${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`}
+              className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}
+            >
+              <Printer className="h-4 w-4" aria-hidden />
+              Listado para imprimir
+            </Link>
+          </div>
+        }
       />
 
       <Card>

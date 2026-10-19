@@ -39,9 +39,11 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
   const [role, setRole] = useState(defaultTab)
   const [status, setStatus] = useState('')
   const [levelFilter, setLevelFilter] = useState('')
+  // 'with' | 'without': alumnos con o sin grupo fijo activo (p. ej. solo bono).
+  const [groupFilter, setGroupFilter] = useState('')
   // En móvil los filtros van plegados para que la lista se vea sin bajar.
   const [showFilters, setShowFilters] = useState(false)
-  const activeFilters = (status ? 1 : 0) + (levelFilter ? 1 : 0)
+  const activeFilters = (status ? 1 : 0) + (levelFilter ? 1 : 0) + (groupFilter ? 1 : 0)
   const [editingCuotaId, setEditingCuotaId] = useState<string | null>(null)
   const [editingCuotaValue, setEditingCuotaValue] = useState('')
   const [savingCuota, setSavingCuota] = useState(false)
@@ -54,7 +56,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
   }, [students])
 
   function exportCSV() {
-    const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta', 'Baja']
+    const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta', 'Baja', 'Grupo fijo']
     const rows = filtered.map((s) => [
       s.name ?? '',
       s.email ?? '',
@@ -63,6 +65,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
       s.phone ?? '',
       formatDate(s.start_date ?? s.created_at),
       s.end_date ? formatDate(s.end_date) : '',
+      s.role === 'student' || s.also_student ? (enrollmentMap[s.id] ? 'Sí' : 'No') : '',
     ])
     const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -110,12 +113,14 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
           ? !s.current_level_id
           : s.current_level_id === levelFilter
       )
-      return matchQ && matchRole && matchStatus && matchLevel
+      const hasGroup = !!enrollmentMap[s.id]
+      const matchGroup = !groupFilter || (groupFilter === 'with' ? hasGroup : !hasGroup)
+      return matchQ && matchRole && matchStatus && matchLevel && matchGroup
     })
-  }, [students, deferredQ, role, status, levelFilter])
+  }, [students, deferredQ, role, status, levelFilter, groupFilter, enrollmentMap])
 
   const isStudentTab = role === 'student'
-  const hasFilters = !!(q || role || status || levelFilter)
+  const hasFilters = !!(q || role || status || levelFilter || groupFilter)
 
   return (
     <div className="space-y-4">
@@ -185,8 +190,17 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
             </Select>
           </Field>
         )}
+        {(role === 'student' || role === '') && (
+          <Field label="Grupo fijo" className="w-full sm:w-auto">
+            <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+              <option value="">Con y sin grupo</option>
+              <option value="with">Con grupo</option>
+              <option value="without">Sin grupo</option>
+            </Select>
+          </Field>
+        )}
         {hasFilters && (
-          <Button variant="ghost" onClick={() => { setQ(''); setRole(''); setStatus(''); setLevelFilter('') }}>
+          <Button variant="ghost" onClick={() => { setQ(''); setRole(''); setStatus(''); setLevelFilter(''); setGroupFilter('') }}>
             <X className="h-4 w-4" aria-hidden />
             Limpiar filtros
           </Button>

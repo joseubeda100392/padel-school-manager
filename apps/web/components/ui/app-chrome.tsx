@@ -92,7 +92,7 @@ export function TabBar({ items, ariaLabel = 'Navegación principal' }: { items: 
   return (
     <nav
       aria-label={ariaLabel}
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-md md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-md md:hidden print:hidden"
       style={{ paddingBottom: 'var(--safe-bottom)' }}
     >
       <ul className="mx-auto grid h-tabbar max-w-lg" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
