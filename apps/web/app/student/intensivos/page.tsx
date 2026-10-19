@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
@@ -16,7 +16,7 @@ const TZ = 'Europe/Madrid'
 
 export default async function StudentIntensivosPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

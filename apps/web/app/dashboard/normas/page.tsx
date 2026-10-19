@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { NormasClient } from './normas-client'
@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/ui/page-header'
 
 export default async function DashboardNormasPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

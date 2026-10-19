@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import MasterWeeklyCalendar from '@/app/dashboard/schedule/master/master-weekly-calendar'
@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/ui/page-header'
 
 export default async function CoachMasterCalendarPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

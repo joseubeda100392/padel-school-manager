@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import { CircleCheck, Clock, Lock, MapPin, Tag, Users } from 'lucide-react'
@@ -20,7 +20,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default async function StudentTournamentDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

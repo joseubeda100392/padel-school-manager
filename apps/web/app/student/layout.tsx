@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { StudentShell } from '@/components/layout/student-shell'
@@ -8,7 +8,7 @@ import { PasswordChangeGate } from './password-change-gate'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { notFound } from 'next/navigation'
@@ -64,7 +64,7 @@ const typeLabel: Record<string, string> = {
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
   const admin = getAdminClient()
   const supabase = createClient()
-  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  const currentUser = await getAuthUser()
   const viewerRole = currentUser?.user_metadata?.role ?? ''
   const clubId = await getClubId()
 

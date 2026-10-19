@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
@@ -18,9 +18,9 @@ export default async function ChatPage({ searchParams }: { searchParams: { threa
   const admin = getAdminClient()
 
   // clubId y currentUser no dependen entre sí — en paralelo.
-  const [clubId, { data: { user: currentUser } }] = await Promise.all([
+  const [clubId, currentUser] = await Promise.all([
     getClubId(),
-    supabase.auth.getUser(),
+    getAuthUser(),
   ])
 
   let threadsQuery = admin

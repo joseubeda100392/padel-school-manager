@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, getDayOfWeek, matchesDayTimePreference } from '@/lib/utils'
@@ -28,7 +28,7 @@ function isPaidThisMonth(paidUntil: string | null) {
 
 export default async function StudentHomePage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

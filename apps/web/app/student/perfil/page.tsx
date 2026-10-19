@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { Card, CardHeader } from '@/components/ui/card'
 import { LevelTag } from '@/components/ui/badge'
@@ -7,7 +7,7 @@ import { PasswordForm } from '../password-form'
 
 export default async function PerfilPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

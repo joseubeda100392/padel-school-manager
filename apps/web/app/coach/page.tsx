@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { HomeBand } from '@/components/ui/home-band'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
@@ -18,7 +18,7 @@ import { getHolidaySet } from '@/lib/club-holidays'
 
 export default async function CoachHomePage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

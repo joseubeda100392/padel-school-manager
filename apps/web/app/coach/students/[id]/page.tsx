@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import { StudentObjectives } from '@/app/dashboard/students/[id]/student-objectives'
@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/ui/page-header'
 
 export default async function CoachStudentPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

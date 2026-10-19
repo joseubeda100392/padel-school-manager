@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
@@ -82,7 +82,7 @@ function nextMonthLabel() {
 
 export default async function StudentSchedulePage({ searchParams }: { searchParams: { date?: string } }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const today = new Date().toISOString().split('T')[0]

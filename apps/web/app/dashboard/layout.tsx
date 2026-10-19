@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
@@ -7,7 +7,7 @@ import { getClubFeatures } from '@/lib/get-club-features'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
 
   if (!user) redirect('/login')
 

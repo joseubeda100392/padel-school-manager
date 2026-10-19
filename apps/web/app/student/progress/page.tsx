@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 
 export default async function StudentProgressPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

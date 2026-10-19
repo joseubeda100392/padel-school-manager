@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { PrefetchKind } from 'next/dist/client/components/router-reducer/router-reducer-types'
 import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -61,8 +62,10 @@ export function AppBar({
 const PREFETCH_START_MS = 1500
 const PREFETCH_GAP_MS = 400
 
-// Carga en segundo plano las pestañas, una a una y cuando el móvil está libre,
-// para que el primer toque no espere al servidor. Se respeta el ahorro de datos.
+// Carga en segundo plano las pestañas ENTERAS (con sus datos), una a una y
+// cuando el móvil está libre, para que el primer toque no espere al servidor:
+// con la precarga normal solo venía el esqueleto y había que esperar los datos
+// al tocar. Se respeta el ahorro de datos.
 function usePrefetchTabs(hrefs: string[]) {
   const router = useRouter()
   const key = hrefs.join('|')
@@ -72,7 +75,7 @@ function usePrefetchTabs(hrefs: string[]) {
     const timers: ReturnType<typeof setTimeout>[] = []
     const start = setTimeout(() => {
       key.split('|').forEach((href, i) => {
-        timers.push(setTimeout(() => router.prefetch(href), i * PREFETCH_GAP_MS))
+        timers.push(setTimeout(() => router.prefetch(href, { kind: PrefetchKind.FULL }), i * PREFETCH_GAP_MS))
       })
     }, PREFETCH_START_MS)
     return () => {

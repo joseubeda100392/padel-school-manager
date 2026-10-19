@@ -1,14 +1,14 @@
 // @ts-ignore - cache exists in React 18.3 runtime; @types/react version varies by environment
 import { cache } from 'react'
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 
 // Una sola comprobación de sesión y una sola lectura del perfil por petición,
 // aunque la página llame a getClubId() e isSuperAdmin() a la vez.
 const getAuthProfile = cache(async (): Promise<{ role: string | null; club_id: string | null } | null> => {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) return null
+  const supabase = createClient()
   const { data } = await supabase.from('users').select('role, club_id').eq('id', user.id).single()
   if (!data) return null
   return { role: (data.role as string) ?? null, club_id: (data.club_id as string) ?? null }

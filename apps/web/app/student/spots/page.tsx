@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek, getScheduleDateTimeInMadrid } from '@/lib/utils'
@@ -42,7 +42,7 @@ function getMonthOccurrences(s: any, rangeStart: string, rangeEnd: string, holid
 
 export default async function StudentSpotsPage({ searchParams }: { searchParams: { month?: string } }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()

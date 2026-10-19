@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek, formatDate } from '@/lib/utils'
@@ -26,7 +26,7 @@ const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', '
 
 export default async function CoachClassDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { date?: string } }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
