@@ -93,8 +93,8 @@ export async function POST(req: NextRequest) {
       const { data: members } = await membersQuery
 
       const slotDate = new Date(campaign.slot_datetime)
-      const dateStr = slotDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })
-      const timeStr = slotDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      const dateStr = slotDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Europe/Madrid' })
+      const timeStr = slotDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })
 
       if (faltan === 1) {
         // ÚLTIMO HUECO — WhatsApp + push

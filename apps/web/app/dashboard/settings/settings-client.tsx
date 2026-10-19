@@ -638,7 +638,7 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <PageHeader title="Configuración" description="Datos del club, módulos, pagos y tarifas." />
 
-      <div role="tablist" aria-label="Secciones de configuración" className="-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 [mask-image:linear-gradient(to_right,black_80%,transparent)] sm:mx-0 sm:px-0 sm:[mask-image:none]">
+      <div role="tablist" aria-label="Secciones de configuración" className="scrollbar-none -mx-4 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line px-4 [mask-image:linear-gradient(to_right,black_80%,transparent)] sm:mx-0 sm:px-0 sm:[mask-image:none]">
         {tabs.map((t, index) => {
           const selected = activeTab === t.id
           return (

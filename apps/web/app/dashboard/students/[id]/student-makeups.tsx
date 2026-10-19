@@ -49,7 +49,7 @@ export function StudentMakeups({ initialMakeups }: { initialMakeups: Makeup[] })
         {makeups.map((m) => {
           const dow = m.schedule?.start_time ? new Date(m.schedule.start_time).getDay() : null
           const time = m.schedule?.start_time
-            ? new Date(m.schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            ? new Date(m.schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })
             : null
           return (
             <li key={m.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-5">

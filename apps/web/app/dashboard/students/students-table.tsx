@@ -162,7 +162,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
         </Button>
       </div>
 
-      <div role="group" aria-label="Filtrar por rol" className="flex gap-1 overflow-x-auto rounded-control border border-line bg-surface-2 p-1">
+      <div role="group" aria-label="Filtrar por rol" className="scrollbar-none flex gap-1 overflow-x-auto overflow-y-hidden rounded-control border border-line bg-surface-2 p-1">
         {TABS.map((tab) => {
           const active = role === tab.value
           return (

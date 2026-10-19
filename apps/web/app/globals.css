@@ -121,4 +121,12 @@
   .pb-nav-safe {
     padding-bottom: calc(6rem + var(--sab, env(safe-area-inset-bottom, 0px)));
   }
+  /* Tiras de pestañas que se desplazan de lado: sin barra de scroll, que
+     en ordenador salía como una barrita gris suelta junto a las pestañas. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }

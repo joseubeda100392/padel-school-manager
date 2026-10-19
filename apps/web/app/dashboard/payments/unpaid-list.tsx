@@ -98,7 +98,7 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
             {filtered.map((e) => {
               const dow = e.start_time ? new Date(e.start_time).getDay() : null
               const time = e.start_time
-                ? new Date(e.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                ? new Date(e.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })
                 : null
               const totalOwed = e.monthly_price * e.months_overdue
               const isAccumulated = e.months_overdue > 1

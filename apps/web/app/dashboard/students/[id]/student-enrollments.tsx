@@ -181,7 +181,7 @@ export function StudentEnrollments({
           const paid = isPaidThisMonth(e.paid_until)
           const dow = e.schedule?.start_time ? new Date(e.schedule.start_time).getDay() : null
           const time = e.schedule?.start_time
-            ? new Date(e.schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            ? new Date(e.schedule.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })
             : null
           return (
             <li key={e.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 sm:px-5">

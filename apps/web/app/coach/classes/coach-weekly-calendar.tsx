@@ -35,7 +35,7 @@ function madridMinutesOfDay(dateStr: string): number {
 }
 
 function timeOnly(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+  return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })
 }
 
 function getWeekDates(offset: number) {
