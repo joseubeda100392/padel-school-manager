@@ -3,9 +3,13 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { Notice } from '@/components/ui/feedback'
 import { buttonVariants } from '@/components/ui/button'
+import { PushStatusCard } from '@/components/push-status-card'
+import { getClubId } from '@/lib/get-club'
+import { getClubFeatures } from '@/lib/get-club-features'
 
 const NAV_ITEMS = [
   { id: 'que-es',          label: '¿Qué es?' },
+  { id: 'avisos',          label: 'Instalar y avisos' },
   { id: 'menu',            label: 'El menú' },
   { id: 'mis-clases',      label: 'Mis clases' },
   { id: 'detalle-clase',   label: 'Detalle de una clase' },
@@ -17,7 +21,9 @@ const NAV_ITEMS = [
   { id: 'faq',             label: 'Preguntas frecuentes' },
 ]
 
-export default function CoachAyudaPage() {
+export default async function CoachAyudaPage() {
+  const features = await getClubFeatures(await getClubId())
+  const waitlist = features.enable_waitlist && features.enable_spots
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <PageHeader title="Ayuda" description="Todo lo que necesitas saber para usar el panel de monitor" />
@@ -37,7 +43,13 @@ export default function CoachAyudaPage() {
         <div className="space-y-6">
           <Section id="que-es" title="¿Qué es esta aplicación?">
             <p>Es el panel del club desde el que gestionas tus clases: quién está apuntado, quién falta, qué materia tienen asignada según su nivel, y el calendario completo de pistas del club.</p>
-            <p className="mt-2">Funciona desde cualquier navegador y dispositivo — móvil, tablet u ordenador. No hace falta instalar nada.</p>
+            <p className="mt-2">Funciona desde cualquier navegador y dispositivo — móvil, tablet u ordenador. En el móvil, lo mejor es añadirla a la pantalla de inicio.</p>
+          </Section>
+
+          <Section id="avisos" title="Instala la app y activa los avisos">
+            <p><strong>iPhone:</strong> abre epadelschool.app en Safari → botón Compartir (el cuadrado con la flecha) → <strong>Añadir a pantalla de inicio</strong>, y ábrela siempre desde ese icono. <strong>Android:</strong> en Chrome, menú ⋮ → <strong>Instalar aplicación</strong>.</p>
+            <p className="mt-2">Con los avisos activados te llega al móvil cuando el club te cambia la hora o te pone un sustituto, y los mensajes del chat. Así están en este móvil:</p>
+            <PushStatusCard className="mt-3" />
           </Section>
 
           <Section id="menu" title="El menú principal">
@@ -75,6 +87,7 @@ export default function CoachAyudaPage() {
               <li><strong>Grupo fijo</strong>: los alumnos inscritos de forma permanente, con su nivel y un acceso directo a sus <strong>Objetivos</strong>.</li>
               <li><strong>Materia didáctica</strong>: los PDFs publicados para el nivel de esa clase, si el club usa este módulo.</li>
               <li><strong>Lista de asistencia</strong>: alumnos que han reservado esa clase de forma puntual (bolsa o hueco libre) — márcalos como asistente o ausente según asistan.</li>
+              {waitlist && <li><strong>En reserva</strong>: quién espera plaza en las próximas fechas y en qué orden. Si alguien deja su plaza, el primero entra solo; no tienes que hacer nada.</li>}
             </ul>
             <Nota>Los cambios de hora puntuales y los sustitutos de monitor para un día concreto los gestiona el club desde su panel de admin — si tu clase cambia de hora o la va a dar otro monitor un día, te llegará un aviso.</Nota>
           </Section>
@@ -113,7 +126,8 @@ export default function CoachAyudaPage() {
               <FAQ q="Un día no puedo dar mi clase, ¿qué hago?" a="Avisa al club — ellos pueden asignar un sustituto solo para ese día desde su panel, sin tocar tu horario habitual. Ese día contará para el sustituto, no para ti." />
               <FAQ q="¿Por qué veo clases de otros monitores en el Calendario maestro?" a="Es la vista completa del club, para que sepas qué hay en cada pista a cada hora. Solo puedes editar las tuyas, desde Mis Clases." />
               <FAQ q="No me deja entrar al panel de alumno" a="Solo se puede si el club te ha marcado explícitamente como 'también alumno' en tu ficha. Si crees que deberías tener acceso, contacta con el club." />
-              <FAQ q="¿Puedo usar la aplicación desde el móvil?" a="Sí, funciona en cualquier navegador y dispositivo sin instalar nada." />
+              <FAQ q="¿Puedo usar la aplicación desde el móvil?" a="Sí. Añádela a la pantalla de inicio (mira 'Instala la app y activa los avisos') y se abrirá como cualquier otra app." />
+              <FAQ q="No me llegan los avisos" a="En 'Instala la app y activa los avisos' (o en Más) mira cómo están en tu móvil. En iPhone, abre la app desde el icono de la pantalla de inicio. Si dice 'Activados', pulsa 'Enviarme un aviso de prueba'." />
             </div>
           </Section>
 

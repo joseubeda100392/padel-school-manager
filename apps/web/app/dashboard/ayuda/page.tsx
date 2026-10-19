@@ -2,14 +2,17 @@ import { TriangleAlert, Info } from "lucide-react"
 import { PageHeader } from "@/components/ui/page-header"
 import { Card } from "@/components/ui/card"
 import { Notice } from "@/components/ui/feedback"
+import { PushStatusCard } from "@/components/push-status-card"
 
 const NAV_ITEMS = [
   { id: 'que-es',          label: '¿Qué es?' },
+  { id: 'avisos',          label: 'Avisos en el móvil' },
   { id: 'usuarios',        label: 'Usuarios' },
   { id: 'tambien-alumno',  label: 'Monitor + alumno' },
   { id: 'niveles',         label: 'Niveles' },
   { id: 'clases',          label: 'Clases y horarios' },
   { id: 'sustituto',       label: 'Sustituto de monitor' },
+  { id: 'reservas',        label: 'Reservas en espera' },
   { id: 'validacion',      label: 'Validación de clases' },
   { id: 'horas',           label: 'Horas de monitores' },
   { id: 'pista-viva',      label: 'Pista Viva' },
@@ -18,7 +21,7 @@ const NAV_ITEMS = [
   { id: 'descuentos',      label: 'Descuentos en cuota' },
   { id: 'materia',         label: 'Material' },
   { id: 'chat',            label: 'Chat soporte' },
-  { id: 'notificaciones',  label: 'Notificaciones' },
+  { id: 'notificaciones',  label: 'Enviar avisos' },
   { id: 'configuracion',   label: 'Configuración' },
   { id: 'faq',             label: 'Preguntas frecuentes' },
 ]
@@ -45,12 +48,25 @@ export default function AdminAyudaPage() {
             <p>Es el centro de control del club: alumnos y monitores, horarios y clases, pagos, materia didáctica, torneos y toda la configuración del club. Lo que actives o desactives aquí se refleja al instante en las apps de alumnos y monitores.</p>
           </Section>
 
+          <Section id="avisos" title="Avisos en el móvil">
+            <p>La app avisa al móvil de cada persona (alumnos, monitores y admins) que tenga los avisos activados. A ti te llegan los mensajes del chat de los alumnos y los avisos de cobros. Así están en este dispositivo:</p>
+            <PushStatusCard className="mt-3" />
+            <p className="mt-4 text-label text-ink">Si un alumno dice que no le llegan</p>
+            <Steps items={[
+              'En iPhone tiene que tener la app en la pantalla de inicio (Safari → Compartir → Añadir a pantalla de inicio) y abrirla desde ese icono.',
+              'Que entre en Más → "Avisos en el móvil": ahí le dice si están activados, bloqueados o qué le falta.',
+              'Si dice "Activados", que pulse "Enviarme un aviso de prueba". Si no le llega, que pulse "Volver a activar".',
+            ]} />
+            <Nota>En <strong>Enviar avisos</strong> ves cuántos alumnos tienen los avisos activados en el móvil.</Nota>
+          </Section>
+
           <Section id="usuarios" title="Usuarios (alumnos y monitores)">
             <p>Desde <strong>Usuarios</strong> gestionas tanto alumnos como monitores — están en el mismo listado, con pestañas para filtrar por rol. Al entrar en la ficha de una persona puedes:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>Editar sus datos, rol, fechas de alta/baja y estado activo/inactivo.</li>
               <li>Cambiar su email de acceso.</li>
               <li>Si es alumno: ver y gestionar sus clases fijas, cuota, bolsa, nivel, pagos e historial.</li>
+              <li><strong>Cambiar de grupo</strong>: en "Clases y cuotas", junto a cada grupo. Lo pagado o pendiente de ese grupo pasa al nuevo en un solo paso, sin que se pierda ni se duplique ninguna cuota.</li>
               <li>Si es monitor: ver sus clases asignadas y su tarifa por hora.</li>
               <li>Desactivar o eliminar el usuario (desactivar conserva su historial; eliminar solo lo pueden hacer super admins y borra los datos de forma permanente).</li>
             </ul>
@@ -91,6 +107,17 @@ export default function AdminAyudaPage() {
             <p className="mt-2">El monitor habitual no cambia para el resto de la temporada — solo ese día. En "Horas de monitores", ese día pasa a contar para el sustituto, no para el titular. Se avisa por push a ambos.</p>
           </Section>
 
+          <Section id="reservas" title="Reservas en espera">
+            <p>Módulo opcional (Configuración → Módulos → <strong>Reservas en espera</strong>). Cuando una clase está completa y una de sus plazas la ocupa alguien que cogió un hueco, hasta <strong>2 alumnos</strong> pueden apuntarse en reserva desde Huecos.</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li>Si esa plaza se libera (cancela, un fijo se apunta una falta, publicas una falta o quitas a alguien del grupo) con más horas de antelación que tu plazo de cancelación, <strong>entra solo el primero</strong>: se le descuenta 1 clase de la bolsa y le llega un aviso.</li>
+              <li>Si al primero no le quedan clases en la bolsa o tiene otra clase a esa hora, se pasa al siguiente y se le avisa.</li>
+              <li>Si falta menos que el plazo de cancelación, no se mete a nadie: solo se avisa a los de la reserva.</li>
+              <li>Una falta que registras <strong>sin publicar</strong> no va a la reserva: la gestionas tú.</li>
+            </ul>
+            <p className="mt-2">En la ficha de cada clase ves el bloque <strong>En reserva</strong> con quién espera y en qué orden. El monitor lo ve también en su clase.</p>
+          </Section>
+
           <Section id="validacion" title="Validación de clases">
             <p>Módulo opcional (solo si tu club lo tiene activado en Configuración). Cada monitor marca desde su panel, el mismo día, si ha dado su clase o no, y qué alumnos han faltado. Desde <strong>Validación de clases</strong> confirmas cada sesión marcada — hasta que la confirmas, no cuenta ni para las horas del monitor ni para su nómina.</p>
             <p className="mt-2">Desde la misma pantalla puedes fijar la tarifa por hora de cada monitor y marcar sus horas pendientes como pagadas.</p>
@@ -111,7 +138,10 @@ export default function AdminAyudaPage() {
           </Section>
 
           <Section id="pagos" title="Pagos">
-            <p>Listado de todos los cobros del club: cuotas fijas, bonos, clases sueltas, torneos y domiciliaciones. Filtra por mes y por estado (cobrado, pendiente, fallido).</p>
+            <p>Listado de todos los cobros del club: cuotas fijas, bonos, clases sueltas, torneos y pagos automáticos. Filtra por mes y por estado (cobrado, pendiente, fallido).</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li><strong>Varios grupos</strong>: un alumno que va a más de un grupo paga todas sus cuotas juntas en un solo pago, y quedan marcados todos sus grupos.</li>
+              <li><strong>Pago automático con tarjeta</strong> (módulo opcional): el alumno guarda su tarjeta en Redsys y sus cuotas se cobran solas cada mes. Antes de activarlo, el banco tiene que tener habilitados los pagos con tarjeta guardada (COF).</li>            </ul>
             <Nota>El cobro con tarjeta se gestiona con Redsys (TPV virtual). Los datos bancarios de los alumnos nunca se guardan en la aplicación.</Nota>
           </Section>
 
@@ -128,15 +158,16 @@ export default function AdminAyudaPage() {
             <p>Todas las conversaciones de alumnos y monitores con el club llegan aquí. Responde directamente y se avisa por push a la otra persona.</p>
           </Section>
 
-          <Section id="notificaciones" title="Notificaciones">
-            <p>Envía avisos manuales a alumnos, monitores, o ambos — a todo el club o filtrando por nivel. Útil para comunicados generales, cambios de horario puntuales, etc.</p>
+          <Section id="notificaciones" title="Enviar avisos">
+            <p>Envía avisos a tus alumnos: a todos, por nivel, a los que tienen la cuota pendiente o a los que tienen clases en la bolsa. Tienes recordatorios ya redactados para la cuota y la bolsa.</p>
+            <p className="mt-2">Todos los alumnos lo ven en la app (en la campanita) y, además, les llega al móvil a los que tienen los avisos activados. Arriba ves cuántos son, y al enviar te dice a cuántos móviles ha llegado.</p>
           </Section>
 
           <Section id="configuracion" title="Configuración">
             <p>Aquí se controla todo lo que cambia el comportamiento de la app para tu club:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li><strong>Información general y pistas</strong>: nombre del club, pistas disponibles.</li>
-              <li><strong>Módulos activos</strong>: enciende o apaga funcionalidades (pagos, bolsa, huecos, chat, materia, objetivos, torneos, intensivos, Pista Viva, validación de clases, condiciones de uso).</li>
+              <li><strong>Módulos activos</strong>: enciende o apaga funcionalidades (pagos, bolsa, huecos, reservas en espera, chat, materia, objetivos, torneos, intensivos, Pista Viva, validación de clases, pago automático con tarjeta, condiciones de uso).</li>
               <li><strong>Condiciones de uso</strong>: sube el PDF que el alumno debe aceptar en su primer acceso.</li>
               <li><strong>TPV Redsys</strong>: credenciales de cobro con tarjeta del club.</li>
               <li><strong>Tarifas</strong>: precios de clase suelta, clase entera y bonos.</li>
@@ -151,6 +182,8 @@ export default function AdminAyudaPage() {
           <Section id="faq" title="Preguntas frecuentes">
             <div className="space-y-4">
               <FAQ q="¿Por qué no veo 'Validación de clases' o 'Pista Viva' en mi menú?" a="Son módulos opcionales. Actívalos desde Configuración → Módulos activos si tu club los va a usar." />
+              <FAQ q="Un alumno dice que no le llegan los avisos" a="Mira 'Avisos en el móvil' en esta ayuda: en iPhone tiene que abrir la app desde el icono de la pantalla de inicio, y desde Más → 'Avisos en el móvil' puede activarlos o mandarse un aviso de prueba." />
+              <FAQ q="Un alumno va a dos grupos y quiere cambiar uno de horario" a="En su ficha, junto a ese grupo, pulsa 'Cambiar de grupo'. Lo pagado de ese grupo pasa al nuevo y el otro grupo no se toca." />
               <FAQ q="Cambié el rol de un alumno a monitor y sigue apareciendo en su antigua clase" a="Cambiar el rol no quita al usuario de sus inscripciones — son cosas independientes. Si de verdad sigue jugando esa clase, márcalo como 'También es alumno' en su ficha; si ya no debería estar, quítalo manualmente desde la ficha de la clase." />
               <FAQ q="¿Cómo pongo un sustituto para un monitor un día concreto?" a="Entra en la clase afectada y pulsa 'Poner un sustituto solo el [fecha]', junto al cambio de hora puntual. No cambia el monitor habitual para el resto de la temporada." />
               <FAQ q="Las horas de un monitor no cuadran" a="Si el club no usa Validación de clases, las horas se calculan solas a partir del horario fijo — revisa si hay clases de prueba activas asignadas a ese monitor, o si falta registrar un sustituto en algún día." />

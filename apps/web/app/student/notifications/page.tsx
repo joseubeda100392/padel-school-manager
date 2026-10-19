@@ -5,6 +5,7 @@ import { MarkNotificationsRead } from './mark-read'
 import { NotificationList } from './notification-list'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { PageHeader } from '@/components/ui/page-header'
+import { PushStatusCard } from '@/components/push-status-card'
 
 export default async function StudentNotificationsPage() {
   const supabase = createClient()
@@ -26,6 +27,8 @@ export default async function StudentNotificationsPage() {
         subs={[{ table: 'notifications', filter: `user_id=eq.${user.id}` }]}
       />
       <PageHeader title="Notificaciones" description="Tus últimos avisos." />
+
+      <PushStatusCard hideWhenOn />
 
       <MarkNotificationsRead />
 

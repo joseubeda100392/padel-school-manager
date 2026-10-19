@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { BellRing } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { pushErrorMessage, pushSupported, registerServiceWorker, saveSubscription, subscribePush } from '@/lib/push-client'
 
 const DISMISS_KEY = 'push-prompt-dismissed-until'
 const DISMISS_DAYS = 7
@@ -28,27 +29,6 @@ function recentlyDismissed() {
   }
 }
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  const arr = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; i++) arr[i] = rawData.charCodeAt(i)
-  return arr
-}
-
-async function saveSubscription(sub: PushSubscription) {
-  const json = sub.toJSON()
-  const res = await fetch('/api/push/subscribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ endpoint: sub.endpoint, p256dh: json.keys?.p256dh, auth: json.keys?.auth }),
-  })
-  if (!res.ok) throw new Error(`el servidor respondió ${res.status}`)
-}
-
 // En iPhone (app instalada en la pantalla de inicio) Safari solo deja
 // suscribirse a avisos si pushManager.subscribe() se llama directamente en
 // el toque del usuario. Antes se pedía el permiso, se esperaba al service
@@ -64,13 +44,13 @@ export function PushNotificationProvider({
   const [error, setError] = useState('')
   const regRef = useRef<ServiceWorkerRegistration | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return
+    if (!pushSupported()) return
     if (Notification.permission === 'denied') return
     let cancelled = false
-    navigator.serviceWorker.register('/sw.js')
-      .then(() => navigator.serviceWorker.ready)
+    registerServiceWorker()
       .then(async (reg) => {
         if (cancelled) return
         regRef.current = reg
@@ -133,24 +113,17 @@ export function PushNotificationProvider({
     setWorking(true)
     setError('')
     try {
-      if (!VAPID_PUBLIC_KEY) throw new Error('falta la clave de avisos en la configuración de la app')
-      const reg = regRef.current ?? await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
-      })
-      await saveSubscription(sub)
+      await subscribePush(regRef.current)
       setShow(false)
     } catch (err) {
-      setError(Notification.permission === 'denied'
-        ? 'Has bloqueado los avisos. Puedes activarlos en los ajustes del móvil.'
-        : `No se pudieron activar los avisos: ${err instanceof Error ? err.message : String(err)}`)
+      setError(pushErrorMessage(err))
     } finally {
       setWorking(false)
     }
   }
 
-  if (!show) return null
+  // Estas pantallas ya muestran la tarjeta "Avisos en el móvil".
+  if (!show || /\/(mas|ayuda|notifications)$/.test(pathname)) return null
 
   return (
     <div

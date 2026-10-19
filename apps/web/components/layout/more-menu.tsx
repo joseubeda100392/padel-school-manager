@@ -7,6 +7,7 @@ import { List, ListRow } from '@/components/ui/list'
 import { Badge } from '@/components/ui/badge'
 import { useShell } from './app-shell'
 import { PoweredBy } from '@/components/brand/brand'
+import { PushStatusCard } from '@/components/push-status-card'
 
 function RowIcon({ children }: { children: React.ReactNode }) {
   return (
@@ -39,6 +40,8 @@ export function MoreMenu() {
           <p className="truncate text-meta text-ink-3">{identity.subtitle}</p>
         </div>
       </Card>
+
+      <PushStatusCard />
 
       {groups.map((group) => (
         <section key={group.title} aria-labelledby={`mas-${group.title}`}>
