@@ -139,7 +139,15 @@ export async function POST(req: NextRequest) {
       .eq('schedule_id', scheduleId)
       .eq('status', 'active')
 
-    const excludedIds = new Set((enrolledIds ?? []).map((e: any) => e.student_id))
+    // Ni los del grupo fijo ni quien ya tiene plaza puntual ese día: a ellos
+    // el hueco no les sirve.
+    const { data: bookedRows } = await admin
+      .from('bookings')
+      .select('student_id')
+      .eq('schedule_id', scheduleId)
+      .eq('class_date', dateStr)
+      .neq('status', 'cancelled')
+    const excludedIds = new Set([...(enrolledIds ?? []), ...(bookedRows ?? [])].map((e: any) => e.student_id))
     const scheduleLevelId = (schedule as any).level_id ?? null
 
     const q = admin.from('users').select('id, current_level_id').eq('role', 'student').eq('is_active', true)

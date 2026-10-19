@@ -24,7 +24,15 @@ async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, sch
       .eq('schedule_id', scheduleId)
       .eq('status', 'active')
 
-    const excludedIds = new Set((enrolledRows ?? []).map((e: any) => e.student_id))
+    // Ni los del grupo fijo ni quien ya tiene plaza puntual ese día: a ellos
+    // el hueco no les sirve.
+    const { data: bookedRows } = await admin
+      .from('bookings')
+      .select('student_id')
+      .eq('schedule_id', scheduleId)
+      .eq('class_date', excludedDate)
+      .neq('status', 'cancelled')
+    const excludedIds = new Set([...(enrolledRows ?? []), ...(bookedRows ?? [])].map((e: any) => e.student_id))
     const clubId = (scheduleData as any)?.club_id
     const levelId = (scheduleData as any)?.level_id
 
