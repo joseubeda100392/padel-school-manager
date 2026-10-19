@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { canAccessClub } from '@/lib/get-club'
 import { notFound } from 'next/navigation'
 import { formatDate, formatTime, getDayOfWeek, mostCommonMonthlyPrice } from '@/lib/utils'
 import { getHolidaySet } from '@/lib/club-holidays'
@@ -52,7 +53,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     .eq('id', params.id)
     .single()
 
-  if (!schedule) notFound()
+  if (!schedule || !(await canAccessClub(schedule.club_id))) notFound()
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   // Si venimos de una celda concreta del calendario semanal (?date=), respetar

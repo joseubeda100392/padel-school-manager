@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { canAccessClub } from '@/lib/get-club'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { TournamentActions } from '../tournament-actions'
@@ -34,7 +35,7 @@ export default async function TournamentDetailPage({ params }: { params: { id: s
     .eq('id', params.id)
     .single()
 
-  if (!tournament) notFound()
+  if (!tournament || !(await canAccessClub(tournament.club_id))) notFound()
 
   const { data: registrations } = await admin
     .from('tournament_registrations')

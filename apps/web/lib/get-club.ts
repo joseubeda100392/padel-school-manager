@@ -30,3 +30,12 @@ export const isSuperAdmin = cache(async (): Promise<boolean> => {
   const profile = await getAuthProfile()
   return profile?.role === 'super_admin'
 })
+
+// Las fichas del panel que leen con la clave de servicio deben comprobar que
+// lo que se abre es del club del admin: con un enlace de otro club, un admin
+// veía sus alumnos. El super admin entra en todos (con o sin club activo).
+export async function canAccessClub(resourceClubId: string | null | undefined): Promise<boolean> {
+  if (await isSuperAdmin()) return true
+  const clubId = await getClubId()
+  return !!clubId && clubId === resourceClubId
+}

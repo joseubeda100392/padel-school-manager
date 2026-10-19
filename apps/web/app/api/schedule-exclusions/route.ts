@@ -188,7 +188,12 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const { id, publish_spot } = await req.json()
+  const { data: patchBody, error: badPatch } = await parseBody(req, z.object({
+    id: z.string().uuid(),
+    publish_spot: z.boolean(),
+  }))
+  if (badPatch) return badPatch
+  const { id, publish_spot } = patchBody
 
   const { data: exclusionBefore } = await admin
     .from('schedule_exclusions')

@@ -217,7 +217,7 @@ function FullClassCard({ cls, max, balance60, balance90 }: { cls: WaitlistData['
   async function join() {
     const ok = await confirm({
       title: '¿Apuntarte en reserva?',
-      description: `Si se libera una plaza el ${formatLongDate(cls.date)} a las ${cls.startTime} con más de 24 h de antelación, entrarás tú solo y se te descontará 1 clase de la bolsa. Te avisaremos al móvil.`,
+      description: `Si se libera una plaza el ${formatLongDate(cls.date).toLowerCase()} a las ${cls.startTime} con más de 24 h de antelación, entrarás tú solo y se te descontará 1 clase de la bolsa. Te avisaremos al móvil.`,
       confirmLabel: 'Apuntarme en reserva',
     })
     if (!ok) return
