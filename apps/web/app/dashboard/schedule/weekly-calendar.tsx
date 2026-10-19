@@ -28,8 +28,14 @@ function madridMinutesOfDay(dateStr: string): number {
   return (h % 24) * 60 + m
 }
 
+// "Hoy" en Madrid a las 12:00 UTC: el servidor (UTC) y el navegador calculan
+// el mismo día también entre las 00:00 y las 02:00 de Madrid.
+function madridToday(): Date {
+  return new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()) + 'T12:00:00Z')
+}
+
 function getWeekDates(offset: number) {
-  const now = new Date()
+  const now = madridToday()
   const day = now.getDay()
   const monday = new Date(now)
   monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + offset * 7)
@@ -106,7 +112,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
           : null
         return { s, override, review, occupancy, reviewLabel }
       })
-    return { date, dateStr, idx, isHoliday, isToday: date.toDateString() === new Date().toDateString(), classes }
+    return { date, dateStr, idx, isHoliday, isToday: date.toDateString() === madridToday().toDateString(), classes }
   }), [weekDates, holidays, byDay, overrideByKey])
 
   const gridColumns: GridColumn[] = weekDays.map(d => ({

@@ -38,8 +38,20 @@ function timeOnly(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })
 }
 
+// "Hoy" en Madrid a las 12:00 UTC: así el servidor (UTC) y el móvil (Madrid)
+// calculan el mismo día; si no, entre las 00:00 y las 02:00 de Madrid el
+// servidor seguía en el día anterior y React avisaba del desajuste.
+function madridToday(): Date {
+  return new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()) + 'T12:00:00Z')
+}
+
+function madridWeekday(dateStr: string): number {
+  const name = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Europe/Madrid' }).format(new Date(dateStr))
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(name)
+}
+
 function getWeekDates(offset: number) {
-  const now = new Date()
+  const now = madridToday()
   const day = now.getDay()
   const monday = new Date(now)
   monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + offset * 7)
@@ -65,14 +77,14 @@ export default function CoachWeeklyCalendar({ schedules, holidays = [] }: { sche
   const byDay = useMemo(() => {
     const map: Record<number, Schedule[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
     schedules.forEach((s) => {
-      const idx = JS_DAY_TO_IDX[new Date(s.start_time).getDay()]
+      const idx = JS_DAY_TO_IDX[madridWeekday(s.start_time)]
       if (idx !== undefined) map[idx].push(s)
     })
     return map
   }, [schedules])
 
 
-  const todayStr = new Date().toDateString()
+  const todayStr = madridToday().toDateString()
   const days = DAY_NAMES.map((dayName, idx) => {
     const date = weekDates[idx]
     const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(date)
