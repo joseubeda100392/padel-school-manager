@@ -201,7 +201,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       )}
 
       {view === 'week'
-        ? <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} timeOverrides={timeOverrides ?? []} />
+        ? <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} timeOverrides={timeOverrides ?? []} courtsCount={courts?.length ?? 0} />
         : <ScheduleTable schedules={schedules} />
       }
     </div>
