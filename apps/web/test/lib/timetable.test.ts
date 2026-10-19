@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { timetableRange, placeDay, freeCourtsBySlot } from '@/lib/timetable'
+import { timetableRange, classesBySlot, freeCourtsBySlot } from '@/lib/timetable'
 
 const c = (id: string, start: string, end: string, courtId: string | null = id) => {
   const toMin = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5))
@@ -15,21 +15,15 @@ describe('timetableRange', () => {
   })
 })
 
-describe('placeDay', () => {
-  it('clases que no se pisan van cada una a lo ancho', () => {
-    const placed = placeDay([c('a', '18:00', '19:00'), c('b', '19:00', '20:00')])
-    expect(placed.map(p => [p.item.id, p.lane, p.lanes])).toEqual([['a', 0, 1], ['b', 0, 1]])
+describe('classesBySlot', () => {
+  const range = { startMin: 18 * 60, endMin: 20 * 60 }
+  it('pone cada clase en la media hora en que empieza', () => {
+    const slots = classesBySlot([c('a', '19:00', '20:00'), c('b', '18:00', '19:00'), c('c', '18:00', '19:30')], range)
+    expect(slots.map(s => s.map(x => x.id))).toEqual([['b', 'c'], [], ['a'], []])
   })
-  it('dos clases a la misma hora en pistas distintas van una al lado de otra', () => {
-    const placed = placeDay([c('a', '18:00', '19:00'), c('b', '18:00', '19:00')])
-    expect(placed.map(p => [p.lane, p.lanes])).toEqual([[0, 2], [1, 2]])
-  })
-  it('una clase de 1 h 30 que pisa a otras dos reparte bien los carriles', () => {
-    const placed = placeDay([c('a', '18:00', '19:30'), c('b', '18:00', '19:00'), c('c', '19:00', '20:00')])
-    const byId = Object.fromEntries(placed.map(p => [p.item.id, p]))
-    expect(byId.a.lanes).toBe(2)
-    expect(byId.b.lane).not.toBe(byId.a.lane)
-    expect(byId.c.lane).not.toBe(byId.a.lane)
+  it('una clase a las 18:15 va en la franja de las 18:00, después de las de en punto', () => {
+    const slots = classesBySlot([c('a', '18:15', '19:15'), c('b', '18:00', '19:00')], range)
+    expect(slots[0].map(x => x.id)).toEqual(['b', 'a'])
   })
 })
 
