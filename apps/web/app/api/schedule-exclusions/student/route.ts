@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { processWaitlist } from '@/lib/waitlist'
+import { parseLowerLevelMap, studentLevelsForClass } from '@/lib/spot-levels'
 import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
 import { dateStr as buildDateStr } from '@/lib/billing-cycle'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
@@ -149,12 +150,13 @@ export async function POST(req: NextRequest) {
       .neq('status', 'cancelled')
     const excludedIds = new Set([...(enrolledIds ?? []), ...(bookedRows ?? [])].map((e: any) => e.student_id))
     const scheduleLevelId = (schedule as any).level_id ?? null
+    const notifyLevels = scheduleLevelId ? studentLevelsForClass(scheduleLevelId, parseLowerLevelMap((clubRow as any)?.config)) : []
 
     const q = admin.from('users').select('id, current_level_id').eq('role', 'student').eq('is_active', true)
     const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)
     const targetIds = (candidates ?? [])
       .filter((u: any) => !excludedIds.has(u.id))
-      .filter((u: any) => !scheduleLevelId || !u.current_level_id || u.current_level_id === scheduleLevelId)
+      .filter((u: any) => !scheduleLevelId || !u.current_level_id || notifyLevels.includes(u.current_level_id))
       .map((u: any) => u.id)
 
     if (targetIds.length > 0) {

@@ -91,7 +91,7 @@ export async function GET() {
   if (!caller.club_id) return NextResponse.json({ config: DEFAULT_CONFIG })
 
   const { data } = await admin.from('clubs').select('config').eq('id', caller.club_id).single()
-  return NextResponse.json({ config: { ...DEFAULT_CONFIG, ...(data?.config ?? {}) } })
+  return NextResponse.json({ config: { ...DEFAULT_CONFIG, spot_lower_levels: {}, ...(data?.config ?? {}) } })
 }
 
 export async function PATCH(req: NextRequest) {
@@ -110,7 +110,24 @@ export async function PATCH(req: NextRequest) {
     'legal_company_name', 'legal_cif', 'legal_address', 'legal_email', 'legal_phone',
   ])
   const numericKeys = Object.keys(DEFAULT_CONFIG).filter(key => !stringKeys.has(key))
-  const updates: Record<string, number | string> = {}
+  const updates: Record<string, unknown> = {}
+
+  // Recuperar en otro nivel: { nivel: nivelDondeTambiénPuedeRecuperar }. Solo
+  // se guardan parejas de niveles de este club y nunca un nivel a sí mismo.
+  if ('spot_lower_levels' in body) {
+    const raw = body.spot_lower_levels
+    if (raw !== null && (typeof raw !== 'object' || Array.isArray(raw))) {
+      return NextResponse.json({ error: 'Valor inválido para spot_lower_levels' }, { status: 400 })
+    }
+    const { data: clubLevels } = await admin.from('levels').select('id').eq('club_id', caller.club_id)
+    const valid = new Set((clubLevels ?? []).map((l: { id: string }) => l.id))
+    const clean: Record<string, string> = {}
+    for (const [from, to] of Object.entries((raw ?? {}) as Record<string, unknown>)) {
+      if (typeof to === 'string' && valid.has(from) && valid.has(to) && from !== to) clean[from] = to
+    }
+    updates.spot_lower_levels = clean
+  }
+
   for (const key of Object.keys(DEFAULT_CONFIG)) {
     if (!(key in body)) continue
     if (numericKeys.includes(key)) {

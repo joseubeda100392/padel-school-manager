@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { processWaitlist } from '@/lib/waitlist'
+import { parseLowerLevelMap, studentLevelsForClass } from '@/lib/spot-levels'
 import { formatTime } from '@/lib/utils'
 import { sanitizeDbError } from '@/lib/sanitize-error'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
@@ -38,7 +39,10 @@ async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, sch
 
     let q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
     if (clubId) q = q.eq('club_id', clubId)
-    if (levelId) q = q.eq('current_level_id', levelId)
+    if (levelId) {
+      const { data: clubCfg } = clubId ? await admin.from('clubs').select('config').eq('id', clubId).single() : { data: null }
+      q = q.in('current_level_id', studentLevelsForClass(levelId, parseLowerLevelMap((clubCfg as any)?.config)))
+    }
     const { data: candidates } = await q
     const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
 

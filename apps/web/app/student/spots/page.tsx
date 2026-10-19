@@ -7,6 +7,7 @@ import { SpotsClient, type WaitlistData } from './spots-client'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet } from '@/lib/club-holidays'
+import { canTakeSpot, parseLowerLevelMap } from '@/lib/spot-levels'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -110,6 +111,9 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   if (!features.enable_spots) redirect('/student')
 
   const holidaySet = getHolidaySet((clubRow as any)?.config)
+  // Niveles en los que puede recuperar: el suyo y, si el club lo permite, el
+  // que tenga asignado su nivel (Configuración → Clases de recuperación).
+  const lowerLevels = parseLowerLevelMap((clubRow as any)?.config)
   const billingStartDate: string | null = (clubRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || today >= billingStartDate
 
@@ -140,7 +144,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
       const ge = s.group_enrollment as any
       const schedule = ge?.schedule as any
       const levelId = schedule?.level?.id ?? null
-      const levelOk = !myLevelId || !levelId || levelId === myLevelId
+      const levelOk = canTakeSpot(myLevelId, levelId, lowerLevels)
       const clubOk = !myClubId || schedule?.club_id === myClubId
       const alreadyBooked = (mySpotBookings ?? []).some(
         b => b.schedule_id === ge?.schedule_id && b.class_date === s.excluded_date
@@ -260,8 +264,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
     const alreadyIn = active.some((e: any) => e.student_id === user.id)
     if (alreadyIn) return []
     const levelId = (s.level as any)?.id ?? null
-    const levelOk = !myLevelId || !levelId || levelId === myLevelId
-    if (!levelOk) return []
+    if (!canTakeSpot(myLevelId, levelId, lowerLevels)) return []
 
     const startDt = new Date(s.start_time)
     const endDt = new Date(s.end_time)
@@ -303,7 +306,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
     for (const s of schedulesRaw ?? []) {
       if (s.type === 'intensivo' || (s as any).is_private || myScheduleIds.has(s.id)) continue
       const levelId = (s.level as any)?.id ?? null
-      if (myLevelId && levelId && levelId !== myLevelId) continue
+      if (!canTakeSpot(myLevelId, levelId, lowerLevels)) continue
       const active = ((s.enrollments ?? []) as any[]).filter((e: any) => e.status === 'active')
       for (const classDate of occurrencesBySchedule[s.id] ?? getMonthOccurrences(s, rangeStart, monthEnd, holidaySet)) {
         if (getScheduleDateTimeInMadrid(s.start_time, classDate).getTime() <= nowMs) continue

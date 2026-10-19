@@ -15,6 +15,7 @@ import { Avatar } from '@/components/ui/list'
 import { useConfirm } from '@/components/ui/confirm'
 import { formatLongDate } from '@/lib/format-date'
 import { cn, formatCurrency } from '@/lib/utils'
+import { defaultLowerLevelMap } from '@/lib/spot-levels'
 
 function downloadCsv(filename: string, rows: Record<string, unknown>[], columns?: { key: string; header: string }[]) {
   if (!rows.length) return
@@ -75,6 +76,7 @@ interface AppConfig {
   cancellation_hours: number
   falta_advance_months: number
   max_recovery_classes: number
+  spot_lower_levels: Record<string, string>
   billing_start_date: string
   standard_discount_cents: number
   price_per_class_with_court_60: number
@@ -132,6 +134,7 @@ const defaults: AppConfig = {
   cancellation_hours: 24,
   falta_advance_months: 0,
   max_recovery_classes: 0,
+  spot_lower_levels: {},
   billing_start_date: '',
   standard_discount_cents: 4000,
   price_per_class_with_court_60: 0,
@@ -302,6 +305,7 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
   const [extractDone, setExtractDone] = useState(false)
   const [extractError, setExtractError] = useState('')
   const [holidays, setHolidays] = useState<string[]>([])
+  const [clubLevels, setClubLevels] = useState<{ id: string; name: string }[]>([])
   const [newHoliday, setNewHoliday] = useState('')
   const [holidaysSaving, setHolidaysSaving] = useState(false)
 
@@ -326,7 +330,12 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
       fetch('/api/admin/club-features').catch(() => null),
       fetch('/api/admin/club-holidays').catch(() => null),
       fetch('/api/admin/pista-viva/credentials').catch(() => null),
-    ]).then(async ([cfgRes, { data: c }, { data: userData }, redsysRes, featRes, holRes, ptRes]) => {
+      fetch('/api/admin/levels').catch(() => null),
+    ]).then(async ([cfgRes, { data: c }, { data: userData }, redsysRes, featRes, holRes, ptRes, levelsRes]) => {
+      if (levelsRes?.ok) {
+        const json = await levelsRes.json().catch(() => null)
+        if (json?.levels) setClubLevels(json.levels)
+      }
       if (userData) setProfile({ id: userId, ...userData })
       if (cfgRes?.ok) {
         const json = await cfgRes.json().catch(() => null)
@@ -1278,6 +1287,56 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
                   </span>
                 </div>
               </Field>
+
+              {clubLevels.length > 1 && (
+                <div className="mt-6 border-t border-line pt-5">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-[rgb(var(--accent))]"
+                      checked={Object.keys(config.spot_lower_levels ?? {}).length > 0}
+                      onChange={e => setConfig({
+                        ...config,
+                        spot_lower_levels: e.target.checked
+                          ? defaultLowerLevelMap(clubLevels.map((l, i) => ({ id: l.id, order: i })))
+                          : {},
+                      })}
+                    />
+                    <span>
+                      <span className="block text-label text-ink">Permitir recuperar en otro nivel</span>
+                      <span className="block text-meta text-ink-3">El alumno ve y puede coger huecos de su nivel y del que elijas aquí (normalmente el de justo debajo), y le llegan también esos avisos. Revisa la lista: pon "Solo el suyo" en los niveles que no deban bajar (por ejemplo, infantil).</span>
+                    </span>
+                  </label>
+                  {Object.keys(config.spot_lower_levels ?? {}).length > 0 && (
+                    <ul className="mt-4 divide-y divide-line rounded-control border border-line">
+                      {clubLevels.map(level => (
+                        <li key={level.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                          <span className="text-body text-ink">{level.name}</span>
+                          <label className="flex items-center gap-2 text-meta text-ink-2">
+                            <span className="sr-only">Nivel donde también puede recuperar {level.name}</span>
+                            también puede recuperar en
+                            <Select
+                              value={config.spot_lower_levels[level.id] ?? ''}
+                              onChange={e => {
+                                const next = { ...config.spot_lower_levels }
+                                if (e.target.value) next[level.id] = e.target.value
+                                else delete next[level.id]
+                                setConfig({ ...config, spot_lower_levels: next })
+                              }}
+                              className="w-auto"
+                            >
+                              <option value="">Solo el suyo</option>
+                              {clubLevels.filter(l => l.id !== level.id).map(l => (
+                                <option key={l.id} value={l.id}>{l.name}</option>
+                              ))}
+                            </Select>
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </CardBody>
           </Card>
 

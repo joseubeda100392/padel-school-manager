@@ -7,6 +7,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/rate-limit'
 import { parseClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
+import { canTakeSpot, parseLowerLevelMap } from '@/lib/spot-levels'
 import { getDayOfWeek, getScheduleDateTimeInMadrid } from '@/lib/utils'
 import { WAITLIST_MAX, getClassOccupancy, isWaitlistable } from '@/lib/waitlist'
 
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
   if ((schedule as any).is_private || schedule.type === 'intensivo') {
     return NextResponse.json({ error: 'En esta clase no se puede reservar' }, { status: 400 })
   }
-  if (schedule.level_id && profile.current_level_id && schedule.level_id !== profile.current_level_id) {
+  if (!canTakeSpot(profile.current_level_id, schedule.level_id, parseLowerLevelMap(config))) {
     return NextResponse.json({ error: 'Esta clase no es de tu nivel' }, { status: 403 })
   }
 
