@@ -160,16 +160,6 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
             </Field>
           )}
 
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={form.is_active}
-              onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-              className="h-5 w-5 rounded border-line-strong text-accent-ink focus:ring-accent-ink"
-            />
-            <label htmlFor="is_active" className="text-label text-ink">Clase activa (visible para los alumnos)</label>
-          </div>
 
           {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 

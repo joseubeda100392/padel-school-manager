@@ -32,6 +32,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
+  // Grupo en formación (schedules.is_active = false): el alumno queda como
+  // INTERESADO (status 'pending'). No ve la clase, no paga y no ocupa plaza en
+  // ningún cálculo hasta que el club arranca el grupo
+  // (/api/admin/schedules/[id]/start), porque todo lo demás de la app solo
+  // mira inscripciones 'active'.
+  const { data: target } = await admin.from('schedules').select('is_active, club_id, max_students').eq('id', scheduleId).single()
+  if (!target) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
+  if (adminUser.role !== 'super_admin' && target.club_id !== adminUser.club_id) {
+    return NextResponse.json({ error: 'Sin permisos sobre esta clase' }, { status: 403 })
+  }
+  if (target.is_active === false) {
+    if (replacesEnrollmentId) {
+      return NextResponse.json({ error: 'No se puede cambiar a un grupo que aún se está formando. Apúntale como interesado.' }, { status: 400 })
+    }
+    const [{ data: student }, { data: interested }] = await Promise.all([
+      admin.from('users').select('club_id').eq('id', studentId).single(),
+      admin.from('group_enrollments').select('student_id').eq('schedule_id', scheduleId).eq('status', 'pending'),
+    ])
+    if (!student || student.club_id !== target.club_id) {
+      return NextResponse.json({ error: 'El alumno no es de este club' }, { status: 400 })
+    }
+    if ((interested ?? []).some((e: { student_id: string }) => e.student_id === studentId)) {
+      return NextResponse.json({ error: 'Ya está apuntado como interesado.' }, { status: 409 })
+    }
+    if (target.max_students && (interested?.length ?? 0) >= target.max_students) {
+      return NextResponse.json({ error: `El grupo ya tiene ${target.max_students}/${target.max_students} interesados.` }, { status: 409 })
+    }
+    const { data, error } = await admin.from('group_enrollments').insert({
+      schedule_id: scheduleId,
+      student_id: studentId,
+      club_id: target.club_id,
+      monthly_price: monthlyPrice ?? 0,
+      price_per_class_cents: pricePerClassCents ?? null,
+      court_pricing: courtPricing ?? null,
+      status: 'pending',
+      enrolled_by: user.id,
+      enrolled_at: new Date().toISOString(),
+      paid_until: null,
+    }).select().single()
+    if (error) {
+      console.error('[group-enrollments] pending insert failed:', error.message)
+      return NextResponse.json({ error: 'No se ha podido apuntar al interesado' }, { status: 500 })
+    }
+    return NextResponse.json({ data })
+  }
+
   // Cambio de grupo: la inscripción vieja se sustituye por la nueva en un
   // solo paso, heredando lo pagado, la deuda y los descuentos. Así no importa
   // en qué orden lo haría el admin a mano (añadir y luego quitar dejaba el

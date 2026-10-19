@@ -27,6 +27,7 @@ export default function NewSchedulePage() {
     type: 'regular' as 'regular' | 'intensivo',
     price_cents: 0,
     is_private: false,
+    forming: false,
   })
   const [intensivoDays, setIntensivoDays] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
@@ -98,6 +99,7 @@ export default function NewSchedulePage() {
           price_cents: form.price_cents > 0 ? form.price_cents : null,
           intensivo_group_id: intensivoGroupId,
           is_private: canBePrivate && form.is_private,
+          is_active: !(form.forming && form.type === 'regular' && form.recurrence !== 'none'),
         }),
       })
       const json = await res.json().catch(() => ({}))
@@ -204,6 +206,17 @@ export default function NewSchedulePage() {
                 className="mt-0.5 h-5 w-5 rounded border-line-strong text-accent-ink focus:ring-accent-ink" />
               <label htmlFor="is_private" className="text-label text-ink">
                 Es clase particular <span className="font-normal text-ink-3">(1 a 1: el máximo de alumnos pasa a 1 y se cobra con las tarifas de particular)</span>
+              </label>
+            </div>
+          )}
+
+          {form.type === 'regular' && form.recurrence !== 'none' && (
+            <div className="flex items-start gap-3 rounded-control bg-surface-2 px-4 py-3">
+              <input type="checkbox" id="forming" checked={form.forming}
+                onChange={(e) => setForm({ ...form, forming: e.target.checked })}
+                className="mt-0.5 h-5 w-5 rounded border-line-strong text-accent-ink focus:ring-accent-ink" />
+              <label htmlFor="forming" className="text-label text-ink">
+                Grupo en formación <span className="font-normal text-ink-3">(aún no arranca: apuntas interesados y, cuando esté completo, lo arrancas. Hasta entonces los alumnos no lo ven ni pagan)</span>
               </label>
             </div>
           )}

@@ -133,6 +133,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
       enrollments:group_enrollments(student_id, status, start_date, end_date)
     `)
     .eq('club_id', myClubId ?? '')
+    .eq('is_active', true)
 
   const myScheduleIds = new Set((myEnrollments ?? []).map(e => e.schedule_id))
   const balance60 = bag?.balance_60 ?? 0

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { canAccessClub } from '@/lib/get-club'
+import { StartGroup } from './start-group'
 import { notFound } from 'next/navigation'
 import { formatDate, formatTime, getDayOfWeek, mostCommonMonthlyPrice } from '@/lib/utils'
 import { getHolidaySet } from '@/lib/club-holidays'
@@ -54,6 +55,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     .single()
 
   if (!schedule || !(await canAccessClub(schedule.club_id))) notFound()
+  // Grupo en formación: se ven sus interesados ('pending'), no sus alumnos.
+  const forming = (schedule as any).is_active === false
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   // Si venimos de una celda concreta del calendario semanal (?date=), respetar
@@ -97,7 +100,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       .from('group_enrollments')
       .select('id, monthly_price, price_per_class_cents, court_pricing, discount_classes_pending, paid_until, status, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
       .eq('schedule_id', params.id)
-      .eq('status', 'active')
+      .eq('status', forming ? 'pending' : 'active')
       .order('enrolled_at'),
     admin
       .from('users')
@@ -169,7 +172,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     const excls = exclusionsByEnrollment[e.id] ?? []
     return !excls.some((x: any) => x.excluded_date === nextDate)
   }).length
-  const enrolled = nextDateSpots.length + groupAttendingNextDate
+  const enrolled = forming ? (groupEnrollments?.length ?? 0) : nextDateSpots.length + groupAttendingNextDate
 
   const nextDateLabel = formatLongDate(nextDate)
 
@@ -211,6 +214,15 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
         description="El grupo, sus cobros y las faltas de esta clase."
       />
 
+      {forming && (
+        <StartGroup
+          scheduleId={params.id}
+          interested={groupEnrollments?.length ?? 0}
+          maxStudents={schedule.max_students}
+          defaultDate={nextDate ?? todaySpain}
+        />
+      )}
+
       {/* En móvil, las acciones de gestión van al final: lo primero es el
           grupo y sus cobros, que es para lo que se entra aquí. */}
       <section
@@ -250,7 +262,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
               <p className="font-display text-display tabular-nums text-ink">
                 {enrolled}<span className="text-heading text-ink-3">/{schedule.max_students}</span>
               </p>
-              <p className="text-meta text-ink-3">alumnos</p>
+              <p className="text-meta text-ink-3">{forming ? 'interesados' : 'alumnos'}</p>
               <p className="mt-1 text-meta text-ink-3">{nextDateLabel}</p>
             </div>
           </div>
@@ -265,20 +277,20 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
             <p className="mt-1 text-meta tabular-nums text-ink-3">{schedule.max_students - enrolled} plazas libres</p>
           </div>
 
-          <TimeOverride
+          {!forming && <TimeOverride
             scheduleId={params.id}
             nextDate={nextDate}
             nextDateLabel={nextDateLabel}
             existingOverride={timeOverride ?? null}
-          />
-          <CoachOverride
+          />}
+          {!forming && <CoachOverride
             scheduleId={params.id}
             nextDate={nextDate}
             nextDateLabel={nextDateLabel}
             coaches={coaches ?? []}
             existingOverride={coachOverride ?? null}
             regularCoachId={(schedule as any).coach_id ?? null}
-          />
+          />}
         </CardBody>
       </Card>
 
@@ -319,14 +331,15 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           enablePayments={paymentsActive}
           enableSpots={features.enable_spots}
           enableClassValidation={features.enable_class_validation}
+          forming={forming}
         />
       )}
 
-      {features.enable_waitlist && <ClassWaitlistPanel scheduleId={params.id} />}
+      {features.enable_waitlist && !forming && <ClassWaitlistPanel scheduleId={params.id} />}
 
       {features.enable_materials && <ScheduleMaterials scheduleId={params.id} />}
 
-      {features.enable_spots && (
+      {features.enable_spots && !forming && (
         <Card>
           <CardHeader
             title="Reservas puntuales"

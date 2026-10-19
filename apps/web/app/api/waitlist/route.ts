@@ -47,13 +47,13 @@ export async function POST(req: NextRequest) {
 
   const { data: schedule } = await admin
     .from('schedules')
-    .select('id, club_id, level_id, type, is_private, max_students, start_time, end_time, recurrence_end_date')
+    .select('id, club_id, level_id, type, is_private, is_active, max_students, start_time, end_time, recurrence_end_date')
     .eq('id', scheduleId)
     .single()
   if (!schedule || schedule.club_id !== profile.club_id) {
     return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
   }
-  if ((schedule as any).is_private || schedule.type === 'intensivo') {
+  if ((schedule as any).is_private || schedule.type === 'intensivo' || (schedule as any).is_active === false) {
     return NextResponse.json({ error: 'En esta clase no se puede reservar' }, { status: 400 })
   }
   if (!canTakeSpot(profile.current_level_id, schedule.level_id, parseLowerLevelMap(config))) {

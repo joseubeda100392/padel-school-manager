@@ -223,6 +223,7 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
                       <Badge tone="neutral">
                         {s.recurrence === 'weekly' ? 'Semanal' : s.recurrence === 'biweekly' ? 'Quincenal' : 'Única'}
                       </Badge>
+                      {s.forming && <Badge tone="warn">En formación · {s.interested_count}/{s.max_students}</Badge>}
                       {s.is_fixed_group && <Badge tone="outline">Grupo fijo</Badge>}
                       {(s.type === 'intensivo') && <Badge tone="outline">Intensivo</Badge>}
                     </div>

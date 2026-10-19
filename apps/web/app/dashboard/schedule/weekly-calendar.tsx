@@ -205,7 +205,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                   <button
                     key={s.id}
                     onClick={() => router.push(`/dashboard/schedule/${s.id}?date=${dateStr}`)}
-                    className="w-full rounded-control border border-line bg-surface p-3 text-left shadow-card transition-colors hover:border-line-strong md:p-2.5"
+                    className={`w-full rounded-control border p-3 text-left shadow-card transition-colors hover:border-line-strong md:p-2.5 ${s.forming ? 'border-dashed border-line-strong bg-surface-2' : 'border-line bg-surface'}`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-1">
                       <p className="flex items-center gap-1 whitespace-nowrap text-label tabular-nums text-ink">
@@ -216,6 +216,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                         )}
                       </p>
                       <div className="flex shrink-0 flex-wrap gap-1">
+                        {s.forming && <Badge tone="warn">En formación</Badge>}
                         {s.is_fixed_group && <Badge tone="outline">Fijo</Badge>}
                         {s.type === 'intensivo' && <Badge tone="outline">Intensivo</Badge>}
                       </div>
@@ -223,7 +224,11 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
                     <p className="mt-0.5 truncate text-meta text-ink-2">{s.court?.name ?? '—'}</p>
                     <p className="truncate text-meta text-ink-3">{s.coach?.name ?? '—'}</p>
                     {s.level && <LevelTag name={s.level.name} color={s.level.color} className="mt-1" />}
-                    {occupancy !== undefined && (
+                    {s.forming ? (
+                      <p className="mt-1 text-meta tabular-nums text-warn-ink">
+                        {s.interested_count}/{s.max_students} interesados
+                      </p>
+                    ) : occupancy !== undefined && (
                       <p className="mt-1 text-meta tabular-nums text-ink-3">
                         {occupancy}/{s.max_students} plazas
                       </p>

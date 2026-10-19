@@ -43,7 +43,6 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const schedulesQuery = admin
     .from('schedules')
     .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name), level:levels(name, color)')
-    .eq('is_active', true)
     .order('start_time', { ascending: true })
     .limit(200)
 
@@ -53,7 +52,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     .eq('is_active', true)
     .order('name')
 
-  const [{ data: rawSchedules, error: errSchedules }, { data: courts, error: errCourts }, { data: enrollmentsRaw, error: errEnrollments }, { data: clubRow }] = await Promise.all([
+  const [{ data: rawSchedules, error: errSchedules }, { data: courts, error: errCourts }, { data: enrollmentsRaw, error: errEnrollments }, { data: clubRow }, { data: interestedRaw }] = await Promise.all([
     clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
     admin
@@ -61,7 +60,11 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
       .select('id, schedule_id, schedule_exclusions(excluded_date)')
       .eq('status', 'active'),
     clubId ? admin.from('clubs').select('config, features').eq('id', clubId).single() : Promise.resolve({ data: null }),
+    // Interesados de los grupos en formación
+    admin.from('group_enrollments').select('schedule_id').eq('status', 'pending'),
   ])
+  const interestedMap: Record<string, number> = {}
+  for (const e of interestedRaw ?? []) interestedMap[e.schedule_id] = (interestedMap[e.schedule_id] ?? 0) + 1
 
   const features = parseClubFeatures((clubRow as any)?.features)
 
@@ -155,6 +158,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
     reference_date: nextDateMap[s.id],
+    forming: s.is_active === false,
+    interested_count: interestedMap[s.id] ?? 0,
   }))
 
   return (

@@ -104,6 +104,7 @@ export default function GroupEnrollment({
   enableSpots = true,
   enableClassValidation = false,
   holidays = [],
+  forming = false,
 }: {
   scheduleId: string
   scheduleStartTime: string
@@ -118,6 +119,8 @@ export default function GroupEnrollment({
   enableSpots?: boolean
   enableClassValidation?: boolean
   holidays?: string[]
+  // Grupo en formación: lista de interesados, sin cobros ni faltas.
+  forming?: boolean
 }) {
   const router = useRouter()
   const confirm = useConfirm()
@@ -248,8 +251,8 @@ export default function GroupEnrollment({
 
   async function handleRemove(id: string) {
     if (!(await confirm({
-      title: '¿Quitar al alumno del grupo fijo?',
-      description: 'Dejará de tener plaza permanente en esta clase.',
+      title: forming ? '¿Quitar de los interesados?' : '¿Quitar al alumno del grupo fijo?',
+      description: forming ? 'Dejará de estar apuntado a este grupo en formación.' : 'Dejará de tener plaza permanente en esta clase.',
       confirmLabel: 'Quitar del grupo',
       destructive: true,
     }))) return
@@ -403,8 +406,10 @@ export default function GroupEnrollment({
   return (
     <Card>
       <CardHeader
-        title="Grupo fijo"
-        description={`Alumnos con plaza permanente${enablePayments ? ` · Cuota de ${billingTarget(false).monthLabel}` : ''}`}
+        title={forming ? 'Interesados' : 'Grupo fijo'}
+        description={forming
+          ? 'Apúntalos aquí mientras el grupo se forma: no ven la clase ni pagan hasta que lo arranques.'
+          : `Alumnos con plaza permanente${enablePayments ? ` · Cuota de ${billingTarget(false).monthLabel}` : ''}`}
       />
 
       {markPaidError && (
@@ -418,7 +423,7 @@ export default function GroupEnrollment({
       )}
 
       {enrollments.length === 0 ? (
-        <p className="px-4 py-6 text-body text-ink-3 sm:px-5">Aún no hay alumnos en el grupo fijo. Añade el primero abajo.</p>
+        <p className="px-4 py-6 text-body text-ink-3 sm:px-5">{forming ? 'Aún no hay interesados. Apunta al primero abajo.' : 'Aún no hay alumnos en el grupo fijo. Añade el primero abajo.'}</p>
       ) : (
         <div className="mt-3 divide-y divide-line border-t border-line">
           {enrollments.map((e) => {
@@ -530,7 +535,7 @@ export default function GroupEnrollment({
                       </Badge>
                     )}
 
-                    {enablePayments && (
+                    {enablePayments && !forming && (
                       paid ? (
                         <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagado</Badge>
                       ) : (
@@ -541,7 +546,7 @@ export default function GroupEnrollment({
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {enablePayments && !paid && (
+                  {enablePayments && !paid && !forming && (
                     <>
                       <Button variant="secondary" size="sm" onClick={() => handleMarkPaid(e.id, 'cash')} loading={isLoading}>
                         <Banknote className="h-4 w-4" aria-hidden />
@@ -554,15 +559,17 @@ export default function GroupEnrollment({
                     </>
                   )}
 
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    aria-expanded={showFaltaForm}
-                    onClick={() => showFaltaForm ? setFaltaFormId(null) : openFaltaForm(e.id)}
-                    disabled={isLoading}
-                  >
-                    Registrar falta
-                  </Button>
+                  {!forming && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      aria-expanded={showFaltaForm}
+                      onClick={() => showFaltaForm ? setFaltaFormId(null) : openFaltaForm(e.id)}
+                      disabled={isLoading}
+                    >
+                      Registrar falta
+                    </Button>
+                  )}
 
                   <Button variant="danger-ghost" size="sm" onClick={() => handleRemove(e.id)} loading={isLoading}>
                     Quitar del grupo
@@ -649,7 +656,7 @@ export default function GroupEnrollment({
       )}
 
       <div className="border-t border-line px-4 py-4 sm:px-5">
-        <p className="mb-3 text-label text-ink">Añadir alumno al grupo fijo</p>
+        <p className="mb-3 text-label text-ink">{forming ? 'Apuntar interesado' : 'Añadir alumno al grupo fijo'}</p>
         {addError && (
           <p role="alert" className="mb-2 text-meta font-medium text-danger-ink">{addError}</p>
         )}
@@ -695,7 +702,7 @@ export default function GroupEnrollment({
             </Field>
           )}
           <Button onClick={handleAdd} disabled={!selectedStudentId} loading={adding} className="w-full sm:w-auto">
-            Añadir al grupo
+            {forming ? 'Apuntar' : 'Añadir al grupo'}
           </Button>
         </div>
       </div>

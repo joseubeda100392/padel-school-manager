@@ -15,8 +15,7 @@ export default async function MasterSchedulePage() {
 
   const schedulesQuery = admin
     .from('schedules')
-    .select('id, start_time, end_time, recurrence, recurrence_end_date, coach:users!schedules_coach_id_fkey(name), level:levels(name, description, color)')
-    .eq('is_active', true)
+    .select('id, is_active, start_time, end_time, recurrence, recurrence_end_date, coach:users!schedules_coach_id_fkey(name), level:levels(name, description, color)')
     .eq('type', 'regular')
     .order('start_time', { ascending: true })
     .limit(200)
@@ -25,8 +24,8 @@ export default async function MasterSchedulePage() {
     clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
     admin
       .from('group_enrollments')
-      .select('schedule_id, student:users!group_enrollments_student_id_fkey(name)')
-      .eq('status', 'active'),
+      .select('schedule_id, status, student:users!group_enrollments_student_id_fkey(name)')
+      .in('status', ['active', 'pending']),
   ])
 
   // Alumnos del grupo fijo por horario (roster completo, sin filtrar por faltas)
@@ -41,6 +40,8 @@ export default async function MasterSchedulePage() {
   const schedules = (rawSchedules ?? []).map((s: any) => ({
     ...s,
     students: studentsBySchedule[s.id] ?? [],
+    // Grupo en formación: sus nombres son los interesados (status 'pending').
+    forming: s.is_active === false,
   }))
 
   return (

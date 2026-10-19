@@ -20,10 +20,11 @@ export async function POST(req: NextRequest) {
 
   const [{ data: userProfile }, { data: schedule }] = await Promise.all([
     admin.from('users').select('club_id').eq('id', user.id).single(),
-    admin.from('schedules').select('id, max_students, start_time, end_time, club_id, recurrence_end_date').eq('id', scheduleId).single(),
+    admin.from('schedules').select('id, max_students, start_time, end_time, club_id, recurrence_end_date, is_active').eq('id', scheduleId).single(),
   ])
 
   if (!schedule) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
+  if ((schedule as any).is_active === false) return NextResponse.json({ error: 'Este grupo todavía se está formando' }, { status: 409 })
 
   if ((userProfile as any)?.club_id && (schedule as any).club_id !== (userProfile as any).club_id) {
     return NextResponse.json({ error: 'Sin acceso a esta clase' }, { status: 403 })

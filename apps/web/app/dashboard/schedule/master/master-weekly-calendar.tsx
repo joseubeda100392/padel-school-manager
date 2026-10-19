@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
-import { LevelTag } from '@/components/ui/badge'
+import { Badge, LevelTag } from '@/components/ui/badge'
 
 const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 // JS getDay: 0=Dom,1=Lun... → map to our index (Mon=0)
@@ -50,13 +50,14 @@ export default function MasterWeeklyCalendar({ schedules, readOnly = false }: { 
                   type="button"
                   onClick={readOnly ? undefined : () => router.push(`/dashboard/schedule/${s.id}?from=master`)}
                   disabled={readOnly}
-                  className={`w-full rounded-control border border-line bg-surface p-3 text-left shadow-card transition-colors ${
+                  className={`w-full rounded-control border p-3 text-left shadow-card transition-colors ${s.forming ? 'border-dashed border-line-strong bg-surface-2' : 'border-line bg-surface'} ${
                     readOnly ? 'cursor-default' : 'hover:border-line-strong'
                   }`}
                 >
                   <p className="text-label tabular-nums text-ink">
                     {formatTime(s.start_time)} – {formatTime(s.end_time)}
                   </p>
+                  {s.forming && <Badge tone="warn" className="mt-1">En formación · {s.students?.length ?? 0} interesados</Badge>}
                   <p className="truncate text-meta text-ink-2">{s.coach?.name ?? '—'}</p>
                   {(s.level?.description || s.level?.name) && (
                     <LevelTag name={s.level.description || s.level.name} color={s.level.color} className="mt-1" />
