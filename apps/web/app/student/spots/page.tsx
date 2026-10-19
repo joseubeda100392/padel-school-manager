@@ -10,6 +10,15 @@ import { getHolidaySet } from '@/lib/club-holidays'
 import { canTakeSpot, parseLowerLevelMap } from '@/lib/spot-levels'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
+type Attendee = { name: string; level: string | null }
+
+// "Lucía Martín García" → "Lucía M."
+function shortName(full: string | null): string {
+  const parts = (full ?? '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'Alumno'
+  return parts.length > 1 ? `${parts[0]} ${parts[1][0].toUpperCase()}.` : parts[0]
+}
 const TZ = 'Europe/Madrid'
 
 // Todas las ocurrencias de un horario dentro de [rangeStart, rangeEnd] — a
@@ -203,12 +212,38 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   // plaza que en realidad ya está completa, ni bloquear una que sí está libre.
   const [{ data: exclusionsForCapacity }, { data: bookingsForCapacity }] = await Promise.all([
     idsForRealCount.length
-      ? admin.from('group_enrollments').select('id, schedule_id, schedule_exclusions(excluded_date, publish_spot)').in('schedule_id', idsForRealCount).eq('status', 'active')
+      ? admin.from('group_enrollments').select('id, schedule_id, student_id, start_date, end_date, schedule_exclusions(excluded_date, publish_spot)').in('schedule_id', idsForRealCount).eq('status', 'active')
       : { data: [] },
     idsForRealCount.length
-      ? admin.from('bookings').select('schedule_id, class_date').eq('status', 'confirmed').in('schedule_id', idsForRealCount)
+      ? admin.from('bookings').select('schedule_id, class_date, student_id').eq('status', 'confirmed').in('schedule_id', idsForRealCount)
       : { data: [] },
   ])
+
+  // Quién va a cada clase ese día (opción del club): fijos activos sin falta
+  // ese día más reservas puntuales. Solo nombre, inicial del apellido y nivel.
+  const showAttendees = (clubRow as any)?.config?.spots_show_attendees === 1
+  let attendeesFor: (scheduleId: string, classDate: string) => Attendee[] = () => []
+  if (showAttendees) {
+    const ids = [...new Set([
+      ...(exclusionsForCapacity ?? []).map((e: any) => e.student_id as string),
+      ...(bookingsForCapacity ?? []).map((b: any) => b.student_id as string),
+    ])].filter(id => id && id !== user.id)
+    const [{ data: people }, { data: clubLevels }] = await Promise.all([
+      ids.length ? admin.from('users').select('id, name, current_level_id').in('id', ids) : Promise.resolve({ data: [] as any[] }),
+      admin.from('levels').select('id, name').eq('club_id', myClubId ?? ''),
+    ])
+    const levelName = new Map((clubLevels ?? []).map((l: any) => [l.id, l.name as string]))
+    const byId = new Map((people ?? []).map((p: any) => [p.id, { name: shortName(p.name), level: levelName.get(p.current_level_id) ?? null }]))
+    attendeesFor = (scheduleId, classDate) => {
+      const fixed = (exclusionsForCapacity ?? [])
+        .filter((e: any) => e.schedule_id === scheduleId
+          && (!e.start_date || e.start_date <= classDate) && (!e.end_date || e.end_date >= classDate)
+          && !(e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === classDate))
+        .map((e: any) => e.student_id)
+      const booked = (bookingsForCapacity ?? []).filter((b: any) => b.schedule_id === scheduleId && b.class_date === classDate).map((b: any) => b.student_id)
+      return [...fixed, ...booked].map(id => byId.get(id)).filter((a): a is Attendee => !!a)
+    }
+  }
 
   // activeEnrollments se filtra por start_date/end_date respecto a
   // classDate — un sustituto con alta futura o una baja ya efectiva ese día
@@ -251,7 +286,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   const absenceSpots = absenceCandidates.filter(spot => {
     const active = ((schedulesById[spot.scheduleId]?.enrollments ?? []) as any[]).filter((e: any) => e.status === 'active')
     return realAttendingCount(spot.scheduleId, active, spot.excludedDate) < spot.maxStudents
-  })
+  }).map(spot => ({ ...spot, attendees: attendeesFor(spot.scheduleId, spot.excludedDate) }))
 
   const capacitySpots = candidateIds.flatMap((scheduleId) => {
     const s = schedulesById[scheduleId]
@@ -292,6 +327,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
         maxStudents: s.max_students,
         level: s.level as any,
         enrolledCount: realAttendingCount(scheduleId, active, classDate),
+        attendees: attendeesFor(scheduleId, classDate),
       }))
   }).sort((a, b) => a.excludedDate.localeCompare(b.excludedDate))
 
@@ -328,6 +364,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
           level: (s.level as any) ?? null,
           maxStudents: s.max_students,
           waitingCount: 0,
+          attendees: attendeesFor(s.id, classDate),
         })
       }
     }

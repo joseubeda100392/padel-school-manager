@@ -16,6 +16,8 @@ const DEFAULT_CONFIG = {
   cancellation_hours: 24,
   falta_advance_months: 0,
   max_recovery_classes: 0,
+  // 1 = en Huecos, el alumno ve quién va a esa clase (nombre, inicial y nivel)
+  spots_show_attendees: 0,
   school_name: 'Mi Escuela de Pádel',
   billing_start_date: '',
   standard_discount_cents: 4000,

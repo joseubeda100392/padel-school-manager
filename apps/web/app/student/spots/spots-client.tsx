@@ -30,6 +30,17 @@ interface Spot {
   maxStudents: number
   level: { name: string; color: string } | null
   enrolledCount: number | null
+  attendees?: { name: string; level: string | null }[]
+}
+
+function Attendees({ list }: { list?: { name: string; level: string | null }[] }) {
+  if (!list?.length) return null
+  return (
+    <p className="mt-2 text-meta text-ink-2">
+      <span className="font-medium text-ink">Van: </span>
+      {list.map(a => (a.level ? `${a.name} (${a.level})` : a.name)).join(', ')}
+    </p>
+  )
 }
 
 function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true, cashOnly = false, payPerClassPrice60, payPerClassPrice90, wholeClassPrice60, wholeClassPrice90 }: { spot: Spot; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean; cashOnly?: boolean; payPerClassPrice60: number; payPerClassPrice90: number; wholeClassPrice60: number; wholeClassPrice90: number }) {
@@ -126,6 +137,7 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
           </span>
           {isIntensivo && <Badge tone="outline">Intensivo</Badge>}
         </div>
+        <Attendees list={spot.attendees} />
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2/60 px-4 py-3 sm:px-5">
@@ -188,6 +200,7 @@ export interface WaitlistData {
     waitingCount: number
     myEntryId?: string
     myPosition?: number
+    attendees?: { name: string; level: string | null }[]
   }[]
   mine: { id: string; date: string; startTime: string; endTime: string; courtName: string; position: number }[]
 }
@@ -266,6 +279,7 @@ function FullClassCard({ cls, max, balance60, balance90 }: { cls: WaitlistData['
             ? <Badge tone="success"><Hourglass className="h-3.5 w-3.5" aria-hidden />Eres el {ordinal(cls.myPosition)} en reserva</Badge>
             : <span className="text-meta text-ink-3">En reserva: {cls.waitingCount}/{max}</span>}
         </div>
+        <Attendees list={cls.attendees} />
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2/60 px-4 py-3 sm:px-5">
         {cls.myEntryId ? (

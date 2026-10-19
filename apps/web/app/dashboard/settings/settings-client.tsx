@@ -76,6 +76,7 @@ interface AppConfig {
   cancellation_hours: number
   falta_advance_months: number
   max_recovery_classes: number
+  spots_show_attendees: number
   spot_lower_levels: Record<string, string>
   billing_start_date: string
   standard_discount_cents: number
@@ -134,6 +135,7 @@ const defaults: AppConfig = {
   cancellation_hours: 24,
   falta_advance_months: 0,
   max_recovery_classes: 0,
+  spots_show_attendees: 0,
   spot_lower_levels: {},
   billing_start_date: '',
   standard_discount_cents: 4000,
@@ -1287,6 +1289,19 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
                   </span>
                 </div>
               </Field>
+
+              <label className="mt-6 flex items-start gap-3 border-t border-line pt-5">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-[rgb(var(--accent))]"
+                  checked={config.spots_show_attendees === 1}
+                  onChange={e => setConfig({ ...config, spots_show_attendees: e.target.checked ? 1 : 0 })}
+                />
+                <span>
+                  <span className="block text-label text-ink">Mostrar quién va a cada clase en Huecos</span>
+                  <span className="block text-meta text-ink-3">El alumno ve el nombre, la inicial del apellido y el nivel de los que van ese día (por ejemplo, "Lucía M. · Medio"), para elegir mejor dónde recuperar. Son datos de otros alumnos: actívalo solo si tu club lo permite.</span>
+                </span>
+              </label>
 
               {clubLevels.length > 1 && (
                 <div className="mt-6 border-t border-line pt-5">
