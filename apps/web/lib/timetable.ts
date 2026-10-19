@@ -39,17 +39,22 @@ export function classesBySlot<T extends { startMin: number }>(
   return out.map(slot => [...slot].sort((a, b) => a.startMin - b.startMin))
 }
 
-// Pistas sin clase en cada franja de un día. Cuenta pistas distintas, no
-// clases, para no restar dos veces si dos grupos comparten pista.
+// Pistas en las que cabe una clase nueva empezando en cada franja: sin ninguna
+// clase durante al menos `minMinutes` (1 h por defecto; un hueco de media hora
+// no sirve para abrir un grupo). Cuenta pistas distintas, no clases, para no
+// restar dos veces si dos grupos comparten pista.
+export const MIN_NEW_CLASS_MINUTES = 60
+
 export function freeCourtsBySlot(
   dayClasses: TimetableClass[],
   courtsCount: number,
   range: { startMin: number; endMin: number },
+  minMinutes = MIN_NEW_CLASS_MINUTES,
 ): number[] {
   const out: number[] = []
   for (let t = range.startMin; t < range.endMin; t += SLOT_MINUTES) {
-    const slot = { startMin: t, endMin: t + SLOT_MINUTES }
-    const busy = new Set(dayClasses.filter(c => overlaps(c, slot)).map(c => c.courtId ?? c.id))
+    const window = { startMin: t, endMin: Math.min(t + minMinutes, range.endMin) }
+    const busy = new Set(dayClasses.filter(c => overlaps(c, window)).map(c => c.courtId ?? c.id))
     out.push(Math.max(0, courtsCount - busy.size))
   }
   return out

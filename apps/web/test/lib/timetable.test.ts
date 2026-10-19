@@ -28,10 +28,19 @@ describe('classesBySlot', () => {
 })
 
 describe('freeCourtsBySlot', () => {
-  const range = { startMin: 18 * 60, endMin: 20 * 60 } // 18:00, 18:30, 19:00, 19:30
-  it('resta las pistas ocupadas en cada media hora', () => {
-    const free = freeCourtsBySlot([c('a', '18:00', '19:00', 'p1'), c('b', '18:30', '19:30', 'p2')], 3, range)
-    expect(free).toEqual([2, 1, 2, 3])
+  const range = { startMin: 18 * 60, endMin: 21 * 60 } // 18:00 … 20:30
+  it('cuenta las pistas libres durante al menos 1 hora desde cada franja', () => {
+    const free = freeCourtsBySlot([c('a', '18:00', '19:00', 'p1'), c('b', '19:30', '20:30', 'p2')], 3, range)
+    // 18:00 y 18:30 chocan con a; de 19:00 a 20:00, con b; a las 20:30 ya no hay nada
+    expect(free).toEqual([2, 2, 2, 2, 2, 3])
+  })
+  it('un hueco de media hora entre dos clases no cuenta como libre', () => {
+    const free = freeCourtsBySlot([c('a', '18:00', '19:00', 'p1'), c('b', '19:30', '20:30', 'p1')], 1, range)
+    expect(free[2]).toBe(0) // 19:00: solo hay media hora hasta b
+  })
+  it('con otra duración mínima, cuenta esa', () => {
+    const free = freeCourtsBySlot([c('a', '18:00', '19:00', 'p1'), c('b', '19:30', '20:30', 'p1')], 1, range, 30)
+    expect(free[2]).toBe(1)
   })
   it('dos grupos en la misma pista (uno en formación) restan una sola pista', () => {
     const free = freeCourtsBySlot([c('a', '18:00', '19:00', 'p1'), c('b', '18:00', '19:00', 'p1')], 3, range)

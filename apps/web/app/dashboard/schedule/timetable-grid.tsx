@@ -76,7 +76,7 @@ export function TimetableGrid({ columns, classes, courtsCount }: { columns: Grid
           </Select>
         </Field>
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-meta text-ink-3">
-          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-accent-soft" aria-hidden />Hay pistas libres ({courtsCount} en total; si ya hay clases a esa hora, pone cuántas quedan)</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-accent-soft" aria-hidden />Cabe una clase nueva de al menos 1 h empezando a esa hora ({courtsCount} pistas en total; si ya hay clases, pone en cuántas pistas)</span>
           <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border border-dashed border-line-strong bg-surface-2" aria-hidden />En formación</span>
         </p>
       </div>
@@ -111,7 +111,7 @@ export function TimetableGrid({ columns, classes, courtsCount }: { columns: Grid
           })}
         </div>
       </div>
-      <p className="text-meta text-ink-3">"Libre" es sin clase de la escuela a esa hora: la app no conoce los alquileres de pista que se hagan fuera de ella.</p>
+      <p className="text-meta text-ink-3">"Pista libre" es una pista sin clase de la escuela durante al menos 1 hora desde esa franja. La app no conoce los alquileres de pista que se hagan fuera de ella.</p>
     </div>
   )
 }
@@ -133,7 +133,7 @@ function SlotCell({ classes, prefix, free, courtsCount, isHoliday, rowLine }: {
           interesa saber cuántas pistas quedan para abrir otro grupo. */}
       {hasFree && free < courtsCount && (
         <span className="text-right text-[0.6875rem] font-semibold leading-tight text-accent-ink">
-          {free} {free === 1 ? 'libre' : 'libres'}
+          {free === 1 ? '1 pista libre' : `${free} pistas libres`}
         </span>
       )}
     </div>
