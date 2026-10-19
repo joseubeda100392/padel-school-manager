@@ -212,7 +212,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   // plaza que en realidad ya está completa, ni bloquear una que sí está libre.
   const [{ data: exclusionsForCapacity }, { data: bookingsForCapacity }] = await Promise.all([
     idsForRealCount.length
-      ? admin.from('group_enrollments').select('id, schedule_id, student_id, start_date, end_date, schedule_exclusions(excluded_date, publish_spot)').in('schedule_id', idsForRealCount).eq('status', 'active')
+      ? admin.from('group_enrollments').select('id, schedule_id, student_id, start_date, end_date, schedule_exclusions(excluded_date, publish_spot, spot_taken)').in('schedule_id', idsForRealCount).eq('status', 'active')
       : { data: [] },
     idsForRealCount.length
       ? admin.from('bookings').select('schedule_id, class_date, student_id').eq('status', 'confirmed').in('schedule_id', idsForRealCount)
@@ -270,7 +270,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   function hasUnpublishedOpening(scheduleId: string, classDate: string): boolean {
     return (exclusionsForCapacity ?? []).some((e: any) =>
       e.schedule_id === scheduleId &&
-      (e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === classDate && x.publish_spot === false)
+      (e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === classDate && x.publish_spot === false && x.spot_taken !== true)
     )
   }
 

@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
     if (meta.exclusion_id) {
       await adminSupabase
         .from('schedule_exclusions')
-        .update({ publish_spot: false })
+        .update({ publish_spot: false, spot_taken: true })
         .eq('id', meta.exclusion_id)
     }
 

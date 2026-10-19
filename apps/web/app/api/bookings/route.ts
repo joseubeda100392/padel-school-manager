@@ -160,16 +160,15 @@ export async function DELETE(req: NextRequest) {
   const { error: deleteErr } = await admin.from('bookings').delete().eq('id', booking.id)
   if (deleteErr) return NextResponse.json({ error: 'Error al cancelar la reserva' }, { status: 500 })
 
-  // Si esta reserva ocupaba un "hueco por falta" (schedule_exclusions.publish_spot
-  // se puso a false al reservarlo), volver a publicarlo para que esté
-  // disponible de nuevo. No hace nada si era una reserva por capacidad libre
-  // (no tiene exclusion asociada).
+  // Si esta reserva ocupaba la plaza de una falta (spot_taken), se vuelve a
+  // publicar para que esté disponible de nuevo. Una falta no publicada y sin
+  // cubrir la gestiona el club a mano: no se toca.
   if ((booking as any).class_date) {
     const { data: candidateExclusions } = await admin
       .from('schedule_exclusions')
       .select('id, group_enrollment_id')
       .eq('excluded_date', (booking as any).class_date)
-      .eq('publish_spot', false)
+      .eq('spot_taken', true)
     if (candidateExclusions && candidateExclusions.length > 0) {
       const enrollmentIds = candidateExclusions.map((x: any) => x.group_enrollment_id)
       const { data: matchingEnrollments } = await admin
@@ -180,7 +179,7 @@ export async function DELETE(req: NextRequest) {
       const matchingEnrollmentIds = new Set((matchingEnrollments ?? []).map((e: any) => e.id))
       const exclusionToRepublish = candidateExclusions.find((x: any) => matchingEnrollmentIds.has(x.group_enrollment_id))
       if (exclusionToRepublish) {
-        await admin.from('schedule_exclusions').update({ publish_spot: true }).eq('id', exclusionToRepublish.id)
+        await admin.from('schedule_exclusions').update({ publish_spot: true, spot_taken: false }).eq('id', exclusionToRepublish.id)
       }
     }
     // Plaza libre: si hay alguien en reserva, entra el primero.

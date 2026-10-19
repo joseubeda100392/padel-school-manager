@@ -147,7 +147,7 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
     enrollmentIds.length
       ? getAdminClient()
           .from('schedule_exclusions')
-          .select('id, group_enrollment_id, excluded_date, publish_spot')
+          .select('id, group_enrollment_id, excluded_date, publish_spot, spot_taken')
           .in('group_enrollment_id', enrollmentIds)
           .gte('excluded_date', today)
           .order('excluded_date')
@@ -203,7 +203,7 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
     const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides, occurrenceCount, maxDateFor(schedule?.recurrence_end_date), holidaySet)
     const myExclusions = (exclusionsRaw ?? [])
       .filter((x: any) => x.group_enrollment_id === e.id)
-      .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))
+      .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot, spot_taken: x.spot_taken === true }))
 
     return {
       enrollmentId: e.id,

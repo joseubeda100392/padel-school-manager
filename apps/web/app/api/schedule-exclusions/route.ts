@@ -201,7 +201,7 @@ export async function PATCH(req: NextRequest) {
 
   const { data: exclusionBefore } = await admin
     .from('schedule_exclusions')
-    .select('excluded_date, group_enrollment_id, publish_spot')
+    .select('excluded_date, group_enrollment_id, publish_spot, spot_taken')
     .eq('id', id)
     .single()
 
@@ -213,6 +213,11 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
       }
     }
+  }
+
+  // Su plaza ya la ocupa otro alumno: publicarla otra vez daría una plaza de más.
+  if (publish_spot && exclusionBefore?.spot_taken) {
+    return NextResponse.json({ error: 'Esta plaza ya la ha cogido otro alumno' }, { status: 409 })
   }
 
   const { error } = await admin.from('schedule_exclusions').update({ publish_spot }).eq('id', id)

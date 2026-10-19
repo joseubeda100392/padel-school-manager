@@ -61,6 +61,7 @@ interface Exclusion {
   id: string
   excluded_date: string
   publish_spot: boolean
+  spot_taken?: boolean
 }
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -626,6 +627,11 @@ export default function GroupEnrollment({
                         <span className="text-meta text-ink-2">
                           Falta {new Date(x.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                         </span>
+                        {x.spot_taken ? (
+                          <span className="inline-flex min-h-8 items-center px-2 text-meta font-medium text-ink-3" title="Su plaza ya la ha cogido otro alumno">
+                            Plaza cubierta
+                          </span>
+                        ) : (
                         <button
                           type="button"
                           onClick={() => handleTogglePublish(e.id, x)}
@@ -636,6 +642,7 @@ export default function GroupEnrollment({
                           {x.publish_spot ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeOff className="h-3.5 w-3.5" aria-hidden />}
                           {x.publish_spot ? 'Publicada' : 'No publicada'}
                         </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleDeleteExclusion(e.id, x.id)}

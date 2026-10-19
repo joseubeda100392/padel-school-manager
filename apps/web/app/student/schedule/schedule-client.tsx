@@ -39,7 +39,7 @@ interface ScheduleItem {
     coachName: string | null
     level: { name: string; color: string } | null
   }
-  exclusions: { id: string; excluded_date: string; publish_spot: boolean }[]
+  exclusions: { id: string; excluded_date: string; publish_spot: boolean; spot_taken?: boolean }[]
 }
 
 export interface GroupFees {
@@ -371,7 +371,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                       key={x.id}
                       leading={<DateTile weekday={weekday} day={day} />}
                       title={formatLongDate(x.excluded_date)}
-                      subtitle={x.publish_spot ? 'Plaza publicada para otros alumnos' : 'Plaza gestionada por el club'}
+                      subtitle={x.spot_taken ? 'Tu plaza la ha cogido otro alumno' : x.publish_spot ? 'Plaza publicada para otros alumnos' : 'Plaza gestionada por el club'}
                       onClick={() => {
                         setSelectedDate(x.excluded_date)
                         setView({ year: Number(x.excluded_date.slice(0, 4)), month0: Number(x.excluded_date.slice(5, 7)) - 1 })

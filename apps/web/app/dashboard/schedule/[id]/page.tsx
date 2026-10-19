@@ -138,16 +138,16 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
   const { data: exclusionsRaw } = enrollmentIds.length
     ? await admin
         .from('schedule_exclusions')
-        .select('id, group_enrollment_id, excluded_date, publish_spot')
+        .select('id, group_enrollment_id, excluded_date, publish_spot, spot_taken')
         .in('group_enrollment_id', enrollmentIds)
         .gte('excluded_date', queryLowerBound)
         .order('excluded_date')
     : { data: [] }
 
-  const exclusionsByEnrollment: Record<string, { id: string; excluded_date: string; publish_spot: boolean }[]> = {}
+  const exclusionsByEnrollment: Record<string, { id: string; excluded_date: string; publish_spot: boolean; spot_taken: boolean }[]> = {}
   for (const x of exclusionsRaw ?? []) {
     if (!exclusionsByEnrollment[x.group_enrollment_id]) exclusionsByEnrollment[x.group_enrollment_id] = []
-    exclusionsByEnrollment[x.group_enrollment_id].push({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot })
+    exclusionsByEnrollment[x.group_enrollment_id].push({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot, spot_taken: x.spot_taken })
   }
 
   // Nivel efectivo: el del horario, o inferido de los alumnos ya inscritos si todos comparten nivel
