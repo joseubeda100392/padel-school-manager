@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId, isSuperAdmin } from '@/lib/get-club'
+import { getClubFeatures } from '@/lib/get-club-features'
 import Link from 'next/link'
 import { Plus, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
@@ -13,10 +14,11 @@ import { RealtimeRefresh } from '@/components/realtime-refresh'
 export default async function StudentsPage({ searchParams }: { searchParams: { tab?: string } }) {
   const admin = getAdminClient()
   const [clubId, superAdmin] = await Promise.all([getClubId(), isSuperAdmin()])
+  const features = await getClubFeatures(clubId)
 
   let studentsQuery = admin
     .from('users')
-    .select('id, name, email, phone, role, is_active, created_at, current_level_id, avatar_url, start_date, end_date, terms_accepted_at, also_student')
+    .select('id, name, email, phone, role, is_active, created_at, current_level_id, avatar_url, start_date, end_date, terms_accepted_at, also_student, deposit_paid')
     .neq('role', 'super_admin')
     .order('name')
 
@@ -72,7 +74,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: { t
       />
       {error && <Notice tone="danger">No se han podido cargar los usuarios: {error.message}</Notice>}
 
-      <StudentsTable students={students ?? []} levelMap={levelMap} enrollmentMap={enrollmentMap} defaultTab={searchParams.tab ?? 'student'} />
+      <StudentsTable students={students ?? []} levelMap={levelMap} enrollmentMap={enrollmentMap} defaultTab={searchParams.tab ?? 'student'} enableDeposit={features.enable_deposit} />
     </div>
   )
 }

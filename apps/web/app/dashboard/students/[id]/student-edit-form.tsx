@@ -11,12 +11,13 @@ import { Field, Input, Select } from '@/components/ui/field'
 import { useConfirm } from '@/components/ui/confirm'
 
 interface Props {
-  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string; also_student?: boolean; is_external?: boolean; is_premium_private_coach?: boolean }
+  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string; also_student?: boolean; is_external?: boolean; is_premium_private_coach?: boolean; deposit_paid?: boolean }
   isSuperAdmin?: boolean
   enablePrivateLessons?: boolean
+  enableDeposit?: boolean
 }
 
-export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLessons = false }: Props) {
+export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLessons = false, enableDeposit = false }: Props) {
   const router = useRouter()
   const confirm = useConfirm()
   const [form, setForm] = useState({
@@ -29,6 +30,7 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
     also_student: student.also_student ?? false,
     is_external: student.is_external ?? false,
     is_premium_private_coach: student.is_premium_private_coach ?? false,
+    deposit_paid: student.deposit_paid ?? false,
   })
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -60,6 +62,7 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
       also_student: form.role === 'coach' ? form.also_student : false,
       is_external: form.role === 'student' ? form.is_external : false,
       is_premium_private_coach: form.role === 'coach' ? form.is_premium_private_coach : false,
+      ...(enableDeposit ? { deposit_paid: form.deposit_paid } : {}),
     }).eq('id', student.id)
     if (!err && !student.is_active && form.is_active) {
       // Se acaba de reactivar: levantar el bloqueo de acceso (requiere service role)
@@ -163,6 +166,12 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
             onChange={(v) => setForm({ ...form, is_premium_private_coach: v })}
             label="Tarifa particular premium"
             hint="Sus clases particulares cobran el precio premium configurado en Tarifas." />
+        )}
+        {enableDeposit && (form.role === 'student' || form.also_student) && (
+          <CheckRow id="deposit_paid_edit" checked={form.deposit_paid}
+            onChange={(v) => setForm({ ...form, deposit_paid: v })}
+            label="Fianza pagada"
+            hint="En Usuarios puedes filtrar quién la tiene pagada y quién no." />
         )}
         {enablePrivateLessons && form.role === 'student' && (
           <CheckRow id="is_external_edit" checked={form.is_external}

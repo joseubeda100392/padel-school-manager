@@ -25,6 +25,15 @@ interface Props {
   levelMap: Record<string, any>
   enrollmentMap: Record<string, EnrollmentSummary>
   defaultTab?: string
+  enableDeposit?: boolean
+}
+
+// Fianza (módulo opcional): solo aplica a quien es alumno.
+const isStudentLike = (s: any) => s.role === 'student' || !!s.also_student
+function DepositBadge({ paid }: { paid: boolean }) {
+  return paid
+    ? <Badge tone="success">Fianza pagada</Badge>
+    : <Badge tone="warn">Sin fianza</Badge>
 }
 
 const TABS = [
@@ -34,16 +43,18 @@ const TABS = [
   { value: 'admin', label: 'Admins' },
 ]
 
-export default function StudentsTable({ students, levelMap, enrollmentMap, defaultTab = 'student' }: Props) {
+export default function StudentsTable({ students, levelMap, enrollmentMap, defaultTab = 'student', enableDeposit = false }: Props) {
   const [q, setQ] = useState('')
   const [role, setRole] = useState(defaultTab)
   const [status, setStatus] = useState('')
   const [levelFilter, setLevelFilter] = useState('')
   // 'with' | 'without': alumnos con o sin grupo fijo activo (p. ej. solo bono).
   const [groupFilter, setGroupFilter] = useState('')
+  // 'paid' | 'unpaid'
+  const [depositFilter, setDepositFilter] = useState('')
   // En móvil los filtros van plegados para que la lista se vea sin bajar.
   const [showFilters, setShowFilters] = useState(false)
-  const activeFilters = (status ? 1 : 0) + (levelFilter ? 1 : 0) + (groupFilter ? 1 : 0)
+  const activeFilters = (status ? 1 : 0) + (levelFilter ? 1 : 0) + (groupFilter ? 1 : 0) + (depositFilter ? 1 : 0)
   const [editingCuotaId, setEditingCuotaId] = useState<string | null>(null)
   const [editingCuotaValue, setEditingCuotaValue] = useState('')
   const [savingCuota, setSavingCuota] = useState(false)
@@ -56,7 +67,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
   }, [students])
 
   function exportCSV() {
-    const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta', 'Baja', 'Grupo fijo']
+    const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta', 'Baja', 'Grupo fijo', ...(enableDeposit ? ['Fianza'] : [])]
     const rows = filtered.map((s) => [
       s.name ?? '',
       s.email ?? '',
@@ -66,6 +77,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
       formatDate(s.start_date ?? s.created_at),
       s.end_date ? formatDate(s.end_date) : '',
       s.role === 'student' || s.also_student ? (enrollmentMap[s.id] ? 'Sí' : 'No') : '',
+      ...(enableDeposit ? [isStudentLike(s) ? (s.deposit_paid ? 'Pagada' : 'No pagada') : ''] : []),
     ])
     const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -115,12 +127,13 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
       )
       const hasGroup = !!enrollmentMap[s.id]
       const matchGroup = !groupFilter || (groupFilter === 'with' ? hasGroup : !hasGroup)
-      return matchQ && matchRole && matchStatus && matchLevel && matchGroup
+      const matchDeposit = !depositFilter || (isStudentLike(s) && (depositFilter === 'paid' ? !!s.deposit_paid : !s.deposit_paid))
+      return matchQ && matchRole && matchStatus && matchLevel && matchGroup && matchDeposit
     })
-  }, [students, deferredQ, role, status, levelFilter, groupFilter, enrollmentMap])
+  }, [students, deferredQ, role, status, levelFilter, groupFilter, depositFilter, enrollmentMap])
 
   const isStudentTab = role === 'student'
-  const hasFilters = !!(q || role || status || levelFilter || groupFilter)
+  const hasFilters = !!(q || role || status || levelFilter || groupFilter || depositFilter)
 
   return (
     <div className="space-y-4">
@@ -199,8 +212,17 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
             </Select>
           </Field>
         )}
+        {enableDeposit && (role === 'student' || role === '') && (
+          <Field label="Fianza" className="w-full sm:w-auto">
+            <Select value={depositFilter} onChange={(e) => setDepositFilter(e.target.value)}>
+              <option value="">Pagada o no</option>
+              <option value="paid">Pagada</option>
+              <option value="unpaid">No pagada</option>
+            </Select>
+          </Field>
+        )}
         {hasFilters && (
-          <Button variant="ghost" onClick={() => { setQ(''); setRole(''); setStatus(''); setLevelFilter(''); setGroupFilter('') }}>
+          <Button variant="ghost" onClick={() => { setQ(''); setRole(''); setStatus(''); setLevelFilter(''); setGroupFilter(''); setDepositFilter('') }}>
             <X className="h-4 w-4" aria-hidden />
             Limpiar filtros
           </Button>
@@ -241,6 +263,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
                         ) : (
                           <span>{roleLabel[s.role] ?? s.role}</span>
                         )}
+                        {enableDeposit && isStudentLike(s) && <span><DepositBadge paid={!!s.deposit_paid} /></span>}
                       </span>
                     }
                     trailing={<StatusBadge active={s.is_active} />}
@@ -270,6 +293,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
                       key={s.id}
                       student={s}
                       level={s.current_level_id ? levelMap[s.current_level_id] : null}
+                      enableDeposit={enableDeposit}
                       enrollment={enrollmentMap[s.id]}
                       cuotaCents={s.id in localCuotas ? localCuotas[s.id] : enrollmentMap[s.id]?.total ?? null}
                       isStudentTab={isStudentTab}
@@ -313,11 +337,12 @@ interface StudentRowProps {
   onStartEdit: (studentId: string, initialValue: string) => void
   onCancelEdit: () => void
   onSave: (enrollmentId: string, studentId: string, value: string) => void
+  enableDeposit?: boolean
 }
 
 const StudentRow = memo(function StudentRow({
   student: s, level, enrollment, cuotaCents, isStudentTab, isEditing, editingValue, savingCuota,
-  onChangeCuotaValue, onStartEdit, onCancelEdit, onSave,
+  onChangeCuotaValue, onStartEdit, onCancelEdit, onSave, enableDeposit = false,
 }: StudentRowProps) {
   return (
     <tr className="hover:bg-ink/[0.03]">
@@ -337,6 +362,7 @@ const StudentRow = memo(function StudentRow({
         <div className="flex flex-wrap gap-1">
           <Badge tone="outline">{roleLabel[s.role] ?? s.role}</Badge>
           {s.role === 'coach' && s.also_student && <Badge tone="outline">También alumno</Badge>}
+          {enableDeposit && isStudentLike(s) && <DepositBadge paid={!!s.deposit_paid} />}
         </div>
       </td>
       {isStudentTab && (
