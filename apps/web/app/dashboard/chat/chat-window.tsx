@@ -43,6 +43,7 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
   const confirm = useConfirm()
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? [])
   const [loading, setLoading] = useState(!initialMessages)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -52,17 +53,27 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const poll = useCallback(async () => {
-    const res = await fetch(`/api/chat/messages?thread_id=${thread.id}`)
-    if (!res.ok) return
+  // Devuelve false si no se han podido traer los mensajes.
+  const poll = useCallback(async (): Promise<boolean> => {
+    const res = await fetch(`/api/chat/messages?thread_id=${thread.id}`).catch(() => null)
+    if (!res?.ok) return false
     const { data } = await res.json()
     if (data) setMessages(data)
+    return true
   }, [thread.id])
 
+  const load = useCallback(async () => {
+    setLoadFailed(false)
+    const ok = await poll()
+    setLoadFailed(!ok)
+    setLoading(false)
+  }, [poll])
+
+  // Al abrir la conversación se piden siempre sus mensajes, aunque vengan
+  // del servidor: así nunca se queda en pantalla una lista vieja o vacía.
   useEffect(() => {
-    if (!initialMessages) poll().finally(() => setLoading(false))
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir la conversación
-  }, [])
+    load()
+  }, [load])
 
   // Poll for new messages every 8 seconds
   useEffect(() => {
@@ -140,6 +151,11 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
       <div className="flex-1 space-y-3 overflow-y-auto p-4" role="log" aria-label="Mensajes">
         {loading ? (
           <p className="text-center text-body text-ink-3">Cargando mensajes…</p>
+        ) : loadFailed && messages.length === 0 ? (
+          <p className="text-center text-body text-danger-ink">
+            No se han podido cargar los mensajes.{' '}
+            <button type="button" onClick={load} className="font-medium underline">Reintentar</button>
+          </p>
         ) : messages.length === 0 && (
           <p className="text-center text-body text-ink-2">Sin mensajes aún.</p>
         )}
