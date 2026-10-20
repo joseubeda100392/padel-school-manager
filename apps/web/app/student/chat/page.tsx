@@ -137,6 +137,7 @@ export default async function StudentChatPage({
       {/* Ventana de chat */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <StudentChatClient
+          key={thread.id}
           threadId={thread.id}
           threadStatus={thread.status}
           initialMessages={messages ?? []}

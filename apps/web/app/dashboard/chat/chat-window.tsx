@@ -8,7 +8,7 @@ import { useConfirm } from '@/components/ui/confirm'
 import { formatLongDate, formatClock } from '@/lib/format-date'
 import { cn } from '@/lib/utils'
 
-interface Message {
+export interface ChatMessage {
   id: string
   content: string
   created_at: string
@@ -16,15 +16,16 @@ interface Message {
   sender_id: string
 }
 
-interface Thread {
+export interface ChatThread {
   id: string
   status: string
   user: { name: string; email: string } | null
 }
 
 interface Props {
-  thread: Thread
-  initialMessages: Message[]
+  thread: ChatThread
+  // Sin mensajes iniciales (conversación abierta desde la lista) se piden al montar.
+  initialMessages?: ChatMessage[]
   currentUserId: string
 }
 
@@ -40,7 +41,8 @@ function formatDate(dateStr: string) {
 
 export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
   const confirm = useConfirm()
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? [])
+  const [loading, setLoading] = useState(!initialMessages)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -56,6 +58,11 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
     const { data } = await res.json()
     if (data) setMessages(data)
   }, [thread.id])
+
+  useEffect(() => {
+    if (!initialMessages) poll().finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir la conversación
+  }, [])
 
   // Poll for new messages every 8 seconds
   useEffect(() => {
@@ -73,7 +80,7 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
     })
     if (res.ok) {
       const { data } = await res.json()
-      if (data) setMessages((prev) => [...prev, data as Message])
+      if (data) setMessages((prev) => [...prev, data as ChatMessage])
       setText('')
     }
     setSending(false)
@@ -103,7 +110,7 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
     window.location.href = '/dashboard/chat'
   }
 
-  const grouped: { date: string; msgs: Message[] }[] = []
+  const grouped: { date: string; msgs: ChatMessage[] }[] = []
   for (const m of messages) {
     const label = formatDate(m.created_at)
     const last = grouped[grouped.length - 1]
@@ -131,7 +138,9 @@ export function ChatWindow({ thread, initialMessages, currentUserId }: Props) {
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-4" role="log" aria-label="Mensajes">
-        {messages.length === 0 && (
+        {loading ? (
+          <p className="text-center text-body text-ink-3">Cargando mensajes…</p>
+        ) : messages.length === 0 && (
           <p className="text-center text-body text-ink-2">Sin mensajes aún.</p>
         )}
         {grouped.map(({ date, msgs }) => (

@@ -127,6 +127,7 @@ export default async function CoachChatPage({
       <div className="flex flex-1 flex-col overflow-hidden">
         {activeThread ? (
           <StudentChatClient
+            key={activeThread.id}
             threadId={activeThread.id}
             threadStatus={activeThread.status}
             initialMessages={messages}
