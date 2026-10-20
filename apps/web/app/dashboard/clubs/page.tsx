@@ -34,7 +34,7 @@ export default async function ClubsPage() {
   if (dbUser?.role !== 'super_admin') redirect('/dashboard')
 
   const [{ data: clubs }, { data: userCounts }] = await Promise.all([
-    admin.from('clubs').select('id, name, slug, plan, is_active, created_at').order('created_at', { ascending: false }),
+    admin.from('clubs').select('id, name, slug, plan, is_active, created_at, network:networks(id, name)').order('created_at', { ascending: false }),
     admin.from('users').select('club_id').not('club_id', 'is', null),
   ])
 
@@ -62,6 +62,7 @@ export default async function ClubsPage() {
             <tr className="border-b border-line bg-surface-2">
               <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3 sm:px-5">Club</th>
               <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Slug</th>
+              <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Red</th>
               <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Plan</th>
               <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Usuarios</th>
               <th scope="col" className="px-4 py-3 text-left text-meta font-medium text-ink-3">Estado</th>
@@ -72,7 +73,7 @@ export default async function ClubsPage() {
           <tbody className="divide-y divide-line">
             {!clubs?.length && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-body text-ink-2">
+                <td colSpan={8} className="px-6 py-12 text-center text-body text-ink-2">
                   Todavía no hay clubes. Crea el primero con el botón de arriba.
                 </td>
               </tr>
@@ -81,6 +82,15 @@ export default async function ClubsPage() {
               <tr key={club.id}>
                 <td className="px-4 py-3 text-body font-medium text-ink sm:px-5">{club.name}</td>
                 <td className="px-4 py-3 font-mono text-meta text-ink-2">{club.slug}</td>
+                <td className="px-4 py-3 text-meta">
+                  {club.network ? (
+                    <Link href={`/dashboard/red?id=${club.network.id}`} className="font-medium text-accent-ink hover:underline">
+                      {club.network.name} · Ver red
+                    </Link>
+                  ) : (
+                    <span className="text-ink-3">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <Badge tone={planTone[club.plan] ?? 'neutral'}>{planLabel[club.plan] ?? club.plan}</Badge>
                 </td>

@@ -1,6 +1,6 @@
 import {
   Bell, BookOpen, Building2, CalendarDays, CalendarRange, CircleHelp, ClipboardCheck, Clock, CreditCard,
-  Flame, Home, LayoutDashboard, Medal, MessageCircle, MoreHorizontal, Package, Receipt, Settings, Shield,
+  Flame, Home, LayoutDashboard, Medal, MessageCircle, MoreHorizontal, Network, Package, Receipt, Settings, Shield,
   Target, Trophy, UserPlus, UserRound, Users, Zap, type LucideIcon,
 } from 'lucide-react'
 import type { ClubFeatures } from '@/lib/get-club-features'
@@ -145,12 +145,15 @@ export function coachNav({ features }: { features?: ClubFeatures }): AppNav {
   )
 }
 
-export function adminNav({ features, isSuperAdmin }: { features?: ClubFeatures; isSuperAdmin: boolean }): AppNav {
+export function adminNav({ features, isSuperAdmin, networkName }: { features?: ClubFeatures; isSuperAdmin: boolean; networkName?: string }): AppNav {
   return build(
     features,
     [
       ...(isSuperAdmin
         ? [{ title: 'Super admin', items: [{ href: '/dashboard/clubs', description: 'Todos los clubs de la plataforma', label: 'Clubes', icon: Building2 }] }]
+        : []),
+      ...(networkName
+        ? [{ title: `Red ${networkName}`, items: [{ href: '/dashboard/red', description: 'Todas las sedes de un vistazo y entrar a cada una', label: 'Vista de la red', shortLabel: 'Red', icon: Network }] }]
         : []),
       {
         title: 'Escuela',

@@ -7,6 +7,7 @@ import { PushNotificationProvider } from '@/components/push-notification-provide
 import type { ClubFeatures } from '@/lib/get-club-features'
 import { AppShell } from './app-shell'
 import { adminNav } from './nav-config'
+import { ClubSwitcher, type SwitcherNetwork } from './club-switcher'
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -15,9 +16,11 @@ interface DashboardShellProps {
   userName?: string
   features?: ClubFeatures
   saActiveClub?: string
+  network?: SwitcherNetwork
+  currentClubId?: string
 }
 
-export function DashboardShell({ children, clubName, role, userName, features, saActiveClub }: DashboardShellProps) {
+export function DashboardShell({ children, clubName, role, userName, features, saActiveClub, network, currentClubId }: DashboardShellProps) {
   const router = useRouter()
   const isSuperAdmin = role === 'super_admin'
   const managingClub = isSuperAdmin && !!saActiveClub && !!clubName
@@ -45,15 +48,17 @@ export function DashboardShell({ children, clubName, role, userName, features, s
 
   return (
     <AppShell
-      nav={adminNav({ features, isSuperAdmin })}
+      nav={adminNav({ features, isSuperAdmin, networkName: network?.name })}
       clubName={title}
-      identity={{ name: userName ?? 'Administrador', subtitle: isSuperAdmin ? 'Super admin' : `Admin · ${clubName ?? ''}` }}
-      sidebarExtra={exitClubButton}
+      identity={{ name: userName ?? 'Administrador', subtitle: isSuperAdmin ? 'Super admin' : network ? `Coordinador · Red ${network.name}` : `Admin · ${clubName ?? ''}` }}
+      sidebarExtra={exitClubButton ?? (network ? <ClubSwitcher network={network} currentClubId={currentClubId} variant="sidebar" /> : undefined)}
       headerActions={
         managingClub ? (
           <button type="button" onClick={exitClub} className="h-9 rounded-full border border-line px-3 text-meta font-medium text-ink-2 hover:bg-ink/5">
             Salir del club
           </button>
+        ) : network ? (
+          <ClubSwitcher network={network} currentClubId={currentClubId} variant="header" />
         ) : undefined
       }
       overlays={
