@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
-import { getClubFeatures } from '@/lib/get-club-features'
+import { parseClubFeatures } from '@/lib/get-club-features'
 import { redirect } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import PaymentsTable from './payments-table'
@@ -10,7 +10,15 @@ import { UnpaidList } from './unpaid-list'
 import { MonthNavigator } from './month-navigator'
 import { DevError } from '@/components/dev-error'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
-import { currentBillingMonth, lastDayOfMonthStr } from '@/lib/billing-cycle'
+import { currentBillingMonth } from '@/lib/billing-cycle'
+import { loadMonthPayments } from '@/lib/payments-month'
+import Link from 'next/link'
+import { buttonVariants } from '@/components/ui/button'
+import { CalendarClock, CircleAlert, Printer } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody, CardHeader, SectionTitle } from '@/components/ui/card'
+import { EmptyState, Notice } from '@/components/ui/feedback'
+import { Stat } from '@/components/ui/list'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -18,14 +26,14 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const admin = getAdminClient()
   const clubId = await getClubId()
 
-  const features = await getClubFeatures(clubId ?? undefined)
+  const { data: clubConfigRow } = clubId
+    ? await admin.from('clubs').select('config, features').eq('id', clubId).single()
+    : { data: null }
+  const features = parseClubFeatures((clubConfigRow as any)?.features)
   if (!features.enable_payments) redirect('/dashboard')
 
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
-  const { data: clubConfigRow } = clubId
-    ? await admin.from('clubs').select('config').eq('id', clubId).single()
-    : { data: null }
   const billingStartDate: string | null = (clubConfigRow as any)?.config?.billing_start_date ?? null
   const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
@@ -42,43 +50,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const selectedMonth = selectedDate.getMonth()
   const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`
 
-  const startOfMonth = new Date(selectedYear, selectedMonth, 1).toISOString()
-  const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999).toISOString()
-  // Cuota mensual: se contabiliza en el mes que CUBRE (metadata.paid_until),
-  // no en el mes en que se pagó — con adelantos, o un pago normal hecho en
-  // los últimos días de mes que ya salta al siguiente, pagar en junio la
-  // cuota de julio no debe inflar junio ni vaciar julio en el panel. Pagos
-  // antiguos sin ese campo (antes de este cambio) caen al criterio de
-  // siempre (created_at) como respaldo.
-  const targetPaidUntil = lastDayOfMonthStr(selectedYear, selectedMonth)
-
-  function withClub<T extends { eq: (col: string, val: string) => T }>(query: T): T {
-    return clubId ? query.eq('club_id', clubId) : query
-  }
-
-  const cuotaByCoverageQuery = withClub(
-    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
-      .eq('type', 'fixed_group_month')
-      .eq('metadata->>paid_until', targetPaidUntil)
-  )
-  const cuotaLegacyQuery = withClub(
-    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
-      .eq('type', 'fixed_group_month')
-      .is('metadata->paid_until', null)
-      .gte('created_at', startOfMonth)
-      .lte('created_at', endOfMonth)
-  )
-  const otherTypesQuery = withClub(
-    admin.from('payments').select('*, user:users(name, email)', { count: 'exact' })
-      .neq('type', 'fixed_group_month')
-      .gte('created_at', startOfMonth)
-      .lte('created_at', endOfMonth)
-  )
-
-  const [cuotaByCoverageRes, cuotaLegacyRes, otherTypesRes, unpaidResult] = await Promise.all([
-    cuotaByCoverageQuery,
-    cuotaLegacyQuery,
-    otherTypesQuery,
+  const [monthPayments, unpaidResult] = await Promise.all([
+    loadMonthPayments(admin, clubId, selectedYear, selectedMonth),
     billingActive
       ? admin.rpc('get_pending_payments', {
           p_club_id: clubId ?? null,
@@ -88,13 +61,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
       : Promise.resolve({ data: [] as any[], error: null }),
   ])
 
-  const errPayments = cuotaByCoverageRes.error ?? cuotaLegacyRes.error ?? otherTypesRes.error
-  const allPayments = [
-    ...(cuotaByCoverageRes.data ?? []),
-    ...(cuotaLegacyRes.data ?? []),
-    ...(otherTypesRes.data ?? []),
-  ]
-  const totalCount = (cuotaByCoverageRes.count ?? 0) + (cuotaLegacyRes.count ?? 0) + (otherTypesRes.count ?? 0)
+  const errPayments = monthPayments.error
+  const allPayments = monthPayments.payments
+  const totalCount = monthPayments.count
   const payments = [...allPayments].sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200)
 
   const errUnpaid = (unpaidResult as any).error ?? null
@@ -128,61 +97,72 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
           { table: 'group_enrollments' },
         ]}
       />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pagos</h1>
-          <p className="text-sm text-gray-500">{transactionCount} transacciones en {monthLabel}</p>
-        </div>
-        <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/payments" maxYear={defaultBilling.year} maxMonth={defaultBilling.month0} />
-      </div>
+      <PageHeader
+        title="Pagos"
+        description={`${transactionCount} transacciones en ${monthLabel}`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <MonthNavigator year={selectedYear} month={selectedMonth} basePath="/dashboard/payments" maxYear={defaultBilling.year} maxMonth={defaultBilling.month0} />
+            <Link
+              href={`/dashboard/payments/imprimir?month=${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`}
+              className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}
+            >
+              <Printer className="h-4 w-4" aria-hidden />
+              Listado para imprimir
+            </Link>
+          </div>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border-l-4 border-l-brand-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total generado en {monthLabel}</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{formatCurrency(generatedAmount)}</p>
-          <p className="mt-0.5 text-xs text-gray-400">Cobrado + pendiente</p>
-        </div>
-        <div className="rounded-xl border-l-4 border-l-green-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total cobrado en {monthLabel}</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{formatCurrency(total)}</p>
-        </div>
-        <div className="rounded-xl border-l-4 border-l-yellow-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Pendiente de cobro</p>
-          <p className={`mt-2 text-2xl font-bold ${unpaid.length > 0 ? 'text-yellow-600' : 'text-gray-900'}`}>
-            {formatCurrency(pendingAmount)}
-          </p>
-          <p className="mt-0.5 text-xs text-gray-400">{unpaid.length} alumno{unpaid.length !== 1 ? 's' : ''}</p>
-        </div>
-        <div className="rounded-xl border-l-4 border-l-blue-500 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Transacciones</p>
-          <p className="mt-2 text-2xl font-bold text-gray-900">{transactionCount}</p>
-        </div>
-      </div>
+      <Card>
+        <CardBody>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-4 lg:divide-x lg:divide-line">
+            <div className="lg:pr-5">
+              <Stat label="Cobrado" value={formatCurrency(total)} className="[&_p:nth-child(2)]:text-accent-ink" />
+            </div>
+            <div className="lg:px-5">
+              <Stat
+                label="Pendiente"
+                value={formatCurrency(pendingAmount)}
+                hint={`${unpaid.length} alumno${unpaid.length !== 1 ? 's' : ''}`}
+                className={unpaid.length > 0 ? '[&_p:nth-child(2)]:text-warn-ink' : ''}
+              />
+            </div>
+            <div className="lg:px-5">
+              <Stat label="Total del mes" value={formatCurrency(generatedAmount)} hint="Cobrado + pendiente" />
+            </div>
+            <div className="lg:pl-5">
+              <Stat label="Transacciones" value={transactionCount} />
+            </div>
+          </div>
+        </CardBody>
+      </Card>
 
-      <div className="rounded-xl bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h2 className="font-semibold text-gray-900">Mensualidades pendientes — {monthLabel}</h2>
-          <p className="text-xs text-gray-400">{unpaid.length} alumnos sin regularizar</p>
-        </div>
+      <Card className="overflow-hidden">
+        <CardHeader
+          title={`Mensualidades pendientes de ${monthLabel}`}
+          description={`${unpaid.length} alumnos sin regularizar`}
+        />
         {!billingActive ? (
-          <p className="px-6 py-8 text-center text-sm text-gray-400">
-            El seguimiento de mensualidades empieza el{' '}
-            <strong>{new Date(billingStartDate! + 'T12:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
-          </p>
+          <EmptyState
+            icon={<CalendarClock />}
+            title="El seguimiento aún no ha empezado"
+            description={`El seguimiento de mensualidades empieza el ${new Date(billingStartDate! + 'T12:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.`}
+          />
         ) : (
           <UnpaidList key={monthLabel} items={unpaid as any[]} monthLabel={monthLabel} />
         )}
-      </div>
+      </Card>
 
-      <div>
-        <h2 className="mb-4 font-semibold text-gray-900">Transacciones — {monthLabel}</h2>
+      <section className="space-y-4">
+        <SectionTitle>Transacciones de {monthLabel}</SectionTitle>
         {listIsTruncated && (
-          <p className="mb-3 rounded-lg bg-yellow-50 px-4 py-2 text-xs text-yellow-800">
-            Mostrando las {payments?.length ?? 0} más recientes de {transactionCount} — los totales de arriba sí cuentan todas.
-          </p>
+          <Notice tone="warn" icon={<CircleAlert />}>
+            Mostrando las {payments?.length ?? 0} más recientes de {transactionCount}. Los totales de arriba sí cuentan todas.
+          </Notice>
         )}
         <PaymentsTable payments={payments ?? []} />
-      </div>
+      </section>
     </div>
   )
 }

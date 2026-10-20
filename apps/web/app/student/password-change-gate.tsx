@@ -2,6 +2,10 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
 
 export function PasswordChangeGate({ clubName }: { clubName: string }) {
   const [password, setPassword] = useState('')
@@ -44,60 +48,43 @@ export function PasswordChangeGate({ clubName }: { clubName: string }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-lg overflow-hidden">
-        <div className="bg-brand-500 px-8 py-6">
-          <p className="text-sm text-brand-100">{clubName}</p>
-          <h1 className="mt-1 text-xl font-bold text-white">Elige tu contraseña</h1>
-        </div>
+    <main className="flex min-h-screen items-center justify-center bg-canvas p-4">
+      <Card className="w-full max-w-md p-6 sm:p-8">
+        <img src="/icon.svg" alt="" width={40} height={40} className="h-10 w-10 rounded-xl" />
+        <p className="mt-4 text-meta text-ink-3">{clubName}</p>
+        <h1 className="mt-0.5 font-display text-title text-ink">Elige tu contraseña</h1>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-4">
-          <p className="text-sm text-gray-500">
+        <form onSubmit={handleSubmit} className="mt-2 space-y-4">
+          <p className="text-body text-ink-2">
             Has accedido con una contraseña temporal. Elige una contraseña personal para continuar.
           </p>
 
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Nueva contraseña
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                required
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                Repite la contraseña
-              </label>
-              <input
-                type="password"
-                value={confirm}
-                onChange={e => setConfirm(e.target.value)}
-                placeholder="Repite la contraseña"
-                required
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-              />
-            </div>
-          </div>
+          <Field label="Nueva contraseña" hint="Mínimo 6 caracteres.">
+            <Input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+          </Field>
+          <Field label="Repite la contraseña">
+            <Input
+              type="password"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+          </Field>
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-          )}
+          {error && <Notice tone="danger">{error}</Notice>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
-          >
-            {loading ? 'Guardando...' : 'Guardar contraseña y entrar'}
-          </button>
+          <Button type="submit" loading={loading} size="lg" block>
+            Guardar contraseña y entrar
+          </Button>
         </form>
-      </div>
-    </div>
+      </Card>
+    </main>
   )
 }

@@ -9,7 +9,7 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
   }, [error])
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-canvas">
       <ErrorView reset={reset} />
     </main>
   )

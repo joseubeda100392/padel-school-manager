@@ -32,7 +32,7 @@ async function notifyRecipients(admin: ReturnType<typeof getAdminClient>, thread
   recipients = recipients.filter(id => id !== senderId)
   if (!recipients.length) return
   const preview = content.length > PREVIEW_CHARS ? `${content.slice(0, PREVIEW_CHARS)}…` : content
-  await sendPushToUsers(recipients, { title: `Mensaje de ${senderName}`, body: preview, url }, 'chat_message')
+  await sendPushToUsers(recipients, { title: `💬 Mensaje de ${senderName}`, body: preview, url }, 'chat_message')
 }
 
 export async function POST(req: NextRequest) {

@@ -1,14 +1,25 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
+import { CircleCheck, ShieldOff } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Notice } from '@/components/ui/feedback'
+import { useConfirm } from '@/components/ui/confirm'
 
 export function ResetMfaButton({ userId }: { userId: string }) {
+  const confirm = useConfirm()
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
   async function handleReset() {
-    if (!confirm('¿Resetear el MFA de este usuario? Deberá registrar su autenticador en el próximo login.')) return
+    const ok = await confirm({
+      title: '¿Resetear el MFA de este usuario?',
+      description: 'Deberá registrar de nuevo su autenticador en el próximo inicio de sesión.',
+      confirmLabel: 'Resetear MFA',
+      destructive: true,
+    })
+    if (!ok) return
     setLoading(true)
     setError('')
 
@@ -29,21 +40,19 @@ export function ResetMfaButton({ userId }: { userId: string }) {
 
   if (done) {
     return (
-      <p className="text-sm text-brand-500">MFA reseteado. El usuario deberá registrar su autenticador al próximo login.</p>
+      <Notice tone="success" icon={<CircleCheck />}>
+        MFA reseteado. El usuario deberá registrar su autenticador en el próximo inicio de sesión.
+      </Notice>
     )
   }
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={handleReset}
-        disabled={loading}
-        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
-      >
-        {loading ? 'Reseteando...' : 'Resetear MFA'}
-      </button>
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      <Button variant="danger-ghost" onClick={handleReset} loading={loading} className="border border-danger-ink/30">
+        <ShieldOff className="h-4 w-4" aria-hidden />
+        {loading ? 'Reseteando MFA' : 'Resetear MFA'}
+      </Button>
+      {error && <p role="alert" className="mt-2 text-meta font-medium text-danger-ink">{error}</p>}
     </div>
   )
 }

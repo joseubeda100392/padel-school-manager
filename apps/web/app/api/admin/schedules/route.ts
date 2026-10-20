@@ -78,7 +78,9 @@ export async function POST(req: NextRequest) {
     recurrence: body.recurrence,
     recurrence_end_date: body.recurrence_end_date ?? null,
     max_students: isPrivate ? 1 : body.max_students,
-    is_active: true,
+    // Grupo en formación: solo grupos regulares que se repiten, no
+    // particulares ni intensivos (ver /api/admin/schedules/[id]/start).
+    is_active: !(body.is_active === false && body.recurrence !== 'none' && (body.type ?? 'regular') === 'regular' && !isPrivate),
     club_id: effectiveClubId,
     type: body.type ?? 'regular',
     price_cents: body.price_cents ?? null,
@@ -159,7 +161,6 @@ export async function PATCH(req: NextRequest) {
     recurrence: body.recurrence,
     recurrence_end_date: body.recurrence_end_date ?? null,
     max_students: body.max_students,
-    is_active: body.is_active ?? true,
     type: body.type ?? 'regular',
     price_cents: body.price_cents ?? null,
   }).eq('id', body.id)

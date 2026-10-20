@@ -1,13 +1,15 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { MarkNotificationsRead } from './mark-read'
 import { NotificationList } from './notification-list'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
+import { PageHeader } from '@/components/ui/page-header'
+import { PushStatusCard } from '@/components/push-status-card'
 
 export default async function StudentNotificationsPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
@@ -19,15 +21,14 @@ export default async function StudentNotificationsPage() {
     .limit(50)
 
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <RealtimeRefresh
         channelName={`student-notifications-${user.id}`}
         subs={[{ table: 'notifications', filter: `user_id=eq.${user.id}` }]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Notificaciones</h1>
-        <p className="text-sm text-gray-500">Tus últimos avisos</p>
-      </div>
+      <PageHeader title="Notificaciones" description="Tus últimos avisos." />
+
+      <PushStatusCard hideWhenOn />
 
       <MarkNotificationsRead />
 

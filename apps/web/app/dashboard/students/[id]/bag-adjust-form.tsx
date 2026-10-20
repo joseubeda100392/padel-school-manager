@@ -1,6 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { Minus, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field, Input, Select } from '@/components/ui/field'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface Props {
   studentId: string
@@ -9,6 +13,7 @@ interface Props {
 }
 
 export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
+  const confirm = useConfirm()
   const [amount, setAmount] = useState<number | ''>(1)
   const [durationType, setDurationType] = useState<'60' | '90'>('60')
   const [reason, setReason] = useState('')
@@ -19,10 +24,21 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
 
   async function adjust(sign: 1 | -1) {
     const n = Math.max(1, Math.min(100, Number(amount) || 1))
-    const msg = sign === 1
-      ? `¿Añadir ${n} clase(s) de ${durationType} min a la bolsa?`
-      : `¿Descontar ${n} clase(s) de ${durationType} min de la bolsa? Saldo actual: ${currentBalance}.`
-    if (!confirm(msg)) return
+    const ok = await confirm(
+      sign === 1
+        ? {
+            title: `¿Añadir ${n} clase(s) de ${durationType} min?`,
+            description: 'Se sumarán a la bolsa del alumno.',
+            confirmLabel: 'Añadir clases',
+          }
+        : {
+            title: `¿Descontar ${n} clase(s) de ${durationType} min?`,
+            description: `Se restarán de la bolsa del alumno. Saldo actual: ${currentBalance}.`,
+            confirmLabel: 'Descontar clases',
+            destructive: true,
+          },
+    )
+    if (!ok) return
     setSaving(true)
     setError('')
     const delta = n * sign
@@ -49,52 +65,38 @@ export function BagAdjustForm({ studentId, balance60, balance90 }: Props) {
   }
 
   return (
-    <div className="space-y-2">
-      {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{error}</p>
-      )}
-      <div className="flex gap-2">
-        <select
-          value={durationType}
-          onChange={(e) => setDurationType(e.target.value as '60' | '90')}
-          className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-        >
-          <option value="60">60 min</option>
-          <option value="90">90 min</option>
-        </select>
-        <input
-          type="text"
-          inputMode="numeric"
-          onFocus={e => e.target.select()}
-          min={1}
-          max={100}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-          className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-        />
-        <input
-          type="text"
-          placeholder="Motivo (opcional)"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-        />
+    <div className="space-y-3">
+      {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Duración">
+          <Select value={durationType} onChange={(e) => setDurationType(e.target.value as '60' | '90')}>
+            <option value="60">60 min</option>
+            <option value="90">90 min</option>
+          </Select>
+        </Field>
+        <Field label="Cantidad">
+          <Input
+            type="text"
+            inputMode="numeric"
+            onFocus={e => e.target.select()}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+            className="tabular-nums"
+          />
+        </Field>
       </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => adjust(1)}
-          disabled={saving}
-          className="flex-1 rounded-lg bg-brand-500 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-        >
-          + Añadir
-        </button>
-        <button
-          onClick={() => adjust(-1)}
-          disabled={saving || currentBalance === 0}
-          className="flex-1 rounded-lg bg-red-50 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
-        >
-          − Descontar
-        </button>
+      <Field label="Motivo (opcional)">
+        <Input type="text" value={reason} onChange={(e) => setReason(e.target.value)} />
+      </Field>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => adjust(1)} disabled={saving} className="flex-1">
+          <Plus className="h-4 w-4" aria-hidden />
+          Añadir
+        </Button>
+        <Button variant="secondary" onClick={() => adjust(-1)} disabled={saving || currentBalance === 0} className="flex-1">
+          <Minus className="h-4 w-4" aria-hidden />
+          Descontar
+        </Button>
       </div>
     </div>
   )

@@ -2,6 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Upload, FileText } from 'lucide-react'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Field, Input } from '@/components/ui/field'
+import { EmptyState } from '@/components/ui/feedback'
+import { List, ListRow } from '@/components/ui/list'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface Material {
   id: string
@@ -12,6 +19,7 @@ interface Material {
 }
 
 export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }) {
+  const confirm = useConfirm()
   const [materials, setMaterials] = useState<Material[]>([])
   const [uploading, setUploading] = useState(false)
   const [title, setTitle] = useState('')
@@ -70,99 +78,85 @@ export default function ScheduleMaterials({ scheduleId }: { scheduleId: string }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar esta materia?')) return
+    if (!(await confirm({
+      title: '¿Eliminar esta materia?',
+      description: 'El archivo dejará de estar disponible para la clase.',
+      confirmLabel: 'Eliminar materia',
+      destructive: true,
+    }))) return
     const supabase = createClient()
     await supabase.from('materials').delete().eq('id', id)
     load()
   }
 
   return (
-    <div className="rounded-xl bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-6 py-4">
-        <div>
-          <h2 className="font-semibold text-gray-900">Materia de clase</h2>
-          <p className="text-xs text-gray-400">{materials.length} archivos</p>
-        </div>
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600"
-        >
-          + Subir
-        </button>
-      </div>
+    <Card>
+      <CardHeader
+        title="Materia de clase"
+        description={`${materials.length} archivos`}
+        action={
+          <Button variant="secondary" size="sm" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+            <Upload className="h-4 w-4" aria-hidden />
+            Subir archivo
+          </Button>
+        }
+      />
 
       {open && (
-        <div className="border-b border-gray-100 px-6 py-4 space-y-3 bg-gray-50">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">Título *</label>
-            <input
+        <div className="mt-4 space-y-3 border-y border-line bg-surface-2 px-4 py-4 sm:px-5">
+          <Field label="Título">
+            <Input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej: Ejercicios de volea"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+              placeholder="Por ejemplo, ejercicios de volea"
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">Archivo (PDF, imagen...) *</label>
+          </Field>
+          <Field label="Archivo (PDF, imagen o vídeo)">
             <input
               ref={fileRef}
               type="file"
               accept=".pdf,.jpg,.jpeg,.png,.mp4,.mov"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="w-full text-sm text-gray-600"
+              className="w-full text-body text-ink-2 file:mr-3 file:h-11 file:rounded-control file:border file:border-line-strong/60 file:bg-surface file:px-4 file:text-label file:text-ink hover:file:bg-surface-2"
             />
-          </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setOpen(false); setError('') }}
-              className="flex-1 rounded-lg border border-gray-200 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleUpload}
-              disabled={uploading}
-              className="flex-1 rounded-lg bg-brand-500 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-            >
-              {uploading ? 'Subiendo...' : 'Subir archivo'}
-            </button>
+          </Field>
+          {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => { setOpen(false); setError('') }}>Cancelar</Button>
+            <Button onClick={handleUpload} loading={uploading}>{uploading ? 'Subiendo…' : 'Subir archivo'}</Button>
           </div>
         </div>
       )}
 
       {materials.length === 0 ? (
-        <div className="px-6 py-8 text-center">
-          <p className="text-sm text-gray-400">Sin materia subida para esta clase.</p>
-        </div>
+        <EmptyState icon={<FileText />} title="Sin materia para esta clase" description="Sube un PDF, una imagen o un vídeo para que lo vea el grupo." />
       ) : (
-        <ul className="divide-y divide-gray-50">
+        <List className="mt-3 border-t border-line">
           {materials.map((m) => (
-            <li key={m.id} className="flex items-center gap-4 px-6 py-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900">{m.title}</p>
-                <p className="text-xs text-gray-400">{new Date(m.created_at).toLocaleDateString('es-ES')}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <a href={`/api/pdf/material/${m.id}`} target="_blank" rel="noreferrer"
-                  className="text-xs font-medium text-brand-500 hover:underline">
-                  Ver
-                </a>
-                <button onClick={() => handleDelete(m.id)}
-                  className="text-xs text-red-400 hover:text-red-600">
-                  Eliminar
-                </button>
-              </div>
-            </li>
+            <ListRow
+              key={m.id}
+              leading={
+                <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-control bg-surface-2 text-ink-3">
+                  <FileText className="h-5 w-5" />
+                </span>
+              }
+              title={m.title}
+              subtitle={new Date(m.created_at).toLocaleDateString('es-ES')}
+              trailing={
+                <div className="flex items-center gap-1">
+                  <a href={`/api/pdf/material/${m.id}`} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+                    Ver
+                  </a>
+                  <Button variant="danger-ghost" size="sm" onClick={() => handleDelete(m.id)}>
+                    Eliminar
+                  </Button>
+                </div>
+              }
+            />
           ))}
-        </ul>
+        </List>
       )}
-    </div>
+    </Card>
   )
 }

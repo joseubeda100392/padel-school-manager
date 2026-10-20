@@ -48,13 +48,17 @@ export function UpdateChecker({ currentVersion }: { currentVersion: string }) {
   if (!hasUpdate) return null
 
   return (
-    <div className="fixed inset-x-4 bottom-4 z-[100] mx-auto max-w-sm rounded-xl bg-gray-900 px-4 py-3 text-white shadow-lg sm:left-auto sm:right-4">
-      <p className="text-sm font-medium">Hay una versión nueva de la app disponible</p>
+    <div
+      role="status"
+      className="fixed inset-x-3 bottom-[calc(var(--tabbar-h)+var(--safe-bottom)+0.75rem)] z-[100] mx-auto flex max-w-sm items-center gap-3 rounded-card bg-chrome px-4 py-3 text-chrome-ink shadow-overlay md:inset-x-auto md:bottom-6 md:right-6"
+    >
+      <p className="min-w-0 flex-1 text-label text-white">Hay una versión nueva de la app</p>
       <button
+        type="button"
         onClick={handleUpdate}
-        className="mt-2 w-full rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold hover:bg-brand-600"
+        className="h-9 shrink-0 rounded-control bg-accent px-3 text-label text-accent-on transition-colors hover:bg-accent-hover"
       >
-        Actualizar ahora
+        Actualizar
       </button>
     </div>
   )

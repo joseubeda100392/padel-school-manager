@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/confirm'
 
 const nextStatus: Record<string, { label: string; status: string }> = {
   open: { label: 'Cerrar inscripciones', status: 'closed' },
@@ -9,9 +11,18 @@ const nextStatus: Record<string, { label: string; status: string }> = {
 
 export function TournamentActions({ tournamentId, currentStatus }: { tournamentId: string; currentStatus: string }) {
   const [loading, setLoading] = useState(false)
+  const confirm = useConfirm()
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar este torneo? Se borrarán todas las inscripciones.')) return
+    if (
+      !(await confirm({
+        title: 'Eliminar este torneo',
+        description: 'Se borrarán también todas las inscripciones. No se puede deshacer.',
+        confirmLabel: 'Eliminar torneo',
+        destructive: true,
+      }))
+    )
+      return
     setLoading(true)
     await fetch(`/api/admin/tournaments/${tournamentId}`, { method: 'DELETE' })
     window.location.reload()
@@ -30,23 +41,15 @@ export function TournamentActions({ tournamentId, currentStatus }: { tournamentI
   const next = nextStatus[currentStatus]
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {next && (
-        <button
-          onClick={() => handleStatusChange(next.status)}
-          disabled={loading}
-          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40"
-        >
+        <Button variant="secondary" size="sm" onClick={() => handleStatusChange(next.status)} disabled={loading}>
           {next.label}
-        </button>
+        </Button>
       )}
-      <button
-        onClick={handleDelete}
-        disabled={loading}
-        className="rounded-lg border border-red-100 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
-      >
+      <Button variant="danger-ghost" size="sm" onClick={handleDelete} disabled={loading}>
         Eliminar
-      </button>
+      </Button>
     </div>
   )
 }

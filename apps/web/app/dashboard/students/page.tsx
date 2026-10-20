@@ -2,17 +2,23 @@ export const dynamic = 'force-dynamic'
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId, isSuperAdmin } from '@/lib/get-club'
+import { getClubFeatures } from '@/lib/get-club-features'
 import Link from 'next/link'
+import { Plus, Upload } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
+import { Notice } from '@/components/ui/feedback'
 import StudentsTable from './students-table'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 
 export default async function StudentsPage({ searchParams }: { searchParams: { tab?: string } }) {
   const admin = getAdminClient()
   const [clubId, superAdmin] = await Promise.all([getClubId(), isSuperAdmin()])
+  const features = await getClubFeatures(clubId)
 
   let studentsQuery = admin
     .from('users')
-    .select('id, name, email, phone, role, is_active, created_at, current_level_id, avatar_url, start_date, end_date, terms_accepted_at, also_student')
+    .select('id, name, email, phone, role, is_active, created_at, current_level_id, avatar_url, start_date, end_date, terms_accepted_at, also_student, deposit_paid')
     .neq('role', 'super_admin')
     .order('name')
 
@@ -45,34 +51,30 @@ export default async function StudentsPage({ searchParams }: { searchParams: { t
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <RealtimeRefresh
         channelName="admin-students"
         subs={clubId ? [{ table: 'users', filter: `club_id=eq.${clubId}` }] : [{ table: 'users' }]}
       />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">Usuarios</h1>
-          <p className="mt-1 text-sm text-gray-500">{students?.length ?? 0} usuarios registrados</p>
-          {error && <p className="mt-1 text-xs text-red-500">Error: {error.message}</p>}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/dashboard/students/import"
-            className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:bg-brand-100"
-          >
-            ↑ Importar Excel
-          </Link>
-          <Link
-            href="/dashboard/students/new"
-            className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600"
-          >
-            + Nuevo usuario
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Usuarios"
+        description={`${students?.length ?? 0} alumnos y monitores. Busca a alguien para ver su ficha, sus clases y sus pagos.`}
+        actions={
+          <>
+            <Link href="/dashboard/students/import" className={buttonVariants({ variant: 'secondary', className: 'order-2 sm:order-1' })}>
+              <Upload className="h-4 w-4" aria-hidden />
+              Importar Excel
+            </Link>
+            <Link href="/dashboard/students/new" className={buttonVariants({ variant: 'primary', className: 'order-1 flex-1 sm:order-2 sm:flex-none' })}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Nuevo usuario
+            </Link>
+          </>
+        }
+      />
+      {error && <Notice tone="danger">No se han podido cargar los usuarios: {error.message}</Notice>}
 
-      <StudentsTable students={students ?? []} levelMap={levelMap} enrollmentMap={enrollmentMap} defaultTab={searchParams.tab ?? 'student'} />
+      <StudentsTable students={students ?? []} levelMap={levelMap} enrollmentMap={enrollmentMap} defaultTab={searchParams.tab ?? 'student'} enableDeposit={features.enable_deposit} />
     </div>
   )
 }

@@ -1,8 +1,13 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { CircleCheck, TriangleAlert } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
+import { AuthCard } from '../auth-card'
 
 export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false)
@@ -62,83 +67,62 @@ export default function ResetPasswordPage() {
 
   if (linkError) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center space-y-4">
-          <p className="text-sm text-red-600">{linkError}</p>
-          <Link href="/login/forgot-password" className="block text-sm text-brand-500 hover:underline">
+      <AuthCard title="Enlace no válido">
+        <div className="space-y-4">
+          <Notice tone="danger" icon={<TriangleAlert />}>{linkError}</Notice>
+          <Link href="/login/forgot-password" className={buttonVariants({ size: 'lg', block: true })}>
             Solicitar nuevo enlace
           </Link>
         </div>
-      </main>
+      </AuthCard>
     )
   }
 
   if (!ready) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center">
-          <p className="text-sm text-gray-500">Verificando enlace...</p>
-        </div>
-      </main>
+      <AuthCard title="Nueva contraseña">
+        <p role="status" className="text-center text-body text-ink-2">Verificando enlace...</p>
+      </AuthCard>
     )
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
-        <div className="mb-8 flex flex-col items-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
-            <img src="/apple-icon" alt="ePadel School" className="h-12 w-12 object-cover" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">Nueva contraseña</h1>
-        </div>
+    <AuthCard title="Nueva contraseña">
+      {done ? (
+        <Notice tone="success" icon={<CircleCheck />}>
+          Contraseña actualizada. Redirigiendo al inicio de sesión...
+        </Notice>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Nueva contraseña" hint="Mínimo 6 caracteres">
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoFocus
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </Field>
+          <Field label="Confirmar contraseña">
+            <Input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </Field>
 
-        {done ? (
-          <div className="rounded-lg bg-brand-50 px-4 py-3 text-center text-sm text-brand-600">
-            Contraseña actualizada. Redirigiendo al login...
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Nueva contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoFocus
-                minLength={6}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                placeholder="••••••••"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Confirmar contraseña</label>
-              <input
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-                minLength={6}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                placeholder="••••••••"
-              />
-            </div>
+          {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 
-            {error && (
-              <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-brand-500 py-2.5 font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
-            >
-              {loading ? 'Guardando...' : 'Guardar contraseña'}
-            </button>
-          </form>
-        )}
-      </div>
-    </main>
+          <Button type="submit" size="lg" block loading={loading}>
+            {loading ? 'Guardando...' : 'Guardar contraseña'}
+          </Button>
+        </form>
+      )}
+    </AuthCard>
   )
 }

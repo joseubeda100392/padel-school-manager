@@ -1,8 +1,13 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import QRCode from 'react-qr-code'
+import { Check, TriangleAlert } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
+import { AuthCard } from '../../auth-card'
 
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -86,114 +91,79 @@ export default function MfaEnrollPage() {
 
   if (phase === 'codes') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
-          <div className="mb-6 flex flex-col items-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
-              <img src="/apple-icon" alt="ePadel School" className="h-12 w-12 object-cover" />
-            </div>
-            <h1 className="text-xl font-bold text-gray-900">Códigos de recuperación</h1>
-            <p className="mt-1 text-center text-sm text-gray-500">
-              Guárdalos en un lugar seguro. Solo los verás ahora.
-            </p>
-          </div>
-
-          <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+      <AuthCard title="Códigos de recuperación" description="Guárdalos en un lugar seguro. Solo los verás ahora.">
+        <div className="space-y-4">
+          <Notice tone="warn" icon={<TriangleAlert />}>
             Si pierdes el móvil, estos códigos son tu única forma de acceder. Cada código solo funciona una vez.
-          </div>
+          </Notice>
 
-          <div className="mb-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+          <div className="rounded-control border border-line bg-surface-2 p-4">
             <ul className="space-y-1.5">
               {recoveryCodes.map((code, i) => (
-                <li key={i} className="font-mono text-sm tracking-widest text-gray-800">{code}</li>
+                <li key={i} className="font-mono text-body tabular-nums tracking-widest text-ink">{code}</li>
               ))}
             </ul>
           </div>
 
-          <button
-            type="button"
-            onClick={handleCopyAll}
-            className="mb-4 w-full rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            {copied ? '✓ Copiados' : 'Copiar todos'}
-          </button>
+          <Button type="button" variant="secondary" block onClick={handleCopyAll}>
+            {copied && <Check className="h-4 w-4" aria-hidden />}
+            {copied ? 'Copiados' : 'Copiar todos'}
+          </Button>
 
-          <button
-            type="button"
-            onClick={() => { window.location.replace('/dashboard') }}
-            className="w-full rounded-lg bg-brand-500 py-2.5 font-medium text-white transition hover:bg-brand-600"
-          >
-            He guardado mis códigos → Entrar
-          </button>
+          <Button type="button" size="lg" block onClick={() => { window.location.replace('/dashboard') }}>
+            He guardado mis códigos, entrar
+          </Button>
         </div>
-      </main>
+      </AuthCard>
     )
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
-        <div className="mb-6 flex flex-col items-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
-            <img src="/apple-icon" alt="ePadel School" className="h-12 w-12 object-cover" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">Configurar autenticador</h1>
-          <p className="mt-1 text-center text-sm text-gray-500">
-            Escanea el código QR con Google Authenticator, Authy u otra app TOTP
-          </p>
+    <AuthCard
+      title="Configurar autenticador"
+      description="Escanea el código QR con Google Authenticator, Authy u otra app TOTP"
+    >
+      {uri ? (
+        <div className="mb-6 flex justify-center rounded-card border border-line bg-white p-4">
+          <QRCode value={uri} size={180} bgColor="#FFFFFF" fgColor="#000000" />
         </div>
+      ) : (
+        <div className="mb-6 flex h-48 items-center justify-center rounded-card bg-surface-2">
+          <p role="status" className="text-meta text-ink-3">Cargando código QR...</p>
+        </div>
+      )}
 
-        {uri ? (
-          <div className="mb-6 flex justify-center rounded-xl bg-white p-4 shadow-inner">
-            <QRCode value={uri} size={180} />
-          </div>
-        ) : (
-          <div className="mb-6 flex h-48 items-center justify-center rounded-xl bg-gray-50">
-            <p className="text-sm text-gray-400">Cargando código QR...</p>
-          </div>
-        )}
+      {secret && (
+        <details className="mb-4">
+          <summary className="min-h-11 cursor-pointer py-2.5 text-meta text-ink-2 hover:text-ink">
+            ¿No puedes escanear el QR? Introduce el código a mano
+          </summary>
+          <p className="mt-2 break-all rounded-control bg-surface-2 px-3 py-2 font-mono text-meta text-ink">{secret}</p>
+        </details>
+      )}
 
-        {secret && (
-          <details className="mb-4">
-            <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600">
-              ¿No puedes escanear el QR? Introducir código manual
-            </summary>
-            <p className="mt-2 break-all rounded-lg bg-gray-50 px-3 py-2 font-mono text-xs text-gray-700">{secret}</p>
-          </details>
-        )}
+      <form onSubmit={handleVerify} className="space-y-4">
+        <Field label="Código de verificación">
+          <Input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={verifyCode}
+            onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+            required
+            autoComplete="one-time-code"
+            autoFocus
+            className="h-14 text-center font-display text-title tabular-nums tracking-widest"
+            placeholder="000000"
+          />
+        </Field>
 
-        <form onSubmit={handleVerify} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Código de verificación
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={verifyCode}
-              onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
-              required
-              autoComplete="one-time-code"
-              autoFocus
-              className="w-full rounded-lg border border-gray-200 px-4 py-3 text-center text-2xl tracking-widest text-gray-900 placeholder-gray-300 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              placeholder="000000"
-            />
-          </div>
+        {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || verifyCode.length !== 6}
-            className="w-full rounded-lg bg-brand-500 py-2.5 font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
-          >
-            {loading ? 'Verificando...' : 'Confirmar y activar 2FA'}
-          </button>
-        </form>
-      </div>
-    </main>
+        <Button type="submit" size="lg" block loading={loading} disabled={verifyCode.length !== 6}>
+          {loading ? 'Verificando...' : 'Confirmar y activar 2FA'}
+        </Button>
+      </form>
+    </AuthCard>
   )
 }

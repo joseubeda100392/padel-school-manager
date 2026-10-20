@@ -1,19 +1,24 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { HomeBand } from '@/components/ui/home-band'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatTime, getDayOfWeek } from '@/lib/utils'
 import Link from 'next/link'
+import { CalendarOff, Clock } from 'lucide-react'
+import { formatLongDate } from '@/lib/format-date'
+import { Card } from '@/components/ui/card'
+import { LevelTag } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/feedback'
+import { List, ListRow } from '@/components/ui/list'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
 import { getHolidaySet } from '@/lib/club-holidays'
 
-const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-
 export default async function CoachHomePage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
@@ -21,16 +26,15 @@ export default async function CoachHomePage() {
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   const todayDow = getDayOfWeek(new Date())
 
-  const { data: allSchedules, error: errSchedules } = await admin
-    .from('schedules')
-    .select('id, start_time, end_time, max_students, recurrence, recurrence_end_date, court:courts(name), level:levels(name, color)')
-    .eq('coach_id', user.id)
-    .eq('is_active', true)
-
-  const { data: coachRow } = await admin.from('users').select('club_id').eq('id', user.id).single()
-  const { data: clubRow } = coachRow?.club_id
-    ? await admin.from('clubs').select('config').eq('id', coachRow.club_id).single()
-    : { data: null }
+  const [{ data: allSchedules, error: errSchedules }, { data: coachRow }] = await Promise.all([
+    admin
+      .from('schedules')
+      .select('id, start_time, end_time, max_students, recurrence, recurrence_end_date, court:courts(name), level:levels(name, color)')
+      .eq('coach_id', user.id)
+      .eq('is_active', true),
+    admin.from('users').select('club_id, club:clubs(config)').eq('id', user.id).single(),
+  ])
+  const clubRow = coachRow?.club_id ? { config: (coachRow as any)?.club?.config ?? null } : null
   const isHolidayToday = getHolidaySet((clubRow as any)?.config).has(todaySpain)
 
   const todaySchedules = isHolidayToday ? [] : (allSchedules ?? []).filter((s: any) => {
@@ -69,8 +73,14 @@ export default async function CoachHomePage() {
 
   const firstName = user.user_metadata?.name?.split(' ')[0] ?? 'Monitor'
 
+  const sortedToday = [...todaySchedules].sort((a: any, b: any) => {
+    const aTime = (overrideBySchedule.get(a.id) as any)?.new_start_time ?? a.start_time
+    const bTime = (overrideBySchedule.get(b.id) as any)?.new_start_time ?? b.start_time
+    return new Date(aTime).getTime() - new Date(bTime).getTime()
+  })
+
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <DevError errors={[errSchedules?.message]} />
       <RealtimeRefresh
         channelName={`coach-home-${user.id}`}
@@ -79,77 +89,77 @@ export default async function CoachHomePage() {
           { table: 'schedule_exclusions' },
         ]}
       />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Hola, {firstName} 👋</h1>
-        <p className="text-sm text-gray-500">Panel de monitor</p>
-      </div>
+      <HomeBand>
+      <header>
+        <p className="text-meta text-ink-3 max-md:text-chrome-ink-2">{formatLongDate(new Date())}</p>
+        <h1 className="mt-1 font-display text-display text-ink max-md:text-white">Hola, {firstName}</h1>
+      </header>
 
-      {/* Stats */}
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-400">Clases asignadas</p>
-          <p className="mt-1 text-3xl font-bold text-gray-900">{allSchedules?.length ?? 0}</p>
-        </div>
-        <div className="rounded-xl bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-400">Clases hoy</p>
-          <p className="mt-1 text-3xl font-bold text-blue-600">{todaySchedules.length}</p>
-        </div>
-      </div>
+      <Card className="overflow-hidden">
+        <dl className="grid grid-cols-2 divide-x divide-line">
+          <div className="p-4 sm:p-5">
+            <dt className="text-meta text-ink-3">Clases asignadas</dt>
+            <dd className="mt-1 font-display text-title tabular-nums text-ink">{allSchedules?.length ?? 0}</dd>
+          </div>
+          <div className="p-4 sm:p-5">
+            <dt className="text-meta text-ink-3">Clases hoy</dt>
+            <dd className="mt-1 font-display text-title tabular-nums text-ink">{todaySchedules.length}</dd>
+          </div>
+        </dl>
+      </Card>
+      </HomeBand>
 
-      {/* Clases de hoy */}
-      <h2 className="mb-3 text-base font-semibold text-gray-700">
-        {DAYS[todayDow]} — clases de hoy
-      </h2>
-
-      {todaySchedules.length === 0 ? (
-        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-          <p className="text-gray-400">{isHolidayToday ? 'Hoy es festivo: no hay clases.' : 'No tienes clases hoy.'}</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {todaySchedules
-            .sort((a: any, b: any) => {
-              const aTime = (overrideBySchedule.get(a.id) as any)?.new_start_time ?? a.start_time
-              const bTime = (overrideBySchedule.get(b.id) as any)?.new_start_time ?? b.start_time
-              return new Date(aTime).getTime() - new Date(bTime).getTime()
-            })
-            .map((s: any) => {
-              const enrolled = countBySchedule[s.id] ?? 0
-              const override = overrideBySchedule.get(s.id) as any
-              return (
-                <Link
-                  key={s.id}
-                  href={`/coach/classes/${s.id}`}
-                  className="block rounded-xl bg-white p-5 shadow-sm transition hover:shadow-md"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-bold text-gray-900">
+      <section className="space-y-3">
+        <h2 className="border-b border-line pb-2 text-label text-ink-2">Clases de hoy</h2>
+        {sortedToday.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<CalendarOff />}
+              title={isHolidayToday ? 'Hoy es festivo' : 'No tienes clases hoy'}
+              description={isHolidayToday ? 'No hay clases en el club.' : 'Cuando tengas una clase asignada para hoy aparecerá aquí.'}
+            />
+          </Card>
+        ) : (
+          <Card className="overflow-hidden">
+            <List>
+              {sortedToday.map((s: any) => {
+                const enrolled = countBySchedule[s.id] ?? 0
+                const override = overrideBySchedule.get(s.id) as any
+                return (
+                  <ListRow
+                    key={s.id}
+                    href={`/coach/classes/${s.id}`}
+                    title={
+                      <span className="font-display text-heading tabular-nums">
                         {formatTime(override?.new_start_time ?? s.start_time)} – {formatTime(override?.new_end_time ?? s.end_time)}
-                      </p>
-                      {override && <p className="text-xs font-medium text-amber-600">⚠️ Cambio de hora puntual hoy</p>}
-                      <p className="mt-0.5 text-sm text-gray-500">{s.court?.name ?? '—'}</p>
-                      {s.level && (
-                        <span
-                          className="mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-                          style={{ backgroundColor: s.level.color }}
-                        >
-                          {s.level.name}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-900">
-                        {enrolled}<span className="text-base font-normal text-gray-400">/{s.max_students}</span>
-                      </p>
-                      <p className="text-xs text-gray-400">alumnos</p>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-        </div>
-      )}
+                      </span>
+                    }
+                    subtitle={
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        <span>{s.court?.name ?? '—'}</span>
+                        {s.level && <LevelTag name={s.level.name} color={s.level.color} />}
+                        {override && (
+                          <span className="inline-flex items-center gap-1 font-medium text-warn-ink">
+                            <Clock className="h-3.5 w-3.5" aria-hidden />
+                            Cambio de hora hoy
+                          </span>
+                        )}
+                      </span>
+                    }
+                    trailing={
+                      <span className="text-ink">
+                        <span className="font-display text-heading tabular-nums">{enrolled}</span>
+                        <span className="text-meta tabular-nums text-ink-3">/{s.max_students}</span>
+                        <span className="block text-meta text-ink-3">alumnos</span>
+                      </span>
+                    }
+                  />
+                )
+              })}
+            </List>
+          </Card>
+        )}
+      </section>
     </div>
   )
 }

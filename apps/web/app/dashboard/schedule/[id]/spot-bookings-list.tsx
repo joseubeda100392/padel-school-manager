@@ -2,6 +2,12 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Avatar, List } from '@/components/ui/list'
+import { useConfirm } from '@/components/ui/confirm'
+import { formatLongDate } from '@/lib/format-date'
 
 type SpotBooking = {
   id: string
@@ -11,17 +17,18 @@ type SpotBooking = {
 }
 
 const sourceLabel: Record<string, string> = { bag: 'Crédito bolsa', pay_per_class: 'Pago único', admin: 'Admin' }
-const sourceBadge: Record<string, string> = {
-  bag: 'bg-orange-100 text-orange-700',
-  pay_per_class: 'bg-blue-100 text-blue-700',
-  admin: 'bg-gray-100 text-gray-600',
-}
 
 export function SpotBookingsList({ bookings }: { bookings: SpotBooking[] }) {
+  const confirm = useConfirm()
   const [deleting, setDeleting] = useState<string | null>(null)
 
   async function handleDelete(bookingId: string) {
-    if (!confirm('¿Cancelar esta reserva puntual? Se devolverá el crédito al alumno.')) return
+    if (!(await confirm({
+      title: '¿Cancelar esta reserva puntual?',
+      description: 'Se devolverá el crédito al alumno.',
+      confirmLabel: 'Cancelar reserva',
+      destructive: true,
+    }))) return
     setDeleting(bookingId)
     try {
       const res = await fetch('/api/bookings', {
@@ -37,7 +44,7 @@ export function SpotBookingsList({ bookings }: { bookings: SpotBooking[] }) {
       }
       window.location.reload()
     } catch {
-      toast.error('Error de conexión')
+      toast.error('Error de conexión. Comprueba tu internet e inténtalo de nuevo.')
       setDeleting(null)
     }
   }
@@ -45,49 +52,29 @@ export function SpotBookingsList({ bookings }: { bookings: SpotBooking[] }) {
   if (bookings.length === 0) return null
 
   return (
-    <div className="divide-y divide-gray-50">
-      {bookings.map((b) => {
-        const dateLabel = new Date(b.class_date + 'T12:00:00').toLocaleDateString('es-ES', {
-          weekday: 'long', day: 'numeric', month: 'long',
-        })
-        const initials = (b.student?.name ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
-        return (
-          <div key={b.id} className="flex items-center gap-4 px-6 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
-              {initials}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900">{b.student?.name}</p>
-              <p className="text-sm text-gray-400">{b.student?.email}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-700 capitalize">{dateLabel}</p>
-                <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${sourceBadge[b.source] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {sourceLabel[b.source] ?? b.source}
-                </span>
-              </div>
-              <button
-                onClick={() => handleDelete(b.id)}
-                disabled={deleting === b.id}
-                className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
-                title="Cancelar reserva"
-              >
-                {deleting === b.id ? (
-                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                ) : (
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                )}
-              </button>
-            </div>
+    <List className="mt-3 border-t border-line">
+      {bookings.map((b) => (
+        <li key={b.id} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5">
+          <Avatar name={b.student?.name ?? '?'} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.9375rem] font-medium text-ink">{b.student?.name}</p>
+            <p className="truncate text-meta text-ink-3">{b.student?.email}</p>
           </div>
-        )
-      })}
-    </div>
+          <div className="text-right">
+            <p className="text-label text-ink-2">{formatLongDate(b.class_date)}</p>
+            <Badge tone="neutral" className="mt-0.5">{sourceLabel[b.source] ?? b.source}</Badge>
+          </div>
+          <Button
+            variant="danger-ghost"
+            size="icon"
+            onClick={() => handleDelete(b.id)}
+            loading={deleting === b.id}
+            aria-label={`Cancelar reserva de ${b.student?.name ?? 'alumno'}`}
+          >
+            {deleting !== b.id && <X className="h-4 w-4" aria-hidden />}
+          </Button>
+        </li>
+      ))}
+    </List>
   )
 }

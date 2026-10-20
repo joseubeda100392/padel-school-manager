@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { SettingsClient } from './settings-client'
@@ -8,7 +8,7 @@ import { SettingsClient } from './settings-client'
 export default async function SettingsPage() {
   const supabase = createClient()
   const admin = getAdminClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   const clubId = await getClubId()
 
   const clubSlug = clubId

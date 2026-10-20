@@ -1,6 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { Search, TriangleAlert } from 'lucide-react'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Notice } from '@/components/ui/feedback'
+import { List, ListRow } from '@/components/ui/list'
 
 type PendingMatch = {
   booking_id: string
@@ -33,54 +38,56 @@ export function PendingMatchesPanel() {
   }
 
   return (
-    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-semibold text-gray-900">Comprobar partidos pendientes ahora</h2>
-          <p className="text-sm text-gray-500">Consulta en directo (próximos 14 días), sin esperar al siguiente escaneo automático</p>
-        </div>
-        <button
-          onClick={checkNow}
-          disabled={loading}
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-        >
-          {loading ? 'Consultando...' : '🔍 Comprobar ahora'}
-        </button>
+    <Card>
+      <CardHeader
+        title="Comprobar partidos pendientes ahora"
+        description="Consulta en directo (próximos 14 días), sin esperar al siguiente escaneo automático."
+        action={
+          <Button onClick={checkNow} loading={loading} className="w-full sm:w-auto">
+            {!loading && <Search className="h-4 w-4" aria-hidden />}
+            {loading ? 'Consultando…' : 'Comprobar ahora'}
+          </Button>
+        }
+      />
+
+      <div className="p-4 pt-3 sm:p-5 sm:pt-3">
+        {error && (
+          <Notice tone="warn" icon={<TriangleAlert />}>
+            {error}
+          </Notice>
+        )}
+
+        {matches && matches.length === 0 && !error && (
+          <p className="text-body text-ink-2">No hay partidos pendientes de jugadores ahora mismo.</p>
+        )}
+
+        {matches && matches.length > 0 && (
+          <List className="rounded-control border border-line">
+            {matches.map((m) => (
+              <ListRow
+                key={m.booking_id}
+                title={`${m.court_name ?? 'Pista'} · ${m.start_label}`}
+                subtitle={
+                  <>
+                    Faltan {m.faltan} jugador{m.faltan === 1 ? '' : 'es'}
+                    {m.level_min != null && m.level_max != null && ` · Nivel estimado ${m.level_min.toFixed(2)} - ${m.level_max.toFixed(2)}`}
+                  </>
+                }
+                trailing={
+                  <a
+                    href={`https://app.playtomic.io/matches/${m.booking_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center text-label text-accent-ink hover:underline"
+                  >
+                    Ver en Playtomic
+                  </a>
+                }
+              />
+            ))}
+          </List>
+        )}
       </div>
-
-      {error && (
-        <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-          ⚠️ {error}
-        </div>
-      )}
-
-      {matches && matches.length === 0 && !error && (
-        <p className="mt-4 text-center text-sm text-gray-400">No hay partidos pendientes de jugadores ahora mismo.</p>
-      )}
-
-      {matches && matches.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {matches.map((m) => (
-            <div key={m.booking_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3 shadow-sm">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{m.court_name ?? 'Pista'} · {m.start_label}</p>
-                <p className="text-xs text-gray-500">
-                  Faltan {m.faltan} jugador{m.faltan === 1 ? '' : 'es'}
-                  {m.level_min != null && m.level_max != null && ` · Nivel estimado ${m.level_min.toFixed(2)} - ${m.level_max.toFixed(2)}`}
-                </p>
-              </div>
-              <a
-                href={`https://app.playtomic.io/matches/${m.booking_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-medium text-brand-600 hover:underline"
-              >
-                Ver en Playtomic →
-              </a>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </Card>
   )
 }

@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     const startTime = formatTime(sched.start_time)
     messages.push({
       to: token,
-      title: '¡Tienes clase mañana! 🎾',
+      title: '⏰ Tienes clase mañana',
       body: `${sched.court?.name ?? 'Pista'} a las ${startTime}. ¡Nos vemos en la pista!`,
       sound: 'default',
     })

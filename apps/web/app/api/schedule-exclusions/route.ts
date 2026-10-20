@@ -5,6 +5,8 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
+import { processWaitlist } from '@/lib/waitlist'
+import { parseLowerLevelMap, studentLevelsForClass } from '@/lib/spot-levels'
 import { formatTime } from '@/lib/utils'
 import { sanitizeDbError } from '@/lib/sanitize-error'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
@@ -23,13 +25,24 @@ async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, sch
       .eq('schedule_id', scheduleId)
       .eq('status', 'active')
 
-    const excludedIds = new Set((enrolledRows ?? []).map((e: any) => e.student_id))
+    // Ni los del grupo fijo ni quien ya tiene plaza puntual ese día: a ellos
+    // el hueco no les sirve.
+    const { data: bookedRows } = await admin
+      .from('bookings')
+      .select('student_id')
+      .eq('schedule_id', scheduleId)
+      .eq('class_date', excludedDate)
+      .neq('status', 'cancelled')
+    const excludedIds = new Set([...(enrolledRows ?? []), ...(bookedRows ?? [])].map((e: any) => e.student_id))
     const clubId = (scheduleData as any)?.club_id
     const levelId = (scheduleData as any)?.level_id
 
     let q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
     if (clubId) q = q.eq('club_id', clubId)
-    if (levelId) q = q.eq('current_level_id', levelId)
+    if (levelId) {
+      const { data: clubCfg } = clubId ? await admin.from('clubs').select('config').eq('id', clubId).single() : { data: null }
+      q = q.in('current_level_id', studentLevelsForClass(levelId, parseLowerLevelMap((clubCfg as any)?.config)))
+    }
     const { data: candidates } = await q
     const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
 
@@ -50,6 +63,13 @@ async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, sch
   } catch {
     // No interrumpir la respuesta si falla el push
   }
+}
+
+// Una plaza publicada va primero a quien esté en reserva ese día; si nadie
+// entra, se anuncia como hueco libre al nivel, como siempre.
+async function publishFreedSpot(admin: ReturnType<typeof getAdminClient>, scheduleId: string, excludedDate: string) {
+  const waitlist = await processWaitlist(admin, scheduleId, excludedDate, { notifyIfLate: false })
+  if (waitlist.promoted.length === 0) await notifySpotAvailable(admin, scheduleId, excludedDate)
 }
 
 export async function POST(req: NextRequest) {
@@ -106,7 +126,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: sanitizeDbError(error) }, { status: 500 })
 
   if (publish_spot && enrollment?.schedule_id) {
-    await notifySpotAvailable(admin, enrollment.schedule_id, excluded_date)
+    await publishFreedSpot(admin, enrollment.schedule_id, excluded_date)
   }
 
   let newBagBalance: number | null = null
@@ -172,11 +192,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  const { id, publish_spot } = await req.json()
+  const { data: patchBody, error: badPatch } = await parseBody(req, z.object({
+    id: z.string().uuid(),
+    publish_spot: z.boolean(),
+  }))
+  if (badPatch) return badPatch
+  const { id, publish_spot } = patchBody
 
   const { data: exclusionBefore } = await admin
     .from('schedule_exclusions')
-    .select('excluded_date, group_enrollment_id, publish_spot')
+    .select('excluded_date, group_enrollment_id, publish_spot, spot_taken')
     .eq('id', id)
     .single()
 
@@ -190,6 +215,11 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  // Su plaza ya la ocupa otro alumno: publicarla otra vez daría una plaza de más.
+  if (publish_spot && exclusionBefore?.spot_taken) {
+    return NextResponse.json({ error: 'Esta plaza ya la ha cogido otro alumno' }, { status: 409 })
+  }
+
   const { error } = await admin.from('schedule_exclusions').update({ publish_spot }).eq('id', id)
   if (error) return NextResponse.json({ error: sanitizeDbError(error) }, { status: 500 })
 
@@ -201,7 +231,7 @@ export async function PATCH(req: NextRequest) {
       .eq('id', exclusionBefore.group_enrollment_id)
       .single()
     if (ge?.schedule_id) {
-      await notifySpotAvailable(admin, ge.schedule_id, exclusionBefore.excluded_date)
+      await publishFreedSpot(admin, ge.schedule_id, exclusionBefore.excluded_date)
     }
   }
 

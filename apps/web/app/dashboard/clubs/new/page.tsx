@@ -1,8 +1,12 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardBody } from '@/components/ui/card'
+import { Field, Input, Select } from '@/components/ui/field'
+import { Button, buttonVariants } from '@/components/ui/button'
 
 const DEFAULT_PASSWORD = 'miclave123'
 
@@ -90,97 +94,74 @@ export default function NewClubPage() {
   }
 
   return (
-    <div className="max-w-lg">
-      <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/clubs" className="text-sm text-gray-500 hover:text-gray-700">← Clubes</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-2xl font-bold text-gray-900">Nuevo club</h1>
-      </div>
+    <div className="mx-auto w-full max-w-xl space-y-6">
+      <PageHeader title="Nuevo club" back={{ href: '/dashboard/clubs', label: 'Clubes' }} />
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Nombre del club *</label>
-          <input
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="Club Pádel Madrid"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Slug (URL)</label>
-          <input
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            required
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-mono focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            placeholder="club-padel-madrid"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Plan</label>
-          <select
-            value={plan}
-            onChange={(e) => setPlan(e.target.value as any)}
-            className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-          >
-            <option value="trial">Trial</option>
-            <option value="basic">Basic</option>
-            <option value="pro">Pro</option>
-          </select>
-        </div>
-
-        <div className="border-t border-gray-100 pt-4">
-          <p className="mb-3 text-sm font-medium text-gray-700">Admin del club (opcional)</p>
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={adminName}
-              onChange={(e) => setAdminName(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              placeholder="Nombre del administrador"
-            />
-            <input
-              type="email"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              placeholder="admin@club.com"
-            />
-            <div>
-              <input
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                minLength={6}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                placeholder="Contraseña inicial"
+      <Card>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Field label="Nombre del club">
+              <Input
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                required
+                autoComplete="organization"
+                placeholder="Club Pádel Madrid"
               />
-              <p className="mt-1 text-xs text-gray-400">Compártesela al admin — podrá cambiarla luego desde su perfil.</p>
+            </Field>
+
+            <Field label="Slug (URL)">
+              <Input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                required
+                autoCapitalize="none"
+                className="font-mono"
+                placeholder="club-padel-madrid"
+              />
+            </Field>
+
+            <Field label="Plan">
+              <Select value={plan} onChange={(e) => setPlan(e.target.value as any)}>
+                <option value="trial">Trial</option>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+              </Select>
+            </Field>
+
+            <fieldset className="space-y-3 border-t border-line pt-4">
+              <legend className="text-label text-ink">Admin del club (opcional)</legend>
+              <Field label="Nombre del administrador">
+                <Input type="text" value={adminName} onChange={(e) => setAdminName(e.target.value)} autoComplete="off" />
+              </Field>
+              <Field label="Email del administrador">
+                <Input
+                  type="email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  autoComplete="off"
+                  inputMode="email"
+                  placeholder="admin@club.com"
+                />
+              </Field>
+              <Field label="Contraseña inicial" hint="Compártesela al admin. Podrá cambiarla luego desde su perfil.">
+                <Input value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} minLength={6} autoComplete="off" />
+              </Field>
+            </fieldset>
+
+            {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+              <Link href="/dashboard/clubs" className={buttonVariants({ variant: 'secondary', className: 'w-full sm:w-auto' })}>
+                Cancelar
+              </Link>
+              <Button type="submit" loading={loading} className="w-full sm:w-auto">
+                {loading ? 'Creando…' : 'Crear club'}
+              </Button>
             </div>
-          </div>
-        </div>
-
-        {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-
-        <div className="flex gap-3 pt-2">
-          <Link
-            href="/dashboard/clubs"
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-center text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Cancelar
-          </Link>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-          >
-            {loading ? 'Creando...' : 'Crear club'}
-          </button>
-        </div>
-      </form>
+          </form>
+        </CardBody>
+      </Card>
     </div>
   )
 }

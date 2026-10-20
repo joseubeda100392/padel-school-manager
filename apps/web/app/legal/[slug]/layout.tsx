@@ -20,26 +20,26 @@ export default async function LegalLayout({
   if (!info) notFound()
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-10">
+    <div className="min-h-screen bg-canvas px-4 py-10 sm:px-8">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-brand-500">{info.clubName}</p>
-          <h1 className="text-xl font-bold text-gray-900">Información legal</h1>
-        </div>
+        <header className="mb-6">
+          <p className="text-label text-accent-ink">{info.clubName}</p>
+          <h1 className="font-display text-title text-ink">Información legal</h1>
+        </header>
 
-        <nav className="mb-6 flex flex-wrap gap-2">
+        <nav aria-label="Documentos legales" className="mb-6 flex flex-wrap gap-2">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={`/legal/${params.slug}/${l.href}`}
-              className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-brand-300 hover:text-brand-600"
+              className="inline-flex min-h-11 items-center rounded-full border border-line-strong/60 bg-surface px-4 text-label text-ink-2 hover:bg-surface-2 hover:text-ink"
             >
               {l.label}
             </Link>
           ))}
         </nav>
 
-        {children}
+        <div className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-8">{children}</div>
       </div>
     </div>
   )

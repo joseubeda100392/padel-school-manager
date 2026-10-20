@@ -1,6 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { BellRing, Check, ExternalLink } from 'lucide-react'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+import { List } from '@/components/ui/list'
+import { formatClock, formatLongDate } from '@/lib/format-date'
 
 type OpenMatch = {
   playtomic_match_id: string
@@ -21,14 +28,14 @@ type Props = {
 
 // 0=domingo ... 6=sábado (mismo criterio que getDayOfWeek en lib/utils.ts).
 // Se muestran empezando en lunes, orden habitual en España.
-const DAY_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: 'L' },
-  { value: 2, label: 'M' },
-  { value: 3, label: 'X' },
-  { value: 4, label: 'J' },
-  { value: 5, label: 'V' },
-  { value: 6, label: 'S' },
-  { value: 0, label: 'D' },
+const DAY_OPTIONS: { value: number; label: string; name: string }[] = [
+  { value: 1, label: 'L', name: 'Lunes' },
+  { value: 2, label: 'M', name: 'Martes' },
+  { value: 3, label: 'X', name: 'Miércoles' },
+  { value: 4, label: 'J', name: 'Jueves' },
+  { value: 5, label: 'V', name: 'Viernes' },
+  { value: 6, label: 'S', name: 'Sábado' },
+  { value: 0, label: 'D', name: 'Domingo' },
 ]
 
 export function PistaVivaOptin({ optedIn, level, matches, preferredDays, preferredStart, preferredEnd }: Props) {
@@ -75,12 +82,12 @@ export function PistaVivaOptin({ optedIn, level, matches, preferredDays, preferr
         body: JSON.stringify({ profileUrl }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Error al activar'); return }
+      if (!res.ok) { setError(data.error ?? 'No se ha podido activar. Revisa el enlace.'); return }
       setIsOptedIn(true)
       setCurrentLevel(data.level ?? null)
       setProfileUrl('')
     } catch {
-      setError('Error de conexión')
+      setError('Sin conexión. Vuelve a intentarlo.')
     } finally {
       setLoading(false)
     }
@@ -97,126 +104,101 @@ export function PistaVivaOptin({ optedIn, level, matches, preferredDays, preferr
   }
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm space-y-3">
-      <div>
-        <h2 className="text-sm font-semibold text-gray-900">Pista Viva ⚡</h2>
-        <p className="mt-1 text-xs text-gray-500">
-          Recibe un aviso cuando falte 1 jugador para un partido de tu nivel en el club.
-        </p>
-      </div>
+    <Card>
+      <CardHeader
+        title="Pista Viva"
+        description="Te avisamos cuando falte un jugador para un partido de tu nivel en el club."
+        action={isOptedIn ? <Badge tone="success"><BellRing className="h-3.5 w-3.5" aria-hidden />Activados</Badge> : undefined}
+      />
 
       {isOptedIn ? (
-        <>
-          <div className="flex items-center justify-between rounded-lg bg-brand-50 px-4 py-3">
-            <div>
-              <p className="text-sm font-medium text-brand-700">Avisos activados</p>
-              {currentLevel != null && (
-                <p className="text-xs text-brand-600">Tu nivel Playtomic: {currentLevel.toFixed(2)}</p>
-              )}
-            </div>
-            <button
-              onClick={handleDeactivate}
-              disabled={loading}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-60"
-            >
-              Desactivar
-            </button>
+        <div className="space-y-5 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-body text-ink-2">
+              {currentLevel != null
+                ? <>Tu nivel en Playtomic: <span className="font-medium tabular-nums text-ink">{currentLevel.toFixed(2)}</span></>
+                : 'Avisos activados.'}
+            </p>
+            <Button variant="ghost" size="sm" onClick={handleDeactivate} loading={loading}>Desactivar avisos</Button>
           </div>
 
-          <div className="space-y-2 rounded-lg border border-gray-100 p-3">
-            <p className="text-xs font-medium text-gray-700">¿Cuándo te interesa jugar? (vacío = cualquier día/hora)</p>
-            <div className="flex gap-1.5">
-              {DAY_OPTIONS.map((d) => (
-                <button
-                  key={d.value}
-                  type="button"
-                  onClick={() => toggleDay(d.value)}
-                  className={`h-8 w-8 rounded-full text-xs font-semibold transition-colors ${
-                    selectedDays.includes(d.value) ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="time"
-                value={prefStart}
-                onChange={(e) => { setPrefStart(e.target.value); setPrefsSaved(false) }}
-                className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
-              />
-              <span className="text-xs text-gray-400">a</span>
-              <input
-                type="time"
-                value={prefEnd}
-                onChange={(e) => { setPrefEnd(e.target.value); setPrefsSaved(false) }}
-                className="rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
-              />
-              <button
-                type="button"
-                onClick={handleSavePreferences}
-                disabled={savingPrefs}
-                className="ml-auto rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700 disabled:opacity-60"
-              >
-                {savingPrefs ? 'Guardando...' : prefsSaved ? '✓ Guardado' : 'Guardar'}
-              </button>
-            </div>
-          </div>
-
-          {matches.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Partidos de tu nivel ahora mismo</p>
-              {matches.map((m) => {
-                const date = new Date(m.slot_datetime)
+          <fieldset className="space-y-3 border-t border-line pt-4">
+            <legend className="text-label text-ink">Cuándo te viene bien jugar</legend>
+            <p className="-mt-1 text-meta text-ink-3">Déjalo vacío si te vale cualquier día y hora.</p>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Días">
+              {DAY_OPTIONS.map((d) => {
+                const on = selectedDays.includes(d.value)
                 return (
-                  <a
-                    key={m.playtomic_match_id}
-                    href={`https://app.playtomic.io/matches/${m.playtomic_match_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-2.5 text-sm hover:border-brand-300 hover:bg-brand-50"
+                  <button
+                    key={d.value}
+                    type="button"
+                    aria-pressed={on}
+                    aria-label={d.name}
+                    onClick={() => toggleDay(d.value)}
+                    className={`h-11 w-11 rounded-full text-label transition-colors duration-150 ${
+                      on ? 'bg-chrome text-white' : 'border border-line-strong/50 bg-surface text-ink-2 hover:bg-surface-2'
+                    }`}
                   >
-                    <div>
-                      <p className="font-medium text-gray-900">{m.court_name ?? 'Pista'}</p>
-                      <p className="text-xs text-gray-500">
-                        {date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Madrid' })}
-                        {' · '}
-                        {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}
-                      </p>
-                    </div>
-                    <span className="text-xs font-medium text-brand-600">Apuntarme →</span>
-                  </a>
+                    {d.label}
+                  </button>
                 )
               })}
             </div>
-          ) : (
-            <p className="text-xs text-gray-400">Ahora mismo no hay partidos abiertos de tu nivel en el club.</p>
-          )}
-        </>
+            <div className="flex flex-wrap items-end gap-2">
+              <Field label="Desde" className="w-32">
+                <Input type="time" value={prefStart} onChange={(e) => { setPrefStart(e.target.value); setPrefsSaved(false) }} />
+              </Field>
+              <Field label="Hasta" className="w-32">
+                <Input type="time" value={prefEnd} onChange={(e) => { setPrefEnd(e.target.value); setPrefsSaved(false) }} />
+              </Field>
+              <Button variant="secondary" onClick={handleSavePreferences} loading={savingPrefs}>
+                {prefsSaved ? <><Check className="h-4 w-4" aria-hidden />Guardado</> : 'Guardar'}
+              </Button>
+            </div>
+          </fieldset>
+
+          <div className="border-t border-line pt-4">
+            <p className="text-label text-ink">Partidos abiertos de tu nivel</p>
+            {matches.length > 0 ? (
+              <List className="-mx-4 mt-2 border-y border-line sm:-mx-5">
+                {matches.map((m) => (
+                  <li key={m.playtomic_match_id}>
+                    <a
+                      href={`https://app.playtomic.io/matches/${m.playtomic_match_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-ink/[0.03] sm:px-5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[0.9375rem] font-medium text-ink">{formatLongDate(m.slot_datetime)} · {formatClock(m.slot_datetime)}</p>
+                        <p className="text-meta text-ink-3">{m.court_name ?? 'Pista'}</p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-label text-accent-ink">
+                        Apuntarme en Playtomic<ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </List>
+            ) : (
+              <p className="mt-1 text-meta text-ink-3">Ahora mismo no hay partidos abiertos de tu nivel.</p>
+            )}
+          </div>
+        </div>
       ) : (
-        <form onSubmit={handleActivate} className="space-y-2">
-          <label className="block text-xs font-medium text-gray-500">
-            Pega el enlace de tu perfil de Playtomic (Compartir perfil → Copiar enlace)
-          </label>
-          <input
-            type="url"
-            value={profileUrl}
-            onChange={(e) => setProfileUrl(e.target.value)}
-            required
-            placeholder="https://app.playtomic.com/profile/user/..."
-            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
-          {error && <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading || !profileUrl}
-            className="w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
+        <form onSubmit={handleActivate} className="space-y-4 p-4 sm:p-5">
+          <Field
+            label="Enlace de tu perfil de Playtomic"
+            hint="En Playtomic: tu perfil → Compartir perfil → Copiar enlace."
+            error={error || undefined}
           >
-            {loading ? 'Comprobando...' : 'Activar avisos'}
-          </button>
+            <Input type="url" inputMode="url" value={profileUrl} onChange={(e) => setProfileUrl(e.target.value)} required placeholder="https://app.playtomic.com/profile/user/…" />
+          </Field>
+          <Button type="submit" loading={loading} disabled={!profileUrl} block className="sm:w-auto">
+            {loading ? 'Comprobando tu perfil' : 'Activar avisos'}
+          </Button>
         </form>
       )}
-    </div>
+    </Card>
   )
 }

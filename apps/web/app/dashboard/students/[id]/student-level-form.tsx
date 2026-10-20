@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field, Select } from '@/components/ui/field'
 
 interface Level {
   id: string
@@ -37,25 +40,20 @@ export function StudentLevelForm({ studentId, currentLevelId, levels }: Props) {
 
   return (
     <div className="space-y-3">
-      <select
-        value={selected}
-        onChange={(e) => setSelected(e.target.value)}
-        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-      >
-        <option value="">Sin nivel asignado</option>
-        {levels.map((l) => (
-          <option key={l.id} value={l.id}>
-            {l.name}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={save}
-        disabled={saving || selected === (currentLevelId ?? '')}
-        className="w-full rounded-lg bg-brand-500 py-2 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
-      >
-        {saving ? 'Guardando...' : done ? '¡Guardado!' : 'Guardar nivel'}
-      </button>
+      <Field label="Cambiar nivel">
+        <Select value={selected} onChange={(e) => setSelected(e.target.value)}>
+          <option value="">Sin nivel asignado</option>
+          {levels.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Button onClick={save} loading={saving} disabled={selected === (currentLevelId ?? '')} block>
+        {done && <Check className="h-4 w-4" aria-hidden />}
+        {saving ? 'Guardando nivel' : done ? 'Nivel guardado' : 'Guardar nivel'}
+      </Button>
     </div>
   )
 }

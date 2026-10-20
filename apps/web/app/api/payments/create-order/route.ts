@@ -172,9 +172,10 @@ export async function POST(req: NextRequest) {
     if (scheduleId) {
       const { data: schedule } = await admin
         .from('schedules')
-        .select('start_time, end_time, type, price_cents, max_students, is_private, coach_id')
+        .select('start_time, end_time, type, price_cents, max_students, is_private, coach_id, is_active')
         .eq('id', scheduleId)
         .single()
+      if ((schedule as any)?.is_active === false) return NextResponse.json({ error: 'Este grupo todavía se está formando' }, { status: 409 })
       if (schedule) {
         durationMin = Math.round(
           (new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000
@@ -295,6 +296,7 @@ export async function POST(req: NextRequest) {
       .select('monthly_price, student_id, paid_until')
       .eq('id', enrollmentId)
       .eq('student_id', user.id)
+      .eq('status', 'active')
       .single()
     if (!enrollment) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
     amount = enrollment.monthly_price

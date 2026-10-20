@@ -2,6 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { CircleCheck, Clock } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+import { Notice } from '@/components/ui/feedback'
 
 interface ExistingSession {
   status: 'given' | 'not_given'
@@ -57,53 +62,55 @@ export function ClassSessionMarker({
 
   if (existingSession?.confirmed_by_admin) {
     return (
-      <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm">
-        <p className="font-medium text-green-700">
-          ✓ Confirmado por el admin — {existingSession.status === 'given' ? 'clase dada' : 'clase no dada'} el {sessionDateLabel}
-        </p>
-      </div>
+      <Notice tone="success" icon={<CircleCheck />}>
+        Confirmado por el admin: {existingSession.status === 'given' ? 'clase dada' : 'clase no dada'} el {sessionDateLabel}
+      </Notice>
     )
   }
 
   if (existingSession && mode === 'idle') {
     return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
-        <p className="font-medium text-amber-700">
-          Marcado como {existingSession.status === 'given' ? 'dada' : 'no dada'} el {sessionDateLabel} — pendiente de confirmar por el admin
-        </p>
-        <button onClick={() => setMode(existingSession.status)} className="mt-2 text-xs font-medium text-amber-700 underline hover:text-amber-900">
-          Corregir
-        </button>
-      </div>
+      <Notice
+        tone="warn"
+        icon={<Clock />}
+        action={
+          <Button variant="secondary" size="sm" onClick={() => setMode(existingSession.status)}>
+            Corregir
+          </Button>
+        }
+      >
+        Marcada como {existingSession.status === 'given' ? 'dada' : 'no dada'} el {sessionDateLabel}. Pendiente de que el admin la confirme.
+      </Notice>
     )
   }
 
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm">
-      <h3 className="mb-1 font-semibold text-gray-900">¿Se ha dado la clase del {sessionDateLabel}?</h3>
-      <p className="mb-3 text-xs text-gray-400">Esto queda pendiente de que el admin lo confirme.</p>
+    <Card className="p-4 sm:p-5">
+      <h3 className="text-heading text-ink">¿Se ha dado la clase del {sessionDateLabel.toLowerCase()}?</h3>
+      <p className="mb-4 mt-0.5 text-meta text-ink-3">Queda pendiente de que el admin lo confirme.</p>
 
       {mode === 'idle' && (
-        <div className="flex gap-3">
-          <button onClick={() => setMode('given')} className="flex-1 rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button size="lg" className="sm:flex-1" onClick={() => setMode('given')}>
             Sí, se ha dado
-          </button>
-          <button onClick={() => setMode('not_given')} className="flex-1 rounded-lg border border-red-200 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50">
+          </Button>
+          <Button variant="danger-ghost" size="lg" className="border border-danger-ink/30 sm:flex-1" onClick={() => setMode('not_given')}>
             No se ha dado
-          </button>
+          </Button>
         </div>
       )}
 
       {mode === 'given' && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {students.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-medium text-gray-600">Marca quién ha faltado (opcional):</p>
-              <div className="space-y-1.5">
+            <fieldset>
+              <legend className="mb-1 text-label text-ink">Marca quién ha faltado (opcional)</legend>
+              <div className="divide-y divide-line">
                 {students.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 text-sm text-gray-700">
+                  <label key={s.id} className="flex min-h-11 cursor-pointer items-center gap-3 text-body text-ink">
                     <input
                       type="checkbox"
+                      className="h-5 w-5 shrink-0 accent-accent-ink"
                       checked={absentIds.includes(s.id)}
                       onChange={(e) => setAbsentIds((prev) => e.target.checked ? [...prev, s.id] : prev.filter((id) => id !== s.id))}
                     />
@@ -111,36 +118,37 @@ export function ClassSessionMarker({
                   </label>
                 ))}
               </div>
-            </div>
+            </fieldset>
           )}
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button onClick={() => setMode('idle')} className="flex-1 rounded-lg border border-gray-200 py-2 text-xs text-gray-600 hover:bg-gray-50">Cancelar</button>
-            <button onClick={() => submit('given')} disabled={saving} className="flex-1 rounded-lg bg-brand-500 py-2 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-60">
+          {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => setMode('idle')}>Cancelar</Button>
+            <Button onClick={() => submit('given')} loading={saving}>
               {saving ? 'Guardando...' : 'Confirmar clase dada'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {mode === 'not_given' && (
-        <div className="space-y-3">
-          <input
-            type="text"
-            placeholder="Motivo (opcional, ej. pista ocupada)"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-          />
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            <button onClick={() => setMode('idle')} className="flex-1 rounded-lg border border-gray-200 py-2 text-xs text-gray-600 hover:bg-gray-50">Cancelar</button>
-            <button onClick={() => submit('not_given')} disabled={saving} className="flex-1 rounded-lg bg-red-500 py-2 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-60">
-              {saving ? 'Guardando...' : 'Confirmar no dada'}
-            </button>
+        <div className="space-y-4">
+          <Field label="Motivo (opcional)">
+            <Input
+              type="text"
+              placeholder="Por ejemplo, pista ocupada"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+          {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => setMode('idle')}>Cancelar</Button>
+            <Button variant="danger" onClick={() => submit('not_given')} loading={saving}>
+              {saving ? 'Guardando...' : 'Confirmar clase no dada'}
+            </Button>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   )
 }

@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -41,20 +43,16 @@ export function MonthNavigator({
   const isCurrentMonth = year === maxYear && month === maxMonth
 
   return (
-    <div className="flex items-center gap-3">
-      <button onClick={prev} className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-        ← Anterior
-      </button>
-      <span className="text-sm font-medium text-gray-700 min-w-[120px] text-center">
+    <nav aria-label="Cambiar de mes" className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+      <Button variant="secondary" size="icon" onClick={prev} aria-label="Mes anterior">
+        <ChevronLeft className="h-5 w-5" aria-hidden />
+      </Button>
+      <span aria-live="polite" className="min-w-[10rem] text-center text-label capitalize text-ink">
         {MONTHS[month]} {year}
       </span>
-      <button
-        onClick={next}
-        disabled={isCurrentMonth}
-        className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Siguiente →
-      </button>
-    </div>
+      <Button variant="secondary" size="icon" onClick={next} disabled={isCurrentMonth} aria-label="Mes siguiente">
+        <ChevronRight className="h-5 w-5" aria-hidden />
+      </Button>
+    </nav>
   )
 }

@@ -1,7 +1,9 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { canAccessClub } from '@/lib/get-club'
+import { StartGroup } from './start-group'
 import { notFound } from 'next/navigation'
 import { formatDate, formatTime, getDayOfWeek, mostCommonMonthlyPrice } from '@/lib/utils'
 import { getHolidaySet } from '@/lib/club-holidays'
@@ -15,7 +17,12 @@ import { CoachOverride } from './coach-override'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { ClassWaitlistPanel } from '@/components/class-waitlist-panel'
 import { DevError } from '@/components/dev-error'
+import { PageHeader } from '@/components/ui/page-header'
+import { Card, CardHeader, CardBody } from '@/components/ui/card'
+import { Badge, LevelTag } from '@/components/ui/badge'
+import { formatLongDate } from '@/lib/format-date'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -36,7 +43,7 @@ function getNextDate(startTime: string): string {
 
 export default async function ScheduleDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { from?: string; date?: string } }) {
   const backHref = searchParams.from === 'master' ? '/dashboard/schedule/master' : '/dashboard/schedule'
-  const backLabel = searchParams.from === 'master' ? '← Calendario maestro' : '← Horarios'
+  const backLabel = searchParams.from === 'master' ? 'Calendario maestro' : 'Clases'
 
   const supabase = createClient()
   const admin = getAdminClient()
@@ -47,7 +54,9 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     .eq('id', params.id)
     .single()
 
-  if (!schedule) notFound()
+  if (!schedule || !(await canAccessClub(schedule.club_id))) notFound()
+  // Grupo en formación: se ven sus interesados ('pending'), no sus alumnos.
+  const forming = (schedule as any).is_active === false
 
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   // Si venimos de una celda concreta del calendario semanal (?date=), respetar
@@ -91,7 +100,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       .from('group_enrollments')
       .select('id, monthly_price, price_per_class_cents, court_pricing, discount_classes_pending, paid_until, status, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
       .eq('schedule_id', params.id)
-      .eq('status', 'active')
+      .eq('status', forming ? 'pending' : 'active')
       .order('enrolled_at'),
     admin
       .from('users')
@@ -129,16 +138,16 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
   const { data: exclusionsRaw } = enrollmentIds.length
     ? await admin
         .from('schedule_exclusions')
-        .select('id, group_enrollment_id, excluded_date, publish_spot')
+        .select('id, group_enrollment_id, excluded_date, publish_spot, spot_taken')
         .in('group_enrollment_id', enrollmentIds)
         .gte('excluded_date', queryLowerBound)
         .order('excluded_date')
     : { data: [] }
 
-  const exclusionsByEnrollment: Record<string, { id: string; excluded_date: string; publish_spot: boolean }[]> = {}
+  const exclusionsByEnrollment: Record<string, { id: string; excluded_date: string; publish_spot: boolean; spot_taken: boolean }[]> = {}
   for (const x of exclusionsRaw ?? []) {
     if (!exclusionsByEnrollment[x.group_enrollment_id]) exclusionsByEnrollment[x.group_enrollment_id] = []
-    exclusionsByEnrollment[x.group_enrollment_id].push({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot })
+    exclusionsByEnrollment[x.group_enrollment_id].push({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot, spot_taken: x.spot_taken })
   }
 
   // Nivel efectivo: el del horario, o inferido de los alumnos ya inscritos si todos comparten nivel
@@ -163,11 +172,9 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     const excls = exclusionsByEnrollment[e.id] ?? []
     return !excls.some((x: any) => x.excluded_date === nextDate)
   }).length
-  const enrolled = nextDateSpots.length + groupAttendingNextDate
+  const enrolled = forming ? (groupEnrollments?.length ?? 0) : nextDateSpots.length + groupAttendingNextDate
 
-  const nextDateLabel = new Date(nextDate + 'T12:00:00Z').toLocaleDateString('es-ES', {
-    weekday: 'long', day: 'numeric', month: 'long', timeZone: TZ,
-  })
+  const nextDateLabel = formatLongDate(nextDate)
 
   // El "Grupo fijo" que se muestra abajo tiene que ser el de la fecha que se
   // está viendo (nextDate) — si no, un alumno con baja ya efectiva antes de
@@ -191,7 +198,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     .map((b: any) => ({ studentId: b.student_id as string, classDate: b.class_date as string }))
 
   return (
-    <div className="max-w-2xl">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <DevError errors={[errGroupEnrollments?.message]} />
       <RealtimeRefresh
         channelName={`admin-schedule-${params.id}`}
@@ -201,84 +208,94 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           { table: 'schedule_exclusions' },
         ]}
       />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link href={backHref} className="text-sm text-gray-500 hover:text-gray-700">{backLabel}</Link>
-          <span className="text-gray-300">/</span>
-          <h1 className="text-2xl font-bold text-gray-900">Detalle de clase</h1>
-        </div>
-        <ScheduleActions scheduleId={params.id} nextDate={nextDate} />
-      </div>
+      <PageHeader
+        back={{ href: backHref, label: backLabel }}
+        title="Detalle de clase"
+        description="El grupo, sus cobros y las faltas de esta clase."
+      />
 
-      {/* Info de la clase */}
-      <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-lg font-bold text-gray-900">
-              {days[getDayOfWeek(start)]} — {formatTime(start)} a {formatTime(end)}
-            </p>
-            <p className="mt-1 text-sm text-gray-500">{schedule.court?.name} · Monitor: {schedule.coach?.name}</p>
-            <p className="mt-0.5 text-xs text-gray-400">
-              {schedule.recurrence === 'weekly' ? 'Semanal' : schedule.recurrence === 'biweekly' ? 'Quincenal' : 'Clase única'} · Inicio: {formatDate(schedule.start_time)}{schedule.recurrence_end_date ? ` · Fin: ${formatDate(schedule.recurrence_end_date)}` : ''}
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              {(schedule as any).is_private && (
-                <span className="inline-block rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-                  Clase particular
-                </span>
-              )}
-              {schedule.level ? (
-                <span
-                  className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
-                  style={{ backgroundColor: schedule.level.color }}
-                >
-                  {schedule.level.name}
-                </span>
-              ) : inferredLevelId ? (
-                <span className="inline-block rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-700">
-                  Nivel inferido de alumnos
-                </span>
-              ) : (
-                <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-400">
-                  Sin nivel · <Link href={`/dashboard/schedule/${params.id}/edit`} className="underline hover:text-gray-600">Asignar nivel</Link>
-                </span>
-              )}
+      {forming && (
+        <StartGroup
+          scheduleId={params.id}
+          interested={groupEnrollments?.length ?? 0}
+          maxStudents={schedule.max_students}
+          defaultDate={nextDate ?? todaySpain}
+        />
+      )}
+
+      {/* En móvil, las acciones de gestión van al final: lo primero es el
+          grupo y sus cobros, que es para lo que se entra aquí. */}
+      <section
+        aria-labelledby="gestionar-clase"
+        className="order-last rounded-card border border-line bg-surface p-4 shadow-card md:order-none md:-mt-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none"
+      >
+        <h2 id="gestionar-clase" className="text-heading text-ink md:sr-only">Gestionar la clase</h2>
+        <p className="mb-3 mt-0.5 text-meta text-ink-3 md:hidden">Editar el horario, cancelar una sesión o eliminar la clase.</p>
+        <ScheduleActions scheduleId={params.id} nextDate={nextDate} />
+      </section>
+
+      <Card>
+        <CardBody>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-display text-title tabular-nums text-ink">
+                {days[getDayOfWeek(start)]} · {formatTime(start)} a {formatTime(end)}
+              </p>
+              <p className="mt-1 text-body text-ink-2">{schedule.court?.name} · Monitor: {schedule.coach?.name}</p>
+              <p className="mt-0.5 text-meta text-ink-3">
+                {schedule.recurrence === 'weekly' ? 'Semanal' : schedule.recurrence === 'biweekly' ? 'Quincenal' : 'Clase única'} · Inicio: {formatDate(schedule.start_time)}{schedule.recurrence_end_date ? ` · Fin: ${formatDate(schedule.recurrence_end_date)}` : ''}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {(schedule as any).is_private && <Badge tone="outline">Clase particular</Badge>}
+                {schedule.level ? (
+                  <LevelTag name={schedule.level.name} color={schedule.level.color} />
+                ) : inferredLevelId ? (
+                  <Badge tone="warn">Nivel inferido de los alumnos</Badge>
+                ) : (
+                  <span className="text-meta text-ink-3">
+                    Sin nivel · <Link href={`/dashboard/schedule/${params.id}/edit`} className="font-medium text-accent-ink underline underline-offset-4">Asignar nivel</Link>
+                  </span>
+                )}
+              </div>
             </div>
-            <TimeOverride
-              scheduleId={params.id}
-              nextDate={nextDate}
-              nextDateLabel={nextDateLabel}
-              existingOverride={timeOverride ?? null}
-            />
-            <CoachOverride
-              scheduleId={params.id}
-              nextDate={nextDate}
-              nextDateLabel={nextDateLabel}
-              coaches={coaches ?? []}
-              existingOverride={coachOverride ?? null}
-              regularCoachId={(schedule as any).coach_id ?? null}
-            />
+            <div className="text-left sm:text-right">
+              <p className="font-display text-display tabular-nums text-ink">
+                {enrolled}<span className="text-heading text-ink-3">/{schedule.max_students}</span>
+              </p>
+              <p className="text-meta text-ink-3">{forming ? 'interesados' : 'alumnos'}</p>
+              <p className="mt-1 text-meta text-ink-3">{nextDateLabel}</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold text-gray-900">{enrolled}<span className="text-lg text-gray-400">/{schedule.max_students}</span></p>
-            <p className="text-xs text-gray-400">alumnos</p>
-            <p className="mt-1 text-xs text-gray-400 capitalize">{nextDateLabel}</p>
+
+          <div className="mt-4">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/[0.06]">
+              <div
+                className="h-1.5 rounded-full bg-accent-ink transition-all"
+                style={{ width: `${Math.min((enrolled / schedule.max_students) * 100, 100)}%` }}
+              />
+            </div>
+            <p className="mt-1 text-meta tabular-nums text-ink-3">{schedule.max_students - enrolled} plazas libres</p>
           </div>
-        </div>
-        <div className="mt-4">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-            <div
-              className="h-2 rounded-full bg-brand-500 transition-all"
-              style={{ width: `${Math.min((enrolled / schedule.max_students) * 100, 100)}%` }}
-            />
-          </div>
-          <p className="mt-1 text-xs text-gray-400">{schedule.max_students - enrolled} plazas libres</p>
-        </div>
-      </div>
+
+          {!forming && <TimeOverride
+            scheduleId={params.id}
+            nextDate={nextDate}
+            nextDateLabel={nextDateLabel}
+            existingOverride={timeOverride ?? null}
+          />}
+          {!forming && <CoachOverride
+            scheduleId={params.id}
+            nextDate={nextDate}
+            nextDateLabel={nextDateLabel}
+            coaches={coaches ?? []}
+            existingOverride={coachOverride ?? null}
+            regularCoachId={(schedule as any).coach_id ?? null}
+          />}
+        </CardBody>
+      </Card>
 
       {/* Grupo fijo — no aplica a una clase particular (1 a 1, sin grupo) */}
       {!(schedule as any).is_private && (
-      <div className="mb-6">
         <GroupEnrollment
           scheduleId={params.id}
           scheduleStartTime={schedule.start_time}
@@ -314,24 +331,20 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           enablePayments={paymentsActive}
           enableSpots={features.enable_spots}
           enableClassValidation={features.enable_class_validation}
+          forming={forming}
         />
-      </div>
       )}
 
-      {/* Material de clase */}
-      {features.enable_materials && (
-        <div className="mb-6">
-          <ScheduleMaterials scheduleId={params.id} />
-        </div>
-      )}
+      {features.enable_waitlist && !forming && <ClassWaitlistPanel scheduleId={params.id} />}
 
-      {/* Reservas puntuales (huecos) */}
-      {features.enable_spots && (
-        <div className="mb-6 rounded-xl bg-white shadow-sm">
-          <div className="border-b border-gray-100 px-6 py-4">
-            <h2 className="font-semibold text-gray-900">Reservas puntuales</h2>
-            <p className="mt-0.5 text-xs text-gray-400">Alumnos apuntados a un hueco libre en una fecha concreta</p>
-          </div>
+      {features.enable_materials && <ScheduleMaterials scheduleId={params.id} />}
+
+      {features.enable_spots && !forming && (
+        <Card>
+          <CardHeader
+            title="Reservas puntuales"
+            description="Alumnos apuntados a un hueco libre en una fecha concreta"
+          />
           <SpotBookingsList
             bookings={spotBookings.map((b: any) => ({
               id: b.id,
@@ -347,9 +360,8 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
             clubId={schedule.club_id ?? null}
             existingBookings={existingBookings}
           />
-        </div>
+        </Card>
       )}
-
     </div>
   )
 }

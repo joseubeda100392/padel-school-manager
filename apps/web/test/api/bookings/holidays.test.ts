@@ -80,7 +80,7 @@ describe('holidays — POST /api/bookings/spot', () => {
   it('rejects booking an absence spot that falls on a holiday', async () => {
     mockTables({
       users: { data: { club_id: 'club-1' } },
-      schedule_exclusions: { data: { id: 'ex-1', publish_spot: true, excluded_date: HOLIDAY } },
+      schedule_exclusions: { data: { id: 'ex-1', publish_spot: true, excluded_date: HOLIDAY, enrollment: { schedule_id: SCHEDULE_ID } } },
       schedules: { data: SCHEDULE },
       group_enrollments: { data: null },
       clubs: { data: CLUB },

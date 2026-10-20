@@ -23,11 +23,15 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // getClaims() comprueba la firma de la sesión (ES256) aquí mismo y, si ha
+  // caducado, la renueva; antes getUser() preguntaba a Supabase en CADA
+  // pantalla (~200 ms). Sin sesión válida, claims viene vacío.
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const user = claimsData?.claims ?? null
   // AVISO: user_metadata puede ser modificado por el usuario (no es fuente fiable de rol).
   // Este middleware solo controla redirecciones de navegación — NO es el control de acceso real.
   // La seguridad real está en las API routes (verifican rol desde la tabla users en DB).
-  const role = user?.user_metadata?.role as string | undefined
+  const role = (user?.user_metadata as Record<string, unknown> | undefined)?.role as string | undefined
   const path = request.nextUrl.pathname
 
   const isDashboard = path.startsWith('/dashboard')

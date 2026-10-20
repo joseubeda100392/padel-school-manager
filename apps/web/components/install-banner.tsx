@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { Share, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function InstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
@@ -62,34 +63,33 @@ export function InstallBanner() {
   if (!show || isStandalone) return null
 
   return (
-    <div className="fixed bottom-16 left-4 right-4 z-50 md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
-      <div className="flex items-start gap-3 rounded-xl bg-court-900 px-4 py-3 shadow-xl ring-1 ring-white/10">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500">
-          <span className="text-base font-black text-white">e</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white">Instala la app</p>
+    <div
+      role="dialog"
+      aria-labelledby="install-title"
+      className="fixed inset-x-3 bottom-[calc(var(--tabbar-h)+var(--safe-bottom)+0.75rem)] z-40 mx-auto max-w-sm animate-in fade-in-0 slide-in-from-bottom-4 duration-300 md:inset-x-auto md:bottom-6 md:right-6"
+    >
+      <div className="flex items-start gap-3 rounded-card bg-chrome p-4 text-chrome-ink shadow-overlay">
+        <img src="/icon.svg" alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-[10px]" />
+        <div className="min-w-0 flex-1">
+          <p id="install-title" className="text-label font-semibold text-white">Instala la app</p>
           {isIos ? (
-            <ol className="mt-1.5 space-y-1 text-xs text-court-300">
-              <li>1. Pulsa los <strong className="text-court-200">···</strong> en la barra de Safari</li>
-              <li>2. Toca <strong className="text-court-200">Compartir</strong></li>
-              <li>3. Toca <strong className="text-court-200">Añadir a pantalla de inicio</strong> (si no la ves, pulsa <strong className="text-court-200">Ver más</strong> antes)</li>
+            <ol className="mt-1.5 space-y-1 text-meta text-chrome-ink-2">
+              <li>1. Pulsa <Share className="inline h-3.5 w-3.5 align-[-2px]" aria-label="Compartir" /> en la barra de Safari (o en los ··· si no lo ves)</li>
+              <li>2. Elige <strong className="font-medium text-chrome-ink">Añadir a pantalla de inicio</strong></li>
             </ol>
           ) : (
-            <p className="mt-0.5 text-xs text-court-300">
-              Accede más rápido desde la pantalla de inicio.
-            </p>
+            <p className="mt-0.5 text-meta text-chrome-ink-2">Ábrela desde tu pantalla de inicio, como cualquier app.</p>
           )}
           {!isIos && (
-            <button
-              onClick={install}
-              className="mt-2 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
-            >
-              Instalar
-            </button>
+            <Button size="sm" onClick={install} className="mt-3">Instalar</Button>
           )}
         </div>
-        <button onClick={dismiss} className="shrink-0 rounded-lg p-1 text-court-400 hover:text-court-200">
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Cerrar"
+          className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-chrome-ink-2 hover:bg-chrome-2 hover:text-white"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>

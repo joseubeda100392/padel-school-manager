@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
@@ -11,6 +11,11 @@ import ScheduleViewToggle from './schedule-view-toggle'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
+import { Plus, CircleAlert } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
+import { Notice } from '@/components/ui/feedback'
+import { parseClubFeatures } from '@/lib/get-club-features'
 
 const TZ = 'Europe/Madrid'
 
@@ -38,7 +43,6 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const schedulesQuery = admin
     .from('schedules')
     .select('*, court:courts(name), coach:users!schedules_coach_id_fkey(name), level:levels(name, color)')
-    .eq('is_active', true)
     .order('start_time', { ascending: true })
     .limit(200)
 
@@ -48,18 +52,21 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     .eq('is_active', true)
     .order('name')
 
-  const [{ data: rawSchedules, error: errSchedules }, { data: courts, error: errCourts }, { data: enrollmentsRaw, error: errEnrollments }, { data: clubRow }] = await Promise.all([
+  const [{ data: rawSchedules, error: errSchedules }, { data: courts, error: errCourts }, { data: enrollmentsRaw, error: errEnrollments }, { data: clubRow }, { data: interestedRaw }] = await Promise.all([
     clubId ? schedulesQuery.eq('club_id', clubId) : schedulesQuery,
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
     admin
       .from('group_enrollments')
       .select('id, schedule_id, schedule_exclusions(excluded_date)')
       .eq('status', 'active'),
-    clubId ? admin.from('clubs').select('config').eq('id', clubId).single() : Promise.resolve({ data: null }),
+    clubId ? admin.from('clubs').select('config, features').eq('id', clubId).single() : Promise.resolve({ data: null }),
+    // Interesados de los grupos en formación
+    admin.from('group_enrollments').select('schedule_id').eq('status', 'pending'),
   ])
+  const interestedMap: Record<string, number> = {}
+  for (const e of interestedRaw ?? []) interestedMap[e.schedule_id] = (interestedMap[e.schedule_id] ?? 0) + 1
 
-  const { getClubFeatures } = await import('@/lib/get-club-features')
-  const features = await getClubFeatures(clubId ?? undefined)
+  const features = parseClubFeatures((clubRow as any)?.features)
 
   const holidays: string[] = (clubRow as any)?.config?.holidays ?? []
   const holidaySet = new Set(holidays)
@@ -151,10 +158,12 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
     reference_date: nextDateMap[s.id],
+    forming: s.is_active === false,
+    interested_count: interestedMap[s.id] ?? 0,
   }))
 
   return (
-    <div>
+    <div className="space-y-6">
       <RealtimeRefresh
         channelName="admin-schedule-list"
         subs={clubId ? [
@@ -168,36 +177,31 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
         ]}
       />
       <DevError errors={[errSchedules?.message, errCourts?.message, errEnrollments?.message]} />
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Horarios</h1>
-          <p className="text-sm text-gray-500">{schedules.length} clases programadas</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <ScheduleViewToggle current={view} />
-          <Link
-            href="/dashboard/schedule/master"
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
-          >
-            Calendario maestro
-          </Link>
-          <Link
-            href="/dashboard/schedule/new"
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
-          >
-            + Nueva clase
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Clases"
+        description={`${schedules.length} clases. Entra en una para ver su grupo, cobrar cuotas o registrar faltas.`}
+        actions={
+          <>
+            <ScheduleViewToggle current={view} />
+            <Link href="/dashboard/schedule/master" className={buttonVariants({ variant: 'secondary' })}>
+              Calendario maestro
+            </Link>
+            <Link href="/dashboard/schedule/new" className={buttonVariants({ variant: 'primary' })}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Nueva clase
+            </Link>
+          </>
+        }
+      />
 
       {courts && courts.length === 0 && (
-        <div className="mb-4 rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-          No hay pistas activas. Primero crea una pista en Configuración.
-        </div>
+        <Notice tone="warn" icon={<CircleAlert />}>
+          No hay pistas activas. Crea una pista en Configuración antes de programar clases.
+        </Notice>
       )}
 
       {view === 'week'
-        ? <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} timeOverrides={timeOverrides ?? []} />
+        ? <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} timeOverrides={timeOverrides ?? []} courtsCount={courts?.length ?? 0} />
         : <ScheduleTable schedules={schedules} />
       }
     </div>

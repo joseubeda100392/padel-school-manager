@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
 function PayForm() {
   const params = useSearchParams()
@@ -28,10 +29,12 @@ function PayForm() {
 
 export default function PayPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="mb-4 text-4xl">💳</div>
-        <p className="text-gray-600">Redirigiendo al pago seguro...</p>
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <div className="flex flex-col items-center text-center">
+        <span aria-hidden className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-accent-ink">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </span>
+        <p role="status" className="text-body text-ink-2">Redirigiendo al pago seguro...</p>
         <Suspense>
           <PayForm />
         </Suspense>

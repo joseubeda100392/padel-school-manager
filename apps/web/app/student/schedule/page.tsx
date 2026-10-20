@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
@@ -6,6 +6,9 @@ import { StudentScheduleClient, type GroupFees } from './schedule-client'
 import { loadStudentFeeItems, type MandateItem } from '@/lib/mandate-charge'
 import { StudentAutoPay } from '@/components/student-autopay'
 import { SpotBookingCard } from './spot-booking-card'
+import { CalendarDays } from 'lucide-react'
+import { Card, SectionTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/feedback'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
@@ -77,9 +80,9 @@ function nextMonthLabel() {
   return `${MONTH_NAMES[nextMonth0]} ${nextYear}`
 }
 
-export default async function StudentSchedulePage() {
+export default async function StudentSchedulePage({ searchParams }: { searchParams: { date?: string } }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) redirect('/login')
 
   const today = new Date().toISOString().split('T')[0]
@@ -139,11 +142,12 @@ export default async function StudentSchedulePage() {
     { data: clubRow },
     features,
     { data: timeOverrides },
+    { data: faltaCredits },
   ] = await Promise.all([
     enrollmentIds.length
       ? getAdminClient()
           .from('schedule_exclusions')
-          .select('id, group_enrollment_id, excluded_date, publish_spot')
+          .select('id, group_enrollment_id, excluded_date, publish_spot, spot_taken')
           .in('group_enrollment_id', enrollmentIds)
           .gte('excluded_date', today)
           .order('excluded_date')
@@ -159,7 +163,19 @@ export default async function StudentSchedulePage() {
           .in('schedule_id', scheduleIdsForOverrides)
           .gte('override_date', todaySpain)
       : { data: [] },
+    // Las faltas que de verdad sumaron una clase a la bolsa (solo si el alumno
+    // tiene bolsa): así "se sumó 1 clase" nunca se muestra sin ser cierto.
+    getAdminClient()
+      .from('bag_transactions')
+      .select('reason')
+      .eq('user_id', user.id)
+      .like('reason', 'Falta registrada %'),
   ])
+
+  const creditedDates = (faltaCredits ?? [])
+    .map((t: any) => /(\d{4}-\d{2}-\d{2})$/.exec(t.reason ?? '')?.[1])
+    .filter((d: string | undefined): d is string => !!d)
+  const initialDate = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? '') ? searchParams.date : undefined
 
   const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
   const holidaySet = getHolidaySet((clubRow as any)?.config)
@@ -187,7 +203,7 @@ export default async function StudentSchedulePage() {
     const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides, occurrenceCount, maxDateFor(schedule?.recurrence_end_date), holidaySet)
     const myExclusions = (exclusionsRaw ?? [])
       .filter((x: any) => x.group_enrollment_id === e.id)
-      .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot }))
+      .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot, spot_taken: x.spot_taken === true }))
 
     return {
       enrollmentId: e.id,
@@ -268,7 +284,7 @@ export default async function StudentSchedulePage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="mx-auto w-full max-w-5xl space-y-8">
       <RealtimeRefresh
         channelName={`student-schedule-${user.id}`}
         subs={[
@@ -277,17 +293,20 @@ export default async function StudentSchedulePage() {
           { table: 'group_enrollments', filter: `student_id=eq.${user.id}` },
         ]}
       />
-      <div>
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Mis Clases</h1>
-          <p className="text-sm text-gray-500">Tus clases de grupo fijo</p>
-        </div>
+      <section className="space-y-5">
+        <header>
+          <h1 className="font-display text-title text-ink sm:text-display">Mis clases</h1>
+          <p className="mt-1 text-body text-ink-2">Tu grupo fijo, tus cuotas y los días que no puedes ir.</p>
+        </header>
 
         {items.length === 0 ? (
-          <div className="rounded-xl bg-white p-10 text-center shadow-sm">
-            <p className="text-gray-400">No estás inscrito en ninguna clase de grupo fijo.</p>
-            <p className="mt-1 text-xs text-gray-400">Habla con tu administrador para inscribirte.</p>
-          </div>
+          <Card>
+            <EmptyState
+              icon={<CalendarDays />}
+              title="Todavía no tienes grupo fijo"
+              description="Cuando el club te apunte a un grupo, aquí verás tus clases y tus cuotas."
+            />
+          </Card>
         ) : (
           <div className="space-y-4">
             <StudentScheduleClient
@@ -295,20 +314,20 @@ export default async function StudentSchedulePage() {
               cancellationHours={cancellationHours}
               enablePayments={features.enable_payments && billingActive}
               cashOnly={features.cash_only_payments}
+              showBag={features.enable_bag}
+              creditedDates={creditedDates}
+              initialDate={initialDate}
               groupFees={groupFees}
             />
             {features.enable_payments && features.enable_auto_pay && billingActive && !features.cash_only_payments && <StudentAutoPay />}
           </div>
         )}
-      </div>
+      </section>
 
       {(spotBookings ?? []).length > 0 && (
-        <div>
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Reservas puntuales</h2>
-            <p className="text-sm text-gray-500">Huecos libres en los que estás apuntado</p>
-          </div>
-          <div className="space-y-3">
+        <section id="clases-sueltas" className="scroll-mt-4 space-y-4">
+          <SectionTitle>Clases sueltas reservadas</SectionTitle>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {(spotBookings ?? []).map(b => {
               const schedule = b.schedule as any
               const isPending = b.status === 'pending'
@@ -333,7 +352,7 @@ export default async function StudentSchedulePage() {
               )
             })}
           </div>
-        </div>
+        </section>
       )}
     </div>
   )

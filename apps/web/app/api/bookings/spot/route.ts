@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
+import { getClassOccupancy } from '@/lib/waitlist'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -18,8 +19,8 @@ export async function POST(req: NextRequest) {
 
   const [{ data: userProfile }, { data: exclusion }, { data: schedule }, { data: inGroup }] = await Promise.all([
     admin.from('users').select('club_id').eq('id', user.id).single(),
-    admin.from('schedule_exclusions').select('id, publish_spot, excluded_date').eq('id', exclusionId).single(),
-    admin.from('schedules').select('start_time, end_time, club_id').eq('id', scheduleId).single(),
+    admin.from('schedule_exclusions').select('id, publish_spot, excluded_date, enrollment:group_enrollments(schedule_id)').eq('id', exclusionId).single(),
+    admin.from('schedules').select('start_time, end_time, club_id, max_students').eq('id', scheduleId).single(),
     admin.from('group_enrollments').select('id').eq('schedule_id', scheduleId).eq('student_id', user.id).eq('status', 'active').maybeSingle(),
   ])
 
@@ -27,7 +28,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Ya formas parte del grupo fijo de esta clase' }, { status: 409 })
   }
 
-  if (!exclusion || !exclusion.publish_spot) {
+  // La falta tiene que ser de esta misma clase: si no, se podría usar el hueco
+  // de otra clase para entrar en una que ya está llena.
+  if (!exclusion || !exclusion.publish_spot || (exclusion as any).enrollment?.schedule_id !== scheduleId) {
     return NextResponse.json({ error: 'Este hueco ya no está disponible' }, { status: 409 })
   }
 
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
   // Mark spot as taken (prevents concurrent double-booking)
   const { data: claimedSpot, error: spotErr } = await admin
     .from('schedule_exclusions')
-    .update({ publish_spot: false })
+    .update({ publish_spot: false, spot_taken: true })
     .eq('id', exclusionId)
     .eq('publish_spot', true)
     .select('id')
@@ -110,6 +113,11 @@ export async function POST(req: NextRequest) {
     .eq('class_date', exclusion.excluded_date)
     .maybeSingle()
 
+  if (existingBooking?.status === 'confirmed') {
+    await admin.from('schedule_exclusions').update({ publish_spot: true, spot_taken: false }).eq('id', exclusionId)
+    return NextResponse.json({ error: 'Ya tienes plaza en esta clase ese día' }, { status: 409 })
+  }
+
   let bookingId: string
 
   if (existingBooking) {
@@ -126,10 +134,20 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (bookErr || !newBooking) {
-      await admin.from('schedule_exclusions').update({ publish_spot: true }).eq('id', exclusionId)
+      await admin.from('schedule_exclusions').update({ publish_spot: true, spot_taken: false }).eq('id', exclusionId)
       return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
     }
     bookingId = newBooking.id
+  }
+
+  // Aforo real tras apuntarse: la falta puede seguir publicada aunque su plaza
+  // ya la haya cogido otro por otra vía (plaza libre, pago, a la vez desde dos
+  // móviles). Si se pasa del máximo, se deshace y la falta queda como cubierta.
+  const occupancy = await getClassOccupancy(admin, scheduleId, exclusion.excluded_date, (schedule as any).max_students)
+  if (occupancy.presentFixed + occupancy.bookedCount > occupancy.capacity) {
+    if (existingBooking) await admin.from('bookings').update({ status: existingBooking.status }).eq('id', bookingId)
+    else await admin.from('bookings').delete().eq('id', bookingId)
+    return NextResponse.json({ error: 'La clase ya está completa' }, { status: 409 })
   }
 
   const dateLabel = new Date(exclusion.excluded_date + 'T12:00:00').toLocaleDateString('es-ES', {
@@ -147,7 +165,7 @@ export async function POST(req: NextRequest) {
   if (debitErr || debitResult?.error) {
     // Roll back booking and re-publish spot
     await admin.from('bookings').delete().eq('id', bookingId)
-    await admin.from('schedule_exclusions').update({ publish_spot: true }).eq('id', exclusionId)
+    await admin.from('schedule_exclusions').update({ publish_spot: true, spot_taken: false }).eq('id', exclusionId)
     return NextResponse.json({ error: debitResult?.error ?? 'Error al descontar la bolsa' }, { status: debitResult?.error ? 400 : 500 })
   }
 

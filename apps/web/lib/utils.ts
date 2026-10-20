@@ -1,5 +1,16 @@
 import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { extendTailwindMerge } from 'tailwind-merge'
+
+// Los tamaños de texto del sistema (design.md) tienen nombre propio; sin esto,
+// tailwind-merge los confunde con colores y descarta `text-meta` al combinarlo
+// con `text-ink-3`.
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [{ text: ['display', 'title', 'heading', 'body', 'label', 'meta'] }],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

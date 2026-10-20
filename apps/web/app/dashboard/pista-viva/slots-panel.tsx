@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Check, Search } from 'lucide-react'
 import type { PlaytomicResource } from '@/lib/playtomic'
+import { Card, CardHeader } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Notice } from '@/components/ui/feedback'
+import { formatShortDay, formatClock } from '@/lib/format-date'
+import { cn } from '@/lib/utils'
 
 // localStorage, no sessionStorage: queremos que el resultado sobreviva a
 // cerrar la pestaña/el navegador, para no tener que volver a llamar a
@@ -93,77 +99,75 @@ export default function SlotsPanel({ clubId }: { clubId: string }) {
   const totalSlots = resources.reduce((acc, r) => acc + r.slots.length, 0)
 
   return (
-    <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-semibold text-gray-900">Pistas libres en Playtomic</h2>
-          <p className="text-sm text-gray-500">Próximas 48h · Se actualiza al pulsar el botón</p>
-        </div>
-        <button
-          onClick={fetchSlots}
-          disabled={loading}
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60"
-        >
-          {loading ? 'Consultando...' : '🔍 Buscar pistas libres'}
-        </button>
-      </div>
+    <Card>
+      <CardHeader
+        title="Pistas libres en Playtomic"
+        description="Próximas 48 h. Se actualiza al pulsar el botón."
+        action={
+          <Button onClick={fetchSlots} loading={loading} className="w-full sm:w-auto">
+            {!loading && <Search className="h-4 w-4" aria-hidden />}
+            {loading ? 'Consultando…' : 'Buscar pistas libres'}
+          </Button>
+        }
+      />
 
-      {error && (
-        <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-          {error.includes('tenant_id') || error.includes('Playtomic no configurado') ? (
-            <>
-              Primero debes configurar tus credenciales de Playtomic.{' '}
-              <Link href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
-                Ir a Settings → Playtomic →
-              </Link>
-            </>
-          ) : (
-            <span>⚠️ {error}</span>
-          )}
-        </div>
-      )}
+      <div className="space-y-4 p-4 pt-3 sm:p-5 sm:pt-3">
+        {error && (
+          <Notice tone="warn">
+            {error.includes('tenant_id') || error.includes('Playtomic no configurado') ? (
+              <>
+                Primero debes configurar tus credenciales de Playtomic.{' '}
+                <Link href="/dashboard/settings#playtomic" className="font-medium underline hover:no-underline">
+                  Ir a ajustes de Playtomic
+                </Link>
+              </>
+            ) : (
+              <span>{error}</span>
+            )}
+          </Notice>
+        )}
 
-      {resources.length > 0 && (
-        <div className="mt-4 space-y-4">
-          <p className="text-sm text-gray-500">{totalSlots} slots libres en {resources.length} pistas</p>
-          {resources.map((resource) => (
-            <div key={resource.resource_id} className="rounded-lg bg-white p-4 shadow-sm">
-              <p className="mb-3 font-medium text-gray-900">{resource.name}</p>
-              <div className="flex flex-wrap gap-2">
-                {resource.slots.map((slot) => {
-                  const key = `${resource.resource_id}_${slot.start_time}`
-                  const date = new Date(slot.start_time)
-                  const isSent = sent.has(key)
-                  return (
-                    <button
-                      key={key}
-                      disabled={creating === key || isSent}
-                      onClick={() => createCampaign(resource, slot)}
-                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                        isSent
-                          ? 'border-green-200 bg-green-50 text-green-600'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-brand-300 hover:bg-brand-50'
-                      } disabled:opacity-60`}
-                    >
-                      {isSent ? '✓ ' : ''}
-                      {date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', timeZone: 'Europe/Madrid' })}
-                      {' '}
-                      {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}
-                      {' · '}{slot.duration}min
-                    </button>
-                  )
-                })}
+        {resources.length > 0 && (
+          <div className="space-y-4">
+            <p className="text-meta tabular-nums text-ink-3">{totalSlots} huecos libres en {resources.length} pistas</p>
+            {resources.map((resource) => (
+              <div key={resource.resource_id} className="rounded-control border border-line p-4">
+                <p className="mb-3 text-label text-ink">{resource.name}</p>
+                <div className="flex flex-wrap gap-2">
+                  {resource.slots.map((slot) => {
+                    const key = `${resource.resource_id}_${slot.start_time}`
+                    const isSent = sent.has(key)
+                    const day = formatShortDay(slot.start_time)
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        disabled={creating === key || isSent}
+                        onClick={() => createCampaign(resource, slot)}
+                        className={cn(
+                          'inline-flex min-h-11 items-center gap-1.5 rounded-control border px-3 text-label tabular-nums transition-colors disabled:opacity-70',
+                          isSent
+                            ? 'border-accent-ink bg-accent-soft text-accent-ink'
+                            : 'border-line-strong/60 bg-surface text-ink hover:bg-surface-2',
+                        )}
+                      >
+                        {isSent && <Check className="h-4 w-4" aria-hidden />}
+                        {day.weekday} {day.day} {formatClock(slot.start_time)} · {slot.duration} min
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {!loading && resources.length === 0 && (
-        <p className="mt-4 text-center text-sm text-gray-400">
-          Pulsa el botón para consultar pistas libres en Playtomic
-        </p>
-      )}
-    </div>
+        {!loading && resources.length === 0 && (
+          <p className="text-center text-body text-ink-2">
+            Pulsa el botón para consultar las pistas libres en Playtomic.
+          </p>
+        )}
+      </div>
+    </Card>
   )
 }

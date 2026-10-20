@@ -88,7 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (notifyIds.length) {
     const dateLabel = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(overrideDate + 'T12:00:00Z'))
     await sendPushToUsers(notifyIds, {
-      title: 'Cambio de hora puntual',
+      title: '🔁 Cambio de hora puntual',
       body: `Tu clase del ${dateLabel} cambia a las ${newStartTime} (en vez de la hora habitual).`,
     }, 'class_reminder')
   }

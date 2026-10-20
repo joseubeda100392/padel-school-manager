@@ -1,7 +1,11 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Field, Input } from '@/components/ui/field'
+import { AuthCard } from '../auth-card'
 
 export default function MfaPage() {
   const [code, setCode] = useState('')
@@ -72,24 +76,17 @@ export default function MfaPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
-        <div className="mb-8 flex flex-col items-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
-            <img src="/apple-icon" alt="ePadel School" className="h-12 w-12 object-cover" />
-          </div>
-          <h1 className="text-xl font-bold text-gray-900">
-            {useRecovery ? 'Código de recuperación' : 'Verificación en dos pasos'}
-          </h1>
-          <p className="mt-1 text-center text-sm text-gray-500">
-            {useRecovery
-              ? 'Introduce uno de tus códigos de recuperación'
-              : 'Introduce el código de 6 dígitos de tu app de autenticación'}
-          </p>
-        </div>
-
-        <form onSubmit={useRecovery ? handleRecovery : handleTotp} className="space-y-4">
-          <input
+    <AuthCard
+      title={useRecovery ? 'Código de recuperación' : 'Verificación en dos pasos'}
+      description={
+        useRecovery
+          ? 'Introduce uno de tus códigos de recuperación'
+          : 'Introduce el código de 6 dígitos de tu app de autenticación'
+      }
+    >
+      <form onSubmit={useRecovery ? handleRecovery : handleTotp} className="space-y-4">
+        <Field label={useRecovery ? 'Código de recuperación' : 'Código de 6 dígitos'}>
+          <Input
             ref={inputRef}
             type="text"
             inputMode={useRecovery ? 'text' : 'numeric'}
@@ -98,31 +95,39 @@ export default function MfaPage() {
             onChange={(e) => setCode(useRecovery ? e.target.value.toUpperCase() : e.target.value.replace(/\D/g, ''))}
             required
             autoComplete="one-time-code"
-            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-center text-2xl tracking-widest text-gray-900 placeholder-gray-300 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            className="h-14 text-center font-display text-title tabular-nums tracking-widest"
             placeholder={useRecovery ? 'XXXX-XXXX-XXXX-XXXX' : '000000'}
           />
+        </Field>
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>
-          )}
+        {error && <p role="alert" className="text-meta font-medium text-danger-ink">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading || (useRecovery ? code.replace(/-/g, '').length !== 16 : code.length !== 6)}
-            className="w-full rounded-lg bg-brand-500 py-2.5 font-medium text-white transition hover:bg-brand-600 disabled:opacity-60"
-          >
-            {loading ? 'Verificando...' : 'Verificar'}
-          </button>
-        </form>
-
-        <button
-          type="button"
-          onClick={() => { setUseRecovery(!useRecovery); setCode(''); setError('') }}
-          className="mt-4 block w-full text-center text-sm text-gray-400 hover:text-brand-500"
+        <Button
+          type="submit"
+          size="lg"
+          block
+          loading={loading}
+          disabled={useRecovery ? code.replace(/-/g, '').length !== 16 : code.length !== 6}
         >
-          {useRecovery ? '← Usar código del autenticador' : 'Usar código de recuperación'}
-        </button>
-      </div>
-    </main>
+          {loading ? 'Verificando...' : 'Verificar'}
+        </Button>
+      </form>
+
+      <Button
+        variant="ghost"
+        block
+        className="mt-3"
+        onClick={() => { setUseRecovery(!useRecovery); setCode(''); setError('') }}
+      >
+        {useRecovery ? (
+          <>
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            Usar código del autenticador
+          </>
+        ) : (
+          'Usar código de recuperación'
+        )}
+      </Button>
+    </AuthCard>
   )
 }
