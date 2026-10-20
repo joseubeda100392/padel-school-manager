@@ -5,7 +5,7 @@ import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { notFound } from 'next/navigation'
-import { formatDate, formatCurrency } from '@/lib/utils'
+import { formatDate, formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { DEFAULT_STANDARD_DISCOUNT_CENTS } from '@/lib/enrollment-discount'
 import { StudentLevelForm } from './student-level-form'
 import { BagAdjustForm } from './bag-adjust-form'
@@ -198,7 +198,14 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     .reduce((acc: number, p: any) => acc + p.amount, 0)
 
   const legacyDiscountCents = (clubRow as any)?.config?.standard_discount_cents ?? DEFAULT_STANDARD_DISCOUNT_CENTS
-  const pendingBajaDate = (enrollments ?? []).find((e: any) => e.end_date)?.end_date ?? null
+  const BAJA_DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  const bajaGroups = (enrollments ?? []).map((e: any) => ({
+    id: e.id as string,
+    label: e.schedule?.start_time
+      ? `${BAJA_DAYS[getDayOfWeek(e.schedule.start_time)]} ${formatTime(e.schedule.start_time)} · ${e.schedule.court?.name ?? 'sin pista'}`
+      : 'Grupo',
+    endDate: (e.end_date as string | null) ?? null,
+  }))
 
   const isActive = (student as any).is_active
   const phone = (student as any).phone
@@ -276,8 +283,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         <div className="order-last flex sm:justify-end">
           <CausarBajaButton
             studentId={student.id as string}
-            hasFixedEnrollments={(enrollments ?? []).length > 0}
-            pendingBajaDate={pendingBajaDate}
+            groups={bajaGroups}
             availableStudents={(otherStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}
           />
         </div>

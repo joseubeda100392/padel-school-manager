@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
@@ -28,9 +30,10 @@ function firstDayOfNextMonth(): string {
 }
 
 // Causar baja para el mes que viene: al alumno saliente se le pone
-// end_date = último día de este mes en todas sus clases fijas activas (el
-// proceso diario /api/cron/process-bajas le quitará de verdad y le
-// desactivará cuando llegue esa fecha). Si hay sustituto, se le da de alta
+// end_date = último día de este mes en las clases fijas elegidas (todas si
+// no se elige ninguna; un alumno puede dejar un grupo y seguir en otro). El
+// proceso diario /api/cron/process-bajas le quita de esos grupos cuando llega
+// esa fecha, y solo le desactiva si no le queda ninguno). Si hay sustituto, se le da de alta
 // YA en esas mismas clases, pero con start_date = día 1 del mes que viene —
 // así no cuenta para el aforo de este mes (ver el fix de start_date/end_date
 // en book_capacity_spot y compañía).
@@ -51,8 +54,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
   }
 
-  const body = await req.json().catch(() => ({}))
-  const substituteId: string | null = body.substituteId || null
+  const { data: body, error: badRequest } = await parseBody(req, z.object({
+    substituteId: z.string().uuid().nullable().optional(),
+    enrollmentIds: z.array(z.string().uuid()).min(1).max(20).optional(),
+  }))
+  if (badRequest) return badRequest
+  const substituteId: string | null = body.substituteId ?? null
 
   if (substituteId) {
     const { data: substitute } = await admin.from('users').select('club_id').eq('id', substituteId).single()
@@ -64,14 +71,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
 
-  const { data: enrollments } = await admin
+  let enrollmentsQuery = admin
     .from('group_enrollments')
     .select('id, schedule_id, monthly_price, price_per_class_cents, court_pricing, club_id, schedule:schedules(max_students)')
     .eq('student_id', studentId)
     .eq('status', 'active')
+    .is('end_date', null)
+  if (body.enrollmentIds) enrollmentsQuery = enrollmentsQuery.in('id', body.enrollmentIds)
+  const { data: enrollments } = await enrollmentsQuery
 
   if (!enrollments || enrollments.length === 0) {
     return NextResponse.json({ error: 'Este alumno no tiene clases fijas activas que dar de baja' }, { status: 400 })
+  }
+  if (body.enrollmentIds && enrollments.length !== new Set(body.enrollmentIds).size) {
+    return NextResponse.json({ error: 'Algún grupo elegido no es de este alumno o ya tiene la baja programada' }, { status: 400 })
   }
 
   const endDate = lastDayOfThisMonth()
@@ -92,7 +105,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         .neq('id', e.id)
       if ((otherActive ?? 0) + 1 > maxStudents) {
         return NextResponse.json({
-          error: `No se puede meter al sustituto: esa clase ya estaría completa a partir de octubre sin contar al alumno saliente.`,
+          error: `No se puede meter al sustituto: esa clase ya estaría completa el mes que viene sin contar al alumno saliente.`,
         }, { status: 409 })
       }
     }
@@ -140,7 +153,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 // Cancelar una baja programada (antes de que se procese): quita end_date de
-// sus clases y borra la inscripción del sustituto si había uno.
+// sus clases (o de una sola, si se indica) y borra la inscripción del
+// sustituto si había uno.
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -158,12 +172,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
   }
 
-  const { data: pending } = await admin
+  const { data: body, error: badRequest } = await parseBody(req, z.object({ enrollmentId: z.string().uuid().optional() }))
+  if (badRequest) return badRequest
+
+  let pendingQuery = admin
     .from('group_enrollments')
     .select('id')
     .eq('student_id', studentId)
     .eq('status', 'active')
     .not('end_date', 'is', null)
+  if (body.enrollmentId) pendingQuery = pendingQuery.eq('id', body.enrollmentId)
+  const { data: pending } = await pendingQuery
 
   if (!pending || pending.length === 0) {
     return NextResponse.json({ error: 'Este alumno no tiene ninguna baja programada' }, { status: 400 })
