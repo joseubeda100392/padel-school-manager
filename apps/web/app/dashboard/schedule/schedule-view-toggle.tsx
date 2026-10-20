@@ -17,7 +17,7 @@ export default function ScheduleViewToggle({ current }: { current: 'list' | 'wee
           type="button"
           aria-pressed={current === o.value}
           onClick={() => router.push(`/dashboard/schedule?view=${o.value}`)}
-          className={`h-11 rounded-[8px] px-4 text-label transition-colors ${
+          className={`h-[38px] rounded-[8px] px-4 text-label transition-colors ${
             current === o.value ? 'bg-surface text-ink shadow-card' : 'text-ink-3 hover:text-ink'
           }`}
         >
