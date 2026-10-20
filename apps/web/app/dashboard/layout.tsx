@@ -4,6 +4,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { getCoordinatorNetwork } from '@/lib/network'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -32,11 +33,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const effectiveClubId = saActiveClub ?? (role !== 'super_admin' ? clubId : undefined)
 
-  const [clubData, features] = await Promise.all([
+  const [clubData, features, network] = await Promise.all([
     effectiveClubId
       ? admin.from('clubs').select('name').eq('id', effectiveClubId).single()
       : Promise.resolve({ data: null }),
     getClubFeatures(effectiveClubId),
+    role === 'admin' ? getCoordinatorNetwork(admin, user.id) : Promise.resolve(null),
   ])
 
   const clubName = (clubData?.data as any)?.name ?? undefined
@@ -49,6 +51,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       userName={userName}
       features={features}
       saActiveClub={saActiveClub}
+      network={network ? { name: network.name, clubs: network.clubs } : undefined}
+      currentClubId={effectiveClubId}
     >
       {children}
     </DashboardShell>

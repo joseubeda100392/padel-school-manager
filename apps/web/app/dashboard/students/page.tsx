@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId, isSuperAdmin } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
+import { onlyCoordinatorIds } from '@/lib/network'
 import Link from 'next/link'
 import { Plus, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
@@ -31,11 +32,15 @@ export default async function StudentsPage({ searchParams }: { searchParams: { t
     enrollmentsQuery = enrollmentsQuery.eq('club_id', clubId)
   }
 
-  const [{ data: students, error }, { data: levels }, { data: enrollments }] = await Promise.all([
+  const [{ data: allUsers, error }, { data: levels }, { data: enrollments }, hiddenIds] = await Promise.all([
     studentsQuery,
     levelsQuery,
     enrollmentsQuery,
+    onlyCoordinatorIds(admin),
   ])
+  // Quien solo coordina la red no es de ninguna sede: no sale en sus listas.
+  const hidden = new Set(hiddenIds)
+  const students = (allUsers ?? []).filter((u: any) => !hidden.has(u.id))
 
   const levelMap = Object.fromEntries((levels ?? []).map((l: any) => [l.id, l]))
 

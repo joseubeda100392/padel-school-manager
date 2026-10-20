@@ -3,6 +3,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { getAuthUser } from '@/lib/supabase/server'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { Users, CalendarDays, CreditCard, BookOpen, CircleCheck } from 'lucide-react'
 import { formatCurrency, formatTime } from '@/lib/utils'
@@ -34,7 +37,14 @@ export const dynamic = 'force-dynamic'
 export default async function DashboardPage() {
   const supabase = createClient()
   const admin = getAdminClient()
-  const clubId = await getClubId()
+  const [clubId, authUser] = await Promise.all([getClubId(), getAuthUser()])
+
+  // Quien solo coordina la red no es de ninguna sede: al entrar ve primero la
+  // vista de la red, hasta que elige sede en esa sesión.
+  if (authUser && !cookies().get('coord_site_chosen')) {
+    const { data: coord } = await admin.from('network_coordinators').select('only_coordinator').eq('user_id', authUser.id).maybeSingle()
+    if (coord?.only_coordinator) redirect('/dashboard/red')
+  }
 
   const filter = (q: any) => clubId ? q.eq('club_id', clubId) : q
 

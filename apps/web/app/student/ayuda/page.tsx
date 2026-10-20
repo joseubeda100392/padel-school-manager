@@ -8,6 +8,7 @@ import { PushStatusCard } from '@/components/push-status-card'
 import { getClubId } from '@/lib/get-club'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { FaqSearch, type FaqItem } from '@/components/faq-search'
 
 // La ayuda solo explica lo que el club tiene activado: así nadie busca un
 // botón que en su club no existe.
@@ -21,6 +22,30 @@ export default async function AyudaPage() {
   const payments = features.enable_payments && !features.cash_only_payments
   const autoPay = payments && features.enable_auto_pay
   const waitlist = features.enable_waitlist && features.enable_spots
+  const maxRecovery: number = (club as any)?.config?.max_recovery_classes ?? 0
+
+  // Preguntas sacadas de las dudas reales que los alumnos escriben al chat
+  // del club; cada respuesta según lo que el club tiene activado.
+  const faqs: FaqItem[] = [
+    { q: '¿Cómo instalo la app en el móvil?', a: 'No hace falta descargar nada de la tienda. En iPhone: abre epadelschool.app en Safari, pulsa Compartir (el cuadrado con la flecha) y "Añadir a pantalla de inicio". En Android: ábrela en Chrome, pulsa el menú ⋮ y "Instalar aplicación". Entras con el mismo email y contraseña.' },
+    { q: 'No me llegan los avisos al móvil', a: 'Ve a "Avisos en el móvil" en esta ayuda (o en Más) y mira qué te dice. En iPhone tienes que abrir la app desde el icono de la pantalla de inicio. Si dice "Activados", pulsa "Enviarme un aviso de prueba": si no te llega, pulsa "Volver a activar".' },
+    { q: 'No puedo ir a clase, ¿cómo lo aviso?', a: `En Mis clases elige el día y pulsa "No puedo ir este día". Hazlo con al menos ${cancelHours} horas de antelación: así tu plaza queda libre para otro alumno${features.enable_bag ? ' y se te suma la clase a la bolsa para recuperarla' : ''}.` },
+    { q: `Ya faltan menos de ${cancelHours} horas y no puedo ir`, a: 'La app ya no te deja avisar a tan poco tiempo. Escribe al club para que lo sepan; esa clase no se suma a la bolsa salvo que el club decida otra cosa.' },
+    { q: 'Avisé de que no iba y no se ha reflejado', a: 'Mira en Mis clases, en "Días que no vas": si el día aparece ahí, está registrado. Si no aparece, es que no llegaste a confirmarlo; vuelve a hacerlo o escribe al club.' },
+    ...(features.enable_bag ? [
+      { q: '¿Puedo recuperar una clase en otro mes?', a: `Sí. Las clases de tu bolsa no caducan al cambiar de mes: puedes usarlas en cualquier hueco libre de tu nivel${maxRecovery > 0 ? `, y puedes acumular hasta ${maxRecovery}` : ''}. Revisa también las normas de tu club en Tarifas y normas.` },
+      { q: '¿Cómo compro clases para la bolsa?', a: payments ? 'En Bolsa, en "Comprar bono", eliges el bono y lo pagas con tarjeta. Las clases se suman a tu bolsa al momento.' : 'En tu club los bonos se pagan en el club. Cuando te los cobren, te los suman a la bolsa.' },
+    ] : []),
+    ...(waitlist ? [{ q: '¿Qué pasa si estoy en reserva y se libera la plaza?', a: `Si falta más de ${cancelHours} horas para la clase, entras tú solo, se te descuenta 1 clase de la bolsa y te avisamos. Si falta menos, solo te avisamos para que la cojas en Huecos si puedes ir.` }] : []),
+    { q: '¿Cómo pago la cuota?', a: payments ? 'En Mis clases, en tu grupo, pulsa "Pagar". Pagas con tarjeta en la página segura del banco y la cuota queda pagada al momento.' : 'La cuota se paga en el club. La app te muestra si la tienes pagada.' },
+    { q: '¿Puedo domiciliar el pago para que se cobre solo?', a: autoPay ? 'Sí. En Mis clases puedes guardar tu tarjeta para que la cuota se cobre sola cada mes. Puedes cancelarlo cuando quieras.' : 'Tu club todavía no tiene activado el pago automático. Pregúntales por otras formas de pago.' },
+    ...(payments ? [{ q: 'Voy a dos grupos, ¿tengo que pagar dos veces?', a: 'No. En Mis clases pulsa "Pagar todo" y pagas las cuotas de todos tus grupos en un solo pago.' }] : []),
+    { q: 'Pagué en el club y en la app sigue saliendo sin pagar', a: 'Los pagos en el club (efectivo o datáfono) los apunta el club en la app. Si ya pagaste y sigue pendiente, díselo al club para que lo marque.' },
+    ...(payments ? [{ q: 'He pagado con tarjeta y sigue saliendo pendiente', a: 'El pago se marca en cuanto el banco lo confirma, normalmente al momento. Si tras unos minutos sigue pendiente, escribe al club.' }] : []),
+    { q: '¿Qué significa mi nivel (el color)?', a: `Cada club tiene sus niveles, cada uno con un color. Tu nivel sale en Inicio y en Mis datos${features.enable_objectives ? ', y en Mi progreso ves los objetivos que te marca tu monitor para subir' : ''}. Si tienes dudas, pregunta a tu monitor.` },
+    { q: 'No recuerdo mi contraseña', a: 'Pulsa "¿Olvidaste tu contraseña?" en la pantalla de entrada. Te llegará un email para cambiarla (mira también en spam).' },
+    { q: '¿Puedo cambiarme de grupo?', a: 'Los cambios de grupo los hace el club. Escríbeles y te lo cambian: lo que tengas pagado pasa al grupo nuevo.' },
+  ]
 
   const NAV_ITEMS = [
     { id: 'instalar', label: 'Instalar la app' },
@@ -208,15 +233,7 @@ export default async function AyudaPage() {
           </Section>
 
           <Section id="faq" title="Preguntas frecuentes">
-            <div className="space-y-4">
-              <FAQ q="No me llegan los avisos al móvil" a={'Ve a "Avisos en el móvil" en esta ayuda (o en Más) y mira qué te dice. En iPhone tienes que abrir la app desde el icono de la pantalla de inicio. Si dice "Activados", pulsa "Enviarme un aviso de prueba": si no te llega, pulsa "Volver a activar".'} />
-              <FAQ q="¿Con cuánta antelación tengo que avisar si no puedo ir?" a={`Con al menos ${cancelHours} horas. Así se te suma la clase a la bolsa y tu plaza queda libre para otro alumno.`} />
-              {waitlist && <FAQ q="¿Qué pasa si estoy en reserva y se libera la plaza?" a={`Si falta más de ${cancelHours} horas para la clase, entras tú solo, se te descuenta 1 clase de la bolsa y te avisamos. Si falta menos, solo te avisamos para que la cojas en Huecos si puedes ir.`} />}
-              {payments && <FAQ q="Voy a dos grupos, ¿tengo que pagar dos veces?" a={'No. En Mis clases pulsa "Pagar todo" y pagas las cuotas de todos tus grupos en un solo pago.'} />}
-              <FAQ q="No recuerdo mi contraseña" a={'Pulsa "¿Olvidaste tu contraseña?" en la pantalla de entrada. Te llegará un email para cambiarla (mira también en spam).'} />
-              <FAQ q="¿Puedo cambiarme de grupo?" a="Los cambios de grupo los hace el club. Escríbeles y te lo cambian: lo que tengas pagado pasa al grupo nuevo." />
-              {payments && <FAQ q="He pagado y sigue saliendo pendiente" a="El pago se marca en cuanto el banco lo confirma, normalmente al momento. Si tras unos minutos sigue pendiente, escribe al club." />}
-            </div>
+            <FaqSearch items={faqs} />
           </Section>
 
           {features.enable_chat && (
@@ -281,11 +298,3 @@ function Nota({ children }: { children: React.ReactNode }) {
   )
 }
 
-function FAQ({ q, a }: { q: string; a: string }) {
-  return (
-    <div>
-      <p className="text-label text-ink">{q}</p>
-      <p className="mt-1 text-body text-ink-2">{a}</p>
-    </div>
-  )
-}
