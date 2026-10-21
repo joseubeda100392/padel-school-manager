@@ -12,6 +12,7 @@ export const PAYMENT_TYPE_LABELS: Record<string, string> = {
   bag_pack:          'Bono de clases',
   tournament:        'Inscripción torneo',
   intensivo_group:   'Semana intensiva',
+  manual_charge:     'Cargo suelto',
   mandate_init:      'Activación domiciliación',
   mandate_charge:    'Cuota mensual (domiciliada)',
   manual:            'Manual',

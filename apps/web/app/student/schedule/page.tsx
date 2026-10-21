@@ -6,9 +6,10 @@ import { StudentScheduleClient, type GroupFees } from './schedule-client'
 import { loadStudentFeeItems, type MandateItem } from '@/lib/mandate-charge'
 import { StudentAutoPay } from '@/components/student-autopay'
 import { SpotBookingCard } from './spot-booking-card'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, CircleAlert } from 'lucide-react'
 import { Card, SectionTitle } from '@/components/ui/card'
-import { EmptyState } from '@/components/ui/feedback'
+import { EmptyState, Notice } from '@/components/ui/feedback'
+import { PayButton } from '@/components/pay-button'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
@@ -143,6 +144,7 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
     features,
     { data: timeOverrides },
     { data: faltaCredits },
+    { data: pendingCharges },
   ] = await Promise.all([
     enrollmentIds.length
       ? getAdminClient()
@@ -170,6 +172,12 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
       .select('reason')
       .eq('user_id', user.id)
       .like('reason', 'Falta registrada %'),
+    getAdminClient()
+      .from('student_charges')
+      .select('id, concept, amount_cents')
+      .eq('student_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at'),
   ])
 
   const creditedDates = (faltaCredits ?? [])
@@ -298,6 +306,21 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
           <h1 className="font-display text-title text-ink sm:text-display">Mis clases</h1>
           <p className="mt-1 text-body text-ink-2">Tu grupo fijo, tus cuotas y los días que no puedes ir.</p>
         </header>
+
+        {/* Cargos sueltos que le ha puesto el club: salen aunque no tenga grupo. */}
+        {(pendingCharges ?? []).map((c: any) => (
+          <Notice
+            key={c.id}
+            tone="warn"
+            icon={<CircleAlert />}
+            action={features.enable_payments && !features.cash_only_payments
+              ? <PayButton type="manual_charge" chargeId={c.id} label={`Pagar · ${formatCurrency(c.amount_cents)}`} />
+              : undefined}
+          >
+            <p><strong>{c.concept}</strong> · {formatCurrency(c.amount_cents)} pendiente.</p>
+            {!(features.enable_payments && !features.cash_only_payments) && <p className="mt-1">Págalo en el club.</p>}
+          </Notice>
+        ))}
 
         {items.length === 0 ? (
           <Card>

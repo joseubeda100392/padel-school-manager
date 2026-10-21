@@ -29,6 +29,7 @@ const typeLabel: Record<string, string> = {
   class_pack:        'Bono de clases',
   tournament:        'Inscripción torneo',
   intensivo_group:   'Semana intensiva',
+  manual_charge:     'Cargo suelto',
   manual:            'Manual',
 }
 

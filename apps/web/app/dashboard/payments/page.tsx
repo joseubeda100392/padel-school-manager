@@ -61,6 +61,15 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
       : Promise.resolve({ data: [] as any[], error: null }),
   ])
 
+  const { data: pendingCharges } = clubId
+    ? await admin
+        .from('student_charges')
+        .select('id, concept, amount_cents, created_at, student:users!student_charges_student_id_fkey(id, name)')
+        .eq('club_id', clubId)
+        .eq('status', 'pending')
+        .order('created_at')
+    : { data: [] as any[] }
+
   const errPayments = monthPayments.error
   const allPayments = monthPayments.payments
   const totalCount = monthPayments.count
@@ -153,6 +162,22 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
           <UnpaidList key={monthLabel} items={unpaid as any[]} monthLabel={monthLabel} />
         )}
       </Card>
+
+      {(pendingCharges ?? []).length > 0 && (
+        <Card>
+          <CardHeader title="Cargos sueltos pendientes" description="Cobros que no son cuota de grupo. Se marcan pagados desde la ficha del alumno." />
+          <CardBody>
+            <ul className="divide-y divide-line">
+              {(pendingCharges ?? []).map((c: any) => (
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <Link href={`/dashboard/students/${c.student?.id}`} className="text-label text-ink hover:underline">{c.student?.name ?? 'Alumno'}</Link>
+                  <span className="text-body text-ink-2">{c.concept} · <span className="tabular-nums text-warn-ink">{formatCurrency(c.amount_cents)}</span></span>
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
 
       <section className="space-y-4">
         <SectionTitle>Transacciones de {monthLabel}</SectionTitle>
