@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: orderBody, error: badRequest } = await parseBody(req, z.object({
-    type: z.enum(['single_class', 'class_pack', 'private_lesson_pack', 'fixed_group_month', 'tournament', 'intensivo_group']),
+    type: z.enum(['single_class', 'class_pack', 'private_lesson_pack', 'fixed_group_month', 'tournament', 'intensivo_group', 'manual_charge']),
     scheduleId: z.string().uuid().optional(),
     bookingId: z.string().uuid().optional(),
     wholeClass: z.boolean().optional(),
@@ -130,9 +130,11 @@ export async function POST(req: NextRequest) {
     // en julio) — solo válido si el mes actual ya está pagado y el
     // siguiente todavía no; ver comprobación más abajo.
     advance: z.boolean().optional(),
+    // Cargo suelto que le ha puesto el club (ver /api/admin/charges).
+    chargeId: z.string().uuid().optional(),
   }))
   if (badRequest) return badRequest
-  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, privatePremium, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates, advance, allGroups } = orderBody
+  const { type, scheduleId: bodyScheduleId, bookingId, wholeClass, packType, privatePremium, enrollmentId, exclusionId, classDate: bodyClassDate, tournamentId, intensivoGroupId, classDates, advance, allGroups, chargeId } = orderBody
   let scheduleId = bodyScheduleId
   let classDate = bodyClassDate
 
@@ -403,6 +405,22 @@ export async function POST(req: NextRequest) {
     amount = totalPrice
     productDesc = `Semana intensivo pádel (${schedules.length} clases)`
 
+  } else if (type === 'manual_charge') {
+    // Importe y concepto salen del cargo guardado, nunca de lo que mande el
+    // navegador; y solo puede pagarlo el propio alumno mientras esté pendiente.
+    if (!chargeId) return NextResponse.json({ error: 'chargeId requerido' }, { status: 400 })
+    const { data: charge } = await admin
+      .from('student_charges')
+      .select('student_id, club_id, concept, amount_cents, status')
+      .eq('id', chargeId)
+      .single()
+    if (!charge || charge.student_id !== user.id || charge.club_id !== clubId) {
+      return NextResponse.json({ error: 'Cargo no encontrado' }, { status: 404 })
+    }
+    if (charge.status !== 'pending') return NextResponse.json({ error: 'Este cargo ya no está pendiente' }, { status: 409 })
+    amount = charge.amount_cents
+    productDesc = charge.concept.slice(0, 120)
+
   } else if (type === 'private_lesson_pack') {
     const is90 = packType === '90'
     const { data: callerRow } = await admin.from('users').select('is_external').eq('id', user.id).single()
@@ -471,6 +489,7 @@ export async function POST(req: NextRequest) {
       intensivo_group_id: intensivoGroupId ?? null,
       class_dates: classDates ?? null,
       advance: advance ?? false,
+      ...(chargeId ? { charge_id: chargeId } : {}),
       ...(feeItems ? { items: feeItems } : {}),
     },
   })

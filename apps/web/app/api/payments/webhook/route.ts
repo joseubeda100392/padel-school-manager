@@ -354,6 +354,24 @@ export async function POST(req: NextRequest) {
       console.error('[webhook] mandate_init enrollment update failed:', err)
     }
 
+  } else if (payment.type === 'manual_charge' && meta.charge_id) {
+    // Cargo suelto pagado con tarjeta. Si el club lo anuló mientras el alumno
+    // pagaba, el dinero ya está cobrado: se marca pagado igual.
+    const { data: paid, error: chargeErr } = await adminSupabase
+      .from('student_charges')
+      .update({ status: 'paid', paid_method: 'card', paid_at: new Date().toISOString(), payment_id: payment.id })
+      .eq('id', meta.charge_id)
+      .in('status', ['pending', 'cancelled'])
+      .select('id')
+    if (chargeErr) {
+      console.error('[webhook] manual_charge update failed:', chargeErr.message)
+      await revertToPending()
+      return NextResponse.json({ error: 'Error al marcar el cargo' }, { status: 500 })
+    }
+    if (!paid?.length) {
+      console.error('[webhook] manual_charge ya estaba pagado — posible pago doble, payment', payment.id, 'charge', meta.charge_id)
+    }
+
   } else if (payment.type === 'intensivo_group' && meta.intensivo_group_id) {
     const { data: schedules } = await adminSupabase
       .from('schedules')

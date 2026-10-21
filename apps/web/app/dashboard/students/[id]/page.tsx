@@ -13,6 +13,7 @@ import { BagHistoryList } from './bag-history-list'
 import { StudentEditForm } from './student-edit-form'
 import { StudentEnrollments } from './student-enrollments'
 import { CausarBajaButton } from './causar-baja-button'
+import { StudentCharges, type StudentCharge } from './student-charges'
 import { StudentMakeups } from './student-makeups'
 import { NotificationList } from '@/app/student/notifications/notification-list'
 import { StudentObjectives } from './student-objectives'
@@ -53,6 +54,7 @@ const typeLabel: Record<string, string> = {
   class_pack:        'Bono de clases',
   tournament:        'Inscripción torneo',
   intensivo_group:   'Semana intensiva',
+  manual_charge:     'Cargo suelto',
   manual:            'Manual',
   subscription:      'Suscripción',
   pay_per_class:     'Clase suelta',
@@ -198,6 +200,16 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     .reduce((acc: number, p: any) => acc + p.amount, 0)
 
   const legacyDiscountCents = (clubRow as any)?.config?.standard_discount_cents ?? DEFAULT_STANDARD_DISCOUNT_CENTS
+  const { data: chargesRaw } = await admin
+    .from('student_charges')
+    .select('id, concept, amount_cents, status, paid_method, created_at')
+    .eq('student_id', params.id)
+    .order('created_at', { ascending: false })
+    .limit(30)
+  const charges: StudentCharge[] = (chargesRaw ?? []).map((c: any) => ({
+    id: c.id, concept: c.concept, amountCents: c.amount_cents, status: c.status, paidMethod: c.paid_method, createdAt: c.created_at,
+  }))
+
   const BAJA_DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
   const bajaGroups = (enrollments ?? []).map((e: any) => ({
     id: e.id as string,
@@ -301,6 +313,8 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
         }))} legacyDiscountCents={legacyDiscountCents} studentId={params.id} availableGroups={availableGroups} />
       )}
+
+      {actsAsStudent && <StudentCharges studentId={params.id} charges={charges} />}
 
       {actsAsStudent && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">

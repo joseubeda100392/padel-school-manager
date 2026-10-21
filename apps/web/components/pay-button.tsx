@@ -6,7 +6,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { useState } from 'react'
 
 interface PayButtonProps {
-  type: 'fixed_group_month' | 'class_pack' | 'private_lesson_pack' | 'single_class' | 'tournament' | 'intensivo_group'
+  type: 'fixed_group_month' | 'class_pack' | 'private_lesson_pack' | 'single_class' | 'tournament' | 'intensivo_group' | 'manual_charge'
   enrollmentId?: string
   // Cuota de todos los grupos del alumno en un solo pago (type: 'fixed_group_month').
   allGroups?: boolean
@@ -26,6 +26,8 @@ interface PayButtonProps {
   tournamentId?: string
   intensivoGroupId?: string
   classDates?: string[]
+  // Cargo suelto que le ha puesto el club (type: 'manual_charge').
+  chargeId?: string
   label: string
   className?: string
   variant?: 'primary' | 'secondary'
@@ -38,7 +40,7 @@ interface PayButtonProps {
   cashOnly?: boolean
 }
 
-export function PayButton({ type, enrollmentId, allGroups, advance, packType, privatePremium, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, label, className, variant = 'primary', block = false, disabled, cashOnly }: PayButtonProps) {
+export function PayButton({ type, enrollmentId, allGroups, advance, packType, privatePremium, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, chargeId, label, className, variant = 'primary', block = false, disabled, cashOnly }: PayButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -49,7 +51,7 @@ export function PayButton({ type, enrollmentId, allGroups, advance, packType, pr
       const res = await fetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, enrollmentId, allGroups, advance, packType, privatePremium, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates }),
+        body: JSON.stringify({ type, enrollmentId, allGroups, advance, packType, privatePremium, scheduleId, bookingId, wholeClass, exclusionId, classDate, tournamentId, intensivoGroupId, classDates, chargeId }),
       })
 
       let json: any
