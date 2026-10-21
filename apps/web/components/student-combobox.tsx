@@ -15,13 +15,17 @@ interface Props {
   value: string
   onChange: (id: string) => void
   placeholder?: string
+  // Dentro de una hoja (Sheet) la lista flotante queda cortada por el borde de
+  // la hoja: con inline se abre dentro del contenido y se desplaza a la vista.
+  inline?: boolean
 }
 
-export function StudentCombobox({ students, value, onChange, placeholder = 'Buscar alumno...' }: Props) {
+export function StudentCombobox({ students, value, onChange, placeholder = 'Buscar alumno...', inline = false }: Props) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const listId = useId()
   const ref = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const selected = students.find((s) => s.id === value)
 
@@ -31,6 +35,10 @@ export function StudentCombobox({ students, value, onChange, placeholder = 'Busc
         s.email.toLowerCase().includes(query.toLowerCase())
       )
     : students
+
+  useEffect(() => {
+    if (open && inline) listRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [open, inline])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -90,7 +98,12 @@ export function StudentCombobox({ students, value, onChange, placeholder = 'Busc
       </div>
 
       {open && (
-        <div id={listId} role="listbox" className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-control border border-line bg-surface shadow-overlay">
+        <div
+          ref={listRef}
+          id={listId}
+          role="listbox"
+          className={`${inline ? 'relative' : 'absolute z-50'} mt-1 max-h-60 w-full overflow-y-auto rounded-control border border-line bg-surface shadow-overlay`}
+        >
           {filtered.length === 0 ? (
             <p className="px-3.5 py-3 text-body text-ink-3">Ningún alumno coincide con la búsqueda.</p>
           ) : (

@@ -194,6 +194,7 @@ export function CausarBajaButton({
               value={substituteId}
               onChange={setSubstituteId}
               placeholder="Buscar sustituto"
+              inline
             />
           </div>
         )}
