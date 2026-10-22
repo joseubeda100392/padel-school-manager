@@ -12,6 +12,7 @@ import { useConfirm } from '@/components/ui/confirm'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StudentCombobox } from '@/components/student-combobox'
+import { StartDatePicker } from '@/components/start-date-picker'
 import { getDayOfWeek, formatCurrency } from '@/lib/utils'
 import type { InClubMethod } from '@/lib/payment-method'
 
@@ -130,6 +131,7 @@ export default function GroupEnrollment({
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [monthlyPrice, setMonthlyPrice] = useState(defaultMonthlyPrice)
   const [selectedTariff, setSelectedTariff] = useState<TariffChoice | ''>('')
+  const [addStartDate, setAddStartDate] = useState('')
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -235,6 +237,7 @@ export default function GroupEnrollment({
         monthlyPrice,
         pricePerClassCents: selectedTariff ? tariffPricePerClass(selectedTariff) : null,
         courtPricing: isCourtTariff ? selectedTariff : null,
+        ...(addStartDate && !forming ? { startDate: addStartDate } : {}),
       }),
     })
     const json = await res.json()
@@ -243,6 +246,7 @@ export default function GroupEnrollment({
       setEnrollments((prev) => [...prev, { ...json.data, student }])
       setSelectedStudentId('')
       setSelectedTariff('')
+      setAddStartDate('')
       router.refresh()
     } else {
       setAddError(json.error ?? 'No se pudo añadir al alumno')
@@ -458,7 +462,7 @@ export default function GroupEnrollment({
                         {isPendingAlta && (
                           <Badge tone="neutral">
                             <CalendarPlus className="h-3.5 w-3.5" aria-hidden />
-                            Sustituto: entra el {new Date(e.start_date + 'T12:00:00').toLocaleDateString('es-ES')}
+                            Entra el {new Date(e.start_date + 'T12:00:00').toLocaleDateString('es-ES')}
                           </Badge>
                         )}
                       </div>
@@ -539,6 +543,8 @@ export default function GroupEnrollment({
                     {enablePayments && !forming && (
                       paid ? (
                         <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagado</Badge>
+                      ) : isPendingAlta ? (
+                        <Badge tone="neutral"><Clock className="h-3.5 w-3.5" aria-hidden />Paga desde {MONTH_NAMES[Number(e.start_date!.slice(5, 7)) - 1]}</Badge>
                       ) : (
                         <Badge tone="warn"><Clock className="h-3.5 w-3.5" aria-hidden />Pendiente {billingTarget(!!(e.court_pricing || e.price_per_class_cents)).monthName}</Badge>
                       )
@@ -674,6 +680,7 @@ export default function GroupEnrollment({
             onChange={setSelectedStudentId}
             placeholder="Buscar alumno por nombre o email"
           />
+          {!forming && <StartDatePicker value={addStartDate} onChange={setAddStartDate} />}
           {enablePayments && enableClassValidation && (courtPricing || otherTariffs) && (
             <Select
               aria-label="Tarifa"

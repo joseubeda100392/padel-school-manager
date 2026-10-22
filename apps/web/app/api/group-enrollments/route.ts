@@ -6,8 +6,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { firstBillableMonth } from '@/lib/billing-cycle'
 import { carriedOverPaidUntil, type CarryoverPayment } from '@/lib/enrollment-carryover'
+import { dayBefore, isActiveOn, madridToday, peakOccupancyFrom } from '@/lib/enrollment-window'
 
 const CARRYOVER_LOOKBACK_MONTHS = 3
+const MAX_DAYS_AHEAD = 366
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -21,9 +23,26 @@ export async function POST(req: NextRequest) {
     pricePerClassCents: z.number().nonnegative().nullish(),
     courtPricing: z.enum(['con_pista', 'sin_pista']).nullish(),
     replacesEnrollmentId: z.string().uuid().optional(),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   }))
   if (badRequest) return badRequest
   const { scheduleId, studentId, monthlyPrice, pricePerClassCents, courtPricing, replacesEnrollmentId } = body
+
+  // Alta a futuro: entra en el grupo ese día (sigue fuera del aforo, de la
+  // lista del monitor y de los cobros hasta entonces). Con replacesEnrollmentId
+  // es un cambio de grupo programado: sigue en el viejo hasta el día anterior.
+  const today = madridToday()
+  if (body.startDate && Number.isNaN(Date.parse(body.startDate))) {
+    return NextResponse.json({ error: 'La fecha de entrada no es válida.' }, { status: 400 })
+  }
+  if (body.startDate && body.startDate < today) {
+    return NextResponse.json({ error: 'La fecha de entrada no puede ser anterior a hoy.' }, { status: 400 })
+  }
+  if (body.startDate && Date.parse(body.startDate) - Date.parse(today) > MAX_DAYS_AHEAD * 86_400_000) {
+    return NextResponse.json({ error: 'La fecha de entrada es demasiado lejana.' }, { status: 400 })
+  }
+  const futureStart = body.startDate && body.startDate > today ? body.startDate : null
+  const refDate = futureStart ?? today
 
   const admin = getAdminClient()
 
@@ -112,34 +131,36 @@ export async function POST(req: NextRequest) {
       .eq('schedule_id', scheduleId)
       .eq('status', 'active'),
     admin.from('group_enrollments')
-      .select('paid_until, schedule:schedules!inner(id, start_time, end_time, recurrence_end_date)')
+      .select('paid_until, end_date, schedule:schedules!inner(id, start_time, end_time, recurrence_end_date)')
       .eq('student_id', studentId)
       .eq('status', 'active')
       .neq('schedule_id', scheduleId),
   ])
-  const studentSchedules = (studentSchedulesAll ?? []).filter((e: any) => !replaced || e.schedule?.id !== replaced.schedule_id)
+  const studentSchedules = (studentSchedulesAll ?? []).filter((e: any) =>
+    (!replaced || e.schedule?.id !== replaced.schedule_id) && (!e.end_date || e.end_date >= refDate)
+  )
   if (replaced && (schedule as any)?.club_id !== replaced.club_id) {
     return NextResponse.json({ error: 'El grupo de destino es de otro club.' }, { status: 400 })
   }
 
-  // Un enrollment 'active' con baja programada (end_date en el pasado ya
-  // procesado no debería existir, pero uno con end_date futuro sigue
-  // ocupando su plaza hasta que el cron lo quite) o con start_date futuro
-  // (sustituto aún no arrancado) no debe contarse fuera de su ventana real —
-  // se filtra por "hoy" para el aforo inmediato.
-  const TZ0 = 'Europe/Madrid'
-  const todaySpain0 = new Intl.DateTimeFormat('en-CA', { timeZone: TZ0 }).format(new Date())
-  const activeTodayEnrollments = (existingEnrollments ?? []).filter((e: any) =>
-    (!e.start_date || e.start_date <= todaySpain0) && (!e.end_date || e.end_date >= todaySpain0)
-  )
+  // Aforo desde el día que entra: cuenta solo a quien siga en el grupo ese
+  // día (una baja programada libera su plaza) y también a quien tenga un alta
+  // a futuro posterior, que ya tiene ese hueco reservado.
+  const occupancy = peakOccupancyFrom(existingEnrollments ?? [], refDate)
   const alreadyEnrolled = (existingEnrollments ?? []).some((e: any) => e.student_id === studentId)
   // La inscripción se guarda con upsert: volver a meter a alguien que ya está
   // en el grupo reescribiría su "pagado hasta", su alta y sus descuentos.
   if (alreadyEnrolled) {
     return NextResponse.json({ error: 'El alumno ya está en este grupo.' }, { status: 409 })
   }
-  if (!alreadyEnrolled && schedule?.max_students && activeTodayEnrollments.length >= schedule.max_students) {
-    return NextResponse.json({ error: `La clase ya tiene ${schedule.max_students}/${schedule.max_students} plazas ocupadas.` }, { status: 409 })
+  if (!alreadyEnrolled && schedule?.max_students && occupancy >= schedule.max_students) {
+    return NextResponse.json({
+      error: futureStart
+        ? `Desde el ${new Date(futureStart + 'T12:00:00').toLocaleDateString('es-ES')} la clase seguiría completa (${schedule.max_students}/${schedule.max_students}).`
+        : (existingEnrollments ?? []).filter((e: any) => isActiveOn(e, refDate)).length < schedule.max_students
+          ? 'Ahora hay hueco, pero ya está reservado para alguien que entra más adelante. Elige una fecha de entrada.'
+          : `La clase ya tiene ${schedule.max_students}/${schedule.max_students} plazas ocupadas.`,
+    }, { status: 409 })
   }
 
   // Este chequeo de arriba solo mira cuántos fijos hay — no ve las reservas
@@ -150,15 +171,13 @@ export async function POST(req: NextRequest) {
   // se diera cuenta. Se comprueba también contra cualquier reserva puntual
   // futura ya existente en este horario.
   if (!alreadyEnrolled && schedule?.max_students) {
-    const TZ = 'Europe/Madrid'
-    const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
     const { data: upcomingSpotBookings } = await admin
       .from('bookings')
       .select('class_date, student:users!bookings_student_id_fkey(name)')
       .eq('schedule_id', scheduleId)
       .neq('status', 'cancelled')
       .not('class_date', 'is', null)
-      .gte('class_date', todaySpain)
+      .gte('class_date', refDate)
     if (upcomingSpotBookings?.length) {
       const activeEnrollmentIds = (existingEnrollments ?? []).map((e: any) => e.student_id)
       const { data: exclusionsForActive } = activeEnrollmentIds.length
@@ -233,8 +252,13 @@ export async function POST(req: NextRequest) {
   // ver carriedOverPaidUntil). Se miran pagos de los últimos meses para
   // incluir adelantos pagados antes del mes en curso. En un cambio de grupo
   // no hace falta: se hereda tal cual lo que tenía la inscripción vieja.
-  let paidUntil: string | null = replaced?.paid_until ?? null
-  if (!replaced) {
+  // En un cambio programado solo pasa al grupo nuevo lo pagado que llegue más
+  // allá del día del cambio; lo de antes se queda en el viejo, que sigue
+  // dando clase hasta entonces.
+  let paidUntil: string | null = futureStart
+    ? (replaced?.paid_until && replaced.paid_until >= futureStart ? replaced.paid_until : null)
+    : replaced?.paid_until ?? null
+  if (!replaced && !futureStart) {
     const [nowYearStr, nowMonthStr] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()).split('-')
     const currentMonth = `${nowYearStr}-${nowMonthStr}`
     const lookback = new Date(Number(nowYearStr), Number(nowMonthStr) - 1 - CARRYOVER_LOOKBACK_MONTHS, 1)
@@ -263,14 +287,17 @@ export async function POST(req: NextRequest) {
   // los que la clase no llegó a dar ni una sola sesión.
   const usesPerClassPricing = !!(pricePerClassCents || courtPricing)
   const computedStartDate = schedule?.start_time ? firstBillableMonth(schedule.start_time, usesPerClassPricing) : null
-  const startDate = replaced?.start_date ?? computedStartDate
+  const startDate = futureStart
+    ? (computedStartDate && computedStartDate > futureStart ? computedStartDate : futureStart)
+    : replaced?.start_date ?? computedStartDate
+  const scheduledMove = !!replaced && !!futureStart
 
   // Al cambiar de grupo con la misma cuota se hereda el descuento puntual
   // marcado (cuota ya rebajada + importe descontado). Con otra cuota no, para
   // que al cobrar no se "restaure" una cuota que ya no es la suya.
   const newMonthlyPrice = monthlyPrice ?? replaced?.monthly_price ?? 0
   const keepsDiscount = !!replaced && newMonthlyPrice === replaced.monthly_price
-  const inherited = replaced ? {
+  const inherited = replaced && !scheduledMove ? {
     discount_classes_pending: replaced.discount_classes_pending ?? 0,
     discount_applied: keepsDiscount ? replaced.discount_applied : false,
     discount_cents: keepsDiscount ? replaced.discount_cents : null,
@@ -292,6 +319,8 @@ export async function POST(req: NextRequest) {
     enrolled_at: new Date().toISOString(),
     start_date: startDate,
     paid_until: paidUntil,
+    // Así "Cancelar baja" en la ficha deshace también el cambio programado.
+    ...(scheduledMove ? { replaces_enrollment_id: replaced.id } : {}),
     ...inherited,
   }, { onConflict: 'schedule_id,student_id' }).select().single()
 
@@ -300,7 +329,13 @@ export async function POST(req: NextRequest) {
   // Solo con el grupo nuevo ya creado se quita el viejo (igual que "Quitar":
   // sus faltas y la inscripción). Si falla, se deshace el nuevo para no dejar
   // al alumno en los dos.
-  if (replaced) {
+  if (scheduledMove) {
+    const { error: endErr } = await admin.from('group_enrollments').update({ end_date: dayBefore(futureStart!) }).eq('id', replaced.id)
+    if (endErr) {
+      await admin.from('group_enrollments').delete().eq('id', data.id)
+      return NextResponse.json({ error: 'No se pudo programar el cambio de grupo' }, { status: 500 })
+    }
+  } else if (replaced) {
     const { error: exclErr } = await admin.from('schedule_exclusions').delete().eq('group_enrollment_id', replaced.id)
     const { error: delErr } = exclErr
       ? { error: exclErr }
@@ -312,14 +347,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Cancelar reservas puntuales futuras del alumno en esta clase (ya no las necesita)
-  const today = new Date().toISOString().split('T')[0]
   await admin
     .from('bookings')
     .delete()
     .eq('schedule_id', scheduleId)
     .eq('student_id', studentId)
     .eq('source', 'admin')
-    .gte('class_date', today)
+    .gte('class_date', refDate)
 
   return NextResponse.json({ data })
 }
