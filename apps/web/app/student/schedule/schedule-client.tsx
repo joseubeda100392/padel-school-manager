@@ -27,6 +27,7 @@ interface ScheduleItem {
   monthlyPrice: number
   paidUntil: string | null
   isPaid: boolean
+  startsOn?: string | null
   canAdvance: boolean
   nextMonthLabel: string
   upcomingOccurrences: Occurrence[]
@@ -170,7 +171,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
   const feeBlock = groupFees && enablePayments
     ? (groupFees.due.lines.length
         ? { title: 'Cuotas pendientes', lines: groupFees.due.lines, total: groupFees.due.amount, advance: false }
-        : groupFees.advance.lines.length
+        : groupFees.advance.lines.length && !cashOnly
           ? { title: `Adelantar ${groupFees.advance.monthName}`, lines: groupFees.advance.lines, total: groupFees.advance.amount, advance: true }
           : null)
     : null
@@ -181,16 +182,15 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
         <Notice
           tone={feeBlock.advance ? 'neutral' : 'warn'}
           icon={feeBlock.advance ? <CalendarDays /> : <CircleAlert />}
-          action={
+          action={!cashOnly && (
             <PayButton
               type="fixed_group_month"
               allGroups
               advance={feeBlock.advance}
               variant={feeBlock.advance ? 'secondary' : 'primary'}
               label={feeBlock.advance ? `Pagar ${groupFees!.advance.monthName.split(' ')[0]} ahora · ${formatCurrency(feeBlock.total)}` : `Pagar todo · ${formatCurrency(feeBlock.total)}`}
-              cashOnly={cashOnly}
             />
-          }
+          )}
         >
           <p>
             {feeBlock.advance
@@ -207,24 +207,25 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
               </li>
             ))}
           </ul>
+          {cashOnly && <p className="mt-2 text-meta">El pago por la app aún no está disponible: paga en efectivo en el club.</p>}
         </Notice>
       ) : perGroupPayments && unpaidItems.length > 0 && (
         <Notice
           tone="warn"
           icon={<CircleAlert />}
-          action={
+          action={!cashOnly && (
             <PayButton
               type="fixed_group_month"
               enrollmentId={unpaidItems[0].enrollmentId}
               label={`Pagar · ${formatCurrency(unpaidItems[0].monthlyPrice)}`}
               className={buttonVariants({ size: 'sm' })}
-              cashOnly={cashOnly}
             />
-          }
+          )}
         >
           {unpaidItems.length === 1
             ? `Tienes pendiente la cuota de ${currentMonthName}.`
             : `Tienes ${unpaidItems.length} cuotas de ${currentMonthName} pendientes.`}
+          {cashOnly && <p className="mt-1 text-meta">Págala en efectivo en el club.</p>}
         </Notice>
       )}
 
@@ -289,9 +290,11 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
                       <div className="space-y-3 border-t border-line px-4 py-3 sm:px-5">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="text-body text-ink-2">Cuota de {currentMonthName}</span>
+                            <span className="text-body text-ink-2">{item.startsOn ? 'Cuota al mes' : `Cuota de ${currentMonthName}`}</span>
                             <span className="text-body font-semibold tabular-nums text-ink">{formatCurrency(item.monthlyPrice)}</span>
-                            {item.isPaid
+                            {item.startsOn
+                              ? <Badge tone="neutral"><CalendarDays className="h-3.5 w-3.5" aria-hidden />Empiezas el {new Date(item.startsOn + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</Badge>
+                              : item.isPaid
                               ? <Badge tone="success"><CircleCheck className="h-3.5 w-3.5" aria-hidden />Pagada</Badge>
                               : <Badge tone="warn"><CircleAlert className="h-3.5 w-3.5" aria-hidden />Pendiente</Badge>}
                           </div>

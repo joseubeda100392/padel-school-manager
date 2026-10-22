@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
 import { Notice } from '@/components/ui/feedback'
 import { parseClubFeatures } from '@/lib/get-club-features'
+import { isActiveOn, type EnrollmentWindow } from '@/lib/enrollment-window'
 
 const TZ = 'Europe/Madrid'
 
@@ -57,7 +58,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
     admin
       .from('group_enrollments')
-      .select('id, schedule_id, schedule_exclusions(excluded_date)')
+      .select('id, schedule_id, start_date, end_date, schedule_exclusions(excluded_date)')
       .eq('status', 'active'),
     clubId ? admin.from('clubs').select('config, features').eq('id', clubId).single() : Promise.resolve({ data: null }),
     // Interesados de los grupos en formación
@@ -101,11 +102,14 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   // Semana para recalcular la ocupación de cada columna sin heredar la de otra semana.
   const groupAttendingMap: Record<string, number> = {}
   const groupSizeMap: Record<string, number> = {}
+  const groupWindowsMap: Record<string, EnrollmentWindow[]> = {}
   const isFixedGroupMap: Record<string, boolean> = {}
   for (const e of enrollmentsRaw ?? []) {
     isFixedGroupMap[e.schedule_id] = true
-    groupSizeMap[e.schedule_id] = (groupSizeMap[e.schedule_id] ?? 0) + 1
+    ;(groupWindowsMap[e.schedule_id] ??= []).push({ start_date: e.start_date, end_date: e.end_date })
+    if (isActiveOn(e, todaySpain)) groupSizeMap[e.schedule_id] = (groupSizeMap[e.schedule_id] ?? 0) + 1
     const nextDate = nextDateMap[e.schedule_id]
+    if (!nextDate || !isActiveOn(e, nextDate)) continue
     const hasFalta = (e.schedule_exclusions as any[])?.some((x: any) => x.excluded_date === nextDate)
     if (!hasFalta) {
       groupAttendingMap[e.schedule_id] = (groupAttendingMap[e.schedule_id] ?? 0) + 1
@@ -154,7 +158,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     ...s,
     bookings_count: (groupAttendingMap[s.id] ?? 0) + (spotCountMap[s.id] ?? 0),
     is_fixed_group: isFixedGroupMap[s.id] ?? false,
-    group_size: groupSizeMap[s.id] ?? null,
+    group_size: groupSizeMap[s.id] ?? (isFixedGroupMap[s.id] ? 0 : null),
+    group_windows: groupWindowsMap[s.id] ?? null,
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
     reference_date: nextDateMap[s.id],

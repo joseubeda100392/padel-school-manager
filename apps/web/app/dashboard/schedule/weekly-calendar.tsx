@@ -7,6 +7,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { TimetableGrid, type GridClass, type GridColumn } from './timetable-grid'
+import { isActiveOn, type EnrollmentWindow } from '@/lib/enrollment-window'
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const DAY_FULL = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
@@ -104,7 +105,9 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
         const review = s.reviewByDate?.[dateStr] ?? null
         // Grupo fijo: la ocupación es constante salvo lo que pase ESE día concreto
         // (falta sin cubrir) — no el número de "hoy" heredado en cualquier semana.
-        const occupancy = typeof s.group_size === 'number' ? s.group_size - (review?.uncoveredCount ?? 0) : s.bookings_count
+        // Fijos de ESA fecha: no cuenta a quien aún no ha entrado ni a quien ya salió.
+        const groupSize = s.group_windows ? (s.group_windows as EnrollmentWindow[]).filter(w => isActiveOn(w, dateStr)).length : s.group_size
+        const occupancy = typeof groupSize === 'number' ? groupSize - (review?.uncoveredCount ?? 0) : s.bookings_count
         const reviewLabel: string | null = review
           ? review.uncoveredCount > 0
             ? `${review.uncoveredCount} plaza${review.uncoveredCount > 1 ? 's' : ''} por cubrir`

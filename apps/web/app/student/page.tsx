@@ -18,6 +18,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { PistaVivaOptin } from './pista-viva-optin'
 import { HomeBand } from '@/components/ui/home-band'
 import { ProgressCard, type ProgressChecklist } from './progress-card'
+import { isActiveOn } from '@/lib/enrollment-window'
 
 function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
@@ -47,7 +48,7 @@ export default async function StudentHomePage() {
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, paid_until, start_date, schedule:schedules(id, start_time, end_time, court:courts(name))')
+      .select('id, monthly_price, paid_until, start_date, end_date, schedule:schedules(id, start_time, end_time, court:courts(name))')
       .eq('student_id', user.id)
       .eq('status', 'active'),
     admin
@@ -123,6 +124,8 @@ export default async function StudentHomePage() {
       const nextDate = getNextOccurrence((e.schedule as any)?.start_time ?? '', holidaySet)
       if (!nextDate) return []
       const nextDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(nextDate)
+      // Un grupo al que aún no ha entrado (o del que ya sale) no es su próxima clase.
+      if (!isActiveOn(e, nextDateStr)) return []
       const override = (timeOverrides ?? []).find(
         (o: any) => o.schedule_id === (e.schedule as any)?.id && o.override_date === nextDateStr
       )

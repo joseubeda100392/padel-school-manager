@@ -55,6 +55,8 @@ export default async function CoachHomePage() {
           .select('schedule_id')
           .in('schedule_id', todayIds)
           .eq('status', 'active')
+          .or(`start_date.is.null,start_date.lte.${todaySpain}`)
+          .or(`end_date.is.null,end_date.gte.${todaySpain}`)
       : { data: [] },
     todayIds.length
       ? admin

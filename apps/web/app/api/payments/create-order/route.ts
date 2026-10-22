@@ -295,7 +295,7 @@ export async function POST(req: NextRequest) {
     if (!enrollmentId) return NextResponse.json({ error: 'enrollmentId requerido' }, { status: 400 })
     const { data: enrollment } = await admin
       .from('group_enrollments')
-      .select('monthly_price, student_id, paid_until')
+      .select('monthly_price, student_id, paid_until, end_date')
       .eq('id', enrollmentId)
       .eq('student_id', user.id)
       .eq('status', 'active')
@@ -324,6 +324,9 @@ export async function POST(req: NextRequest) {
       const nextMonthAlreadyPaid = !!paidUntil && paidUntil >= endOfNextMonth
       if (!currentMonthPaid) return NextResponse.json({ error: 'Todavía no tienes pagado el mes actual' }, { status: 409 })
       if (nextMonthAlreadyPaid) return NextResponse.json({ error: 'Ya tienes adelantado el mes siguiente' }, { status: 409 })
+      if (enrollment.end_date && enrollment.end_date <= endOfThisMonth) {
+        return NextResponse.json({ error: 'Dejas este grupo a final de mes: no hay mes siguiente que adelantar' }, { status: 409 })
+      }
       const nextMonth0 = todayMonth0 + 1 > 11 ? 0 : todayMonth0 + 1
       const nextMonthYear = todayMonth0 + 1 > 11 ? todayY + 1 : todayY
       productDesc = `Cuota grupo fijo ${MONTH_NAMES[nextMonth0]} ${nextMonthYear} (adelantada)`

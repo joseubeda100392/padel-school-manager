@@ -15,6 +15,7 @@ import { Card, SectionTitle } from '@/components/ui/card'
 import { LevelTag } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/feedback'
 import { List, ListRow } from '@/components/ui/list'
+import { isActiveOn, type EnrollmentWindow } from '@/lib/enrollment-window'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -62,7 +63,7 @@ export default async function CoachClassesPage({
   const { data: enrollments } = ids.length
     ? await admin
         .from('group_enrollments')
-        .select('schedule_id, schedule_exclusions(excluded_date)')
+        .select('schedule_id, start_date, end_date, schedule_exclusions(excluded_date)')
         .in('schedule_id', ids)
         .eq('status', 'active')
     : { data: [] }
@@ -72,7 +73,10 @@ export default async function CoachClassesPage({
   // tamaño total (constante), para recalcular por fecha exacta en Semana.
   const countBySchedule: Record<string, number> = {}
   const groupSizeMap: Record<string, number> = {}
+  const groupWindowsMap: Record<string, EnrollmentWindow[]> = {}
   for (const e of enrollments ?? []) {
+    ;(groupWindowsMap[e.schedule_id] ??= []).push({ start_date: e.start_date, end_date: e.end_date })
+    if (!isActiveOn(e, todaySpain)) continue
     groupSizeMap[e.schedule_id] = (groupSizeMap[e.schedule_id] ?? 0) + 1
     const absentToday = ((e as any).schedule_exclusions ?? []).some((x: any) => x.excluded_date === todaySpain)
     if (absentToday) continue
@@ -123,7 +127,8 @@ export default async function CoachClassesPage({
   const schedulesWithCount = (schedules ?? []).map((s: any) => ({
     ...s,
     enrolled: countBySchedule[s.id] ?? 0,
-    group_size: groupSizeMap[s.id] ?? null,
+    group_size: groupSizeMap[s.id] ?? (groupWindowsMap[s.id] ? 0 : null),
+    group_windows: groupWindowsMap[s.id] ?? null,
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
     bookedDates: bookedDatesBySchedule[s.id] ?? [],

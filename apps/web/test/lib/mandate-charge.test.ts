@@ -126,3 +126,17 @@ describe('planAdvanceItems: adelantar el mes siguiente de todos los grupos', () 
     expect(adv([enr('a', 8000, '2026-11-30')])).toEqual([])
   })
 })
+
+describe('grupo que deja (baja o cambio de grupo programado)', () => {
+  it('adelantar el mes que viene no cobra el grupo que deja a fin de mes', () => {
+    const items = planAdvanceItems({
+      enrollments: [enr('viejo', 8000, '2026-10-31', '2026-09-01', { end_date: '2026-10-31' }), enr('nuevo', 6000, null, '2026-11-01')],
+      currentMonth: '2026-10', classValidation: false,
+    })
+    expect(items.map(i => i.enrollment_id)).toEqual(['nuevo'])
+  })
+
+  it('el cobro mensual sí cobra el último mes en que sigue', () => {
+    expect(plan([enr('viejo', 8000, '2026-09-30', '2026-09-01', { end_date: '2026-10-31' })], 'monthly').map(i => i.paid_until)).toEqual(['2026-10-31'])
+  })
+})

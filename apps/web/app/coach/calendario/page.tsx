@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import MasterWeeklyCalendar from '@/app/dashboard/schedule/master/master-weekly-calendar'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { PageHeader } from '@/components/ui/page-header'
+import { madridToday, rosterForMonth } from '@/lib/enrollment-window'
 
 export default async function CoachMasterCalendarPage() {
   const supabase = createClient()
@@ -29,21 +30,23 @@ export default async function CoachMasterCalendarPage() {
     schedulesQuery,
     admin
       .from('group_enrollments')
-      .select('schedule_id, student:users!group_enrollments_student_id_fkey(name)')
+      .select('schedule_id, start_date, end_date, student:users!group_enrollments_student_id_fkey(name)')
       .eq('status', 'active'),
   ])
 
-  const studentsBySchedule: Record<string, string[]> = {}
+  // Grupo de este mes, con quién entra o sale (altas y cambios programados).
+  const bySchedule: Record<string, any[]> = {}
   for (const e of enrollmentsRaw ?? []) {
-    const name = (e.student as any)?.name
-    if (!name) continue
-    if (!studentsBySchedule[e.schedule_id]) studentsBySchedule[e.schedule_id] = []
-    studentsBySchedule[e.schedule_id].push(name)
+    if (!(e.student as any)?.name) continue
+    if (!bySchedule[e.schedule_id]) bySchedule[e.schedule_id] = []
+    bySchedule[e.schedule_id].push(e)
   }
+  const today = madridToday()
 
   const schedules = (rawSchedules ?? []).map((s: any) => ({
     ...s,
-    students: studentsBySchedule[s.id] ?? [],
+    students: rosterForMonth(bySchedule[s.id] ?? [], today.slice(0, 7), today)
+      .map(({ entry, change }) => ({ name: entry.student.name as string, change })),
   }))
 
   return (

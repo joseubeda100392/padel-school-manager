@@ -14,6 +14,7 @@ import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
 import { getHolidaySet } from '@/lib/club-holidays'
+import { firstOfNextMonth, isActiveOn } from '@/lib/enrollment-window'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -98,7 +99,7 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
     getAdminClient()
       .from('group_enrollments')
       .select(`
-        id, monthly_price, paid_until, enrolled_at, start_date,
+        id, monthly_price, paid_until, enrolled_at, start_date, end_date,
         schedule:schedules(id, start_time, end_time, max_students, recurrence_end_date,
           court:courts(name),
           level:levels(name, color),
@@ -208,7 +209,10 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
   const items = (enrollments ?? []).map(e => {
     const schedule = e.schedule as any
     const myOverrides = (timeOverrides ?? []).filter((o: any) => o.schedule_id === schedule?.id)
+    // Solo los días en que está en el grupo: un alta o un cambio de grupo a
+    // futuro no empieza hasta su fecha, y una baja termina en la suya.
     const upcomingOccurrences = getUpcomingOccurrences(schedule?.start_time ?? '', cancellationHours, myOverrides, occurrenceCount, maxDateFor(schedule?.recurrence_end_date), holidaySet)
+      .filter(o => isActiveOn(e, o.dateStr))
     const myExclusions = (exclusionsRaw ?? [])
       .filter((x: any) => x.group_enrollment_id === e.id)
       .map((x: any) => ({ id: x.id, excluded_date: x.excluded_date, publish_spot: x.publish_spot, spot_taken: x.spot_taken === true }))
@@ -221,7 +225,8 @@ export default async function StudentSchedulePage({ searchParams }: { searchPara
       // (start_date en el futuro), no mostrarla como pendiente de pago —
       // la clase no ha dado ni una sesión todavía, no debe nada.
       isPaid: (e.start_date && e.start_date > todaySpain) || isPaidThisMonth(e.paid_until),
-      canAdvance: canAdvanceNextMonth(e.paid_until),
+      startsOn: e.start_date && e.start_date > todaySpain ? e.start_date : null,
+      canAdvance: canAdvanceNextMonth(e.paid_until) && (!e.end_date || e.end_date >= firstOfNextMonth(todaySpain)),
       nextMonthLabel: nextMonthLabel(),
       upcomingOccurrences,
       schedule: {

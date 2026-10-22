@@ -8,6 +8,7 @@ import { formatLongDate } from '@/lib/format-date'
 import { Card } from '@/components/ui/card'
 import { LevelTag } from '@/components/ui/badge'
 import { List, ListRow } from '@/components/ui/list'
+import { isActiveOn, type EnrollmentWindow } from '@/lib/enrollment-window'
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const JS_DAY_TO_IDX: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 }
@@ -23,6 +24,7 @@ type Schedule = {
   review?: { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number } | null
   reviewByDate?: Record<string, { hasFalta: boolean; substituteNames: string[]; uncoveredCount: number }> | null
   group_size?: number | null
+  group_windows?: EnrollmentWindow[] | null
   bookedDates?: string[]
 }
 
@@ -108,7 +110,9 @@ export default function CoachWeeklyCalendar({ schedules, holidays = [] }: { sche
     const review = s.reviewByDate?.[dateStr] ?? null
     const absentCount = review ? review.uncoveredCount + review.substituteNames.length : 0
     const bookingsThatDate = (s.bookedDates ?? []).filter((d) => d === dateStr).length
-    const occupancy = typeof s.group_size === 'number' ? s.group_size - absentCount + bookingsThatDate : s.enrolled
+    // Fijos de ESA fecha: no cuenta a quien aún no ha entrado ni a quien ya salió.
+    const groupSize = s.group_windows ? s.group_windows.filter(w => isActiveOn(w, dateStr)).length : s.group_size
+    const occupancy = typeof groupSize === 'number' ? groupSize - absentCount + bookingsThatDate : s.enrolled
     return { review, occupancy }
   }
 

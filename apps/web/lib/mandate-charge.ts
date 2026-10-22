@@ -7,6 +7,7 @@ export interface MandateEnrollment {
   monthly_price: number
   paid_until: string | null
   start_date: string | null
+  end_date?: string | null
   price_per_class_cents: number | null
   discount_classes_pending: number | null
 }
@@ -50,6 +51,9 @@ function buildItems(enrollments: MandateEnrollment[], currentMonth: string, clas
   const items: MandateItem[] = []
   for (const e of enrollments) {
     if (e.monthly_price <= 0) continue
+    // Un grupo que deja (baja o cambio de grupo programado) no se cobra de
+    // los meses en que ya no está.
+    const staysIn = (paidUntil: string) => !e.end_date || e.end_date >= paidUntil.slice(0, 7) + '-01'
     const pending = e.discount_classes_pending ?? 0
     const discount = classValidation && e.price_per_class_cents && pending > 0
       ? Math.min(e.monthly_price, pending * e.price_per_class_cents)
@@ -57,6 +61,7 @@ function buildItems(enrollments: MandateEnrollment[], currentMonth: string, clas
 
     if (!onlyDue) {
       const paidUntil = nextPaidUntilForEnrollment(e.paid_until, e.start_date)
+      if (!staysIn(paidUntil)) continue
       items.push({ enrollment_id: e.id, amount: e.monthly_price - discount, paid_until: paidUntil, discount_cents: discount })
       continue
     }
@@ -67,7 +72,7 @@ function buildItems(enrollments: MandateEnrollment[], currentMonth: string, clas
     let paidUntil = e.paid_until
     for (let i = 0; i < MAX_CATCHUP_MONTHS; i++) {
       const next = nextPaidUntilForEnrollment(paidUntil, e.start_date)
-      if (next.slice(0, 7) > currentMonth) break
+      if (next.slice(0, 7) > currentMonth || !staysIn(next)) break
       const monthDiscount = i === 0 ? discount : 0
       items.push({ enrollment_id: e.id, amount: e.monthly_price - monthDiscount, paid_until: next, discount_cents: monthDiscount })
       paidUntil = next
@@ -109,7 +114,7 @@ async function loadFeeContext(admin: SupabaseClient, userId: string, clubId: str
   const [{ data: enrollments, error }, { data: club }] = await Promise.all([
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, paid_until, start_date, price_per_class_cents, discount_classes_pending')
+      .select('id, monthly_price, paid_until, start_date, end_date, price_per_class_cents, discount_classes_pending')
       .eq('student_id', userId)
       .eq('club_id', clubId)
       .eq('status', 'active'),
