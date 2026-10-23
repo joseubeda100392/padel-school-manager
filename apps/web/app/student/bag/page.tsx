@@ -16,6 +16,7 @@ import { buttonVariants } from '@/components/ui/button'
 // las faltas al día en "Mis clases", las clases sueltas a su lista.
 function describeTx(tx: { reason: string | null; booking_id?: string | null; booking?: { class_date: string | null } | { class_date: string | null }[] | null }) {
   const reason = tx.reason ?? 'Movimiento'
+  if (reason.startsWith('3 medias horas')) return { title: 'Clase de 1 h 30 por juntar 3 medias horas', href: undefined }
   const falta = /^Falta registrada (\d{4}-\d{2}-\d{2})$/.exec(reason)
   if (falta) return { title: `Falta avisada · ${formatLongDate(falta[1], { weekday: false })}`, href: `/student/schedule?date=${falta[1]}` }
   if (/^Falta cancelada/.test(reason)) return { title: 'Falta anulada: al final vas a clase', href: undefined }
@@ -41,7 +42,7 @@ export default async function StudentBagPage() {
     admin.from('users').select('club_id, is_external, club:clubs(features, config)').eq('id', user.id).single(),
     admin
       .from('class_bag')
-      .select('balance_60, balance_90, balance_private_60, balance_private_90, balance_private_60_external, balance_private_90_external, balance_private_60_premium, balance_private_90_premium, balance_private_60_premium_external, balance_private_90_premium_external')
+      .select('balance_60, balance_90, half_hours, balance_private_60, balance_private_90, balance_private_60_external, balance_private_90_external, balance_private_60_premium, balance_private_90_premium, balance_private_60_premium_external, balance_private_90_premium_external')
       .eq('user_id', user.id)
       .single(),
     admin
@@ -63,6 +64,7 @@ export default async function StudentBagPage() {
 
   const balance60 = bag?.balance_60 ?? 0
   const balance90 = bag?.balance_90 ?? 0
+  const halfHours = bag?.half_hours ?? 0
   const DEFAULT_CFG = {
     pack_price_60: 9000, classes_per_pack_60: 10, pack_price_90: 12000, classes_per_pack_90: 10,
     pack_price_60_external: 0, classes_per_pack_60_external: 0, pack_price_90_external: 0, classes_per_pack_90_external: 0,
@@ -151,6 +153,25 @@ export default async function StudentBagPage() {
           </div>
         )}
       </Card>
+
+      {features.enable_90min && (halfHours > 0 || balance90 > 0) && (
+        <Card className="p-4 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-label text-ink">Medias horas guardadas</p>
+            <div className="flex gap-1.5" role="img" aria-label={`${halfHours} de 3 medias horas`}>
+              {[0, 1, 2].map(i => (
+                <span key={i} className={`h-3 w-8 rounded-full ${i < halfHours ? 'bg-accent' : 'bg-ink/10'}`} />
+              ))}
+            </div>
+          </div>
+          <p className="mt-2 text-meta text-ink-3">
+            Si recuperas una clase de 1 h 30 en una de 1 h, la media hora que sobra se guarda aquí.
+            {halfHours > 0
+              ? ` Llevas ${halfHours} de 3: ${halfHours === 2 ? 'con una más' : 'con 2 más'} se te suma una clase de 1 h 30.`
+              : ' Con 3 se te suma una clase de 1 h 30.'}
+          </p>
+        </Card>
+      )}
 
       <section className="space-y-4">
         <SectionTitle>Movimientos</SectionTitle>

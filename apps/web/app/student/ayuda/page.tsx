@@ -34,6 +34,7 @@ export default async function AyudaPage() {
     { q: 'Avisé de que no iba y no se ha reflejado', a: 'Mira en Mis clases, en "Días que no vas": si el día aparece ahí, está registrado. Si no aparece, es que no llegaste a confirmarlo; vuelve a hacerlo o escribe al club.' },
     ...(features.enable_bag ? [
       { q: '¿Puedo recuperar una clase en otro mes?', a: `Sí. Las clases de tu bolsa no caducan al cambiar de mes: puedes usarlas en cualquier hueco libre de tu nivel${maxRecovery > 0 ? `, y puedes acumular hasta ${maxRecovery}` : ''}. Revisa también las normas de tu club en Tarifas y normas.` },
+      ...(features.enable_90min ? [{ q: 'Recupero una clase de 1 h 30 en una de 1 h, ¿pierdo media hora?', a: 'No. La media hora que sobra se guarda en tu Bolsa, en "Medias horas guardadas". Cuando juntas 3, se te suma una clase de 1 h 30.' }] : []),
       { q: '¿Cómo compro clases para la bolsa?', a: payments ? 'En Bolsa, en "Comprar bono", eliges el bono y lo pagas con tarjeta. Las clases se suman a tu bolsa al momento.' : 'En tu club los bonos se pagan en el club. Cuando te los cobren, te los suman a la bolsa.' },
     ] : []),
     ...(waitlist ? [{ q: '¿Qué pasa si estoy en reserva y se libera la plaza?', a: `Si falta más de ${cancelHours} horas para la clase, entras tú solo, se te descuenta 1 clase de la bolsa y te avisamos. Si falta menos, solo te avisamos para que la cojas en Huecos si puedes ir.` }] : []),

@@ -93,7 +93,8 @@ export default function AdminAyudaPage() {
               <li>Cambiar la hora solo para un día concreto (pista no disponible, etc.), sin tocar el horario habitual.</li>
               <li>Cancelar una sesión puntual completa (ej. festivo no marcado), lo que devuelve el crédito a la bolsa de los alumnos afectados.</li>
             </ul>
-            <p className="mt-3"><strong>Calendario maestro</strong> (dentro de Clases) muestra toda la semana del club de un vistazo, con monitor, nivel y alumnos de cada franja.</p>
+            <p className="mt-3"><strong>Recuperar 1 h 30 en una clase de 1 h:</strong> la media hora que sobra se guarda en la bolsa del alumno. Con 3 medias horas se le suma una clase de 1 h 30. Lo ves en su ficha, en "Clases disponibles".</p>
+            <p className="mt-3"><strong>Calendario maestro</strong> (dentro de Clases) muestra cada clase con su monitor, nivel y alumnos. Puedes elegir el mes para ver las altas, bajas y cambios de grupo ya programados.</p>
           </Section>
 
           <Section id="sustituto" title="Sustituto de monitor para un día">

@@ -93,7 +93,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     clubId
       ? admin.from('levels').select('id, name, color').eq('club_id', clubId).order('order')
       : admin.from('levels').select('id, name, color').order('order'),
-    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', params.id).single(),
+    admin.from('class_bag').select('balance_60, balance_90, half_hours').eq('user_id', params.id).single(),
     admin
       .from('user_levels')
       .select('id, created_at, level:levels(name, color), assigned_by')
@@ -340,6 +340,9 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                   )}
                   {features.enable_90min && (
                     <Stat label="90 min" value={bag?.balance_90 ?? 0} />
+                  )}
+                  {features.enable_90min && (bag?.half_hours ?? 0) > 0 && (
+                    <Stat label="Medias horas" value={`${bag!.half_hours}/3`} />
                   )}
                 </div>
                 <BagAdjustForm studentId={student.id as string} balance60={bag?.balance_60 ?? 0} balance90={bag?.balance_90 ?? 0} />

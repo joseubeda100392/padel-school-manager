@@ -142,9 +142,14 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line bg-surface-2/60 px-4 py-3 sm:px-5">
         {hasBalance ? (
-          <Button onClick={handleUseBag} loading={booking} block className="sm:w-auto">
-            Apuntarme con 1 clase de la bolsa
-          </Button>
+          <>
+            {durationType === '60' && balance60 === 0 && balance90 > 0 && (
+              <p className="mr-auto text-meta text-ink-3">Usarás una clase de 1 h 30: la media hora que sobra se guarda en tu bolsa.</p>
+            )}
+            <Button onClick={handleUseBag} loading={booking} block className="sm:w-auto">
+              Apuntarme con 1 clase de la bolsa
+            </Button>
+          </>
         ) : enablePayments ? (
           <>
             {(bagMismatch || (!isIntensivo && balance60 === 0 && balance90 === 0)) && (
