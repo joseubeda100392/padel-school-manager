@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PAYMENT_METHODS, paymentMethodKey, type PaymentMethodKey } from '@/lib/payment-method'
-import { paymentConcept } from '@/lib/payment-concept'
-import { CircleAlert, CircleCheck, Clock, Download, Receipt, Search, Undo2, X } from 'lucide-react'
+import { paymentConcept, paymentStatus } from '@/lib/payment-concept'
+import { CircleAlert, CircleCheck, CircleOff, Clock, Download, Receipt, Search, Undo2, X } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,17 +16,11 @@ type StatusTone = 'success' | 'warn' | 'danger' | 'neutral'
 function statusInfo(status: string): { tone: StatusTone; Icon: typeof CircleCheck } {
   if (status === 'completed' || status === 'succeeded') return { tone: 'success', Icon: CircleCheck }
   if (status === 'pending') return { tone: 'warn', Icon: Clock }
+  if (status === 'unfinished') return { tone: 'neutral', Icon: CircleOff }
   if (status === 'failed') return { tone: 'danger', Icon: CircleAlert }
   return { tone: 'neutral', Icon: Undo2 }
 }
 
-const statusLabel: Record<string, string> = {
-  completed: 'Completado',
-  succeeded: 'Completado',
-  pending:   'Pendiente',
-  failed:    'Fallido',
-  refunded:  'Reembolsado',
-}
 
 
 function methodLabel(p: any): { label: string; cls: string } {
@@ -94,7 +88,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
     const matchQ = !q ||
       p.user?.name?.toLowerCase().includes(q.toLowerCase()) ||
       p.user?.email?.toLowerCase().includes(q.toLowerCase())
-    const matchStatus = !status || p.status === status || (status === 'completed' && p.status === 'succeeded')
+    const matchStatus = !status || paymentStatus(p).key === status || (status === 'completed' && p.status === 'succeeded')
     const matchMethod = !method || paymentMethodKey(p) === method
     return matchQ && matchStatus && matchMethod
   })
@@ -107,7 +101,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
       [paymentConcept(p).title, paymentConcept(p).detail].filter(Boolean).join(' · '),
       methodLabel(p).label,
       (p.amount / 100).toFixed(2),
-      statusLabel[p.status] ?? p.status,
+      paymentStatus(p).label,
       formatDate(p.created_at),
     ])
     const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
@@ -140,7 +134,8 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
           <Select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Todos los estados</option>
             <option value="completed">Completados</option>
-            <option value="pending">Pendientes</option>
+            <option value="pending">En curso</option>
+            <option value="unfinished">Sin terminar</option>
             <option value="failed">Fallidos</option>
             <option value="refunded">Reembolsados</option>
           </Select>
@@ -195,7 +190,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
               <tbody className="divide-y divide-line">
                 {filtered.map((p) => {
                   const methodInfo = methodLabel(p)
-                  const st = statusInfo(p.status)
+                  const st = statusInfo(paymentStatus(p).key)
                   const failReason = p.status === 'failed' ? redsysReason(p.metadata?.redsys_response_code) : ''
                   return (
                     <tr key={p.id} className="hover:bg-ink/[0.03]">
@@ -216,7 +211,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
                       <td className="px-4 py-3">
                         <Badge tone={st.tone} title={failReason || undefined} className={failReason ? 'cursor-help' : undefined}>
                           <st.Icon className="h-3.5 w-3.5" aria-hidden />
-                          {statusLabel[p.status] ?? p.status}
+                          {paymentStatus(p).label}
                         </Badge>
                         {failReason && <p className="mt-1 max-w-[220px] text-meta text-ink-3">{failReason}</p>}
                       </td>

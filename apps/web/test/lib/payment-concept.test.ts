@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { paymentConcept } from '@/lib/payment-concept'
+import { paymentConcept, paymentStatus } from '@/lib/payment-concept'
 
 const pay = (type: string, metadata: Record<string, unknown> = {}) => ({ type, created_at: '2026-10-05T10:00:00Z', metadata })
 
@@ -37,5 +37,23 @@ describe('paymentConcept', () => {
   it('bono y clase suelta', () => {
     expect(paymentConcept(pay('class_pack', { classes_per_pack: 10, pack_type: '90' }))).toEqual({ title: 'Bono de clases', detail: '10 clases de 1 h 30' })
     expect(paymentConcept(pay('single_class', { class_date: '2026-10-14' }))).toEqual({ title: 'Clase suelta', detail: '14 de octubre 2026' })
+  })
+
+  it('pago con tarjeta que no se terminó', () => {
+    expect(paymentConcept({ ...pay('fixed_group_month', {}), status: 'pending' }).title).toBe('Pago con tarjeta sin terminar')
+    expect(paymentConcept({ ...pay('fixed_group_month', {}), status: 'failed' }).title).toBe('Pago con tarjeta rechazado')
+    expect(paymentConcept({ ...pay('fixed_group_month', { paid_until: '2026-10-31' }), status: 'succeeded' }).title).toBe('Cuota de octubre 2026')
+  })
+})
+
+describe('paymentStatus', () => {
+  const now = Date.parse('2026-10-23T12:00:00Z')
+  it('un pendiente reciente está en curso y uno viejo sin terminar', () => {
+    expect(paymentStatus({ status: 'pending', created_at: '2026-10-23T11:30:00Z' }, now).label).toBe('En curso')
+    expect(paymentStatus({ status: 'pending', created_at: '2026-10-14T10:00:00Z' }, now).label).toBe('Sin terminar')
+  })
+  it('cobrado y fallido', () => {
+    expect(paymentStatus({ status: 'succeeded', created_at: '' }).label).toBe('Cobrado')
+    expect(paymentStatus({ status: 'failed', created_at: '' }).label).toBe('Fallido')
   })
 })

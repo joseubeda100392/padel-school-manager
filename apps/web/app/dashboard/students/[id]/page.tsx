@@ -27,7 +27,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { EmptyState, Notice } from '@/components/ui/feedback'
 import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
-import { paymentConcept } from '@/lib/payment-concept'
+import { paymentConcept, paymentStatus } from '@/lib/payment-concept'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -38,15 +38,9 @@ const roleLabel: Record<string, string> = {
 const statusBadge: Record<string, { tone: 'success' | 'warn' | 'danger' | 'neutral'; Icon: typeof CircleCheck }> = {
   succeeded: { tone: 'success', Icon: CircleCheck },
   pending: { tone: 'warn', Icon: Clock },
+  unfinished: { tone: 'neutral', Icon: CircleOff },
   failed: { tone: 'danger', Icon: CircleAlert },
   refunded: { tone: 'neutral', Icon: Undo2 },
-}
-
-const statusLabel: Record<string, string> = {
-  succeeded: 'Cobrado',
-  pending: 'Pendiente',
-  failed: 'Fallido',
-  refunded: 'Reembolsado',
 }
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
@@ -382,7 +376,8 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                 </thead>
                 <tbody className="divide-y divide-line">
                   {payments.map((p: any) => {
-                    const st = statusBadge[p.status] ?? { tone: 'neutral' as const, Icon: CircleOff }
+                    const status = paymentStatus(p)
+                    const st = statusBadge[status.key] ?? { tone: 'neutral' as const, Icon: CircleOff }
                     const concept = paymentConcept(p)
                     return (
                       <tr key={p.id}>
@@ -395,7 +390,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                         </td>
                         <td className="px-4 py-3 text-right text-label tabular-nums text-ink">{formatCurrency(p.amount, p.currency ?? 'EUR')}</td>
                         <td className="px-4 py-3">
-                          <Badge tone={st.tone}><st.Icon className="h-3.5 w-3.5" aria-hidden />{statusLabel[p.status] ?? p.status}</Badge>
+                          <Badge tone={st.tone}><st.Icon className="h-3.5 w-3.5" aria-hidden />{status.label}</Badge>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2 sm:px-5">{formatDate(p.created_at)}</td>
                       </tr>
