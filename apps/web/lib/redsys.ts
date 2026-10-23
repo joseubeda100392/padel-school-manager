@@ -56,16 +56,21 @@ export function isPaymentSuccessful(responseCode: string): boolean {
   return code >= 0 && code <= 99
 }
 
-// COF (Credential on File) — primer pago que inicia la domiciliación
+// COF (Credential on File) — primer pago que inicia la domiciliación. Sin
+// IDENTIFIER=REQUIRED Redsys cobra pero no guarda la tarjeta ni devuelve
+// Ds_Merchant_Identifier, y los cobros mensuales (MIT) no tienen con qué hacerse.
 export function buildCofInitParams(base: Record<string, string>): Record<string, string> {
   return {
     ...base,
+    DS_MERCHANT_IDENTIFIER: 'REQUIRED',
     DS_MERCHANT_COF_INI: 'S',
     DS_MERCHANT_COF_TYPE: 'R',
   }
 }
 
-// MIT (Merchant Initiated Transaction) — cargo recurrente con token guardado
+// MIT (Merchant Initiated Transaction) — cargo recurrente con token guardado.
+// Sin EXCEP_SCA=MIT el banco pide autenticar al titular (respuesta 0195) y el
+// cobro sin el alumno delante se rechaza.
 export function buildMitParams(base: Record<string, string>, identifier: string): Record<string, string> {
   return {
     ...base,
@@ -73,6 +78,7 @@ export function buildMitParams(base: Record<string, string>, identifier: string)
     DS_MERCHANT_COF_TYPE: 'R',
     DS_MERCHANT_IDENTIFIER: identifier,
     DS_MERCHANT_DIRECTPAYMENT: 'true',
+    DS_MERCHANT_EXCEP_SCA: 'MIT',
   }
 }
 
@@ -93,18 +99,14 @@ export async function chargeMit(opts: {
   amountCents: number
   orderId: string
 }): Promise<{ success: boolean; responseCode: string; raw: Record<string, string> }> {
-  const params: Record<string, string> = {
+  const params = buildMitParams({
     DS_MERCHANT_MERCHANTCODE: opts.merchantCode,
     DS_MERCHANT_TERMINAL: opts.terminal,
     DS_MERCHANT_TRANSACTIONTYPE: '0',
     DS_MERCHANT_AMOUNT: String(opts.amountCents),
     DS_MERCHANT_ORDER: opts.orderId,
     DS_MERCHANT_CURRENCY: '978',
-    DS_MERCHANT_COF_INI: 'N',
-    DS_MERCHANT_COF_TYPE: 'R',
-    DS_MERCHANT_IDENTIFIER: opts.identifier,
-    DS_MERCHANT_DIRECTPAYMENT: 'true',
-  }
+  }, opts.identifier)
 
   const merchantParameters = buildMerchantParameters(params)
   const signature = generateSignature(opts.secretKey, opts.orderId, merchantParameters)
