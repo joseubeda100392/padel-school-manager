@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { processWaitlist } from '@/lib/waitlist'
 import { getScheduleDateTimeInMadrid } from '@/lib/utils'
+import { madridMinutesOfDay, madridDayOfWeek } from '@/lib/madrid-time'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -31,9 +32,9 @@ export async function POST(req: NextRequest) {
     const TZ = 'Europe/Madrid'
     const nStart = new Date(newSched.start_time)
     const nEnd = new Date(newSched.end_time)
-    const nDow = nStart.getUTCDay()
-    const nStartMin = nStart.getUTCHours() * 60 + nStart.getUTCMinutes()
-    const nEndMin = nEnd.getUTCHours() * 60 + nEnd.getUTCMinutes()
+    const nDow = madridDayOfWeek(nStart)
+    const nStartMin = madridMinutesOfDay(nStart)
+    const nEndMin = madridMinutesOfDay(nEnd)
     const nStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(nStart)
     const nEndDate = (newSched as any).recurrence_end_date ?? null
 
@@ -42,9 +43,9 @@ export async function POST(req: NextRequest) {
       if (!s) continue
       const sStart = new Date(s.start_time)
       const sEnd = new Date(s.end_time)
-      if (sStart.getUTCDay() !== nDow) continue
-      const sStartMin = sStart.getUTCHours() * 60 + sStart.getUTCMinutes()
-      const sEndMin = sEnd.getUTCHours() * 60 + sEnd.getUTCMinutes()
+      if (madridDayOfWeek(sStart) !== nDow) continue
+      const sStartMin = madridMinutesOfDay(sStart)
+      const sEndMin = madridMinutesOfDay(sEnd)
       if (sStartMin >= nEndMin || sEndMin <= nStartMin) continue
       const sStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(sStart)
       const sEndDate = s.recurrence_end_date ?? null

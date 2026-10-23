@@ -1,10 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { madridMinutesOfDay, madridDayOfWeek } from '@/lib/madrid-time'
 
 const TZ = 'Europe/Madrid'
 
 function toMinutes(iso: string): number {
   const d = new Date(iso)
-  return d.getUTCHours() * 60 + d.getUTCMinutes()
+  return madridMinutesOfDay(d)
 }
 
 function dateOnly(iso: string): string {
@@ -15,13 +16,13 @@ export function overlaps(
   startTime: string, endTime: string, newEndDate: string | null | undefined,
   existing: { start_time: string; end_time: string; recurrence_end_date: string | null }[]
 ): boolean {
-  const dow = new Date(startTime).getUTCDay()
+  const dow = madridDayOfWeek(startTime)
   const start = toMinutes(startTime)
   const end = toMinutes(endTime)
   const newStartDate = dateOnly(startTime)
 
   return existing.some(s => {
-    if (new Date(s.start_time).getUTCDay() !== dow) return false
+    if (madridDayOfWeek(s.start_time) !== dow) return false
     if (start >= toMinutes(s.end_time) || end <= toMinutes(s.start_time)) return false
     const sStartDate = dateOnly(s.start_time)
     if (newEndDate && sStartDate > newEndDate) return false

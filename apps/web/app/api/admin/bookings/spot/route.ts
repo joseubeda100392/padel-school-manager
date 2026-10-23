@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { madridMinutesOfDay } from '@/lib/madrid-time'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -61,14 +62,14 @@ export async function POST(req: NextRequest) {
 
     const nStart = new Date(newSched.start_time)
     const nEnd = new Date(newSched.end_time)
-    const nStartMin = nStart.getUTCHours() * 60 + nStart.getUTCMinutes()
-    const nEndMin = nEnd.getUTCHours() * 60 + nEnd.getUTCMinutes()
+    const nStartMin = madridMinutesOfDay(nStart)
+    const nEndMin = madridMinutesOfDay(nEnd)
 
     for (const b of existing ?? []) {
       const s = (b as any).schedules
       if (!s) continue
-      const sStartMin = new Date(s.start_time).getUTCHours() * 60 + new Date(s.start_time).getUTCMinutes()
-      const sEndMin = new Date(s.end_time).getUTCHours() * 60 + new Date(s.end_time).getUTCMinutes()
+      const sStartMin = madridMinutesOfDay(new Date(s.start_time))
+      const sEndMin = madridMinutesOfDay(new Date(s.end_time))
       if (sStartMin < nEndMin && sEndMin > nStartMin) {
         return NextResponse.json({ error: 'Este alumno ya tiene una clase en ese horario' }, { status: 409 })
       }

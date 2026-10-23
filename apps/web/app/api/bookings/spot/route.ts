@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 import { getClassOccupancy } from '@/lib/waitlist'
+import { madridMinutesOfDay } from '@/lib/madrid-time'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -56,16 +57,16 @@ export async function POST(req: NextRequest) {
 
   const nStart = new Date(schedule.start_time)
   const nEnd = new Date(schedule.end_time)
-  const nStartMin = nStart.getUTCHours() * 60 + nStart.getUTCMinutes()
-  const nEndMin = nEnd.getUTCHours() * 60 + nEnd.getUTCMinutes()
+  const nStartMin = madridMinutesOfDay(nStart)
+  const nEndMin = madridMinutesOfDay(nEnd)
 
   for (const b of existingOnDate ?? []) {
     const s = (b as any).schedules
     if (!s) continue
     const sStart = new Date(s.start_time)
     const sEnd = new Date(s.end_time)
-    const sStartMin = sStart.getUTCHours() * 60 + sStart.getUTCMinutes()
-    const sEndMin = sEnd.getUTCHours() * 60 + sEnd.getUTCMinutes()
+    const sStartMin = madridMinutesOfDay(sStart)
+    const sEndMin = madridMinutesOfDay(sEnd)
     if (sStartMin < nEndMin && sEndMin > nStartMin) {
       return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
     }

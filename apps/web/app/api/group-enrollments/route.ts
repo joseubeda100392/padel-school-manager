@@ -7,6 +7,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { firstBillableMonth } from '@/lib/billing-cycle'
 import { carriedOverPaidUntil, type CarryoverPayment } from '@/lib/enrollment-carryover'
 import { dayBefore, isActiveOn, madridToday, peakOccupancyFrom } from '@/lib/enrollment-window'
+import { madridMinutesOfDay, madridDayOfWeek } from '@/lib/madrid-time'
 
 const CARRYOVER_LOOKBACK_MONTHS = 3
 const MAX_DAYS_AHEAD = 366
@@ -227,17 +228,17 @@ export async function POST(req: NextRequest) {
   if (schedule) {
     const TZ = 'Europe/Madrid'
     const dateOnly = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso))
-    const newDow = new Date(schedule.start_time).getUTCDay()
-    const newStart = new Date(schedule.start_time).getUTCHours() * 60 + new Date(schedule.start_time).getUTCMinutes()
-    const newEnd = new Date(schedule.end_time).getUTCHours() * 60 + new Date(schedule.end_time).getUTCMinutes()
+    const newDow = madridDayOfWeek(schedule.start_time)
+    const newStart = madridMinutesOfDay(new Date(schedule.start_time))
+    const newEnd = madridMinutesOfDay(new Date(schedule.end_time))
     const newStartDate = dateOnly(schedule.start_time)
     const newEndDate = (schedule as any).recurrence_end_date ?? null
     const clash = (studentSchedules ?? []).some((e: any) => {
       const s = e.schedule
       if (!s) return false
-      if (new Date(s.start_time).getUTCDay() !== newDow) return false
-      const exStart = new Date(s.start_time).getUTCHours() * 60 + new Date(s.start_time).getUTCMinutes()
-      const exEnd = new Date(s.end_time).getUTCHours() * 60 + new Date(s.end_time).getUTCMinutes()
+      if (madridDayOfWeek(s.start_time) !== newDow) return false
+      const exStart = madridMinutesOfDay(new Date(s.start_time))
+      const exEnd = madridMinutesOfDay(new Date(s.end_time))
       if (newStart >= exEnd || newEnd <= exStart) return false
       const sStartDate = dateOnly(s.start_time)
       const sEndDate = s.recurrence_end_date ?? null

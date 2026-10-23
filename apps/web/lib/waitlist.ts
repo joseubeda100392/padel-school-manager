@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
 import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
 import { getHolidaySet } from '@/lib/club-holidays'
+import { madridMinutesOfDay } from '@/lib/madrid-time'
 
 type Admin = ReturnType<typeof getAdminClient>
 
@@ -66,15 +67,15 @@ export async function getClassOccupancy(admin: Admin, scheduleId: string, classD
   return { capacity, presentFixed, bookedCount: bookings?.length ?? 0, fixedStudentIds, bookedStudentIds }
 }
 
-function minutesUtc(iso: string) {
+function minutesOfDay(iso: string) {
   const d = new Date(iso)
-  return d.getUTCHours() * 60 + d.getUTCMinutes()
+  return madridMinutesOfDay(d)
 }
 
 // Mismo criterio que la reserva de huecos (bookings/spot): se comparan las
 // horas de las clases del mismo día.
 export function overlaps(a: { start_time: string; end_time: string }, b: { start_time: string; end_time: string }): boolean {
-  return minutesUtc(a.start_time) < minutesUtc(b.end_time) && minutesUtc(b.start_time) < minutesUtc(a.end_time)
+  return minutesOfDay(a.start_time) < minutesOfDay(b.end_time) && minutesOfDay(b.start_time) < minutesOfDay(a.end_time)
 }
 
 export interface WaitlistResult {

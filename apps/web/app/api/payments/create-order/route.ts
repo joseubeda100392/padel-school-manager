@@ -14,6 +14,7 @@ import {
 import { rateLimit } from '@/lib/rate-limit'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 import { loadStudentFeeItems, type MandateItem } from '@/lib/mandate-charge'
+import { madridMinutesOfDay } from '@/lib/madrid-time'
 
 type PaymentType = 'single_class' | 'class_pack' | 'private_lesson_pack' | 'fixed_group_month' | 'tournament' | 'intensivo_group'
 
@@ -226,13 +227,13 @@ export async function POST(req: NextRequest) {
             .eq('class_date', classDate)
             .neq('status', 'cancelled')
             .neq('schedule_id', scheduleId)
-          const nStartMin = new Date(schedule.start_time).getUTCHours() * 60 + new Date(schedule.start_time).getUTCMinutes()
-          const nEndMin = new Date(schedule.end_time).getUTCHours() * 60 + new Date(schedule.end_time).getUTCMinutes()
+          const nStartMin = madridMinutesOfDay(new Date(schedule.start_time))
+          const nEndMin = madridMinutesOfDay(new Date(schedule.end_time))
           for (const b of existingOnDate ?? []) {
             const s = (b as any).schedules
             if (!s) continue
-            const sStartMin = new Date(s.start_time).getUTCHours() * 60 + new Date(s.start_time).getUTCMinutes()
-            const sEndMin = new Date(s.end_time).getUTCHours() * 60 + new Date(s.end_time).getUTCMinutes()
+            const sStartMin = madridMinutesOfDay(new Date(s.start_time))
+            const sEndMin = madridMinutesOfDay(new Date(s.end_time))
             if (sStartMin < nEndMin && sEndMin > nStartMin) {
               return NextResponse.json({ error: 'Ya tienes una clase en ese horario' }, { status: 409 })
             }
