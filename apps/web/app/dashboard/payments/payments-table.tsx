@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { PAYMENT_METHODS, paymentMethodKey, type PaymentMethodKey } from '@/lib/payment-method'
-import { PAYMENT_TYPE_LABELS } from '@/lib/payments-month'
+import { paymentConcept } from '@/lib/payment-concept'
 import { CircleAlert, CircleCheck, Clock, Download, Receipt, Search, Undo2, X } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,7 +28,6 @@ const statusLabel: Record<string, string> = {
   refunded:  'Reembolsado',
 }
 
-const typeLabel = PAYMENT_TYPE_LABELS
 
 function methodLabel(p: any): { label: string; cls: string } {
   return PAYMENT_METHODS[paymentMethodKey(p)]
@@ -101,11 +100,11 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
   })
 
   function exportCSV() {
-    const headers = ['Alumno', 'Email', 'Tipo', 'Método', 'Importe (€)', 'Estado', 'Fecha']
+    const headers = ['Alumno', 'Email', 'Concepto', 'Método', 'Importe (€)', 'Estado', 'Fecha']
     const rows = filtered.map((p) => [
       p.user?.name ?? '',
       p.user?.email ?? '',
-      typeLabel[p.type] ?? p.type,
+      [paymentConcept(p).title, paymentConcept(p).detail].filter(Boolean).join(' · '),
       methodLabel(p).label,
       (p.amount / 100).toFixed(2),
       statusLabel[p.status] ?? p.status,
@@ -186,7 +185,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
               <thead>
                 <tr className="border-b border-line bg-surface-2 text-left text-meta font-medium text-ink-3">
                   <th scope="col" className="px-4 py-3 sm:px-5">Alumno</th>
-                  <th scope="col" className="px-4 py-3">Tipo</th>
+                  <th scope="col" className="px-4 py-3">Concepto</th>
                   <th scope="col" className="px-4 py-3">Método</th>
                   <th scope="col" className="px-4 py-3 text-right">Importe</th>
                   <th scope="col" className="px-4 py-3">Estado</th>
@@ -204,7 +203,10 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
                         <p className="text-label text-ink">{p.user?.name ?? '—'}</p>
                         <p className="text-meta text-ink-3">{p.user?.email}</p>
                       </td>
-                      <td className="px-4 py-3 text-body text-ink-2">{typeLabel[p.type] ?? p.type}</td>
+                      <td className="px-4 py-3">
+                        <p className="text-body text-ink-2">{paymentConcept(p).title}</p>
+                        {paymentConcept(p).detail && <p className="text-meta text-ink-3">{paymentConcept(p).detail}</p>}
+                      </td>
                       <td className="px-4 py-3">
                         <Badge tone="outline">{methodInfo.label}</Badge>
                       </td>

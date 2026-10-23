@@ -27,6 +27,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { EmptyState, Notice } from '@/components/ui/feedback'
 import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
+import { paymentConcept } from '@/lib/payment-concept'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -46,21 +47,6 @@ const statusLabel: Record<string, string> = {
   pending: 'Pendiente',
   failed: 'Fallido',
   refunded: 'Reembolsado',
-}
-
-const typeLabel: Record<string, string> = {
-  fixed_group_month: 'Cuota mensual',
-  single_class:      'Clase suelta',
-  class_pack:        'Bono de clases',
-  tournament:        'Inscripción torneo',
-  intensivo_group:   'Semana intensiva',
-  manual_charge:     'Cargo suelto',
-  manual:            'Manual',
-  subscription:      'Suscripción',
-  pay_per_class:     'Clase suelta',
-  bag_pack:          'Bono de clases',
-  mandate_init:      'Activación domiciliación',
-  mandate_charge:    'Cuota mensual (domiciliada)',
 }
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
@@ -387,7 +373,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               <table className="w-full min-w-[520px]">
                 <thead>
                   <tr className="bg-surface-2 text-left text-meta font-medium text-ink-3">
-                    <th scope="col" className="px-4 py-3 sm:px-5">Tipo</th>
+                    <th scope="col" className="px-4 py-3 sm:px-5">Concepto</th>
                     <th scope="col" className="px-4 py-3">Método</th>
                     <th scope="col" className="px-4 py-3 text-right">Importe</th>
                     <th scope="col" className="px-4 py-3">Estado</th>
@@ -397,9 +383,13 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                 <tbody className="divide-y divide-line">
                   {payments.map((p: any) => {
                     const st = statusBadge[p.status] ?? { tone: 'neutral' as const, Icon: CircleOff }
+                    const concept = paymentConcept(p)
                     return (
                       <tr key={p.id}>
-                        <td className="px-4 py-3 text-body text-ink sm:px-5">{typeLabel[p.type] ?? p.type ?? '—'}</td>
+                        <td className="px-4 py-3 sm:px-5">
+                          <p className="text-body text-ink">{concept.title}</p>
+                          {concept.detail && <p className="text-meta text-ink-3">{concept.detail}</p>}
+                        </td>
                         <td className="px-4 py-3">
                           <Badge tone="outline">{PAYMENT_METHODS[paymentMethodKey(p)].label}</Badge>
                         </td>

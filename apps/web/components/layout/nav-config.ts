@@ -104,6 +104,7 @@ export function studentNav({
       {
         title: 'Cuenta',
         items: [
+          { href: '/student/pagos', description: 'Lo que has pagado y qué mes cubre cada cuota', label: 'Mis pagos', icon: Receipt, feature: 'enable_payments' },
           { href: '/student/perfil', description: 'Tus datos y tu contraseña', label: 'Mis datos', icon: UserRound },
           { href: '/student/ayuda', description: 'Cómo funciona cada parte de la app', label: 'Ayuda', icon: CircleHelp },
           { href: '/student/privacidad', description: 'Tus datos personales y cómo se usan', label: 'Privacidad y datos', icon: Shield },
