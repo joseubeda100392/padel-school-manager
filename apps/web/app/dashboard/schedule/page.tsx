@@ -59,7 +59,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     admin
       .from('group_enrollments')
       .select('id, schedule_id, start_date, end_date, schedule_exclusions(excluded_date)')
-      .eq('status', 'active'),
+      // Con las terminadas: las semanas pasadas cuentan a quien estaba entonces.
+      .in('status', ['active', 'ended']),
     clubId ? admin.from('clubs').select('config, features').eq('id', clubId).single() : Promise.resolve({ data: null }),
     // Interesados de los grupos en formación
     admin.from('group_enrollments').select('schedule_id').eq('status', 'pending'),
@@ -105,7 +106,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const groupWindowsMap: Record<string, EnrollmentWindow[]> = {}
   const isFixedGroupMap: Record<string, boolean> = {}
   for (const e of enrollmentsRaw ?? []) {
-    isFixedGroupMap[e.schedule_id] = true
+    if (!e.end_date || e.end_date >= todaySpain) isFixedGroupMap[e.schedule_id] = true
     ;(groupWindowsMap[e.schedule_id] ??= []).push({ start_date: e.start_date, end_date: e.end_date })
     if (isActiveOn(e, todaySpain)) groupSizeMap[e.schedule_id] = (groupSizeMap[e.schedule_id] ?? 0) + 1
     const nextDate = nextDateMap[e.schedule_id]

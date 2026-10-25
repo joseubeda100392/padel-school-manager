@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isActiveOn } from '@/lib/enrollment-window'
 
 // Efectos que se disparan al confirmar (admin) una sesión de clase del
 // módulo de validación. Se llama exactamente una vez por sesión — el
@@ -26,11 +27,12 @@ export async function applySessionEffects(admin: SupabaseClient, sessionId: stri
   if (session.status === 'not_given') {
     const { data: enrollments } = await admin
       .from('group_enrollments')
-      .select('id, discount_classes_pending')
+      .select('id, discount_classes_pending, start_date, end_date')
       .eq('schedule_id', session.schedule_id)
       .eq('status', 'active')
 
-    for (const enrollment of enrollments ?? []) {
+    // Solo quien estaba en el grupo ese día (no un alta a futuro).
+    for (const enrollment of (enrollments ?? []).filter(e => isActiveOn(e, session.session_date))) {
       await admin
         .from('group_enrollments')
         .update({ discount_classes_pending: (enrollment.discount_classes_pending ?? 0) + 1 })

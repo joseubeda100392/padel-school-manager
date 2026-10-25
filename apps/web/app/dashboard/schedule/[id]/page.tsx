@@ -23,6 +23,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { formatLongDate } from '@/lib/format-date'
+import { loadAvailableGroups } from '@/lib/available-groups'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -100,7 +101,10 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       .from('group_enrollments')
       .select('id, monthly_price, price_per_class_cents, court_pricing, discount_classes_pending, paid_until, status, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
       .eq('schedule_id', params.id)
-      .eq('status', forming ? 'pending' : 'active')
+      // Las terminadas ('ended') solo para el historial: el roster de abajo se
+      // filtra por la fecha que se está viendo, así que en una fecha pasada
+      // aparece quien estaba ese día aunque ya haya salido.
+      .in('status', forming ? ['pending'] : ['active', 'ended'])
       .order('enrolled_at'),
     admin
       .from('users')
@@ -152,6 +156,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
 
   // Nivel efectivo: el del horario, o inferido de los alumnos ya inscritos si todos comparten nivel
   const enrolledLevelIds = (groupEnrollments ?? [])
+    .filter((e: any) => e.status !== 'ended')
     .map((e: any) => e.student?.current_level_id)
     .filter(Boolean)
   const uniqueEnrolledLevels = [...new Set(enrolledLevelIds)]
@@ -231,7 +236,12 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       >
         <h2 id="gestionar-clase" className="text-heading text-ink md:sr-only">Gestionar la clase</h2>
         <p className="mb-3 mt-0.5 text-meta text-ink-3 md:hidden">Editar el horario, cancelar una sesión o eliminar la clase.</p>
-        <ScheduleActions scheduleId={params.id} nextDate={nextDate} />
+        <ScheduleActions
+          scheduleId={params.id}
+          nextDate={nextDate}
+          recurring={schedule.recurrence !== 'none'}
+          fixedStudents={(groupEnrollments ?? []).filter((e: any) => e.status === 'active').map((e: any) => e.student?.name).filter(Boolean)}
+        />
       </section>
 
       <Card>
@@ -332,6 +342,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           enableSpots={features.enable_spots}
           enableClassValidation={features.enable_class_validation}
           forming={forming}
+          availableGroups={forming || !schedule.club_id ? [] : await loadAvailableGroups(admin, schedule.club_id)}
         />
       )}
 

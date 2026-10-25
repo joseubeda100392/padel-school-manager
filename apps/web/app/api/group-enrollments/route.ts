@@ -7,6 +7,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { firstBillableMonth } from '@/lib/billing-cycle'
 import { carriedOverPaidUntil, type CarryoverPayment } from '@/lib/enrollment-carryover'
 import { dayBefore, isActiveOn, madridToday, peakOccupancyFrom } from '@/lib/enrollment-window'
+import { endEnrollment } from '@/lib/end-enrollment'
 import { madridMinutesOfDay, madridDayOfWeek } from '@/lib/madrid-time'
 
 const CARRYOVER_LOOKBACK_MONTHS = 3
@@ -149,8 +150,9 @@ export async function POST(req: NextRequest) {
   // a futuro posterior, que ya tiene ese hueco reservado.
   const occupancy = peakOccupancyFrom(existingEnrollments ?? [], refDate)
   const alreadyEnrolled = (existingEnrollments ?? []).some((e: any) => e.student_id === studentId)
-  // La inscripción se guarda con upsert: volver a meter a alguien que ya está
-  // en el grupo reescribiría su "pagado hasta", su alta y sus descuentos.
+  // Volver a meter a alguien que ya está en el grupo reescribiría su "pagado
+  // hasta", su alta y sus descuentos. Quien estuvo y salió (status 'ended') sí
+  // puede volver: es una inscripción nueva y la vieja queda como historial.
   if (alreadyEnrolled) {
     return NextResponse.json({ error: 'El alumno ya está en este grupo.' }, { status: 409 })
   }
@@ -308,7 +310,7 @@ export async function POST(req: NextRequest) {
   // logueado — para un super_admin gestionando otro club, adminUser.club_id
   // suele ser NULL (no está atado a un club), y esto dejaba la inscripción
   // sin club_id, huérfana para cualquier consulta que sí filtre por club.
-  const { data, error } = await admin.from('group_enrollments').upsert({
+  const { data, error } = await admin.from('group_enrollments').insert({
     schedule_id: scheduleId,
     student_id: studentId,
     club_id: (schedule as any)?.club_id ?? null,
@@ -321,9 +323,11 @@ export async function POST(req: NextRequest) {
     start_date: startDate,
     paid_until: paidUntil,
     // Así "Cancelar baja" en la ficha deshace también el cambio programado.
-    ...(scheduledMove ? { replaces_enrollment_id: replaced.id } : {}),
+    // Enlaza con la vieja: así "Cancelar baja" deshace un cambio programado, y
+    // en un cambio inmediato la vieja (terminada) no cuenta como deuda aparte.
+    ...(replaced ? { replaces_enrollment_id: replaced.id } : {}),
     ...inherited,
-  }, { onConflict: 'schedule_id,student_id' }).select().single()
+  }).select().single()
 
   if (error) return NextResponse.json({ error: 'Error al inscribir el alumno' }, { status: 400 })
 
@@ -331,16 +335,14 @@ export async function POST(req: NextRequest) {
   // sus faltas y la inscripción). Si falla, se deshace el nuevo para no dejar
   // al alumno en los dos.
   if (scheduledMove) {
-    const { error: endErr } = await admin.from('group_enrollments').update({ end_date: dayBefore(futureStart!) }).eq('id', replaced.id)
+    const endErr = await endEnrollment(admin, replaced, dayBefore(futureStart!), today).then(() => null, (e: Error) => e)
     if (endErr) {
       await admin.from('group_enrollments').delete().eq('id', data.id)
       return NextResponse.json({ error: 'No se pudo programar el cambio de grupo' }, { status: 500 })
     }
   } else if (replaced) {
-    const { error: exclErr } = await admin.from('schedule_exclusions').delete().eq('group_enrollment_id', replaced.id)
-    const { error: delErr } = exclErr
-      ? { error: exclErr }
-      : await admin.from('group_enrollments').delete().eq('id', replaced.id).eq('student_id', studentId)
+    // El grupo viejo termina ayer y se queda como historial (antes se borraba).
+    const delErr = await endEnrollment(admin, replaced, dayBefore(today), today).then(() => null, (e: Error) => e)
     if (delErr) {
       await admin.from('group_enrollments').delete().eq('id', data.id)
       return NextResponse.json({ error: 'No se pudo completar el cambio de grupo' }, { status: 500 })

@@ -2,14 +2,13 @@ export const dynamic = 'force-dynamic'
 import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { endEnrollment } from '@/lib/end-enrollment'
 
-// Procesa las bajas programadas por el botón "Causar baja": cualquier
-// group_enrollment activo con end_date <= hoy se quita de verdad (mismo
-// borrado que el botón "Quitar" manual: schedule_exclusions primero, luego
-// la propia inscripción — nunca un cambio de status). Si tras eso el alumno
-// se queda sin ninguna clase fija activa, se desactiva (users.is_active =
-// false), que es lo que de verdad lo saca de pagos pendientes y de aforo en
-// todos los sitios.
+// Procesa las salidas programadas (Quitar con fecha, Causar baja, cambio de
+// grupo programado, clase quitada desde un día): cada inscripción activa cuyo
+// último día (end_date) ya ha pasado queda terminada, sin borrarla, para no
+// perder el historial (ver lib/end-enrollment.ts). Si el alumno se queda sin
+// ningún grupo activo, se le desactiva.
 export async function POST(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET ?? ''
   const authHeader = req.headers.get('authorization') ?? ''
@@ -25,32 +24,21 @@ export async function POST(req: NextRequest) {
 
   const { data: dueEnrollments } = await admin
     .from('group_enrollments')
-    .select('id, student_id')
+    .select('id, student_id, start_date, end_date')
     .eq('status', 'active')
     .not('end_date', 'is', null)
-    .lte('end_date', todaySpain)
+    .lt('end_date', todaySpain)
 
   if (!dueEnrollments?.length) {
     return NextResponse.json({ ok: true, processed: 0, deactivated: 0 })
   }
 
-  const enrollmentIds = dueEnrollments.map(e => e.id)
-  const studentIds = [...new Set(dueEnrollments.map(e => e.student_id))]
-
-  await admin.from('schedule_exclusions').delete().in('group_enrollment_id', enrollmentIds)
-  await admin.from('group_enrollments').delete().in('id', enrollmentIds)
-
   let deactivated = 0
-  for (const studentId of studentIds) {
-    const { count } = await admin
-      .from('group_enrollments')
-      .select('id', { count: 'exact', head: true })
-      .eq('student_id', studentId)
-      .eq('status', 'active')
-    if ((count ?? 0) === 0) {
-      await admin.from('users').update({ is_active: false }).eq('id', studentId)
-      deactivated++
-    }
+  for (const e of dueEnrollments) {
+    const { data: before } = await admin.from('users').select('is_active').eq('id', e.student_id).single()
+    await endEnrollment(admin, e, e.end_date as string, todaySpain)
+    const { data: after } = await admin.from('users').select('is_active').eq('id', e.student_id).single()
+    if (before?.is_active && !after?.is_active) deactivated++
   }
 
   return NextResponse.json({ ok: true, processed: dueEnrollments.length, deactivated })

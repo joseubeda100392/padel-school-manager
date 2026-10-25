@@ -62,9 +62,11 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
   ] = await Promise.all([
     admin
       .from('group_enrollments')
-      .select('id, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
+      .select('id, status, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
       .eq('schedule_id', params.id)
-      .eq('status', 'active')
+      // Con las terminadas: en una fecha pasada sale quien estaba ese día
+      // (se filtra por fecha más abajo con start_date/end_date).
+      .in('status', ['active', 'ended'])
       .order('enrolled_at'),
     admin
       .from('bookings')
@@ -97,7 +99,7 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
       .order('class_date'),
   ])
 
-  const levelIds = [...new Set((groupEnrollments ?? []).map((e: any) => e.student?.current_level_id).filter(Boolean))]
+  const levelIds = [...new Set((groupEnrollments ?? []).filter((e: any) => e.status !== 'ended').map((e: any) => e.student?.current_level_id).filter(Boolean))]
   const enrollmentIds = (groupEnrollments ?? []).map((e: any) => e.id)
   const materialsQuery = admin
     .from('materials')
@@ -145,7 +147,7 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
   // Alumnos que el monitor puede meter en un hueco libre de ESTA clase suya —
   // el propio schedule ya viene filtrado por coach_id arriba, así que
   // cualquier scheduleId que llegue aquí es siempre una clase propia.
-  const enrolledStudentIds = new Set((groupEnrollments ?? []).map((e: any) => e.student?.id).filter(Boolean))
+  const enrolledStudentIds = new Set((groupEnrollments ?? []).filter((e: any) => e.status !== 'ended').map((e: any) => e.student?.id).filter(Boolean))
   const spotAvailableStudents = (allStudents ?? [])
     .map((s: any) => ({ id: s.id, name: s.name, email: s.email }))
     .filter((s: any) => !enrolledStudentIds.has(s.id))

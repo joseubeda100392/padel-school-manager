@@ -13,6 +13,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StudentCombobox } from '@/components/student-combobox'
 import { StartDatePicker } from '@/components/start-date-picker'
+import { MoveGroupPanel } from '@/components/move-group-panel'
+import type { AvailableGroup } from '@/lib/available-groups'
+import { dayBefore, madridToday } from '@/lib/enrollment-window'
 import { getDayOfWeek, formatCurrency } from '@/lib/utils'
 import type { InClubMethod } from '@/lib/payment-method'
 
@@ -107,6 +110,7 @@ export default function GroupEnrollment({
   enableClassValidation = false,
   holidays = [],
   forming = false,
+  availableGroups = [],
 }: {
   scheduleId: string
   scheduleStartTime: string
@@ -123,6 +127,8 @@ export default function GroupEnrollment({
   holidays?: string[]
   // Grupo en formación: lista de interesados, sin cobros ni faltas.
   forming?: boolean
+  // Grupos a los que se puede cambiar a un alumno desde aquí.
+  availableGroups?: AvailableGroup[]
 }) {
   const router = useRouter()
   const confirm = useConfirm()
@@ -145,6 +151,10 @@ export default function GroupEnrollment({
   const [faltaPublish, setFaltaPublish] = useState(true)
   const [faltaLoading, setFaltaLoading] = useState(false)
   const [faltaSuccessMsg, setFaltaSuccessMsg] = useState<string | null>(null)
+  const [removeFormId, setRemoveFormId] = useState<string | null>(null)
+  const [removeWhen, setRemoveWhen] = useState<'month_end' | 'today' | 'other'>('month_end')
+  const [removeOtherDay, setRemoveOtherDay] = useState('')
+  const [moveFormId, setMoveFormId] = useState<string | null>(null)
 
   const now = new Date()
   const nextOccurrence = getNextOccurrence(scheduleStartTime, holidays)
@@ -214,7 +224,7 @@ export default function GroupEnrollment({
     return { count: nextCount, monthName: MONTH_NAMES[next.getMonth()], year: next.getFullYear(), monthLabel: `${MONTH_NAMES[next.getMonth()]} ${next.getFullYear()}` }
   }
 
-  const enrolledIds = new Set(enrollments.map((e) => e.student.id))
+  const enrolledIds = new Set(enrollments.filter((e) => e.status !== 'ended').map((e) => e.student.id))
   const unenrolledStudents = availableStudents.filter((s) => !enrolledIds.has(s.id))
 
   function handleSelectTariff(tariff: TariffChoice) {
@@ -254,10 +264,23 @@ export default function GroupEnrollment({
     setAdding(false)
   }
 
+  // Fechas del "Quitar": el último día que sigue en el grupo.
+  const today = madridToday()
+  const monthEnd = (() => { const [y, m] = today.split('-').map(Number); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10) })()
+  const removeLastDay = removeWhen === 'month_end' ? monthEnd : removeWhen === 'today' ? dayBefore(today) : removeOtherDay
+  const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+
   async function handleRemove(id: string) {
+    if (!forming) {
+      setRemoveWhen('month_end')
+      setRemoveOtherDay('')
+      setMoveFormId(null)
+      setRemoveFormId(removeFormId === id ? null : id)
+      return
+    }
     if (!(await confirm({
-      title: forming ? '¿Quitar de los interesados?' : '¿Quitar al alumno del grupo fijo?',
-      description: forming ? 'Dejará de estar apuntado a este grupo en formación.' : 'Dejará de tener plaza permanente en esta clase.',
+      title: '¿Quitar de los interesados?',
+      description: 'Dejará de estar apuntado a este grupo en formación.',
       confirmLabel: 'Quitar del grupo',
       destructive: true,
     }))) return
@@ -269,7 +292,33 @@ export default function GroupEnrollment({
       return
     }
     setEnrollments((prev) => prev.filter((e) => e.id !== id))
-    toast.success('Alumno dado de baja del grupo')
+    router.refresh()
+  }
+
+  // Sale del grupo fijo con fecha: sigue en las clases hasta ese día y su
+  // historial (clases pasadas, faltas, pagos) se conserva.
+  async function submitRemove(id: string) {
+    if (!removeLastDay) return
+    setLoadingId(id)
+    const res = await fetch(`/api/group-enrollments/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lastDay: removeLastDay }),
+    })
+    const json = await res.json().catch(() => ({}))
+    setLoadingId(null)
+    if (!res.ok) {
+      toast.error(json.error ?? 'No se pudo quitar al alumno')
+      return
+    }
+    setRemoveFormId(null)
+    if (json.result === 'scheduled') {
+      setEnrollments((prev) => prev.map((e) => e.id === id ? { ...e, end_date: removeLastDay } : e))
+      toast.success(`Sale del grupo después del ${fmt(removeLastDay)}`)
+    } else {
+      setEnrollments((prev) => prev.filter((e) => e.id !== id))
+      toast.success('Ha salido del grupo. Su historial se conserva.')
+    }
     router.refresh()
   }
 
@@ -444,6 +493,24 @@ export default function GroupEnrollment({
             const isPendingBaja = !!e.end_date
             const isPendingAlta = !!e.start_date && e.start_date > todayStr
 
+            // Ya salió del grupo: solo aparece al ver una fecha en la que aún
+            // estaba (historial), sin acciones.
+            if (e.status === 'ended') {
+              return (
+                <div key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-4 opacity-80 sm:px-5">
+                  <Avatar name={e.student.name} />
+                  <div className="min-w-0 flex-1 basis-40">
+                    <p className="truncate text-[0.9375rem] font-medium text-ink">{e.student.name}</p>
+                    <p className="truncate text-meta text-ink-3">{e.student.email}</p>
+                  </div>
+                  <Badge tone="neutral">
+                    <CalendarX className="h-3.5 w-3.5" aria-hidden />
+                    Salió del grupo el {new Date(e.end_date + 'T12:00:00').toLocaleDateString('es-ES')}
+                  </Badge>
+                </div>
+              )
+            }
+
             return (
               <div key={e.id} className="px-4 py-4 sm:px-5">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -578,10 +645,68 @@ export default function GroupEnrollment({
                     </Button>
                   )}
 
-                  <Button variant="danger-ghost" size="sm" onClick={() => handleRemove(e.id)} loading={isLoading}>
-                    Quitar del grupo
-                  </Button>
+                  {!forming && !e.end_date && availableGroups.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      aria-expanded={moveFormId === e.id}
+                      onClick={() => { setRemoveFormId(null); setMoveFormId(moveFormId === e.id ? null : e.id) }}
+                    >
+                      Cambiar de grupo
+                    </Button>
+                  )}
+
+                  {!e.end_date && (
+                    <Button variant="danger-ghost" size="sm" aria-expanded={removeFormId === e.id} onClick={() => handleRemove(e.id)} loading={isLoading && forming}>
+                      Quitar del grupo
+                    </Button>
+                  )}
                 </div>
+
+                {moveFormId === e.id && (
+                  <div className="mt-3">
+                    <MoveGroupPanel
+                      enrollment={{ id: e.id, monthly_price: e.monthly_price }}
+                      studentId={e.student.id}
+                      studentName={e.student.name}
+                      availableGroups={availableGroups}
+                      excludeScheduleIds={[scheduleId]}
+                      onClose={() => setMoveFormId(null)}
+                    />
+                  </div>
+                )}
+
+                {removeFormId === e.id && (
+                  <div className="mt-3 rounded-control border border-line bg-surface-2 p-4">
+                    <p className="mb-3 text-label text-ink">Quitar a {e.student.name} del grupo</p>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <Field label="¿Hasta cuándo sigue?" className="w-full sm:w-auto">
+                        <Select value={removeWhen} onChange={(ev) => setRemoveWhen(ev.target.value as typeof removeWhen)}>
+                          <option value="month_end">Hasta final de mes ({fmt(monthEnd)})</option>
+                          <option value="today">Ya no viene (sale hoy)</option>
+                          <option value="other">Otro día…</option>
+                        </Select>
+                      </Field>
+                      {removeWhen === 'other' && (
+                        <Field label="Último día en el grupo" className="w-full sm:w-48">
+                          <Input type="date" min={dayBefore(today)} value={removeOtherDay} onChange={(ev) => setRemoveOtherDay(ev.target.value)} />
+                        </Field>
+                      )}
+                    </div>
+                    {removeLastDay && (
+                      <p className="mt-3 text-meta text-ink-2">
+                        {removeWhen === 'today' ? 'Sale del grupo desde hoy.' : `Sigue en el grupo hasta el ${fmt(removeLastDay)} incluido.`}
+                        {' '}Sus clases, faltas y pagos anteriores se quedan en el historial. Si es su único grupo, ese día se le da de baja.
+                      </p>
+                    )}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button variant="danger" size="sm" onClick={() => submitRemove(e.id)} loading={isLoading} disabled={!removeLastDay} className="w-full sm:w-auto">
+                        Quitar del grupo
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setRemoveFormId(null)}>Cancelar</Button>
+                    </div>
+                  </div>
+                )}
 
                 {showFaltaForm && (
                   <div className="mt-3 rounded-control border border-line bg-surface-2 p-4">

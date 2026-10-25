@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { currentBillingMonth } from '@/lib/billing-cycle'
 import { halfFeeDiscountCents, restoreDiscountedPrice } from '@/lib/enrollment-discount'
@@ -11,12 +10,12 @@ import { CalendarX, Check, CircleCheck, Clock, Pencil, X } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Input, Select } from '@/components/ui/field'
+import { Input } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/feedback'
 import { List } from '@/components/ui/list'
 import { useConfirm } from '@/components/ui/confirm'
-import { StartDatePicker } from '@/components/start-date-picker'
-import { dayBefore, madridToday } from '@/lib/enrollment-window'
+import { MoveGroupPanel } from '@/components/move-group-panel'
+import { madridToday } from '@/lib/enrollment-window'
 
 interface Enrollment {
   id: string
@@ -58,14 +57,9 @@ export function StudentEnrollments({
   studentId: string
   availableGroups: AvailableGroup[]
 }) {
-  const router = useRouter()
   const confirm = useConfirm()
   const [enrollments, setEnrollments] = useState(initialEnrollments)
   const [movingId, setMovingId] = useState<string | null>(null)
-  const [moveTarget, setMoveTarget] = useState('')
-  const [movePrice, setMovePrice] = useState(0)
-  const [moveDate, setMoveDate] = useState('')
-  const [moving, setMoving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingPrice, setEditingPrice] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -117,57 +111,6 @@ export function StudentEnrollments({
       if (ok) toast.success(`Descuento del 50% aplicado — ${formatCurrency(discountedPrice)}/mes este mes`)
     }
     setDiscountLoadingId(null)
-  }
-
-  function openMove(e: Enrollment) {
-    setMovingId(e.id)
-    setMoveTarget('')
-    setMovePrice(e.monthly_price)
-    setMoveDate('')
-  }
-
-  // Cambio de grupo en un solo paso: el grupo nuevo hereda lo pagado, lo
-  // pendiente y los descuentos del viejo, y el viejo se quita solo si el
-  // nuevo se ha creado bien.
-  async function handleMove(e: Enrollment) {
-    const target = availableGroups.find(g => g.id === moveTarget)
-    if (!target) return
-    const priceChanged = movePrice !== e.monthly_price
-    const scheduled = !!moveDate && moveDate > madridToday()
-    const lines = [
-      scheduled
-        ? `Sigue en su grupo actual hasta el ${fmtDate(dayBefore(moveDate))} y desde el ${fmtDate(moveDate)} pasa al nuevo. No es una baja: no se le desactiva.`
-        : 'Se le quita de su grupo actual y lo pagado o pendiente pasa al nuevo.',
-      priceChanged ? `Cuota nueva: ${formatCurrency(movePrice)}/mes.` : '',
-      priceChanged && e.discount_applied && !scheduled ? 'El descuento marcado no se mantiene al cambiar la cuota.' : '',
-    ].filter(Boolean)
-    const ok = await confirm({
-      title: `¿Cambiar al grupo ${target.label}?`,
-      description: lines.join(' '),
-      confirmLabel: scheduled ? 'Programar cambio' : 'Cambiar de grupo',
-      cancelLabel: 'Cancelar',
-    })
-    if (!ok) return
-    setMoving(true)
-    try {
-      const res = await fetch('/api/group-enrollments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduleId: target.id, studentId, monthlyPrice: movePrice, replacesEnrollmentId: e.id, ...(scheduled ? { startDate: moveDate } : {}) }),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        toast.error(json.error ?? 'No se pudo cambiar de grupo')
-        return
-      }
-      toast.success(scheduled ? `Cambio programado: pasa al grupo nuevo el ${fmtDate(moveDate)}` : 'Cambio de grupo hecho')
-      setMovingId(null)
-      router.refresh()
-    } catch {
-      toast.error('Error de conexión. No se ha cambiado de grupo.')
-    } finally {
-      setMoving(false)
-    }
   }
 
   if (!enrollments.length) {
@@ -266,7 +209,7 @@ export function StudentEnrollments({
                   variant="secondary"
                   size="sm"
                   className="shrink-0"
-                  onClick={() => (movingId === e.id ? setMovingId(null) : openMove(e))}
+                  onClick={() => setMovingId(movingId === e.id ? null : e.id)}
                 >
                   Cambiar de grupo
                 </Button>
@@ -278,47 +221,13 @@ export function StudentEnrollments({
                 Ver clase
               </Link>
               {movingId === e.id && (
-                <div className="w-full basis-full rounded-card border border-line bg-surface-2 p-3">
-                  <p className="mb-2 text-meta text-ink-2">
-                    {moveDate
-                      ? `Sigue en este grupo hasta el ${fmtDate(dayBefore(moveDate))}. Lo que haya pagado de después pasa al nuevo.`
-                      : 'Lo pagado y lo pendiente de este grupo pasan al nuevo.'}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Select
-                      value={moveTarget}
-                      onChange={(ev) => setMoveTarget(ev.target.value)}
-                      className="w-full sm:w-auto sm:min-w-[320px]"
-                      aria-label="Grupo nuevo"
-                    >
-                      <option value="">Elige el grupo nuevo…</option>
-                      {availableGroups
-                        .filter(g => !enrollments.some(x => x.schedule?.id === g.id))
-                        .map(g => (
-                          <option key={g.id} value={g.id} disabled={g.full && !moveDate}>
-                            {g.label}{g.full ? (moveDate ? ' (hoy completo)' : ' (completo)') : ''}
-                          </option>
-                        ))}
-                    </Select>
-                    <StartDatePicker value={moveDate} onChange={setMoveDate} todayLabel="Desde ya" />
-                    <label className="flex items-center gap-1.5 text-meta text-ink-2">
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        onFocus={ev => ev.target.select()}
-                        value={movePrice === 0 ? '' : String(movePrice / 100)}
-                        onChange={(ev) => setMovePrice(Math.round(Number(ev.target.value) * 100))}
-                        className="w-24"
-                        aria-label="Cuota en el grupo nuevo"
-                      />
-                      €/mes
-                    </label>
-                    <Button size="sm" className="w-full sm:w-auto" onClick={() => handleMove(e)} disabled={!moveTarget || moving}>
-                      {moving ? 'Guardando…' : moveDate ? 'Programar cambio' : 'Confirmar cambio'}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setMovingId(null)}>Cancelar</Button>
-                  </div>
-                </div>
+                <MoveGroupPanel
+                  enrollment={e}
+                  studentId={studentId}
+                  availableGroups={availableGroups}
+                  excludeScheduleIds={enrollments.map(x => x.schedule?.id).filter((x): x is string => !!x)}
+                  onClose={() => setMovingId(null)}
+                />
               )}
             </li>
           )

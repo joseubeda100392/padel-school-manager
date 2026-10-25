@@ -65,7 +65,8 @@ export default async function CoachClassesPage({
         .from('group_enrollments')
         .select('schedule_id, start_date, end_date, schedule_exclusions(excluded_date)')
         .in('schedule_id', ids)
-        .eq('status', 'active')
+        // Con las terminadas: las semanas pasadas cuentan a quien estaba entonces.
+        .in('status', ['active', 'ended'])
     : { data: [] }
 
   // Cuenta solo a quien no ha registrado falta para hoy — no el total del

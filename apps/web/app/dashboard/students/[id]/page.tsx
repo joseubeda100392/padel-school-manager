@@ -28,6 +28,7 @@ import { Badge, LevelTag } from '@/components/ui/badge'
 import { EmptyState, Notice } from '@/components/ui/feedback'
 import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
 import { paymentConcept, paymentStatus } from '@/lib/payment-concept'
+import { loadAvailableGroups } from '@/lib/available-groups'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -137,32 +138,18 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
 
   if (clubId && (student as any).club_id && (student as any).club_id !== clubId) notFound()
 
-  // Grupos a los que se le puede cambiar (botón "Cambiar de grupo"): fijos
-  // normales del club, con la ocupación actual solo como orientación; la
-  // ruta comprueba plaza y horario de verdad al guardar.
+  // Grupos en los que estuvo (inscripciones terminadas, que ya no se borran).
+  const { data: pastEnrollmentsRaw } = await admin
+    .from('group_enrollments')
+    .select('id, start_date, end_date, schedule:schedules(id, start_time, court:courts(name))')
+    .eq('student_id', params.id)
+    .eq('status', 'ended')
+    .order('end_date', { ascending: false })
+  const pastEnrollments = pastEnrollmentsRaw ?? []
+
+  // Grupos a los que se le puede cambiar (botón "Cambiar de grupo").
   const studentClubId = (student as any)?.club_id as string | null
-  const { data: clubSchedules } = studentClubId && (enrollments ?? []).length
-    ? await admin
-        .from('schedules')
-        .select('id, start_time, end_time, max_students, type, is_private, court:courts(name), level:levels(name), group_enrollments(status)')
-        .eq('club_id', studentClubId)
-        .eq('is_active', true)
-    : { data: [] }
-  const madridDay = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'short' })
-  const madridTime = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' })
-  const availableGroups = (clubSchedules ?? [])
-    .filter((sc: any) => (sc.type ?? 'regular') === 'regular' && !sc.is_private)
-    .map((sc: any) => {
-      const occupied = (sc.group_enrollments ?? []).filter((g: any) => g.status === 'active').length
-      const start = new Date(sc.start_time)
-      return {
-        id: sc.id as string,
-        sortKey: `${(start.getUTCDay() + 6) % 7}-${madridTime.format(start)}`,
-        label: `${madridDay.format(start)} ${madridTime.format(start)}–${madridTime.format(new Date(sc.end_time))} · ${sc.court?.name ?? '—'}${sc.level?.name ? ` · ${sc.level.name}` : ''} · ${occupied}/${sc.max_students}`,
-        full: !!sc.max_students && occupied >= sc.max_students,
-      }
-    })
-    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+  const availableGroups = studentClubId && (enrollments ?? []).length ? await loadAvailableGroups(admin, studentClubId) : []
 
   if (makeupsError) console.error('[students/[id]] makeups query failed:', makeupsError.message)
 
@@ -292,6 +279,29 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           discount_cents: e.discount_cents ?? null,
           schedule: e.schedule ? { id: e.schedule.id, start_time: e.schedule.start_time, court: e.schedule.court } : null,
         }))} legacyDiscountCents={legacyDiscountCents} studentId={params.id} availableGroups={availableGroups} />
+      )}
+
+      {actsAsStudent && pastEnrollments.length > 0 && (
+        <Card className="overflow-hidden">
+          <CardHeader title="Grupos anteriores" description="Grupos en los que estuvo. Sus clases, faltas y pagos de entonces se conservan." />
+          <List className="mt-2">
+            {pastEnrollments.map((e: any) => {
+              const start = e.schedule?.start_time ? new Date(e.schedule.start_time) : null
+              const label = start
+                ? `${new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'short' }).format(start)} ${new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }).format(start)} · ${e.schedule?.court?.name ?? '—'}`
+                : 'Clase eliminada'
+              const fmt = (d: string | null) => (d ? new Date(d + 'T12:00:00').toLocaleDateString('es-ES') : '—')
+              return (
+                <ListRow
+                  key={e.id}
+                  href={e.schedule?.id ? `/dashboard/schedule/${e.schedule.id}?date=${e.end_date}` : undefined}
+                  title={label}
+                  subtitle={`Del ${fmt(e.start_date)} al ${fmt(e.end_date)}`}
+                />
+              )
+            })}
+          </List>
+        </Card>
       )}
 
       {actsAsStudent && <StudentCharges studentId={params.id} charges={charges} />}

@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { checkOverlap, checkCoachOverlap } from '@/lib/schedule-overlap'
 import { cookies } from 'next/headers'
+import { schedulesWithHistory } from '@/lib/schedule-history'
+import { madridToday } from '@/lib/enrollment-window'
 
 const scheduleSchema = z.object({
   court_id: z.string().uuid(),
@@ -188,6 +190,13 @@ export async function DELETE(req: NextRequest) {
     if (!existing || existing.club_id !== caller.club_id) {
       return NextResponse.json({ error: 'Sin permisos para borrar este horario' }, { status: 403 })
     }
+  }
+
+  // Una clase con historial no se borra: se perderían las clases dadas, las
+  // horas del monitor y quién estuvo (y se devolverían a la bolsa clases ya
+  // disfrutadas). Para esas está "Quitar a partir de un día".
+  if ((await schedulesWithHistory(admin, [scheduleId], madridToday())).size) {
+    return NextResponse.json({ error: 'Esta clase ya tiene historial (clases dadas, alumnos o reservas pasadas). Para no perderlo, usa "Quitar a partir de un día".', code: 'has_history' }, { status: 409 })
   }
 
   // Step 1: get dependent IDs in parallel

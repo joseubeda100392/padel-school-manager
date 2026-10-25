@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { Input, Select } from '@/components/ui/field'
 import { useConfirm } from '@/components/ui/confirm'
+import { toast } from 'sonner'
 
 const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -88,11 +89,14 @@ export default function ScheduleTable({ schedules }: { schedules: any[] }) {
       body: JSON.stringify({ scheduleIds: ids }),
     })
 
-    setSelected(new Set())
     setDeleting(false)
     if (res.ok) {
+      setSelected(new Set())
       window.location.reload()
+      return
     }
+    const json = await res.json().catch(() => ({}))
+    toast.error(json.error ?? 'No se han podido eliminar las clases')
   }
 
   return (

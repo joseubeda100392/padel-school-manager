@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { schedulesWithHistory } from '@/lib/schedule-history'
+import { madridToday } from '@/lib/enrollment-window'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -33,6 +35,14 @@ export async function POST(req: NextRequest) {
     if (foreign.length > 0) {
       return NextResponse.json({ error: 'Sin permisos para borrar algunos horarios' }, { status: 403 })
     }
+  }
+
+  const withHistory = await schedulesWithHistory(admin, scheduleIds, madridToday())
+  if (withHistory.size) {
+    return NextResponse.json({
+      error: `${withHistory.size === 1 ? 'Una de las clases elegidas ya tiene' : `${withHistory.size} de las clases elegidas ya tienen`} historial (clases dadas, alumnos o reservas pasadas). Para no perderlo, quítalas una a una con "Quitar a partir de un día".`,
+      code: 'has_history',
+    }, { status: 409 })
   }
 
   // Step 1: get dependent IDs in parallel
