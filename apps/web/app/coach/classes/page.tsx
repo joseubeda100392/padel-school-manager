@@ -47,7 +47,7 @@ export default async function CoachClassesPage({
 
   const { data: schedules } = await admin
     .from('schedules')
-    .select('id, start_time, end_time, max_students, court:courts(name), level:levels(name, color)')
+    .select('id, start_time, end_time, max_students, recurrence, recurrence_end_date, court:courts(name), level:levels(name, color)')
     .eq('coach_id', user.id)
     .eq('is_active', true)
 

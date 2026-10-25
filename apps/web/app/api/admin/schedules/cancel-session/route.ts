@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { isActiveOn } from '@/lib/enrollment-window'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const { data: enrollments } = await admin
     .from('group_enrollments')
-    .select('id, student_id')
+    .select('id, student_id, start_date, end_date')
     .eq('schedule_id', scheduleId)
     .eq('status', 'active')
 
@@ -49,7 +50,8 @@ export async function POST(req: NextRequest) {
     .eq('excluded_date', date)
 
   const alreadyExcluded = new Set((existingExclusions ?? []).map((x: any) => x.group_enrollment_id))
-  const toProcess = enrollments.filter(e => !alreadyExcluded.has(e.id))
+  // Solo quien está en el grupo ese día (ni altas a futuro ni salidas ya pasadas).
+  const toProcess = enrollments.filter(e => !alreadyExcluded.has(e.id) && isActiveOn(e, date))
 
   if (!toProcess.length) return NextResponse.json({ ok: true, credited: 0 })
 

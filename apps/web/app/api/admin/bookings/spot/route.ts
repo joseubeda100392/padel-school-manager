@@ -48,9 +48,12 @@ export async function POST(req: NextRequest) {
 
   // Overlap check
   const [{ data: newSched }, { data: studentExternalCheck }] = await Promise.all([
-    admin.from('schedules').select('start_time, end_time, is_private, max_students').eq('id', scheduleId).single(),
+    admin.from('schedules').select('start_time, end_time, is_private, max_students, recurrence_end_date').eq('id', scheduleId).single(),
     admin.from('users').select('is_external').eq('id', studentId).single(),
   ])
+  if (newSched?.recurrence_end_date && classDate > newSched.recurrence_end_date) {
+    return NextResponse.json({ error: 'La clase ya no se da en esa fecha.' }, { status: 409 })
+  }
   if (newSched) {
     const { data: existing } = await admin
       .from('bookings')

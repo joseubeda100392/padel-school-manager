@@ -48,7 +48,7 @@ export default async function MasterSchedulePage({ searchParams }: { searchParam
   }
 
   const schedules = (rawSchedules ?? [])
-    .filter((s: any) => (!s.recurrence_end_date || s.recurrence_end_date >= today) && s.start_time.slice(0, 10) <= monthEnd)
+    .filter((s: any) => (!s.recurrence_end_date || s.recurrence_end_date >= (`${month}-01` > today ? `${month}-01` : today)) && s.start_time.slice(0, 10) <= monthEnd)
     .map((s: any) => {
       const roster = rosterForMonth(bySchedule[s.id] ?? [], month, today)
       return {

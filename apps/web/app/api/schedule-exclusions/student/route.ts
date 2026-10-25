@@ -10,6 +10,7 @@ import { parseLowerLevelMap, studentLevelsForClass } from '@/lib/spot-levels'
 import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
 import { dateStr as buildDateStr } from '@/lib/billing-cycle'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
+import { isActiveOn } from '@/lib/enrollment-window'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const [{ data: enrollment }, { data: schedule }, { data: clubRow }] = await Promise.all([
     admin.from('group_enrollments')
-      .select('id')
+      .select('id, start_date, end_date')
       .eq('schedule_id', scheduleId)
       .eq('student_id', user.id)
       .eq('status', 'active')
@@ -46,6 +47,12 @@ export async function POST(req: NextRequest) {
 
   const cancellationHours = (clubRow as any)?.config?.cancellation_hours ?? 24
   const dateStr = date as string
+
+  // Solo los días en que está en el grupo: una falta fuera de su alta o
+  // después de su salida le sumaría a la bolsa una clase que no tenía.
+  if (!isActiveOn(enrollment, dateStr)) {
+    return NextResponse.json({ error: enrollment.start_date && dateStr < enrollment.start_date ? 'Ese día todavía no estás en este grupo' : 'Ese día ya no estás en este grupo' }, { status: 400 })
+  }
 
   if (getHolidaySet((clubRow as any)?.config).has(dateStr)) {
     return NextResponse.json({ error: HOLIDAY_ERROR }, { status: 400 })

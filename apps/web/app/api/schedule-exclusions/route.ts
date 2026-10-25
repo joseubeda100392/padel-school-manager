@@ -10,6 +10,7 @@ import { parseLowerLevelMap, studentLevelsForClass } from '@/lib/spot-levels'
 import { formatTime } from '@/lib/utils'
 import { sanitizeDbError } from '@/lib/sanitize-error'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
+import { isActiveOn } from '@/lib/enrollment-window'
 
 async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, scheduleId: string, excludedDate: string) {
   try {
@@ -94,11 +95,16 @@ export async function POST(req: NextRequest) {
 
   const { data: enrollment } = await admin
     .from('group_enrollments')
-    .select('student_id, schedule_id')
+    .select('student_id, schedule_id, status, start_date, end_date')
     .eq('id', group_enrollment_id)
     .single()
 
   if (!enrollment?.schedule_id) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
+  // Solo los días en que está en el grupo (ni antes de su alta ni después de su
+  // salida): fuera de ahí la falta sumaría a la bolsa una clase que no tenía.
+  if (enrollment.status !== 'active' || !isActiveOn(enrollment, excluded_date)) {
+    return NextResponse.json({ error: 'Ese día el alumno no está en este grupo' }, { status: 400 })
+  }
 
   const { data: scheduleCheck } = await admin.from('schedules').select('club_id').eq('id', enrollment.schedule_id).single()
   const scheduleClubId = (scheduleCheck as any)?.club_id ?? null

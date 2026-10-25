@@ -16,6 +16,8 @@ const JS_DAY_TO_IDX: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6:
 type Schedule = {
   id: string
   start_time: string
+  recurrence?: string | null
+  recurrence_end_date?: string | null
   end_time: string
   max_students: number
   enrolled: number
@@ -94,7 +96,8 @@ export default function CoachWeeklyCalendar({ schedules, holidays = [] }: { sche
     const classes = isHoliday ? [] : [...byDay[idx]]
       .filter((s) => {
         const startDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(s.start_time))
-        return dateStr >= startDate
+        if (s.recurrence === 'none') return dateStr === startDate
+        return dateStr >= startDate && (!s.recurrence_end_date || dateStr <= s.recurrence_end_date)
       })
       .sort((a, b) => madridMinutesOfDay(a.start_time) - madridMinutesOfDay(b.start_time))
     return { dayName, date, dateStr, isHoliday, isToday: date.toDateString() === todayStr, classes }

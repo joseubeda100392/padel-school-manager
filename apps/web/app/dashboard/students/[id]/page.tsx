@@ -29,6 +29,7 @@ import { EmptyState, Notice } from '@/components/ui/feedback'
 import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
 import { paymentConcept, paymentStatus } from '@/lib/payment-concept'
 import { loadAvailableGroups } from '@/lib/available-groups'
+import { madridDayOfWeek } from '@/lib/madrid-time'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -42,6 +43,15 @@ const statusBadge: Record<string, { tone: 'success' | 'warn' | 'danger' | 'neutr
   unfinished: { tone: 'neutral', Icon: CircleOff },
   failed: { tone: 'danger', Icon: CircleAlert },
   refunded: { tone: 'neutral', Icon: Undo2 },
+}
+
+// Última fecha de la clase (mismo día de la semana) en o antes de `date`:
+// para abrir la clase de su último día en el grupo.
+function lastClassOnOrBefore(startTime: string, date: string): string {
+  const dow = madridDayOfWeek(startTime)
+  const d = new Date(date + 'T12:00:00Z')
+  while (d.getUTCDay() !== dow) d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
 }
 
 export default async function StudentDetailPage({ params }: { params: { id: string } }) {
@@ -294,7 +304,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               return (
                 <ListRow
                   key={e.id}
-                  href={e.schedule?.id ? `/dashboard/schedule/${e.schedule.id}?date=${e.end_date}` : undefined}
+                  href={e.schedule?.id ? `/dashboard/schedule/${e.schedule.id}?date=${lastClassOnOrBefore(e.schedule.start_time, e.end_date)}` : undefined}
                   title={label}
                   subtitle={`Del ${fmt(e.start_date)} al ${fmt(e.end_date)}`}
                 />

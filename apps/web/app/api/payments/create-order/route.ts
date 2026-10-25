@@ -175,10 +175,14 @@ export async function POST(req: NextRequest) {
     if (scheduleId) {
       const { data: schedule } = await admin
         .from('schedules')
-        .select('start_time, end_time, type, price_cents, max_students, is_private, coach_id, is_active')
+        .select('start_time, end_time, type, price_cents, max_students, is_private, coach_id, is_active, recurrence_end_date')
         .eq('id', scheduleId)
         .single()
       if ((schedule as any)?.is_active === false) return NextResponse.json({ error: 'Este grupo todavía se está formando' }, { status: 409 })
+      // Clase quitada a partir de un día: después de esa fecha no hay clase.
+      if (classDate && (schedule as any)?.recurrence_end_date && classDate > (schedule as any).recurrence_end_date) {
+        return NextResponse.json({ error: 'La clase ya no se da en esa fecha.' }, { status: 409 })
+      }
       if (schedule) {
         durationMin = Math.round(
           (new Date(schedule.end_time).getTime() - new Date(schedule.start_time).getTime()) / 60000

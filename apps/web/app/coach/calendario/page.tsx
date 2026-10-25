@@ -43,7 +43,7 @@ export default async function CoachMasterCalendarPage() {
   }
   const today = madridToday()
 
-  const schedules = (rawSchedules ?? []).map((s: any) => ({
+  const schedules = (rawSchedules ?? []).filter((s: any) => !s.recurrence_end_date || s.recurrence_end_date >= today).map((s: any) => ({
     ...s,
     students: rosterForMonth(bySchedule[s.id] ?? [], today.slice(0, 7), today)
       .map(({ entry, change }) => ({ name: entry.student.name as string, change })),
