@@ -8,6 +8,7 @@ export interface MandateEnrollment {
   paid_until: string | null
   start_date: string | null
   end_date?: string | null
+  replaces_enrollment_id?: string | null
   price_per_class_cents: number | null
   discount_classes_pending: number | null
 }
@@ -114,17 +115,39 @@ async function loadFeeContext(admin: SupabaseClient, userId: string, clubId: str
   const [{ data: enrollments, error }, { data: club }] = await Promise.all([
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, paid_until, start_date, end_date, price_per_class_cents, discount_classes_pending')
+      .select('id, monthly_price, paid_until, start_date, end_date, replaces_enrollment_id, price_per_class_cents, discount_classes_pending')
       .eq('student_id', userId)
       .eq('club_id', clubId)
       .eq('status', 'active'),
     admin.from('clubs').select('features').eq('id', clubId).single(),
   ])
   if (error) throw new Error(error.message)
+  const list = (enrollments ?? []) as MandateEnrollment[]
+  // Lo pagado en la inscripción a la que sustituye (aunque ya haya terminado).
+  const prevIds = list.map(e => e.replaces_enrollment_id).filter((x): x is string => !!x)
+  const { data: prev } = prevIds.length
+    ? await admin.from('group_enrollments').select('id, paid_until').in('id', prevIds).eq('student_id', userId)
+    : { data: [] as { id: string; paid_until: string | null }[] }
   return {
-    enrollments: (enrollments ?? []) as MandateEnrollment[],
+    enrollments: withReplacements(list, new Map((prev ?? []).map(p => [p.id, p.paid_until]))),
     classValidation: !!(club as any)?.features?.enable_class_validation,
   }
+}
+
+// Cuando un alumno pasa de una inscripción a otra suya (cambio de grupo, o
+// clase editada a partir de un día), cada mes se cobra una sola vez: la vieja
+// solo hasta el mes anterior al inicio de la nueva, y lo pagado en la vieja
+// vale para la nueva. Mismo criterio que get_pending_payments.
+export function withReplacements(enrollments: MandateEnrollment[], prevPaidUntil: Map<string, string | null>): MandateEnrollment[] {
+  return enrollments.map(e => {
+    const next = enrollments.filter(n => n.replaces_enrollment_id === e.id && n.start_date)
+    const nextStart = next.map(n => n.start_date as string).sort()[0]
+    const cap = nextStart ? dateStr(Number(nextStart.slice(0, 4)), Number(nextStart.slice(5, 7)) - 1, 0) : null
+    const endDate = cap && (!e.end_date || cap < e.end_date) ? cap : e.end_date ?? null
+    const prevPaid = e.replaces_enrollment_id ? prevPaidUntil.get(e.replaces_enrollment_id) ?? null : null
+    const paidUntil = prevPaid && (!e.paid_until || prevPaid > e.paid_until) ? prevPaid : e.paid_until
+    return { ...e, end_date: endDate, paid_until: paidUntil }
+  })
 }
 
 // Cuotas de todos los grupos del alumno en un solo pago: 'due' = lo que debe

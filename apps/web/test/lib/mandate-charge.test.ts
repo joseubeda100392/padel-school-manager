@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { planMandateItems, planAdvanceItems, nextChargeDate, type MandateEnrollment } from '@/lib/mandate-charge'
+import { planMandateItems, planAdvanceItems, nextChargeDate, withReplacements, type MandateEnrollment } from '@/lib/mandate-charge'
 
 const enr = (id: string, price: number, paid_until: string | null, start_date = '2026-09-01', extra: Partial<MandateEnrollment> = {}): MandateEnrollment => ({
   id, monthly_price: price, paid_until, start_date, price_per_class_cents: null, discount_classes_pending: 0, ...extra,
@@ -138,5 +138,33 @@ describe('grupo que deja (baja o cambio de grupo programado)', () => {
 
   it('el cobro mensual sí cobra el último mes en que sigue', () => {
     expect(plan([enr('viejo', 8000, '2026-09-30', '2026-09-01', { end_date: '2026-10-31' })], 'monthly').map(i => i.paid_until)).toEqual(['2026-10-31'])
+  })
+})
+
+describe('cambio de grupo o clase editada a partir de un día: un cobro por mes', () => {
+  it('cambio a mitad de noviembre: noviembre se cobra una vez, en el grupo nuevo', () => {
+    const list = withReplacements([
+      enr('viejo', 8000, '2026-10-31', '2026-09-01'),
+      enr('nuevo', 8000, '2026-10-31', '2026-11-15', { replaces_enrollment_id: 'viejo' }),
+    ], new Map())
+    expect(list.find(e => e.id === 'viejo')!.end_date).toBe('2026-10-31')
+    const items = planMandateItems({ enrollments: list, mode: 'monthly', currentMonth: '2026-11', classValidation: false })
+    expect(items.map(i => `${i.enrollment_id}:${i.paid_until}`)).toEqual(['nuevo:2026-11-30'])
+  })
+
+  it('si noviembre ya se pagó en el grupo viejo, no se vuelve a cobrar en el nuevo', () => {
+    const list = withReplacements([
+      enr('nuevo', 8000, null, '2026-11-15', { replaces_enrollment_id: 'viejo' }),
+    ], new Map([['viejo', '2026-11-30']]))
+    expect(planMandateItems({ enrollments: list, mode: 'monthly', currentMonth: '2026-11', classValidation: false })).toEqual([])
+  })
+
+  it('cambio inmediato (la nueva hereda el inicio de la vieja): la vieja no cobra nada', () => {
+    const list = withReplacements([
+      enr('viejo', 8000, '2026-09-30', '2026-09-01', { end_date: '2026-10-24' }),
+      enr('nuevo', 8000, '2026-09-30', '2026-09-01', { replaces_enrollment_id: 'viejo' }),
+    ], new Map())
+    const items = planMandateItems({ enrollments: list, mode: 'monthly', currentMonth: '2026-10', classValidation: false })
+    expect(items.map(i => i.enrollment_id)).toEqual(['nuevo'])
   })
 })

@@ -7,6 +7,9 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { checkOverlap, checkCoachOverlap } from '@/lib/schedule-overlap'
 import { cookies } from 'next/headers'
 import { schedulesWithHistory } from '@/lib/schedule-history'
+import { splitSchedule } from '@/lib/split-schedule'
+import { madridDayOfWeek, madridMinutesOfDay } from '@/lib/madrid-time'
+import { peakOccupancyFrom } from '@/lib/enrollment-window'
 import { madridToday } from '@/lib/enrollment-window'
 
 const scheduleSchema = z.object({
@@ -107,6 +110,9 @@ export async function PATCH(req: NextRequest) {
 
   const { data: body, error: badRequest } = await parseBody(req, scheduleSchema.extend({
     id: z.string().uuid(),
+    // Aplicar los cambios desde la fecha de start_time (clase que ya ha
+    // empezado): lo anterior no cambia. Sin esto se corrige la clase entera.
+    apply_from: z.boolean().optional(),
   }))
   if (badRequest) return badRequest
 
@@ -133,6 +139,52 @@ export async function PATCH(req: NextRequest) {
   ])
   if (courtBusy) return NextResponse.json({ error: 'Ya existe una clase activa en esa pista a esa hora.' }, { status: 409 })
   if (coachBusy) return NextResponse.json({ error: 'El monitor ya tiene otra clase a esa hora.' }, { status: 409 })
+
+  if (body.apply_from) {
+    const { data: old } = await admin.from('schedules').select('*').eq('id', body.id).single()
+    if (!old) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
+    const today = madridToday()
+    const fromDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(body.start_time))
+    const oldFirstDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(old.start_time))
+    // Solo tiene sentido partir una clase que se repite y que ya tenía días
+    // antes de esa fecha; si no, se edita entera como siempre (más abajo).
+    if (old.recurrence !== 'none' && (old.type ?? 'regular') === 'regular' && oldFirstDay < fromDay) {
+      if (fromDay < today) return NextResponse.json({ error: 'El primer día con los cambios no puede ser anterior a hoy.' }, { status: 400 })
+      if (old.recurrence_end_date && old.recurrence_end_date < fromDay) {
+        return NextResponse.json({ error: 'La clase ya ha terminado antes de esa fecha.' }, { status: 400 })
+      }
+      const sameAsBefore =
+        old.court_id === body.court_id && old.coach_id === body.coach_id && (old.level_id ?? null) === (body.level_id ?? null) &&
+        madridDayOfWeek(old.start_time) === madridDayOfWeek(body.start_time) &&
+        madridMinutesOfDay(old.start_time) === madridMinutesOfDay(body.start_time) &&
+        madridMinutesOfDay(old.end_time) === madridMinutesOfDay(body.end_time) &&
+        old.max_students === body.max_students && old.recurrence === body.recurrence &&
+        (old.recurrence_end_date ?? null) === (body.recurrence_end_date ?? null)
+      if (sameAsBefore) return NextResponse.json({ error: 'No has cambiado nada de la clase.' }, { status: 400 })
+
+      const { data: fixed } = await admin.from('group_enrollments').select('start_date, end_date').eq('schedule_id', body.id).eq('status', 'active')
+      const fixedFrom = peakOccupancyFrom((fixed ?? []).filter(e => !e.end_date || e.end_date >= fromDay), fromDay)
+      if (fixedFrom > body.max_students) {
+        return NextResponse.json({ error: `No se puede bajar a ${body.max_students} plazas: desde esa fecha habrá ${fixedFrom} alumnos fijos.` }, { status: 409 })
+      }
+      try {
+        const result = await splitSchedule(admin, old, {
+          court_id: body.court_id,
+          coach_id: body.coach_id,
+          level_id: body.level_id ?? null,
+          start_time: body.start_time,
+          end_time: body.end_time,
+          recurrence: body.recurrence,
+          recurrence_end_date: body.recurrence_end_date ?? null,
+          max_students: body.max_students,
+        }, fromDay, today)
+        return NextResponse.json({ ok: true, id: result.newId, fromDay, ...result })
+      } catch (err: any) {
+        console.error('[schedules] split failed:', err?.message)
+        return NextResponse.json({ error: 'No se ha podido aplicar el cambio. No se ha modificado nada.' }, { status: 500 })
+      }
+    }
+  }
 
   // Bajar max_students por debajo de los fijos que ya hay dejaría la clase
   // sobre-ocupada al instante, sin avisar a nadie — mismo tipo de fallo que

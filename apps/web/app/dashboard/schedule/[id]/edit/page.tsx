@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -8,6 +8,19 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Field, Input, Select } from '@/components/ui/field'
 import { createClient } from '@/lib/supabase/client'
+import { Notice } from '@/components/ui/feedback'
+import { madridToday } from '@/lib/enrollment-window'
+import { madridDayOfWeek } from '@/lib/madrid-time'
+
+const madridDate = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(d)
+
+// Próximo día de la clase (mismo día de la semana) desde hoy.
+function nextClassDay(startTime: string): string {
+  const dow = madridDayOfWeek(startTime)
+  const d = new Date(madridToday() + 'T12:00:00Z')
+  while (d.getUTCDay() !== dow) d.setUTCDate(d.getUTCDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
 
 export default function EditSchedulePage({ params }: { params: { id: string } }) {
   const [courts, setCourts] = useState<any[]>([])
@@ -16,6 +29,11 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
   const [form, setForm] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // La clase ya ha empezado: los cambios valen desde un día y lo anterior no
+  // cambia (salvo que se marque que es una corrección de un error).
+  const [started, setStarted] = useState(false)
+  const [correction, setCorrection] = useState(false)
+  const [originalDate, setOriginalDate] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -33,11 +51,15 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         const start = new Date(s.start_time)
         const end = new Date(s.end_time)
         const diffMin = Math.round((end.getTime() - start.getTime()) / 60000)
+        const hasStarted = s.recurrence !== 'none' && (s.type ?? 'regular') === 'regular' && madridDate(start) < madridToday()
+          && (!s.recurrence_end_date || s.recurrence_end_date >= madridToday())
+        setStarted(hasStarted)
+        setOriginalDate(madridDate(start))
         setForm({
           court_id: s.court_id ?? '',
           coach_id: s.coach_id ?? '',
           level_id: s.level_id ?? '',
-          date: start.toISOString().split('T')[0],
+          date: hasStarted ? nextClassDay(s.start_time) : madridDate(start),
           start_time: start.toTimeString().slice(0, 5),
           duration: diffMin === 90 ? 90 : 60,
           recurrence: s.recurrence ?? 'weekly',
@@ -76,11 +98,12 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
         max_students: form.max_students,
         is_active: form.is_active,
+        apply_from: started && !correction,
       }),
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) { setError(json.error ?? 'Error al guardar'); setLoading(false); return }
-    window.location.href = `/dashboard/schedule/${params.id}`
+    window.location.href = `/dashboard/schedule/${json.id ?? params.id}`
   }
 
   if (!form) return <PageSkeleton />
@@ -114,9 +137,40 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
             </Select>
           </Field>
 
-          <Field label="Fecha">
-            <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+          {started && (
+            <Notice tone="neutral">
+              {correction
+                ? 'Corrección: el cambio se aplica a toda la clase, también a las clases pasadas. Úsalo solo para arreglar un error.'
+                : 'Esta clase ya ha empezado. Los cambios se aplican desde el día que elijas; las clases anteriores se quedan como estaban, con su hora, monitor y alumnos de entonces. Los alumnos fijos pasan solos a la clase cambiada.'}
+            </Notice>
+          )}
+
+          <Field
+            label={started && !correction ? 'Primer día con los cambios' : 'Fecha'}
+            hint={started && !correction ? 'También marca el día de la semana de la clase.' : undefined}
+          >
+            <Input
+              type="date"
+              value={form.date}
+              min={started && !correction ? madridToday() : undefined}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+            />
           </Field>
+
+          {started && (
+            <label className="flex items-start gap-2 text-meta text-ink-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-accent-ink"
+                checked={correction}
+                onChange={(e) => {
+                  setCorrection(e.target.checked)
+                  setForm({ ...form, date: e.target.checked ? originalDate : nextClassDay(`${form.date}T12:00:00Z`) })
+                }}
+              />
+              Es una corrección: cambiar también las clases pasadas
+            </label>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Hora de inicio">

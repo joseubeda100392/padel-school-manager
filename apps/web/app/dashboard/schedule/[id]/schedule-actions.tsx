@@ -11,13 +11,16 @@ import { dayBefore, madridToday } from '@/lib/enrollment-window'
 
 const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
 
-export function ScheduleActions({ scheduleId, nextDate, recurring = false, fixedStudents = [] }: {
+export function ScheduleActions({ scheduleId, nextDate, recurring = false, fixedStudents = [], hasHistory = false }: {
   scheduleId: string
   nextDate: string
   // Clase que se repite: se puede quitar a partir de un día sin borrar lo anterior.
   recurring?: boolean
   // Alumnos del grupo fijo, para avisar de que salen del grupo al quitar la clase.
   fixedStudents?: string[]
+  // Ya tiene clases dadas, alumnos o reservas pasadas: no se borra entera,
+  // se quita a partir de un día para no perder lo anterior.
+  hasHistory?: boolean
 }) {
   const confirm = useConfirm()
   const [deleting, setDeleting] = useState(false)
@@ -53,6 +56,11 @@ export function ScheduleActions({ scheduleId, nextDate, recurring = false, fixed
   }
 
   async function handleDelete() {
+    if (hasHistory && recurring) {
+      toast.message('Esta clase ya tiene historial: se quita a partir de un día para no perder lo anterior.')
+      setShowEnd(true)
+      return
+    }
     if (!(await confirm({
       title: '¿Eliminar esta clase?',
       description: 'Se eliminarán también todas las reservas asociadas. No se puede deshacer.',

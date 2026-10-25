@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { dayBefore, madridToday } from '@/lib/enrollment-window'
 import { endEnrollment } from '@/lib/end-enrollment'
+import { cancelBookingsAfter, moveOrDropDayItemsAfter } from '@/lib/schedule-from-date'
 
 const MAX_DAYS_AHEAD = 366
 
@@ -66,33 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   // Reservas puntuales posteriores: anular y devolver la clase de la bolsa.
-  const { data: laterBookings } = await admin
-    .from('bookings')
-    .select('id, club_id, source, status')
-    .eq('schedule_id', schedule.id)
-    .not('class_date', 'is', null)
-    .gt('class_date', newEnd)
-  const bookingIds = (laterBookings ?? []).map(b => b.id)
-  const paidByCard = (laterBookings ?? []).filter(b => b.source === 'pay_per_class' && b.status !== 'cancelled').length
-  if (bookingIds.length) {
-    const clubByBooking = new Map((laterBookings ?? []).map(b => [b.id, b.club_id]))
-    const { data: debits } = await admin
-      .from('bag_transactions')
-      .select('user_id, delta, class_duration, booking_id')
-      .in('booking_id', bookingIds)
-      .eq('type', 'debit')
-    for (const tx of debits ?? []) {
-      await admin.rpc('credit_class_bag', {
-        p_user_id: tx.user_id,
-        p_club_id: clubByBooking.get(tx.booking_id) ?? schedule.club_id,
-        p_delta: Math.abs(tx.delta),
-        p_pack_type: tx.class_duration ?? '60',
-        p_reason: 'Clase quitada por el club',
-      })
-    }
-    await admin.from('bag_transactions').delete().in('booking_id', bookingIds)
-    await admin.from('bookings').delete().in('id', bookingIds)
-  }
+  const { cancelled, paidByCard } = await cancelBookingsAfter(admin, schedule.id, newEnd, schedule.club_id, 'Clase quitada por el club')
 
   // Fijos: salen del grupo ese día (sus faltas posteriores sobran).
   const { data: enrollments } = await admin
@@ -107,11 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     leaving++
   }
 
-  await Promise.all([
-    admin.from('schedule_time_overrides').delete().eq('schedule_id', schedule.id).gt('override_date', newEnd),
-    admin.from('schedule_coach_overrides').delete().eq('schedule_id', schedule.id).gt('override_date', newEnd),
-    admin.from('class_waitlist').delete().eq('schedule_id', schedule.id).gt('class_date', newEnd),
-  ])
+  await moveOrDropDayItemsAfter(admin, schedule.id, newEnd, null)
 
-  return NextResponse.json({ ok: true, lastDay: newEnd, studentsLeaving: leaving, bookingsCancelled: bookingIds.length, paidByCard })
+  return NextResponse.json({ ok: true, lastDay: newEnd, studentsLeaving: leaving, bookingsCancelled: cancelled, paidByCard })
 }

@@ -24,6 +24,7 @@ import { Card, CardHeader, CardBody } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { formatLongDate } from '@/lib/format-date'
 import { loadAvailableGroups } from '@/lib/available-groups'
+import { schedulesWithHistory } from '@/lib/schedule-history'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -240,6 +241,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           scheduleId={params.id}
           nextDate={nextDate}
           recurring={schedule.recurrence !== 'none'}
+          hasHistory={(await schedulesWithHistory(admin, [params.id], todaySpain)).size > 0}
           fixedStudents={(groupEnrollments ?? []).filter((e: any) => e.status === 'active').map((e: any) => e.student?.name).filter(Boolean)}
         />
       </section>
