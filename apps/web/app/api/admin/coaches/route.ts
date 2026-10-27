@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { COACH_USERS_FILTER } from '@/lib/coach-role'
 
 export async function GET() {
   const supabase = createClient()
@@ -20,7 +21,7 @@ export async function GET() {
     ? (cookieStore.get('sa_active_club')?.value ?? caller.club_id)
     : caller.club_id
 
-  const query = admin.from('users').select('id, name').eq('role', 'coach').eq('is_active', true).order('name')
+  const query = admin.from('users').select('id, name').or(COACH_USERS_FILTER).eq('is_active', true).order('name')
   const { data, error } = await (clubId ? query.eq('club_id', clubId) : query)
 
   if (error) return NextResponse.json({ error: 'Error al obtener los monitores' }, { status: 500 })

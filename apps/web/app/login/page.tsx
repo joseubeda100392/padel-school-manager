@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/field'
 import { BrandLockup } from '@/components/brand/brand'
+import { parseLoginIdentifier } from '@/lib/login-identifier'
 
 function CourtDrawing() {
   return (
@@ -39,19 +40,48 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (error) {
-      setError('Email o contraseña incorrectos')
+    const id = parseLoginIdentifier(email)
+    if (!id) {
+      setError('Escribe tu email o tu teléfono')
       setLoading(false)
       return
+    }
+
+    let userId: string | undefined
+    let metadataRole: string | undefined
+    if (id.kind === 'email') {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: id.email, password })
+      if (error) {
+        setError('Email o contraseña incorrectos')
+        setLoading(false)
+        return
+      }
+      userId = data.user?.id
+      metadataRole = data.user?.user_metadata?.role
+    } else {
+      // Con teléfono entra el servidor (busca la cuenta y deja la sesión en
+      // las cookies); luego se sigue igual que con email.
+      const res = await fetch('/api/auth/login-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: id.phone, password }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(json.error ?? 'Teléfono o contraseña incorrectos')
+        setLoading(false)
+        return
+      }
+      const { data } = await supabase.auth.getUser()
+      userId = data.user?.id
+      metadataRole = data.user?.user_metadata?.role
     }
 
     // user_metadata puede desincronizarse del rol real en la tabla users
     // (p.ej. cuentas creadas fuera del flujo estándar) — la tabla es la
     // fuente de verdad, no el JWT metadata.
-    const { data: profile } = await supabase.from('users').select('role').eq('id', data.user!.id).single()
-    const role = profile?.role ?? data.user?.user_metadata?.role
+    const { data: profile } = await supabase.from('users').select('role').eq('id', userId!).single()
+    const role = profile?.role ?? metadataRole
 
     if (role === 'admin' || role === 'super_admin') {
       const { data: factorsData } = await supabase.auth.mfa.listFactors()
@@ -91,18 +121,20 @@ export default function LoginPage() {
           <BrandLockup className="mb-8 lg:hidden" />
 
           <h1 className="font-display text-title text-ink">Bienvenido</h1>
-          <p className="mt-1 text-body text-ink-2">Entra con el email y la contraseña que te dio tu club</p>
+          <p className="mt-1 text-body text-ink-2">Entra con tu email o tu teléfono y la contraseña que te dio tu club</p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <Field label="Email">
+            <Field label="Email o teléfono">
               <Input
-                type="email"
-                inputMode="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="email"
-                placeholder="tu@email.com"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="tu@email.com o 600 000 000"
               />
             </Field>
 

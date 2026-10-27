@@ -3,6 +3,7 @@
 import { X } from 'lucide-react'
 
 import { useId, useState, useRef, useEffect } from 'react'
+import { isPlaceholderEmail } from '@/lib/login-identifier'
 
 interface Student {
   id: string
@@ -69,7 +70,7 @@ export function StudentCombobox({ students, value, onChange, placeholder = 'Busc
           <div className="flex flex-1 items-center justify-between gap-2 py-1.5 pl-3.5 pr-1">
             <div className="min-w-0">
               <p className="truncate text-body font-medium leading-tight text-ink">{selected.name}</p>
-              <p className="truncate text-meta text-ink-3">{selected.email}</p>
+              <p className="truncate text-meta text-ink-3">{isPlaceholderEmail(selected.email) ? 'Sin email' : selected.email}</p>
             </div>
             <button
               type="button"
@@ -117,7 +118,7 @@ export function StudentCombobox({ students, value, onChange, placeholder = 'Busc
                 className="w-full border-b border-line px-3.5 py-2.5 text-left last:border-0 hover:bg-ink/[0.03]"
               >
                 <p className="text-body font-medium text-ink">{s.name}</p>
-                <p className="text-meta text-ink-3">{s.email}</p>
+                <p className="text-meta text-ink-3">{isPlaceholderEmail(s.email) ? 'Sin email' : s.email}</p>
               </button>
             ))
           )}

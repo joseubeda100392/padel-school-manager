@@ -18,9 +18,10 @@ interface DashboardShellProps {
   saActiveClub?: string
   network?: SwitcherNetwork
   currentClubId?: string
+  alsoCoach?: boolean
 }
 
-export function DashboardShell({ children, clubName, role, userName, features, saActiveClub, network, currentClubId }: DashboardShellProps) {
+export function DashboardShell({ children, clubName, role, userName, features, saActiveClub, network, currentClubId, alsoCoach }: DashboardShellProps) {
   const router = useRouter()
   const isSuperAdmin = role === 'super_admin'
   const managingClub = isSuperAdmin && !!saActiveClub && !!clubName
@@ -51,6 +52,7 @@ export function DashboardShell({ children, clubName, role, userName, features, s
       nav={adminNav({ features, isSuperAdmin, networkName: network?.name })}
       clubName={title}
       identity={{ name: userName ?? 'Administrador', subtitle: isSuperAdmin ? 'Super admin' : network ? `Coordinador · Red ${network.name}` : `Admin · ${clubName ?? ''}` }}
+      roleSwitch={alsoCoach && !isSuperAdmin ? { href: '/coach', label: 'Ver como monitor' } : undefined}
       sidebarExtra={exitClubButton ?? (network ? <ClubSwitcher network={network} currentClubId={currentClubId} variant="sidebar" /> : undefined)}
       headerActions={
         managingClub ? (

@@ -4,6 +4,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { Card, CardHeader } from '@/components/ui/card'
 import { LevelTag } from '@/components/ui/badge'
 import { PasswordForm } from '../password-form'
+import { isPlaceholderEmail } from '@/lib/login-identifier'
 
 export default async function PerfilPage() {
   const supabase = createClient()
@@ -23,7 +24,7 @@ export default async function PerfilPage() {
 
   const rows: { label: string; value: React.ReactNode }[] = [
     { label: 'Nombre', value: (userData as any)?.name || '—' },
-    { label: 'Email', value: user.email ?? '—' },
+    { label: 'Email', value: isPlaceholderEmail(user.email) ? 'Sin email: entras con tu teléfono' : (user.email ?? '—') },
     ...((userData as any)?.phone ? [{ label: 'Teléfono', value: (userData as any).phone as string }] : []),
     { label: 'Club', value: (userData as any)?.clubs?.name ?? '—' },
     { label: 'Nivel', value: level?.name ? <LevelTag name={level.name} color={level.color} /> : 'Sin asignar' },

@@ -7,6 +7,7 @@ import { getClubFeatures } from '@/lib/get-club-features'
 import { redirect } from 'next/navigation'
 import { calculateCoachPending, calculateCoachMonthlyHours } from '@/lib/coach-payroll'
 import { ClassValidationClient } from './class-validation-client'
+import { COACH_USERS_FILTER } from '@/lib/coach-role'
 
 export default async function ClassValidationPage({ searchParams }: { searchParams: { month?: string } }) {
   const supabase = createClient()
@@ -41,7 +42,7 @@ export default async function ClassValidationPage({ searchParams }: { searchPara
       .is('confirmed_by_admin', null)
       .order('session_date'),
     clubId
-      ? admin.from('users').select('id, name, email, hourly_rate_cents').eq('club_id', clubId).eq('role', 'coach').eq('is_active', true).order('name')
+      ? admin.from('users').select('id, name, email, hourly_rate_cents').eq('club_id', clubId).or(COACH_USERS_FILTER).eq('is_active', true).order('name')
       : { data: [] },
   ])
 

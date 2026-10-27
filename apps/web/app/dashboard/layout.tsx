@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: dbProfile } = await admin
     .from('users')
-    .select('role, club_id, name')
+    .select('role, club_id, name, also_coach')
     .eq('id', user.id)
     .single()
 
@@ -53,6 +53,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       saActiveClub={saActiveClub}
       network={network ? { name: network.name, clubs: network.clubs } : undefined}
       currentClubId={effectiveClubId}
+      alsoCoach={role === 'admin' && (dbProfile as any)?.also_coach === true}
     >
       {children}
     </DashboardShell>

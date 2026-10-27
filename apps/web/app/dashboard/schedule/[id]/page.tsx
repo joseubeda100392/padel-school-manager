@@ -25,6 +25,7 @@ import { Badge, LevelTag } from '@/components/ui/badge'
 import { formatLongDate } from '@/lib/format-date'
 import { loadAvailableGroups } from '@/lib/available-groups'
 import { schedulesWithHistory } from '@/lib/schedule-history'
+import { COACH_USERS_FILTER } from '@/lib/coach-role'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -123,7 +124,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     admin
       .from('users')
       .select('id, name, email')
-      .eq('role', 'coach')
+      .or(COACH_USERS_FILTER)
       .eq('is_active', true)
       .eq('club_id', schedule.club_id)
       .order('name'),

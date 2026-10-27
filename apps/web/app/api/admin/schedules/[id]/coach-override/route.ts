@@ -5,6 +5,8 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
+import { isCoachUser } from '@/lib/coach-role'
+import { madridDayOfWeek } from '@/lib/madrid-time'
 
 // Sustituto de monitor puntual para una clase fija en una fecha concreta —
 // no toca el monitor habitual, solo esa fecha. Se usa para que las horas
@@ -40,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Clase no pertenece a tu club' }, { status: 403 })
   }
 
-  const scheduleDow = new Date(schedule.start_time).getUTCDay()
+  const scheduleDow = madridDayOfWeek(schedule.start_time)
   const requestedDow = new Date(overrideDate + 'T12:00:00Z').getUTCDay()
   if (scheduleDow !== requestedDow) {
     return NextResponse.json({ error: 'La fecha no corresponde al día habitual de esta clase' }, { status: 400 })
@@ -49,8 +51,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Esa clase ya ha terminado para esa fecha' }, { status: 400 })
   }
 
-  const { data: newCoach } = await admin.from('users').select('id, name, role, club_id').eq('id', newCoachId).single()
-  if (!newCoach || newCoach.role !== 'coach') {
+  const { data: newCoach } = await admin.from('users').select('id, name, role, also_coach, club_id').eq('id', newCoachId).single()
+  if (!newCoach || !isCoachUser(newCoach)) {
     return NextResponse.json({ error: 'El sustituto debe ser un monitor del club' }, { status: 400 })
   }
   if (caller.role !== 'super_admin' && newCoach.club_id !== caller.club_id) {

@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/ui/feedback'
 import { HomeBand } from '@/components/ui/home-band'
 import { PageHeader } from '@/components/ui/page-header'
 import { formatLongDate } from '@/lib/format-date'
+import { COACH_USERS_FILTER } from '@/lib/coach-role'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -92,7 +93,7 @@ export default async function DashboardPage() {
     filter(admin.from('levels').select('id, name, color').order('order')),
     filter(admin.from('class_bag').select('balance_60, balance_90')),
     filter(admin.from('users').select('current_level_id').eq('role', 'student').eq('is_active', true)),
-    filter(admin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'coach').eq('is_active', true)),
+    filter(admin.from('users').select('id', { count: 'exact', head: true }).or(COACH_USERS_FILTER).eq('is_active', true)),
   ])
 
   const pendingCount = billingActive ? (((pendingCountResult as any).data as number) ?? 0) : 0

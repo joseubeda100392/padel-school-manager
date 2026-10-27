@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/feedback'
 import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
+import { COACH_USERS_FILTER } from '@/lib/coach-role'
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 
@@ -36,7 +37,7 @@ export default async function CoachHoursPage({ searchParams }: { searchParams: {
   const selectedMonth0 = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate.getMonth() : todayMonth0
 
   const { data: coaches } = clubId
-    ? await admin.from('users').select('id, name, email').eq('club_id', clubId).eq('role', 'coach').eq('is_active', true).order('name')
+    ? await admin.from('users').select('id, name, email').eq('club_id', clubId).or(COACH_USERS_FILTER).eq('is_active', true).order('name')
     : { data: [] }
 
   const hours = await Promise.all(

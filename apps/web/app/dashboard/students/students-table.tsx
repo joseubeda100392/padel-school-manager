@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Field, Input, Select } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/feedback'
 import { Avatar, List, ListRow } from '@/components/ui/list'
+import { isPlaceholderEmail } from '@/lib/login-identifier'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -70,7 +71,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
     const headers = ['Nombre', 'Email', 'Rol', 'Estado', 'Teléfono', 'Alta', 'Baja', 'Grupo fijo', ...(enableDeposit ? ['Fianza'] : [])]
     const rows = filtered.map((s) => [
       s.name ?? '',
-      s.email ?? '',
+      isPlaceholderEmail(s.email) ? '' : (s.email ?? ''),
       roleLabel[s.role] ?? s.role,
       s.is_active ? 'Activo' : 'Inactivo',
       s.phone ?? '',
@@ -257,7 +258,7 @@ export default function StudentsTable({ students, levelMap, enrollmentMap, defau
                     title={s.name}
                     subtitle={
                       <span className="flex flex-col gap-0.5">
-                        <span className="truncate">{s.email}</span>
+                        <span className="truncate">{isPlaceholderEmail(s.email) ? 'Sin email · entra con su teléfono' : s.email}</span>
                         {s.role === 'student' ? (
                           level ? <LevelTag name={level.name} color={level.color} /> : <span>Sin nivel</span>
                         ) : (
@@ -356,12 +357,13 @@ const StudentRow = memo(function StudentRow({
           <span className="whitespace-nowrap">{s.name}</span>
         </Link>
       </td>
-      <td className="px-4 py-3 text-body text-ink-2">{s.email}</td>
+      <td className="px-4 py-3 text-body text-ink-2">{isPlaceholderEmail(s.email) ? 'Sin email · entra con su teléfono' : s.email}</td>
       <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2">{s.phone || <span className="text-ink-3">—</span>}</td>
       <td className="px-4 py-3">
         <div className="flex flex-wrap gap-1">
           <Badge tone="outline">{roleLabel[s.role] ?? s.role}</Badge>
           {s.role === 'coach' && s.also_student && <Badge tone="outline">También alumno</Badge>}
+          {s.role === 'admin' && s.also_coach && <Badge tone="outline">También monitor</Badge>}
           {enableDeposit && isStudentLike(s) && <DepositBadge paid={!!s.deposit_paid} />}
         </div>
       </td>

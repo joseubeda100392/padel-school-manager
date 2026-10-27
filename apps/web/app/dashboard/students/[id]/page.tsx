@@ -30,6 +30,7 @@ import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
 import { paymentConcept, paymentStatus } from '@/lib/payment-concept'
 import { loadAvailableGroups } from '@/lib/available-groups'
 import { madridDayOfWeek } from '@/lib/madrid-time'
+import { isPlaceholderEmail } from '@/lib/login-identifier'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -78,7 +79,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   ] = await Promise.all([
     admin
       .from('users')
-      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url, start_date, end_date, also_student, is_external, is_premium_private_coach, deposit_paid')
+      .select('id, name, email, role, phone, is_active, created_at, current_level_id, club_id, avatar_url, start_date, end_date, also_student, also_coach, is_external, is_premium_private_coach, deposit_paid')
       .eq('id', params.id)
       .single(),
     clubId
@@ -225,7 +226,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           <dl className="mt-5 grid grid-cols-1 gap-4 border-t border-line pt-5 sm:grid-cols-2 lg:grid-cols-4">
             <div className="min-w-0">
               <dt className="text-meta text-ink-3">Email</dt>
-              <dd className="mt-0.5 break-all text-body text-ink">{student.email}</dd>
+              <dd className="mt-0.5 break-all text-body text-ink">{isPlaceholderEmail(student.email) ? 'Sin email · entra con su teléfono' : student.email}</dd>
             </div>
             <div>
               <dt className="text-meta text-ink-3">Rol</dt>
@@ -262,6 +263,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
         start_date: (student as any).start_date ?? (student.created_at as string).split('T')[0],
         end_date: (student as any).end_date ?? '',
         also_student: (student as any).also_student ?? false,
+        also_coach: (student as any).also_coach ?? false,
         is_external: (student as any).is_external ?? false,
         is_premium_private_coach: (student as any).is_premium_private_coach ?? false,
         deposit_paid: (student as any).deposit_paid ?? false,

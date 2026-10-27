@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 import { calculateCoachPending } from '@/lib/coach-payroll'
+import { isCoachUser } from '@/lib/coach-role'
 
 export async function POST(_req: NextRequest, { params }: { params: { coachId: string } }) {
   const supabase = createClient()
@@ -22,8 +23,8 @@ export async function POST(_req: NextRequest, { params }: { params: { coachId: s
     : caller.club_id
   if (!clubId) return NextResponse.json({ error: 'Sin club asignado' }, { status: 400 })
 
-  const { data: coach } = await admin.from('users').select('club_id, role').eq('id', params.coachId).single()
-  if (!coach || coach.role !== 'coach') return NextResponse.json({ error: 'Profesor no encontrado' }, { status: 404 })
+  const { data: coach } = await admin.from('users').select('club_id, role, also_coach').eq('id', params.coachId).single()
+  if (!coach || !isCoachUser(coach)) return NextResponse.json({ error: 'Profesor no encontrado' }, { status: 404 })
   if (caller.role !== 'super_admin' && coach.club_id !== clubId) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }

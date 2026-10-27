@@ -5,6 +5,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { notFound, redirect } from 'next/navigation'
 import { StudentObjectives } from '@/app/dashboard/students/[id]/student-objectives'
 import { PageHeader } from '@/components/ui/page-header'
+import { isCoachUser } from '@/lib/coach-role'
 
 export default async function CoachStudentPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -13,8 +14,8 @@ export default async function CoachStudentPage({ params }: { params: { id: strin
 
   const admin = getAdminClient()
 
-  const { data: coach } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
-  if (!coach || coach.role !== 'coach') redirect('/coach')
+  const { data: coach } = await admin.from('users').select('role, also_coach, club_id').eq('id', user.id).single()
+  if (!coach || !isCoachUser(coach)) redirect('/coach')
 
   // coachSchedules, student y checklists son independientes entre sí — solo
   // enrollment necesita esperar a coachSchedules (para su scheduleIds).

@@ -5,6 +5,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { getClubId } from '@/lib/get-club'
 import { rateLimit } from '@/lib/rate-limit'
 import { checkOverlap, checkCoachOverlap, findExactDuplicate } from '@/lib/schedule-overlap'
+import { COACH_USERS_FILTER } from '@/lib/coach-role'
 
 interface ImportRow {
   pista: string
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
 
   const [{ data: courts }, { data: coaches }, { data: levels }] = await Promise.all([
     admin.from('courts').select('id, name').eq('club_id', clubId).eq('is_active', true),
-    admin.from('users').select('id, name').eq('club_id', clubId).eq('role', 'coach').eq('is_active', true),
+    admin.from('users').select('id, name').eq('club_id', clubId).or(COACH_USERS_FILTER).eq('is_active', true),
     admin.from('levels').select('id, name').eq('club_id', clubId),
   ])
   const courtById = new Set((courts ?? []).map((c: any) => c.id))

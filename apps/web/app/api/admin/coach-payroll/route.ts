@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 import { calculateCoachPending } from '@/lib/coach-payroll'
+import { COACH_USERS_FILTER } from '@/lib/coach-role'
 
 export async function GET() {
   const supabase = createClient()
@@ -26,7 +27,7 @@ export async function GET() {
     .from('users')
     .select('id, name, email, hourly_rate_cents')
     .eq('club_id', clubId)
-    .eq('role', 'coach')
+    .or(COACH_USERS_FILTER)
     .eq('is_active', true)
     .order('name')
 

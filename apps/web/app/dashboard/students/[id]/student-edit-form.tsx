@@ -9,9 +9,10 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Field, Input, Select } from '@/components/ui/field'
 import { useConfirm } from '@/components/ui/confirm'
+import { isPlaceholderEmail } from '@/lib/login-identifier'
 
 interface Props {
-  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string; also_student?: boolean; is_external?: boolean; is_premium_private_coach?: boolean; deposit_paid?: boolean }
+  student: { id: string; name: string; email: string; phone?: string; role: string; is_active: boolean; start_date?: string; end_date?: string; also_student?: boolean; also_coach?: boolean; is_external?: boolean; is_premium_private_coach?: boolean; deposit_paid?: boolean }
   isSuperAdmin?: boolean
   enablePrivateLessons?: boolean
   enableDeposit?: boolean
@@ -28,6 +29,7 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
     start_date: student.start_date ?? '',
     end_date: student.end_date ?? '',
     also_student: student.also_student ?? false,
+    also_coach: student.also_coach ?? false,
     is_external: student.is_external ?? false,
     is_premium_private_coach: student.is_premium_private_coach ?? false,
     deposit_paid: student.deposit_paid ?? false,
@@ -37,7 +39,7 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
-  const [newEmail, setNewEmail] = useState(student.email ?? '')
+  const [newEmail, setNewEmail] = useState(isPlaceholderEmail(student.email) ? '' : (student.email ?? ''))
   const [savingEmail, setSavingEmail] = useState(false)
   const [emailError, setEmailError] = useState('')
   const [emailDone, setEmailDone] = useState(false)
@@ -60,6 +62,7 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
       start_date: form.start_date || null,
       end_date: form.end_date || null,
       also_student: form.role === 'coach' ? form.also_student : false,
+      also_coach: form.role === 'admin' ? form.also_coach : false,
       is_external: form.role === 'student' ? form.is_external : false,
       is_premium_private_coach: form.role === 'coach' ? form.is_premium_private_coach : false,
       ...(enableDeposit ? { deposit_paid: form.deposit_paid } : {}),
@@ -160,6 +163,12 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
             onChange={(v) => setForm({ ...form, also_student: v })}
             label="También es alumno"
             hint="Puede entrar también al panel de alumno, apuntarse a clases y tener cuota." />
+        )}
+        {form.role === 'admin' && (
+          <CheckRow id="also_coach_edit" checked={form.also_coach}
+            onChange={(v) => setForm({ ...form, also_coach: v })}
+            label="También es monitor"
+            hint="Sale en la lista de monitores, se le pueden asignar clases y entra en la vista de monitor sin dejar de ser admin." />
         )}
         {enablePrivateLessons && form.role === 'coach' && (
           <CheckRow id="is_premium_private_coach_edit" checked={form.is_premium_private_coach}

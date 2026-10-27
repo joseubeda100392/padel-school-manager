@@ -6,12 +6,13 @@ import type { ClubFeatures } from '@/lib/get-club-features'
 import { AppShell } from './app-shell'
 import { coachNav } from './nav-config'
 
-export function CoachShell({ children, userName, clubName, features, alsoStudent }: {
+export function CoachShell({ children, userName, clubName, features, alsoStudent, isAdmin }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
   features?: ClubFeatures
   alsoStudent?: boolean
+  isAdmin?: boolean
 }) {
   const club = clubName ?? 'ePadel School'
   return (
@@ -19,7 +20,7 @@ export function CoachShell({ children, userName, clubName, features, alsoStudent
       nav={coachNav({ features })}
       clubName={club}
       identity={{ name: userName ?? 'Monitor', subtitle: `Monitor · ${club}` }}
-      roleSwitch={alsoStudent ? { href: '/student', label: 'Ver como alumno' } : undefined}
+      roleSwitch={isAdmin ? { href: '/dashboard', label: 'Volver al panel' } : alsoStudent ? { href: '/student', label: 'Ver como alumno' } : undefined}
       overlays={
         <>
           <PushNotificationProvider />

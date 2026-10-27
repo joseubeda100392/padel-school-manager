@@ -4,6 +4,7 @@
 
 import { getAdminClient } from '@/lib/supabase/admin'
 import { loadMonthPayments } from '@/lib/payments-month'
+import { COACH_USERS_FILTER } from '@/lib/coach-role'
 
 type Admin = ReturnType<typeof getAdminClient>
 
@@ -27,7 +28,7 @@ export async function loadClubStats(admin: Admin, club: { id: string; name: stri
 
   const [students, coaches, classesToday, schedules, monthPayments, pending] = await Promise.all([
     admin.from('users').select('id', { count: 'exact', head: true }).eq('club_id', club.id).eq('role', 'student').eq('is_active', true),
-    admin.from('users').select('id', { count: 'exact', head: true }).eq('club_id', club.id).eq('role', 'coach').eq('is_active', true),
+    admin.from('users').select('id', { count: 'exact', head: true }).eq('club_id', club.id).or(COACH_USERS_FILTER).eq('is_active', true),
     admin.rpc('count_classes_today', { p_club_id: club.id }),
     admin.from('schedules').select('max_students, enrollments:group_enrollments(status)').eq('club_id', club.id).eq('is_active', true).eq('is_private', false),
     loadMonthPayments(admin, club.id, year, month0),

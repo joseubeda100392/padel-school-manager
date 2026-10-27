@@ -5,6 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
+import { madridDayOfWeek } from '@/lib/madrid-time'
 
 // Cambio de hora puntual de una clase fija para una fecha concreta — no toca
 // el horario habitual, solo esa fecha. Afecta a todos los inscritos activos
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Clase no pertenece a tu club' }, { status: 403 })
   }
 
-  const scheduleDow = new Date(schedule.start_time).getUTCDay()
+  const scheduleDow = madridDayOfWeek(schedule.start_time)
   const requestedDow = new Date(overrideDate + 'T12:00:00Z').getUTCDay()
   if (scheduleDow !== requestedDow) {
     return NextResponse.json({ error: 'La fecha no corresponde al día habitual de esta clase' }, { status: 400 })
