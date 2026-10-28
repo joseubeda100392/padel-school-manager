@@ -121,6 +121,9 @@ export default async function CoachClassesPage({
 
   const bookedDatesBySchedule: Record<string, string[]> = {}
   for (const b of bookingsRaw ?? []) {
+    // Desde hoy, igual que las faltas de reviewByDate: si no, una semana pasada
+    // sumaría al sustituto sin restar al que faltó.
+    if (!b.class_date || b.class_date < todaySpain) continue
     if (!bookedDatesBySchedule[b.schedule_id]) bookedDatesBySchedule[b.schedule_id] = []
     bookedDatesBySchedule[b.schedule_id].push(b.class_date)
   }

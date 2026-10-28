@@ -103,11 +103,13 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
       .map((s: any) => {
         const override = overrideByKey.get(`${s.id}_${dateStr}`) ?? null
         const review = s.reviewByDate?.[dateStr] ?? null
-        // Grupo fijo: la ocupación es constante salvo lo que pase ESE día concreto
-        // (falta sin cubrir) — no el número de "hoy" heredado en cualquier semana.
-        // Fijos de ESA fecha: no cuenta a quien aún no ha entrado ni a quien ya salió.
+        // Ocupación de ESA fecha, como en la vista del monitor: fijos activos ese
+        // día (sin quien aún no ha entrado ni quien ya salió) menos los que
+        // faltan, más las reservas puntuales de esa fecha (cubran una falta o no).
         const groupSize = s.group_windows ? (s.group_windows as EnrollmentWindow[]).filter(w => isActiveOn(w, dateStr)).length : s.group_size
-        const occupancy = typeof groupSize === 'number' ? groupSize - (review?.uncoveredCount ?? 0) : s.bookings_count
+        const absentCount = review ? review.uncoveredCount + review.substituteNames.length : 0
+        const bookedThatDate = ((s.bookedDates ?? []) as string[]).filter(d => d === dateStr).length
+        const occupancy = typeof groupSize === 'number' ? groupSize - absentCount + bookedThatDate : s.bookings_count
         const reviewLabel: string | null = review
           ? review.uncoveredCount > 0
             ? `${review.uncoveredCount} plaza${review.uncoveredCount > 1 ? 's' : ''} por cubrir`

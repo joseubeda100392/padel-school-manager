@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   if (occupancy.fixedStudentIds.has(user.id) || occupancy.bookedStudentIds.has(user.id)) {
     return NextResponse.json({ error: 'Ya estás en esta clase ese día' }, { status: 409 })
   }
-  if (occupancy.presentFixed + occupancy.bookedCount < occupancy.capacity) {
+  if (occupancy.presentFixed + occupancy.bookedCount + occupancy.reservedByClub < occupancy.capacity) {
     return NextResponse.json({ error: 'Esta clase tiene hueco libre: cógelo directamente en Huecos' }, { status: 409 })
   }
   if (!isWaitlistable(occupancy)) {

@@ -2,14 +2,19 @@
 
 import { toast } from 'sonner'
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
-import { Check, CircleCheck, Pencil, Search, X } from 'lucide-react'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Banknote, Check, CircleCheck, Pencil, Search, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CollectFeeSheet } from '@/components/collect-fee-sheet'
 import { Input } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/feedback'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+
+// Meses que faltan desde el último pagado hasta el que se está viendo.
+const monthsBetween = (paidUntil: string, monthEnd: string) =>
+  (Number(monthEnd.slice(0, 4)) - Number(paidUntil.slice(0, 4))) * 12 + Number(monthEnd.slice(5, 7)) - Number(paidUntil.slice(5, 7))
 
 interface UnpaidItem {
   id: string
@@ -19,11 +24,15 @@ interface UnpaidItem {
   start_time: string | null
   monthly_price: number
   paid_until: string | null
+  start_date: string | null
   months_overdue: number
 }
 
-export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLabel: string }) {
+export function UnpaidList({ items, monthLabel, monthEnd }: { items: UnpaidItem[]; monthLabel: string; monthEnd: string }) {
+  const router = useRouter()
   const [list, setList] = useState(items)
+  const [collectId, setCollectId] = useState<string | null>(null)
+  const collecting = list.find((e) => e.id === collectId) ?? null
   const [q, setQ] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingPrice, setEditingPrice] = useState(0)
@@ -52,6 +61,19 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
     toast.success('Cuota actualizada')
   }
 
+  // Si con el cobro queda pagado el mes que se está viendo, sale de la lista.
+  function handlePaid(id: string, paidUntil: string) {
+    setList((prev) => paidUntil >= monthEnd
+      ? prev.filter((e) => e.id !== id)
+      : prev.map((e) => e.id === id ? { ...e, paid_until: paidUntil, months_overdue: monthsBetween(paidUntil, monthEnd) } : e))
+    toast.success('Cobro registrado')
+    router.refresh()
+  }
+
+  const collectingTime = collecting?.start_time
+    ? `${DAYS[new Date(collecting.start_time).getDay()]} ${new Date(collecting.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}`
+    : null
+
   if (!list.length) {
     return (
       <EmptyState
@@ -64,6 +86,13 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
 
   return (
     <div>
+      <CollectFeeSheet
+        enrollment={collecting}
+        studentName={collecting?.student_name ?? ''}
+        classLabel={collectingTime ? `Clase ${collectingTime}` : null}
+        onClose={() => setCollectId(null)}
+        onPaid={(paidUntil) => collecting && handlePaid(collecting.id, paidUntil)}
+      />
       <div className="px-4 py-3 sm:px-5">
         <label htmlFor="unpaid-search" className="sr-only">Buscar alumno</label>
         <div className="relative max-w-xs">
@@ -159,12 +188,10 @@ export function UnpaidList({ items, monthLabel }: { items: UnpaidItem[]; monthLa
                       : 'Nunca'}
                   </td>
                   <td className="px-4 py-3 text-right sm:px-5">
-                    <Link
-                      href={`/dashboard/schedule/${e.schedule_id}`}
-                      className={buttonVariants({ variant: 'secondary', size: 'sm' })}
-                    >
-                      Marcar pagado
-                    </Link>
+                    <Button variant="secondary" size="sm" onClick={() => setCollectId(e.id)}>
+                      <Banknote className="h-4 w-4" aria-hidden />
+                      Cobrar
+                    </Button>
                   </td>
                 </tr>
               )

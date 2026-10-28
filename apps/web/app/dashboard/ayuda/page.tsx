@@ -141,6 +141,7 @@ export default function AdminAyudaPage() {
           <Section id="pagos" title="Pagos">
             <p>Listado de todos los cobros del club: cuotas fijas, bonos, clases sueltas, torneos y pagos automáticos. Filtra por mes y por estado (cobrado, pendiente, fallido).</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li><strong>Cobrar en el club</strong>: en "Mensualidades pendientes" (o en la clase, con "Cobrar cuota"), pulsa "Cobrar". Eliges qué cuota paga (si debe varios meses, van en orden: primero la más antigua), el importe (sale su cuota; si lo cambias vale solo para ese cobro) y si paga en efectivo o con datáfono.</li>
               <li><strong>Varios grupos</strong>: un alumno que va a más de un grupo paga todas sus cuotas juntas en un solo pago, y quedan marcados todos sus grupos.</li>
               <li><strong>Pago automático con tarjeta</strong> (módulo opcional): el alumno guarda su tarjeta en Redsys y sus cuotas se cobran solas cada mes. Antes de activarlo, el banco tiene que tener habilitados los pagos con tarjeta guardada (COF).</li>            </ul>
             <Nota>El cobro con tarjeta se gestiona con Redsys (TPV virtual). Los datos bancarios de los alumnos nunca se guardan en la aplicación.</Nota>

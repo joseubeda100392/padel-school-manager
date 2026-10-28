@@ -1,7 +1,7 @@
 'use client'
 
 import { toast } from 'sonner'
-import { Banknote, CalendarPlus, CalendarX, Check, CircleAlert, CircleCheck, Clock, CreditCard, Eye, EyeOff, Pencil, X } from 'lucide-react'
+import { Banknote, CalendarPlus, CalendarX, Check, CircleAlert, CircleCheck, Clock, Eye, EyeOff, Pencil, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,7 @@ import { MoveGroupPanel } from '@/components/move-group-panel'
 import type { AvailableGroup } from '@/lib/available-groups'
 import { dayBefore, madridToday } from '@/lib/enrollment-window'
 import { getDayOfWeek, formatCurrency } from '@/lib/utils'
-import type { InClubMethod } from '@/lib/payment-method'
+import { CollectFeeSheet } from '@/components/collect-fee-sheet'
 
 interface Enrollment {
   id: string
@@ -141,7 +141,7 @@ export default function GroupEnrollment({
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [markPaidError, setMarkPaidError] = useState<string | null>(null)
+  const [collectId, setCollectId] = useState<string | null>(null)
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
   const [editingPriceValue, setEditingPriceValue] = useState(0)
   const [editingPerClassId, setEditingPerClassId] = useState<string | null>(null)
@@ -322,6 +322,24 @@ export default function GroupEnrollment({
     router.refresh()
   }
 
+  async function handleCancelRemove(e: Enrollment) {
+    setLoadingId(e.id)
+    const res = await fetch(`/api/admin/students/${e.student.id}/causar-baja`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollmentId: e.id }),
+    })
+    const json = await res.json().catch(() => ({}))
+    setLoadingId(null)
+    if (!res.ok) {
+      toast.error(json.error ?? 'No se pudo cancelar la baja')
+      return
+    }
+    setEnrollments((prev) => prev.map((x) => x.id === e.id ? { ...x, end_date: null } : x))
+    toast.success(`Baja cancelada: ${e.student.name} sigue en el grupo`)
+    router.refresh()
+  }
+
   async function handleUpdatePrice(id: string) {
     setLoadingId(id)
     const res = await fetch(`/api/group-enrollments/${id}`, {
@@ -358,29 +376,12 @@ export default function GroupEnrollment({
     setEditingPerClassId(null)
   }
 
-  async function handleMarkPaid(id: string, method: InClubMethod) {
-    const how = method === 'card_terminal' ? 'con datáfono' : 'en efectivo'
-    if (!(await confirm({
-      title: `¿Registrar el pago ${how}?`,
-      description: 'Se marcará este mes como pagado y quedará en el historial de pagos.',
-      confirmLabel: 'Registrar pago',
-    }))) return
-    setLoadingId(id)
-    setMarkPaidError(null)
-    const res = await fetch(`/api/group-enrollments/${id}/mark-paid`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ method }),
-    })
-    const json = await res.json()
-    if (res.ok) {
-      setEnrollments((prev) =>
-        prev.map((e) => e.id === id ? { ...e, paid_until: json.paidUntil } : e)
-      )
-    } else {
-      setMarkPaidError(json.error ?? 'Error al registrar el pago')
-    }
-    setLoadingId(null)
+  const collecting = enrollments.find((e) => e.id === collectId) ?? null
+
+  function handleFeePaid(id: string, paidUntil: string) {
+    setEnrollments((prev) => prev.map((e) => e.id === id ? { ...e, paid_until: paidUntil } : e))
+    toast.success('Cobro registrado')
+    router.refresh()
   }
 
   function openFaltaForm(enrollmentId: string) {
@@ -466,9 +467,15 @@ export default function GroupEnrollment({
           : `Alumnos con plaza permanente${enablePayments ? ` · Cuota de ${billingTarget(false).monthLabel}` : ''}`}
       />
 
-      {markPaidError && (
-        <p role="alert" className="mx-4 mt-3 text-meta font-medium text-danger-ink sm:mx-5">{markPaidError}</p>
-      )}
+      <CollectFeeSheet
+        enrollment={collecting}
+        studentName={collecting?.student.name ?? ''}
+        discountCents={collecting && enableClassValidation && collecting.price_per_class_cents
+          ? (collecting.discount_classes_pending ?? 0) * collecting.price_per_class_cents
+          : 0}
+        onClose={() => setCollectId(null)}
+        onPaid={(paidUntil) => collecting && handleFeePaid(collecting.id, paidUntil)}
+      />
 
       {faltaSuccessMsg && (
         <Notice tone="success" icon={<CircleCheck />} className="mx-4 mt-3 sm:mx-5">
@@ -621,16 +628,10 @@ export default function GroupEnrollment({
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   {enablePayments && !paid && !forming && (
-                    <>
-                      <Button variant="secondary" size="sm" onClick={() => handleMarkPaid(e.id, 'cash')} loading={isLoading}>
-                        <Banknote className="h-4 w-4" aria-hidden />
-                        Efectivo
-                      </Button>
-                      <Button variant="secondary" size="sm" onClick={() => handleMarkPaid(e.id, 'card_terminal')} loading={isLoading}>
-                        <CreditCard className="h-4 w-4" aria-hidden />
-                        Datáfono
-                      </Button>
-                    </>
+                    <Button variant="secondary" size="sm" onClick={() => setCollectId(e.id)} disabled={isLoading}>
+                      <Banknote className="h-4 w-4" aria-hidden />
+                      Cobrar cuota
+                    </Button>
                   )}
 
                   {!forming && (
@@ -656,9 +657,13 @@ export default function GroupEnrollment({
                     </Button>
                   )}
 
-                  {!e.end_date && (
+                  {!e.end_date ? (
                     <Button variant="danger-ghost" size="sm" aria-expanded={removeFormId === e.id} onClick={() => handleRemove(e.id)} loading={isLoading && forming}>
                       Quitar del grupo
+                    </Button>
+                  ) : (
+                    <Button variant="secondary" size="sm" onClick={() => handleCancelRemove(e)} loading={isLoading}>
+                      Cancelar baja
                     </Button>
                   )}
                 </div>

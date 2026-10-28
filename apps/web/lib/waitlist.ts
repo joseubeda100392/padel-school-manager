@@ -28,8 +28,9 @@ export function waitlistClassLabel(startTime: string, classDate: string, courtNa
 // que es la que puede volver a quedar libre. Con hueco libre no hace falta
 // reserva: se coge el hueco. Se mira el recuento real, no el aviso de "falta
 // publicada", que puede quedarse puesto aunque la plaza ya esté cubierta.
-export function isWaitlistable(o: { capacity: number; presentFixed: number; bookedCount: number }): boolean {
-  return o.bookedCount >= 1 && o.presentFixed + o.bookedCount >= o.capacity
+// Las plazas de faltas sin publicar (reservedByClub) cuentan como ocupadas.
+export function isWaitlistable(o: { capacity: number; presentFixed: number; bookedCount: number; reservedByClub?: number }): boolean {
+  return o.bookedCount >= 1 && o.presentFixed + o.bookedCount + (o.reservedByClub ?? 0) >= o.capacity
 }
 
 export interface ClassOccupancy {
@@ -38,6 +39,10 @@ export interface ClassOccupancy {
   bookedCount: number
   fixedStudentIds: Set<string>
   bookedStudentIds: Set<string>
+  // Faltas de ese día sin publicar ni cubrir: el club guarda esas plazas para
+  // gestionarlas a mano y nadie puede cogerlas por su cuenta (mismo criterio
+  // que book_paid_class_spot).
+  reservedByClub: number
 }
 
 // Quién ocupa la clase ese día: fijos activos en esa fecha que no tienen
@@ -46,7 +51,7 @@ export interface ClassOccupancy {
 export async function getClassOccupancy(admin: Admin, scheduleId: string, classDate: string, capacity: number): Promise<ClassOccupancy> {
   const [{ data: enrollments }, { data: bookings }] = await Promise.all([
     admin.from('group_enrollments')
-      .select('student_id, start_date, end_date, schedule_exclusions(excluded_date, publish_spot)')
+      .select('student_id, start_date, end_date, schedule_exclusions(excluded_date, publish_spot, spot_taken)')
       .eq('schedule_id', scheduleId)
       .eq('status', 'active'),
     admin.from('bookings')
@@ -57,14 +62,16 @@ export async function getClassOccupancy(admin: Admin, scheduleId: string, classD
   ])
   const fixedStudentIds = new Set<string>()
   let presentFixed = 0
+  let reservedByClub = 0
   for (const e of (enrollments ?? []) as any[]) {
+    reservedByClub += (e.schedule_exclusions ?? []).filter((x: any) => x.excluded_date === classDate && x.publish_spot === false && x.spot_taken !== true).length
     if ((e.start_date && e.start_date > classDate) || (e.end_date && e.end_date < classDate)) continue
     fixedStudentIds.add(e.student_id)
     const absent = (e.schedule_exclusions ?? []).some((x: any) => x.excluded_date === classDate)
     if (!absent) presentFixed++
   }
   const bookedStudentIds = new Set((bookings ?? []).map((b: any) => b.student_id as string))
-  return { capacity, presentFixed, bookedCount: bookings?.length ?? 0, fixedStudentIds, bookedStudentIds }
+  return { capacity, presentFixed, bookedCount: bookings?.length ?? 0, fixedStudentIds, bookedStudentIds, reservedByClub }
 }
 
 function minutesOfDay(iso: string) {

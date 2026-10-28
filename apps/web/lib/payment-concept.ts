@@ -22,7 +22,7 @@ const FEE_TYPES = new Set(['fixed_group_month', 'mandate_charge'])
 const monthName = (ym: string) => MONTHS[Number(ym.slice(5, 7)) - 1]
 
 // "octubre 2026", "septiembre y octubre 2026", "diciembre 2026 y enero 2027"
-function monthsLabel(months: string[]): string {
+export function monthsLabel(months: string[]): string {
   const years = new Set(months.map(m => m.slice(0, 4)))
   if (years.size === 1) {
     const names = months.map(monthName)

@@ -15,6 +15,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 import { loadStudentFeeItems, type MandateItem } from '@/lib/mandate-charge'
 import { madridMinutesOfDay } from '@/lib/madrid-time'
+import { getClassOccupancy } from '@/lib/waitlist'
 
 type PaymentType = 'single_class' | 'class_pack' | 'private_lesson_pack' | 'fixed_group_month' | 'tournament' | 'intensivo_group'
 
@@ -246,16 +247,18 @@ export async function POST(req: NextRequest) {
           // Aviso temprano de aforo antes de mandar al alumno a pagar (la
           // comprobación real y a prueba de carreras va en el webhook vía
           // book_paid_class_spot; esto solo evita que llegue a pagar algo
-          // que ya no está disponible).
-          const [{ data: dateBookings }, { count: activeGroupCount }] = await Promise.all([
+          // que ya no está disponible). Mismo recuento que book_paid_class_spot:
+          // los fijos que faltan ese día dejan su plaza libre, salvo las faltas
+          // sin publicar, cuya plaza guarda el club.
+          const [{ data: dateBookings }, occupancy] = await Promise.all([
             admin.from('bookings').select('notes').eq('schedule_id', scheduleId).eq('class_date', classDate).eq('status', 'confirmed'),
-            admin.from('group_enrollments').select('id', { count: 'exact', head: true }).eq('schedule_id', scheduleId).eq('status', 'active'),
+            getClassOccupancy(admin, scheduleId, classDate, (schedule as any).max_students ?? 0),
           ])
           const wholeClassTaken = (dateBookings ?? []).some((b: any) => b.notes === 'clase_entera')
           if (wholeClassTaken) {
             return NextResponse.json({ error: 'Esta clase ya está pagada entera por otro alumno para esta fecha' }, { status: 409 })
           }
-          const currentCount = (dateBookings?.length ?? 0) + (activeGroupCount ?? 0)
+          const currentCount = occupancy.presentFixed + occupancy.bookedCount + occupancy.reservedByClub
           if (wholeClass && currentCount > 0) {
             return NextResponse.json({ error: 'Ya hay alumnos apuntados a esta clase, no se puede pagar como clase entera' }, { status: 409 })
           }

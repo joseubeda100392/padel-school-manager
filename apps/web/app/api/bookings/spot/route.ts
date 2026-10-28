@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
   // ya la haya cogido otro por otra vía (plaza libre, pago, a la vez desde dos
   // móviles). Si se pasa del máximo, se deshace y la falta queda como cubierta.
   const occupancy = await getClassOccupancy(admin, scheduleId, exclusion.excluded_date, (schedule as any).max_students)
-  if (occupancy.presentFixed + occupancy.bookedCount > occupancy.capacity) {
+  if (occupancy.presentFixed + occupancy.bookedCount + occupancy.reservedByClub > occupancy.capacity) {
     if (existingBooking) await admin.from('bookings').update({ status: existingBooking.status }).eq('id', bookingId)
     else await admin.from('bookings').delete().eq('id', bookingId)
     return NextResponse.json({ error: 'La clase ya está completa' }, { status: 409 })

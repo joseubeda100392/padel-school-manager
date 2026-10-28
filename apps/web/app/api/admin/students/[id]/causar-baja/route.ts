@@ -5,6 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
+import { peakOccupancyFrom } from '@/lib/enrollment-window'
 
 const TZ = 'Europe/Madrid'
 
@@ -97,13 +98,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     for (const e of enrollments) {
       const maxStudents = (e as any).schedule?.max_students as number | undefined
       if (!maxStudents) continue
-      const { count: otherActive } = await admin
+      // Los demás que seguirán en la clase desde que entra el sustituto (sin
+      // contar a quien ya tiene la salida antes de esa fecha).
+      const { data: others } = await admin
         .from('group_enrollments')
-        .select('id', { count: 'exact', head: true })
+        .select('start_date, end_date')
         .eq('schedule_id', e.schedule_id)
         .eq('status', 'active')
         .neq('id', e.id)
-      if ((otherActive ?? 0) + 1 > maxStudents) {
+      if (peakOccupancyFrom(others ?? [], startDate) + 1 > maxStudents) {
         return NextResponse.json({
           error: `No se puede meter al sustituto: esa clase ya estaría completa el mes que viene sin contar al alumno saliente.`,
         }, { status: 409 })

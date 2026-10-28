@@ -150,10 +150,18 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   // clase, no repite en otras semanas). Para Semana: por fecha exacta, sin
   // límite — la misma clase se repite al navegar de semana y cada columna
   // debe mostrar solo lo suyo, no heredar el aviso de otra semana.
-  const [reviewInfoMap, reviewByDate] = await Promise.all([
+  // Semana: reservas puntuales de cada fecha (también las que no cubren una
+  // falta, como una plaza libre de un grupo de 3 en clase de 4). Desde hoy,
+  // igual que las faltas de reviewByDate, para que una cosa no se cuente sin la otra.
+  const [reviewInfoMap, reviewByDate, { data: weekBookingsRaw }] = await Promise.all([
     computeScheduleReviewMap(admin, allScheduleIds, todaySpain),
     computeScheduleReviewByDate(admin, allScheduleIds, todaySpain),
+    allScheduleIds.length
+      ? admin.from('bookings').select('schedule_id, class_date').eq('status', 'confirmed').gte('class_date', todaySpain).in('schedule_id', allScheduleIds)
+      : Promise.resolve({ data: [] as { schedule_id: string; class_date: string }[] }),
   ])
+  const bookedDatesBySchedule: Record<string, string[]> = {}
+  for (const b of weekBookingsRaw ?? []) (bookedDatesBySchedule[b.schedule_id] ??= []).push(b.class_date)
 
   const schedules = (rawSchedules ?? []).filter((s: any) => nextDateMap[s.id] !== undefined).map((s: any) => ({
     ...s,
@@ -163,6 +171,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     group_windows: groupWindowsMap[s.id] ?? null,
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
+    bookedDates: bookedDatesBySchedule[s.id] ?? [],
     reference_date: nextDateMap[s.id],
     forming: s.is_active === false,
     interested_count: interestedMap[s.id] ?? 0,

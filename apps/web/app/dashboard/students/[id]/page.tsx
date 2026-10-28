@@ -13,6 +13,7 @@ import { BagHistoryList } from './bag-history-list'
 import { StudentEditForm } from './student-edit-form'
 import { StudentEnrollments } from './student-enrollments'
 import { CausarBajaButton } from './causar-baja-button'
+import { ScheduledBajaNotice } from './scheduled-baja-notice'
 import { StudentCharges, type StudentCharge } from './student-charges'
 import { StudentMakeups } from './student-makeups'
 import { NotificationList } from '@/app/student/notifications/notification-list'
@@ -204,6 +205,8 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <DevError errors={[makeupsError?.message]} />
       <PageHeader title="Ficha del usuario" back={{ href: '/dashboard/students', label: 'Usuarios' }} />
+
+      {actsAsStudent && <ScheduledBajaNotice studentId={student.id as string} groups={bajaGroups} />}
 
       <Card>
         <CardBody>

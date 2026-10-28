@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { CalendarClock, UserMinus } from 'lucide-react'
+import { UserMinus } from 'lucide-react'
 import { StudentCombobox } from '@/components/student-combobox'
 import { Button } from '@/components/ui/button'
 import { Notice } from '@/components/ui/feedback'
@@ -21,7 +21,6 @@ interface Group {
   endDate: string | null
 }
 
-const formatDay = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('es-ES')
 
 // Baja para el mes que viene. Con varios grupos se elige de cuáles se va: el
 // alumno sigue en los demás y solo queda inactivo si no le queda ninguno.
@@ -76,50 +75,10 @@ export function CausarBajaButton({
     }
   }
 
-  async function handleCancelarBaja(enrollmentId: string) {
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/admin/students/${studentId}/causar-baja`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enrollmentId }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error ?? 'No se pudo cancelar la baja')
-        return
-      }
-      toast.success('Baja cancelada')
-      router.refresh()
-    } catch {
-      toast.error('Error de conexión')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (!groups.length) return null
+  if (!open.length) return null
 
   return (
     <div className="flex w-full flex-col gap-3 sm:items-end">
-      {scheduled.length > 0 && (
-        <Notice tone="warn" icon={<CalendarClock />} className="w-full">
-          <p className="font-medium">Baja programada</p>
-          <ul className="mt-2 space-y-2">
-            {scheduled.map(g => (
-              <li key={g.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  {g.label} · deja el grupo el <span className="tabular-nums">{formatDay(g.endDate!)}</span>
-                </span>
-                <Button variant="secondary" size="sm" onClick={() => handleCancelarBaja(g.id)} loading={loading}>
-                  Cancelar baja
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </Notice>
-      )}
-
       {open.length > 0 && (
         <Button variant="danger-ghost" onClick={openSheet} className="w-full border border-danger-ink/30 sm:w-auto">
           <UserMinus className="h-4 w-4" aria-hidden />

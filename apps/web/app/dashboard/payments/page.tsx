@@ -10,7 +10,7 @@ import { UnpaidList } from './unpaid-list'
 import { MonthNavigator } from './month-navigator'
 import { DevError } from '@/components/dev-error'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
-import { currentBillingMonth } from '@/lib/billing-cycle'
+import { currentBillingMonth, lastDayOfMonthStr } from '@/lib/billing-cycle'
 import { loadMonthPayments } from '@/lib/payments-month'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
@@ -84,7 +84,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const pendingAmount = rawUnpaid.reduce((acc, u: any) => acc + (u.monthly_price ?? 0), 0)
   const generatedAmount = total + pendingAmount
   const billingStart = billingStartDate ? new Date(billingStartDate + 'T00:00:00') : null
-  const unpaid = billingStart
+  // Para cobrar desde aquí hace falta saber desde cuándo paga (primer mes sin paid_until).
+  const { data: unpaidStarts } = rawUnpaid.length
+    ? await admin.from('group_enrollments').select('id, start_date').in('id', rawUnpaid.map((u: any) => u.id))
+    : { data: [] as { id: string; start_date: string | null }[] }
+  const startById = new Map((unpaidStarts ?? []).map((e) => [e.id, e.start_date]))
+  const unpaid = (billingStart
     ? rawUnpaid.map((item) => {
         const monthsSinceBilling =
           (selectedYear - billingStart.getFullYear()) * 12 +
@@ -92,6 +97,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
         return { ...item, months_overdue: Math.min(item.months_overdue, monthsSinceBilling) }
       })
     : rawUnpaid
+  ).map((item) => ({ ...item, start_date: startById.get(item.id) ?? null }))
 
   return (
     <div className="space-y-6">
@@ -159,7 +165,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
             description={`El seguimiento de mensualidades empieza el ${new Date(billingStartDate! + 'T12:00:00Z').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.`}
           />
         ) : (
-          <UnpaidList key={monthLabel} items={unpaid as any[]} monthLabel={monthLabel} />
+          <UnpaidList key={monthLabel} items={unpaid as any[]} monthLabel={monthLabel} monthEnd={lastDayOfMonthStr(selectedYear, selectedMonth)} />
         )}
       </Card>
 

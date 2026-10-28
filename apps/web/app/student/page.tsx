@@ -1,7 +1,7 @@
 import { createClient, getAuthUser } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { formatCurrency, getDayOfWeek, matchesDayTimePreference } from '@/lib/utils'
+import { formatCurrency, matchesDayTimePreference } from '@/lib/utils'
 import Link from 'next/link'
 import { CalendarDays, ChevronRight, CircleAlert, CircleCheck, Clock, Package, UserPlus } from 'lucide-react'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
@@ -19,6 +19,7 @@ import { PistaVivaOptin } from './pista-viva-optin'
 import { HomeBand } from '@/components/ui/home-band'
 import { ProgressCard, type ProgressChecklist } from './progress-card'
 import { isActiveOn } from '@/lib/enrollment-window'
+import { loadStudentSpots } from '@/lib/student-spots'
 
 function isPaidThisMonth(paidUntil: string | null) {
   if (!paidUntil) return false
@@ -33,13 +34,12 @@ export default async function StudentHomePage() {
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const today = new Date().toISOString().split('T')[0]
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
 
   // Dos tandas en paralelo en vez de siete consultas en fila: la primera solo
   // necesita el id del alumno; la segunda, el club, el nivel y sus grupos.
-  const [{ data: userData }, { data: bag }, { data: enrollments }, { data: spots }, { data: mySpotBookings }, { data: allChecklists }] = await Promise.all([
+  const [{ data: userData }, { data: bag }, { data: enrollments }, { data: mySpotBookings }, { data: allChecklists }] = await Promise.all([
     admin
       .from('users')
       .select('name, email, current_level_id, club_id, pista_viva_optin, playtomic_level, pista_viva_preferred_days, pista_viva_preferred_start, pista_viva_preferred_end, club:clubs(features, config)')
@@ -51,11 +51,6 @@ export default async function StudentHomePage() {
       .select('id, monthly_price, paid_until, start_date, end_date, schedule:schedules(id, start_time, end_time, court:courts(name))')
       .eq('student_id', user.id)
       .eq('status', 'active'),
-    admin
-      .from('schedule_exclusions')
-      .select('id, excluded_date, group_enrollment:group_enrollments!group_enrollment_id(schedule_id, schedule:schedules!schedule_id(club_id, level_id))')
-      .eq('publish_spot', true)
-      .gte('excluded_date', today),
     admin.from('bookings').select('schedule_id, class_date').eq('student_id', user.id).eq('status', 'confirmed').not('class_date', 'is', null),
     admin
       .from('student_checklists')
@@ -75,10 +70,7 @@ export default async function StudentHomePage() {
   const activeEnrollments = enrollments ?? []
   const enrolledScheduleIds = activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean)
 
-  const [{ data: capacitySchedules }, { data: pistaVivaMatches }, { data: levelData }, { data: timeOverrides }] = await Promise.all([
-    clubId
-      ? admin.from('schedules').select('id, max_students, type, recurrence, recurrence_end_date, start_time, level:levels(id), enrollments:group_enrollments(student_id, status)').eq('club_id', clubId).neq('type', 'intensivo')
-      : Promise.resolve({ data: [] }),
+  const [{ data: pistaVivaMatches }, { data: levelData }, { data: timeOverrides }] = await Promise.all([
     features.enable_pista_viva && clubId && myPistaVivaLevel != null
       ? admin
           .from('pista_viva_open_match_alerts')
@@ -135,57 +127,22 @@ export default async function StudentHomePage() {
 
   const level = levelData
 
-  const absenceSpots = (spots ?? []).filter((s: any) => {
-    if (holidaySet.has(s.excluded_date)) return false
-    const schedule = (s.group_enrollment as any)?.schedule
-    const clubOk = !clubId || schedule?.club_id === clubId
-    const levelId = schedule?.level_id ?? null
-    const levelOk = !myLevelId || !levelId || levelId === myLevelId
-    return clubOk && levelOk
-  })
-  const absenceCount = absenceSpots.length
-  const absenceScheduleIds = new Set(absenceSpots.map((s: any) => (s.group_enrollment as any)?.schedule_id).filter(Boolean))
-
-  const myEnrolledScheduleIds = new Set(activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean))
-
-  function getClassDateHome(s: any): string | null {
-    if (!s.start_time) return null
-    if (isNaN(new Date(s.start_time).getTime())) return null
-    if (s.recurrence === 'none') {
-      const d = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
-      return d < today ? null : d
-    }
-    const base = new Date(s.start_time)
-    const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
-    const [sy, sm, sd] = todaySpain.split('-').map(Number)
-    const nowH = parseInt(new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(new Date()))
-    const classH = parseInt(new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone: TZ }).format(base))
-    const classDow = getDayOfWeek(base)
-    const todayDow = getDayOfWeek(new Date(Date.UTC(sy, sm - 1, sd, 10, 0, 0)))
-    let daysUntil = (classDow - todayDow + 7) % 7
-    if (daysUntil === 0 && nowH >= classH) daysUntil = 7
-    const result = new Date(Date.UTC(sy, sm - 1, sd + daysUntil, 10, 0, 0))
-    const nextDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(result)
-    const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(base)
-    if (nextDate < scheduleStartDate) return null
-    if (s.recurrence_end_date && nextDate > s.recurrence_end_date) return null
-    return nextDate
-  }
-
-  const capacityCount = (capacitySchedules ?? []).filter((s: any) => {
-    const allEnrollments = (s.enrollments ?? []) as any[]
-    const active = allEnrollments.filter((e: any) => e.status === 'active')
-    const alreadyIn = active.some((e: any) => e.student_id === user.id) || myEnrolledScheduleIds.has(s.id)
-    const levelId = (s.level as any)?.id ?? null
-    const levelOk = !myLevelId || !levelId || levelId === myLevelId
-    const classDate = getClassDateHome(s)
-    if (!classDate || holidaySet.has(classDate)) return false
-    if (absenceScheduleIds.has(s.id)) return false
-    const alreadyBooked = (mySpotBookings ?? []).some((b: any) => b.schedule_id === s.id && b.class_date === classDate)
-    return !alreadyIn && active.length < s.max_students && levelOk && !alreadyBooked
-  }).length
-
-  const spotsCount = absenceCount + capacityCount
+  // Mismo cálculo que la pantalla de Huecos (lo que verá al pulsar): de hoy a
+  // final de mes, con el aforo real de cada fecha.
+  const myEnrolledScheduleIds = new Set<string>(activeEnrollments.map((e: any) => (e.schedule as any)?.id).filter(Boolean))
+  const monthEndSpain = lastDayOfMonthStr(Number(todaySpain.slice(0, 4)), Number(todaySpain.slice(5, 7)) - 1)
+  const spotsCount = features.enable_spots && clubId
+    ? await loadStudentSpots(admin, {
+        userId: user.id,
+        myClubId: clubId,
+        myLevelId,
+        config: clubRow?.config,
+        rangeStart: todaySpain,
+        monthEnd: monthEndSpain,
+        myScheduleIds: myEnrolledScheduleIds,
+        mySpotBookings: mySpotBookings ?? [],
+      }).then(r => r.absenceSpots.length + r.capacitySpots.length)
+    : 0
 
   const firstName = ((userData as any)?.name as string | undefined)?.split(' ')[0]
     ?? user.user_metadata?.name?.split(' ')[0]
