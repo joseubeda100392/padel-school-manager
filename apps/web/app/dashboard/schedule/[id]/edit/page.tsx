@@ -66,6 +66,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
           recurrence_end_date: s.recurrence_end_date ?? '',
           max_students: s.max_students ?? 4,
           is_active: s.is_active ?? true,
+          code: s.code ?? '',
         })
       }
       if (c) setCourts(c)
@@ -98,6 +99,7 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
         recurrence_end_date: form.recurrence !== 'none' && form.recurrence_end_date ? form.recurrence_end_date : null,
         max_students: form.max_students,
         is_active: form.is_active,
+        code: form.code.trim() || null,
         apply_from: started && !correction,
       }),
     })
@@ -129,6 +131,10 @@ export default function EditSchedulePage({ params }: { params: { id: string } })
               </Select>
             </Field>
           </div>
+
+          <Field label="Código del grupo" hint="Opcional. El nombre con el que el club conoce el grupo, por ejemplo GP015. Sale en el Cuadrante.">
+            <Input value={form.code} maxLength={20} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="GP015" autoComplete="off" />
+          </Field>
 
           <Field label="Nivel requerido">
             <Select value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })}>

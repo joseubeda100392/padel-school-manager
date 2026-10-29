@@ -7,6 +7,8 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge, LevelTag } from '@/components/ui/badge'
 import { TimetableGrid, type GridClass, type GridColumn } from './timetable-grid'
+import { CourtGrid } from './court-grid'
+import { shortNames } from '@/lib/court-grid'
 import { isActiveOn, type EnrollmentWindow } from '@/lib/enrollment-window'
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -54,7 +56,7 @@ interface TimeOverride {
   new_end_time: string
 }
 
-export default function WeeklyCalendar({ schedules, holidays = [], enableIntensivos = true, timeOverrides = [], courtsCount = 0 }: { schedules: any[]; holidays?: string[]; enableIntensivos?: boolean; timeOverrides?: TimeOverride[]; courtsCount?: number }) {
+export default function WeeklyCalendar({ schedules, holidays = [], enableIntensivos = true, timeOverrides = [], courtsCount = 0, layout = 'week' }: { schedules: any[]; holidays?: string[]; enableIntensivos?: boolean; timeOverrides?: TimeOverride[]; courtsCount?: number; layout?: 'week' | 'courts' }) {
   const router = useRouter()
   const [weekOffset, setWeekOffset] = useState(0)
 
@@ -138,7 +140,12 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
     forming: !!s.forming,
     timeChanged: !!override,
     alert: reviewLabel,
+    code: s.code ?? null,
+    students: s.forming ? [] : shortNames(((s.group_students ?? []) as (EnrollmentWindow & { name: string })[]).filter(w => isActiveOn(w, d.dateStr)).map(w => w.name)),
   })))
+  // Días de la semana con escuela, para que el Cuadrante los enseñe aunque esa
+  // semana no tengan clase (festivo o grupos que aún no han empezado).
+  const schoolDays = Object.entries(byDay).filter(([, list]) => list.length > 0).map(([idx]) => Number(idx))
 
   const weekRange = useMemo(() => {
     const from = weekDates[0].toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
@@ -215,13 +222,16 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
         )
       })()}
 
+      {/* Cuadrante: una columna por día y pista; en el móvil se desplaza de lado */}
+      {layout === 'courts' && <CourtGrid columns={gridColumns} classes={gridClasses} schoolDays={schoolDays} />}
+
       {/* Ordenador: cuadro por horas con las pistas libres de cada franja */}
-      <div className="hidden md:block">
+      {layout === 'week' && <div className="hidden md:block">
         <TimetableGrid columns={gridColumns} classes={gridClasses} courtsCount={courtsCount} />
-      </div>
+      </div>}
 
       {/* Móvil: lista por días */}
-      <div className="grid grid-cols-1 gap-5 md:hidden">
+      {layout === 'week' && <div className="grid grid-cols-1 gap-5 md:hidden">
         {weekDays.map(({ date, dateStr, idx, isHoliday, isToday, classes }) => (
           <section key={idx} className="min-w-0" aria-label={`${DAY_FULL[idx]} ${date.getDate()}`}>
             <div
@@ -286,7 +296,7 @@ export default function WeeklyCalendar({ schedules, holidays = [], enableIntensi
             </div>
           </section>
         ))}
-      </div>
+      </div>}
     </div>
   )
 }

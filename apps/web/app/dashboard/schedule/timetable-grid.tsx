@@ -17,6 +17,8 @@ export interface GridClass extends TimetableClass {
   forming: boolean
   timeChanged: boolean
   alert: string | null // p. ej. "1 plaza por cubrir" o "Sustituye: Ana"
+  students: string[] // nombres cortos de los fijos de ese día (Cuadrante)
+  code: string | null // código del club para el grupo ("GP015")
 }
 
 export interface GridColumn {
@@ -27,7 +29,7 @@ export interface GridColumn {
   isHoliday: boolean
 }
 
-const hhmm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+export const hhmm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 const byCourt = (a: GridClass, b: GridClass) => a.courtName.localeCompare(b.courtName, 'es', { numeric: true })
 
 // Palabras iniciales que comparten todas las pistas ("R3 PISTA 1", "R3 PISTA 2"

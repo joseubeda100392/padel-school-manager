@@ -7,7 +7,7 @@ import { getDayOfWeek } from '@/lib/utils'
 import { computeScheduleReviewMap, computeScheduleReviewByDate } from '@/lib/schedule-review'
 import ScheduleTable from './schedule-table'
 import WeeklyCalendar from './weekly-calendar'
-import ScheduleViewToggle from './schedule-view-toggle'
+import ScheduleViewToggle, { type ScheduleView } from './schedule-view-toggle'
 import Link from 'next/link'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DevError } from '@/components/dev-error'
@@ -19,6 +19,8 @@ import { parseClubFeatures } from '@/lib/get-club-features'
 import { isActiveOn, type EnrollmentWindow } from '@/lib/enrollment-window'
 
 const TZ = 'Europe/Madrid'
+
+const parseView = (v: unknown): ScheduleView | null => (v === 'list' || v === 'week' || v === 'courts' ? v : null)
 
 // Fecha de referencia del panel de admin para esta clase: HOY si le toca hoy,
 // aunque ya haya empezado o terminado — el admin sigue queriendo ver/gestionar
@@ -39,7 +41,6 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const supabase = createClient()
   const admin = getAdminClient()
   const clubId = await getClubId()
-  const view = searchParams.view === 'list' ? 'list' : 'week'
 
   const schedulesQuery = admin
     .from('schedules')
@@ -58,7 +59,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     clubId ? courtsQuery.eq('club_id', clubId) : courtsQuery,
     admin
       .from('group_enrollments')
-      .select('id, schedule_id, start_date, end_date, schedule_exclusions(excluded_date)')
+      .select('id, schedule_id, start_date, end_date, schedule_exclusions(excluded_date), student:users!group_enrollments_student_id_fkey(name)')
       // Con las terminadas: las semanas pasadas cuentan a quien estaba entonces.
       .in('status', ['active', 'ended']),
     clubId ? admin.from('clubs').select('config, features').eq('id', clubId).single() : Promise.resolve({ data: null }),
@@ -69,6 +70,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   for (const e of interestedRaw ?? []) interestedMap[e.schedule_id] = (interestedMap[e.schedule_id] ?? 0) + 1
 
   const features = parseClubFeatures((clubRow as any)?.features)
+  // Sin ?view= se abre la vista que el club tenga elegida (config.schedule_default_view).
+  const view = parseView(searchParams.view) ?? parseView((clubRow as any)?.config?.schedule_default_view) ?? 'week'
 
   const holidays: string[] = (clubRow as any)?.config?.holidays ?? []
   const holidaySet = new Set(holidays)
@@ -105,7 +108,10 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
   const groupSizeMap: Record<string, number> = {}
   const groupWindowsMap: Record<string, EnrollmentWindow[]> = {}
   const isFixedGroupMap: Record<string, boolean> = {}
+  const groupStudentsMap: Record<string, (EnrollmentWindow & { name: string })[]> = {}
   for (const e of enrollmentsRaw ?? []) {
+    const studentName = (e.student as { name?: string } | null)?.name
+    if (studentName) (groupStudentsMap[e.schedule_id] ??= []).push({ start_date: e.start_date, end_date: e.end_date, name: studentName })
     if (!e.end_date || e.end_date >= todaySpain) isFixedGroupMap[e.schedule_id] = true
     ;(groupWindowsMap[e.schedule_id] ??= []).push({ start_date: e.start_date, end_date: e.end_date })
     if (isActiveOn(e, todaySpain)) groupSizeMap[e.schedule_id] = (groupSizeMap[e.schedule_id] ?? 0) + 1
@@ -169,6 +175,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
     is_fixed_group: isFixedGroupMap[s.id] ?? false,
     group_size: groupSizeMap[s.id] ?? (isFixedGroupMap[s.id] ? 0 : null),
     group_windows: groupWindowsMap[s.id] ?? null,
+    group_students: groupStudentsMap[s.id] ?? [],
     review: reviewInfoMap[s.id] ?? null,
     reviewByDate: reviewByDate[s.id] ?? null,
     bookedDates: bookedDatesBySchedule[s.id] ?? [],
@@ -215,9 +222,9 @@ export default async function SchedulePage({ searchParams }: { searchParams: { v
         </Notice>
       )}
 
-      {view === 'week'
-        ? <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} timeOverrides={timeOverrides ?? []} courtsCount={courts?.length ?? 0} />
-        : <ScheduleTable schedules={schedules} />
+      {view === 'list'
+        ? <ScheduleTable schedules={schedules} />
+        : <WeeklyCalendar schedules={schedules} holidays={holidays} enableIntensivos={features.enable_intensivos} timeOverrides={timeOverrides ?? []} courtsCount={courts?.length ?? 0} layout={view} />
       }
     </div>
   )

@@ -27,6 +27,8 @@ const scheduleSchema = z.object({
   price_cents: z.number().int().min(0).nullable().optional(),
   intensivo_group_id: z.string().uuid().nullable().optional(),
   is_private: z.boolean().optional(),
+  // Código del club para el grupo ("GP015"). Sin enviar: no se toca; vacío: se quita.
+  code: z.string().trim().max(20).nullable().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -91,6 +93,7 @@ export async function POST(req: NextRequest) {
     price_cents: body.price_cents ?? null,
     intensivo_group_id: body.intensivo_group_id ?? null,
     is_private: isPrivate,
+    code: body.code || null,
   }).select('id').single()
 
   if (error) return NextResponse.json({ error: 'Error al crear el horario' }, { status: 500 })
@@ -140,6 +143,10 @@ export async function PATCH(req: NextRequest) {
   if (courtBusy) return NextResponse.json({ error: 'Ya existe una clase activa en esa pista a esa hora.' }, { status: 409 })
   if (coachBusy) return NextResponse.json({ error: 'El monitor ya tiene otra clase a esa hora.' }, { status: 409 })
 
+  // El código es solo un nombre: vale para toda la clase, también para lo
+  // anterior a un cambio "desde un día" (la parte nueva lo hereda al copiarse).
+  const codeChange = body.code === undefined ? {} : { code: body.code || null }
+
   if (body.apply_from) {
     const { data: old } = await admin.from('schedules').select('*').eq('id', body.id).single()
     if (!old) return NextResponse.json({ error: 'Clase no encontrada' }, { status: 404 })
@@ -160,7 +167,13 @@ export async function PATCH(req: NextRequest) {
         madridMinutesOfDay(old.end_time) === madridMinutesOfDay(body.end_time) &&
         old.max_students === body.max_students && old.recurrence === body.recurrence &&
         (old.recurrence_end_date ?? null) === (body.recurrence_end_date ?? null)
-      if (sameAsBefore) return NextResponse.json({ error: 'No has cambiado nada de la clase.' }, { status: 400 })
+      const codeChanged = 'code' in codeChange && codeChange.code !== (old.code ?? null)
+      if (sameAsBefore && !codeChanged) return NextResponse.json({ error: 'No has cambiado nada de la clase.' }, { status: 400 })
+      if (codeChanged) {
+        const { error: codeErr } = await admin.from('schedules').update(codeChange).eq('id', old.id)
+        if (codeErr) return NextResponse.json({ error: 'Error al actualizar el horario' }, { status: 500 })
+        if (sameAsBefore) return NextResponse.json({ ok: true })
+      }
 
       const { data: fixed } = await admin.from('group_enrollments').select('start_date, end_date').eq('schedule_id', body.id).eq('status', 'active')
       const fixedFrom = peakOccupancyFrom((fixed ?? []).filter(e => !e.end_date || e.end_date >= fromDay), fromDay)
@@ -177,6 +190,7 @@ export async function PATCH(req: NextRequest) {
           recurrence: body.recurrence,
           recurrence_end_date: body.recurrence_end_date ?? null,
           max_students: body.max_students,
+          ...codeChange,
         }, fromDay, today)
         return NextResponse.json({ ok: true, id: result.newId, fromDay, ...result })
       } catch (err: any) {
@@ -217,6 +231,7 @@ export async function PATCH(req: NextRequest) {
     max_students: body.max_students,
     type: body.type ?? 'regular',
     price_cents: body.price_cents ?? null,
+    ...codeChange,
   }).eq('id', body.id)
 
   if (error) return NextResponse.json({ error: 'Error al actualizar el horario' }, { status: 500 })

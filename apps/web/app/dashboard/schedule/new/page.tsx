@@ -28,6 +28,7 @@ export default function NewSchedulePage() {
     price_cents: 0,
     is_private: false,
     forming: false,
+    code: '',
   })
   const [intensivoDays, setIntensivoDays] = useState<number[]>([])
   const [loading, setLoading] = useState(false)
@@ -100,6 +101,7 @@ export default function NewSchedulePage() {
           intensivo_group_id: intensivoGroupId,
           is_private: canBePrivate && form.is_private,
           is_active: !(form.forming && form.type === 'regular' && form.recurrence !== 'none'),
+          code: form.code.trim() || null,
         }),
       })
       const json = await res.json().catch(() => ({}))
@@ -144,6 +146,10 @@ export default function NewSchedulePage() {
               </Select>
             </Field>
           </div>
+
+          <Field label="Código del grupo" hint="Opcional. El nombre con el que el club conoce el grupo, por ejemplo GP015. Sale en el Cuadrante.">
+            <Input value={form.code} maxLength={20} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="GP015" autoComplete="off" />
+          </Field>
 
           <Field label="Nivel requerido" hint="Solo verán esta clase los alumnos con ese nivel asignado.">
             <Select value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })}>

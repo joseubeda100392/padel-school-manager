@@ -2,12 +2,15 @@
 
 import { useRouter } from 'next/navigation'
 
-const OPTIONS: { value: 'list' | 'week'; label: string }[] = [
+export type ScheduleView = 'list' | 'week' | 'courts'
+
+const OPTIONS: { value: ScheduleView; label: string }[] = [
   { value: 'list', label: 'Lista' },
   { value: 'week', label: 'Semana' },
+  { value: 'courts', label: 'Cuadrante' },
 ]
 
-export default function ScheduleViewToggle({ current }: { current: 'list' | 'week' }) {
+export default function ScheduleViewToggle({ current }: { current: ScheduleView }) {
   const router = useRouter()
   return (
     <div role="group" aria-label="Vista del horario" className="flex rounded-control border border-line-strong/60 bg-surface-2 p-0.5">
