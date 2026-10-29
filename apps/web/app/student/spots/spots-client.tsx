@@ -43,7 +43,7 @@ function Attendees({ list }: { list?: { name: string; level: string | null }[] }
   )
 }
 
-function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true, cashOnly = false, payPerClassPrice60, payPerClassPrice90, wholeClassPrice60, wholeClassPrice90 }: { spot: Spot; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean; cashOnly?: boolean; payPerClassPrice60: number; payPerClassPrice90: number; wholeClassPrice60: number; wholeClassPrice90: number }) {
+function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60min = true, enable90min = true, cashOnly = false, payPerClassPrice60, payPerClassPrice90, wholeClassPrice60, wholeClassPrice90, externalRate = false }: { spot: Spot; balance60: number; balance90: number; enablePayments?: boolean; enable60min?: boolean; enable90min?: boolean; cashOnly?: boolean; payPerClassPrice60: number; payPerClassPrice90: number; wholeClassPrice60: number; wholeClassPrice90: number; externalRate?: boolean }) {
   const router = useRouter()
   const [booking, setBooking] = useState(false)
   const [booked, setBooked] = useState(false)
@@ -64,8 +64,9 @@ function SpotCard({ spot, balance60, balance90, enablePayments = true, enable60m
   // Mismo criterio de prioridad que /api/payments/create-order: un precio
   // propio del horario (schedulePriceCents, ej. intensivos) manda sobre la
   // tarifa general del club — así el precio mostrado aquí siempre coincide
-  // con el que de verdad se cobra al pulsar el botón.
-  const singleClassPriceCents = spot.schedulePriceCents && spot.schedulePriceCents > 0
+  // con el que de verdad se cobra al pulsar el botón. El externo paga su
+  // tarifa en las clases normales aunque el horario tenga precio propio.
+  const singleClassPriceCents = spot.schedulePriceCents && spot.schedulePriceCents > 0 && !(externalRate && !isIntensivo)
     ? spot.schedulePriceCents
     : (durationType === '90' ? payPerClassPrice90 : payPerClassPrice60)
   const wholeClassPriceCents = spot.schedulePriceCents && spot.schedulePriceCents > 0
@@ -352,6 +353,7 @@ export function SpotsClient({
   payPerClassPrice90,
   wholeClassPrice60,
   wholeClassPrice90,
+  externalRate = false,
   year,
   month0,
   todayStr,
@@ -370,6 +372,7 @@ export function SpotsClient({
   payPerClassPrice90: number
   wholeClassPrice60: number
   wholeClassPrice90: number
+  externalRate?: boolean
   year: number
   month0: number
   todayStr: string
@@ -453,6 +456,7 @@ export function SpotsClient({
               payPerClassPrice90={payPerClassPrice90}
               wholeClassPrice60={wholeClassPrice60}
               wholeClassPrice90={wholeClassPrice90}
+              externalRate={externalRate}
             />
           ))
         )}

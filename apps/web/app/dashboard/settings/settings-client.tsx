@@ -1108,7 +1108,7 @@ export function SettingsClient({ clubId, userId, clubSlug }: { clubId: string | 
             <Card>
               <CardHeader
                 title="Alumno externo"
-                description='Tarifas para alumnos marcados como "externo" en su ficha. No ven los huecos libres de las clases fijas de la escuela.'
+                description='Tarifas para alumnos marcados como "externo" en su ficha (sin grupo fijo). Pueden apuntarse a los huecos libres pagando la clase suelta externa o con su bono externo.'
               />
               <CardBody className="space-y-5">
                 <div>

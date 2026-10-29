@@ -65,11 +65,9 @@ function build(
 
 export function studentNav({
   features,
-  hideSpots,
   unreadCount,
 }: {
   features?: ClubFeatures
-  hideSpots: boolean
   unreadCount: number
 }): AppNav {
   return build(
@@ -80,7 +78,7 @@ export function studentNav({
         items: [
           { href: '/student', description: 'Tu próxima clase, tu progreso y tus avisos', label: 'Inicio', icon: Home, exact: true },
           { href: '/student/schedule', description: 'Tu grupo fijo, tus cuotas y avisar de que no vas', label: 'Mis clases', icon: CalendarDays },
-          { href: '/student/spots', description: 'Plazas libres de tu nivel para recuperar o jugar más', label: 'Huecos', icon: UserPlus, feature: 'enable_spots', hidden: hideSpots },
+          { href: '/student/spots', description: 'Plazas libres de tu nivel para recuperar o jugar más', label: 'Huecos', icon: UserPlus, feature: 'enable_spots' },
           { href: '/student/bag', description: 'Tus clases guardadas, movimientos y compra de bonos', label: 'Bolsa', icon: Package, feature: 'enable_bag' },
         ],
       },

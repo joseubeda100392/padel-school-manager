@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
   const admin = getAdminClient()
   const { data: profile } = await admin
     .from('users')
-    .select('role, club_id, current_level_id, is_external, club:clubs(features, config)')
+    .select('role, club_id, current_level_id, club:clubs(features, config)')
     .eq('id', user.id)
     .single()
-  if (!profile || profile.role !== 'student' || (profile as any).is_external === true) {
+  if (!profile || profile.role !== 'student') {
     return NextResponse.json({ error: 'Solo los alumnos de la escuela pueden apuntarse en reserva' }, { status: 403 })
   }
   const features = parseClubFeatures((profile as any).club?.features)

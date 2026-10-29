@@ -47,9 +47,10 @@ export async function POST(req: NextRequest) {
   const effectiveClubId = caller.role === 'super_admin' ? (clubId ?? caller.club_id) : caller.club_id
 
   // Overlap check
-  const [{ data: newSched }, { data: studentExternalCheck }] = await Promise.all([
+  const [{ data: newSched }, { data: studentExternalCheck }, { data: studentBag }] = await Promise.all([
     admin.from('schedules').select('start_time, end_time, is_private, max_students, recurrence_end_date').eq('id', scheduleId).single(),
     admin.from('users').select('is_external').eq('id', studentId).single(),
+    admin.from('class_bag').select('balance_60, balance_90').eq('user_id', studentId).maybeSingle(),
   ])
   if (newSched?.recurrence_end_date && classDate > newSched.recurrence_end_date) {
     return NextResponse.json({ error: 'La clase ya no se da en esa fecha.' }, { status: 409 })
@@ -122,12 +123,20 @@ export async function POST(req: NextRequest) {
 
   // Una clase particular no se da por hecha al asignarla — el alumno tiene
   // que pagarla desde su app antes de que cuente como confirmada. Lo mismo
-  // para un alumno externo en un hueco normal: no es un compañero cubriendo
-  // gratis una falta, tiene que pagar la tarifa de externo. En cualquier
-  // otro caso, se cobra 1 clase de su bolsa — nunca se regala en silencio.
+  // para un alumno externo sin bono para esta clase: la paga desde su app a
+  // tarifa de externo. En cualquier otro caso, se cobra 1 clase de su bolsa
+  // — nunca se regala en silencio.
   const isPrivateLesson = (newSched as any)?.is_private === true
   const isExternalStudent = (studentExternalCheck as any)?.is_external === true
-  const requiresPayment = isPrivateLesson || isExternalStudent
+  // Mismo criterio que debit_class_bag_for_booking: una clase de 1h30 solo
+  // con bono de 1h30; una de 1h, con cualquiera de los dos.
+  const isLongClass = newSched
+    ? Math.round((new Date(newSched.end_time).getTime() - new Date(newSched.start_time).getTime()) / 60000) >= 80
+    : false
+  const hasBagForClass = isLongClass
+    ? (studentBag?.balance_90 ?? 0) > 0
+    : (studentBag?.balance_60 ?? 0) > 0 || (studentBag?.balance_90 ?? 0) > 0
+  const requiresPayment = isPrivateLesson || (isExternalStudent && !hasBagForClass)
 
   // Aforo + inserción + cobro de bolsa + despublicar la falta cubierta, todo
   // en una única transacción con bloqueo de fila — evita la carrera que

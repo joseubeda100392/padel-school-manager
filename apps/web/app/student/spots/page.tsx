@@ -63,9 +63,9 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   ])
   const myLevelId: string | null = userRow?.current_level_id ?? null
   const myClubId: string | null = (userRow as any)?.club_id ?? null
-  // Alumno externo: no ve los huecos libres de las clases fijas de la
-  // escuela — el enlace ya se oculta en el menú, esto cubre entrar por URL.
-  if ((userRow as any)?.is_external === true) redirect('/student')
+  // El alumno externo (sin grupo fijo) también ve los huecos, pero paga la
+  // tarifa de externo: mismo criterio que /api/payments/create-order.
+  const isExternal = (userRow as any)?.is_external === true
 
   const features = myClubId ? parseClubFeatures((userRow as any)?.club?.features) : DEFAULT_FEATURES
   const clubRow = myClubId ? { config: (userRow as any)?.club?.config ?? null } : null
@@ -227,8 +227,9 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
         enable60min={features.enable_60min}
         enable90min={features.enable_90min}
         cashOnly={features.cash_only_payments}
-        payPerClassPrice60={(clubRow as any)?.config?.pay_per_class_price_60 ?? 1200}
-        payPerClassPrice90={(clubRow as any)?.config?.pay_per_class_price_90 ?? 1500}
+        payPerClassPrice60={(isExternal && (clubRow as any)?.config?.pay_per_class_price_60_external) || ((clubRow as any)?.config?.pay_per_class_price_60 ?? 1200)}
+        payPerClassPrice90={(isExternal && (clubRow as any)?.config?.pay_per_class_price_90_external) || ((clubRow as any)?.config?.pay_per_class_price_90 ?? 1500)}
+        externalRate={isExternal}
         wholeClassPrice60={(clubRow as any)?.config?.whole_class_price_60 ?? 4800}
         wholeClassPrice90={(clubRow as any)?.config?.whole_class_price_90 ?? 6000}
         year={year}

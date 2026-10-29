@@ -57,7 +57,6 @@ export default async function StudentLayout({ children }: { children: React.Reac
       unreadCount={unreadCount ?? 0}
       features={features}
       isAlsoCoach={role === 'coach'}
-      hideSpots={(userData as any)?.is_external === true}
       clubSlug={clubSlug}
     >
       {children}

@@ -168,6 +168,8 @@ export async function POST(req: NextRequest) {
   }
 
   if (type === 'single_class') {
+    const { data: callerRow } = await admin.from('users').select('is_external').eq('id', user.id).single()
+    const isExternalCaller = (callerRow as any)?.is_external === true
     let durationMin = 60
     let scheduleType = 'regular'
     let schedulePriceCents: number | null = null
@@ -201,27 +203,19 @@ export async function POST(req: NextRequest) {
         }
 
         if (isPrivateLesson) {
-          const [{ data: callerRow }, { data: coachRow }] = await Promise.all([
-            admin.from('users').select('is_external').eq('id', user.id).single(),
-            (schedule as any).coach_id
-              ? admin.from('users').select('is_premium_private_coach').eq('id', (schedule as any).coach_id).single()
-              : Promise.resolve({ data: null }),
-          ])
-          const isExternal = (callerRow as any)?.is_external === true
+          const { data: coachRow } = (schedule as any).coach_id
+            ? await admin.from('users').select('is_premium_private_coach').eq('id', (schedule as any).coach_id).single()
+            : { data: null }
           const isPremiumCoach = (coachRow as any)?.is_premium_private_coach === true
-          const suffix = `${isPremiumCoach ? '_premium' : ''}${isExternal ? '_external' : ''}`
+          const suffix = `${isPremiumCoach ? '_premium' : ''}${isExternalCaller ? '_external' : ''}`
           const priceKey = `private_lesson_price_${durationMin >= 80 ? '90' : '60'}${suffix}` as keyof typeof cfg
           privateLessonPriceCents = cfg[priceKey] ?? 0
-        } else if (pendingBooking) {
-          // Reserva pendiente en una clase normal (no particular): el único
-          // motivo por el que /api/admin/bookings/spot deja una reserva así
-          // en vez de confirmarla gratis es que el alumno está marcado como
-          // externo — le toca la tarifa de externo, no la normal.
-          const { data: callerRow } = await admin.from('users').select('is_external').eq('id', user.id).single()
-          if ((callerRow as any)?.is_external === true) {
-            const priceKey = `pay_per_class_price_${durationMin >= 80 ? '90' : '60'}_external` as keyof typeof cfg
-            schedulePriceCents = cfg[priceKey] ?? 0
-          }
+        } else if (isExternalCaller && !wholeClass && scheduleType !== 'intensivo') {
+          // Alumno externo en una clase normal, tanto si paga un hueco desde
+          // su app como la reserva pendiente que le dejó el club: tarifa de
+          // externo. Sin tarifa configurada (0), paga la normal.
+          const priceKey = `pay_per_class_price_${durationMin >= 80 ? '90' : '60'}_external` as keyof typeof cfg
+          schedulePriceCents = cfg[priceKey] || null
         }
 
         if (classDate && !pendingBooking) {

@@ -186,7 +186,7 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
           <CheckRow id="is_external_edit" checked={form.is_external}
             onChange={(v) => setForm({ ...form, is_external: v })}
             label="Alumno externo"
-            hint="Paga las tarifas de externo y no ve los huecos libres de las clases fijas de la escuela." />
+            hint="Sin grupo fijo: se apunta a los huecos libres y paga las tarifas de externo." />
         )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Fecha de alta">

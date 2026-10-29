@@ -8,7 +8,7 @@ import type { ClubFeatures } from '@/lib/get-club-features'
 import { AppShell } from './app-shell'
 import { studentNav } from './nav-config'
 
-export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features, isAlsoCoach, hideSpots = false, clubSlug = null }: {
+export function StudentShell({ children, userName, clubName, bagBalance, unreadCount = 0, features, isAlsoCoach, clubSlug = null }: {
   children: React.ReactNode
   userName?: string
   clubName?: string
@@ -16,7 +16,6 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
   unreadCount?: number
   features?: ClubFeatures
   isAlsoCoach?: boolean
-  hideSpots?: boolean
   clubSlug?: string | null
 }) {
   const showBag = (!features || features.enable_bag) && bagBalance !== undefined
@@ -25,7 +24,7 @@ export function StudentShell({ children, userName, clubName, bagBalance, unreadC
 
   return (
     <AppShell
-      nav={studentNav({ features, hideSpots, unreadCount })}
+      nav={studentNav({ features, unreadCount })}
       clubName={club}
       identity={{ name: userName ?? 'Alumno', subtitle: club }}
       roleSwitch={isAlsoCoach ? { href: '/coach', label: 'Ir al panel de monitor' } : undefined}
