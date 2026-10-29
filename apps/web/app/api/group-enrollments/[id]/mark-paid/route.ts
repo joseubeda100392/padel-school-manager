@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const { data: enrollment, error: enrollmentErr } = await admin
     .from('group_enrollments')
-    .select('student_id, monthly_price, club_id, price_per_class_cents, discount_classes_pending, paid_until, start_date')
+    .select('student_id, monthly_price, club_id, price_per_class_cents, discount_classes_pending, paid_until, start_date, discount_applied, discount_cents')
     .eq('id', params.id)
     .single()
 
@@ -86,7 +86,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const thisMonth = billingMonthStr()
   // Un pago por mes, cada uno con el mes que cubre (así lo leen Pagos,
-  // "Mis pagos" y la comprobación semanal de cobros).
+  // "Mis pagos" y la comprobación semanal de cobros). prev_paid_until y
+  // discount_reset guardan cómo estaba la cuota para poder anular el cobro.
   const { error: paymentError } = await admin.from('payments').insert(coveredUntil.map((until, i) => ({
     user_id: enrollment.student_id,
     club_id: clubId,
@@ -95,8 +96,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     status: 'succeeded',
     metadata: {
       enrollment_id: params.id, method, paid_until: until,
+      prev_paid_until: i === 0 ? enrollment.paid_until : coveredUntil[i - 1],
       ...(until.slice(0, 7) > thisMonth ? { advance: true } : {}),
       ...(i === 0 && discountCents > 0 ? { discount_applied_cents: discountCents, discount_classes: pendingDiscount } : {}),
+      ...(i === 0 && enrollment.discount_applied ? { discount_reset: { monthly_price: enrollment.monthly_price, discount_cents: enrollment.discount_cents } } : {}),
     },
   })))
 

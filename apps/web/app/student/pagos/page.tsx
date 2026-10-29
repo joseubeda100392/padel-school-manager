@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/feedback'
 import { List, ListRow } from '@/components/ui/list'
 import { Badge } from '@/components/ui/badge'
+import { isVoidedPayment } from '@/lib/payment-void'
 
 // Lo que el alumno ha pagado: cuotas con el mes que cubren, bonos, clases
 // sueltas, cargos. Solo pagos hechos o devueltos; los intentos de pago con
@@ -32,6 +33,8 @@ export default async function StudentPaymentsPage() {
   ])
   const features = (profile as any)?.club_id ? parseClubFeatures((profile as any)?.club?.features) : DEFAULT_FEATURES
   if (!features.enable_payments) redirect('/student')
+  // Un cobro que el club anuló (apuntado por error) no llegó a pagarse.
+  const visible = (payments ?? []).filter((p: any) => !isVoidedPayment(p))
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
@@ -40,10 +43,10 @@ export default async function StudentPaymentsPage() {
         <p className="mt-1 text-body text-ink-2">Lo que has pagado al club y qué mes cubre cada cuota.</p>
       </header>
 
-      {(payments ?? []).length > 0 ? (
+      {visible.length > 0 ? (
         <Card className="overflow-hidden">
           <List>
-            {(payments ?? []).map((p: any) => {
+            {visible.map((p: any) => {
               const concept = paymentConcept(p)
               const method = PAYMENT_METHODS[paymentMethodKey(p)].label
               const refunded = p.status === 'refunded'

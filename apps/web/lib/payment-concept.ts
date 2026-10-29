@@ -78,7 +78,8 @@ export function paymentConcept(p: PaymentLike): { title: string; detail: string 
 // que el banco conteste, el alumno lo dejó a medias (no debe nada por él).
 const UNFINISHED_AFTER_MS = 60 * 60 * 1000
 
-export function paymentStatus(p: { status?: string | null; created_at: string }, now = Date.now()): { key: string; label: string } {
+export function paymentStatus(p: { status?: string | null; created_at: string; metadata?: Record<string, any> | null }, now = Date.now()): { key: string; label: string } {
+  if (p.status === 'refunded' && p.metadata?.voided) return { key: 'voided', label: 'Anulado' }
   switch (p.status) {
     case 'succeeded': return { key: 'succeeded', label: 'Cobrado' }
     case 'failed': return { key: 'failed', label: 'Fallido' }

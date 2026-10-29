@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Field, Input, Select } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/feedback'
+import { VoidPaymentButton } from '@/components/void-payment-button'
+import { canVoidPayment } from '@/lib/payment-void'
 
 type StatusTone = 'success' | 'warn' | 'danger' | 'neutral'
 
@@ -138,6 +140,7 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
             <option value="unfinished">Sin terminar</option>
             <option value="failed">Fallidos</option>
             <option value="refunded">Reembolsados</option>
+            <option value="voided">Anulados</option>
           </Select>
         </Field>
         <Field label="Método" className="w-full sm:w-auto">
@@ -184,7 +187,8 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
                   <th scope="col" className="px-4 py-3">Método</th>
                   <th scope="col" className="px-4 py-3 text-right">Importe</th>
                   <th scope="col" className="px-4 py-3">Estado</th>
-                  <th scope="col" className="px-4 py-3 sm:px-5">Fecha</th>
+                  <th scope="col" className="px-4 py-3">Fecha</th>
+                  <th scope="col" className="px-4 py-3 sm:px-5"><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -215,7 +219,12 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
                         </Badge>
                         {failReason && <p className="mt-1 max-w-[220px] text-meta text-ink-3">{failReason}</p>}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2 sm:px-5">{formatDate(p.created_at)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2">{formatDate(p.created_at)}</td>
+                      <td className="px-4 py-3 text-right sm:px-5">
+                        {canVoidPayment(p) && (
+                          <VoidPaymentButton paymentId={p.id} type={p.type} concept={[paymentConcept(p).title, paymentConcept(p).detail].filter(Boolean).join(' · ')} amount={p.amount} studentName={p.user?.name} />
+                        )}
+                      </td>
                     </tr>
                   )
                 })}

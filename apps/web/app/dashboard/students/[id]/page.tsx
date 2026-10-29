@@ -31,6 +31,8 @@ import { Avatar, List, ListRow, Stat } from '@/components/ui/list'
 import { paymentConcept, paymentStatus } from '@/lib/payment-concept'
 import { loadAvailableGroups } from '@/lib/available-groups'
 import { madridDayOfWeek } from '@/lib/madrid-time'
+import { VoidPaymentButton } from '@/components/void-payment-button'
+import { canVoidPayment } from '@/lib/payment-void'
 import { isPlaceholderEmail } from '@/lib/login-identifier'
 
 const roleLabel: Record<string, string> = {
@@ -45,6 +47,7 @@ const statusBadge: Record<string, { tone: 'success' | 'warn' | 'danger' | 'neutr
   unfinished: { tone: 'neutral', Icon: CircleOff },
   failed: { tone: 'danger', Icon: CircleAlert },
   refunded: { tone: 'neutral', Icon: Undo2 },
+  voided: { tone: 'neutral', Icon: Undo2 },
 }
 
 // Última fecha de la clase (mismo día de la semana) en o antes de `date`:
@@ -61,6 +64,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const supabase = createClient()
   const currentUser = await getAuthUser()
   const viewerRole = currentUser?.user_metadata?.role ?? ''
+  const canVoid = ['admin', 'super_admin'].includes(viewerRole)
   const clubId = await getClubId()
 
   const [
@@ -396,7 +400,8 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                     <th scope="col" className="px-4 py-3">Método</th>
                     <th scope="col" className="px-4 py-3 text-right">Importe</th>
                     <th scope="col" className="px-4 py-3">Estado</th>
-                    <th scope="col" className="px-4 py-3 sm:px-5">Fecha</th>
+                    <th scope="col" className="px-4 py-3">Fecha</th>
+                    <th scope="col" className="px-4 py-3 sm:px-5"><span className="sr-only">Acciones</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -417,7 +422,12 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                         <td className="px-4 py-3">
                           <Badge tone={st.tone}><st.Icon className="h-3.5 w-3.5" aria-hidden />{status.label}</Badge>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2 sm:px-5">{formatDate(p.created_at)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2">{formatDate(p.created_at)}</td>
+                        <td className="px-4 py-3 text-right sm:px-5">
+                          {canVoid && canVoidPayment(p) && (
+                            <VoidPaymentButton paymentId={p.id} type={p.type} concept={[concept.title, concept.detail].filter(Boolean).join(' · ')} amount={p.amount} />
+                          )}
+                        </td>
                       </tr>
                     )
                   })}
