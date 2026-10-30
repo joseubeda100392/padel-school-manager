@@ -9,8 +9,12 @@ import { courtBlocks, courtColumns, courtGridRange } from '@/lib/court-grid'
 import { hhmm, type GridClass, type GridColumn } from './timetable-grid'
 
 const HEADER_ROWS = 2
-const COLUMN_MIN_PX = 132
-const TIME_COLUMN_PX = 56
+// Estrecho para que una semana de 9-10 pistas quepa en un portátil sin
+// desplazarse; el texto de las tarjetas pasa de línea. Los días sin clases
+// (festivo, antes de empezar) solo ocupan lo justo para su cabecera.
+const COLUMN_MIN_PX = 84
+const EMPTY_COLUMN_PX = 64
+const TIME_COLUMN_PX = 48
 
 // Cuadrante de una semana: una columna por día y pista (solo las pistas con
 // clases ese día) y cada grupo ocupando sus medias horas, con nivel, alumnos y
@@ -32,6 +36,8 @@ export function CourtGrid({ columns, classes, schoolDays }: { columns: GridColum
   }
 
   const gridRow = (slot: number) => slot + HEADER_ROWS + 1
+  const colWidths = cols.map(c => (c.courtName === null ? `${EMPTY_COLUMN_PX}px` : `minmax(${COLUMN_MIN_PX}px, 1fr)`))
+  const minWidth = TIME_COLUMN_PX + cols.reduce((sum, c) => sum + (c.courtName === null ? EMPTY_COLUMN_PX : COLUMN_MIN_PX), 0)
   const colLine = (i: number) => (cols[i].firstOfDay ? 'border-l-2 border-l-line-strong' : 'border-l border-l-line')
 
   return (
@@ -39,9 +45,9 @@ export function CourtGrid({ columns, classes, schoolDays }: { columns: GridColum
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `${TIME_COLUMN_PX}px repeat(${cols.length}, minmax(${COLUMN_MIN_PX}px, 1fr))`,
+          gridTemplateColumns: `${TIME_COLUMN_PX}px ${colWidths.join(' ')}`,
           gridTemplateRows: `auto auto repeat(${slots}, minmax(30px, auto))`,
-          minWidth: TIME_COLUMN_PX + cols.length * COLUMN_MIN_PX,
+          minWidth,
         }}
       >
         <div className="sticky left-0 z-20 border-b border-line bg-surface-2" style={{ gridColumn: 1, gridRow: '1 / 3' }} />
@@ -54,7 +60,7 @@ export function CourtGrid({ columns, classes, schoolDays }: { columns: GridColum
               key={`d${col.key}`}
               aria-current={day.isToday ? 'date' : undefined}
               style={{ gridColumn: `${i + 2} / span ${col.daySpan}`, gridRow: 1 }}
-              className={`flex items-center justify-center gap-2 border-l-2 border-l-line-strong py-1.5 ${day.isToday ? 'bg-chrome text-white' : 'bg-surface-2 text-ink'}`}
+              className={`flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 border-l-2 border-l-line-strong px-1 py-1.5 ${day.isToday ? 'bg-chrome text-white' : 'bg-surface-2 text-ink'}`}
             >
               <span className={`text-label ${day.isToday ? 'text-chrome-ink-2' : 'text-ink-2'}`}>{day.label}</span>
               <span className="font-display text-heading tabular-nums">{day.dayNumber}</span>
@@ -81,7 +87,7 @@ export function CourtGrid({ columns, classes, schoolDays }: { columns: GridColum
             <div
               key={`t${s}`}
               style={{ gridColumn: 1, gridRow: gridRow(s) }}
-              className={`sticky left-0 z-10 border-b bg-surface pr-2 pt-1 text-right text-meta tabular-nums ${rowLine} ${m % 60 === 0 ? 'text-ink-2' : 'text-ink-3/70'}`}
+              className={`sticky left-0 z-10 border-b bg-surface pr-1.5 pt-1 text-right text-meta tabular-nums ${rowLine} ${m % 60 === 0 ? 'text-ink-2' : 'text-ink-3/70'}`}
             >
               {hhmm(m)}
             </div>,
@@ -99,7 +105,7 @@ export function CourtGrid({ columns, classes, schoolDays }: { columns: GridColum
           <div
             key={`k${cols[i].key}-${b.firstSlot}`}
             style={{ gridColumn: i + 2, gridRow: `${gridRow(b.firstSlot)} / ${gridRow(b.lastSlot)}` }}
-            className="relative z-[1] flex flex-col gap-1 p-1"
+            className="relative z-[1] flex min-w-0 flex-col gap-1 p-0.5"
           >
             {b.classes.map(c => <CourtCard key={c.id} c={c} />)}
           </div>
@@ -116,7 +122,7 @@ function CourtCard({ c }: { c: GridClass }) {
       href={c.href}
       title={`${c.code ? `${c.code} · ` : ''}${hhmm(c.startMin)}–${hhmm(c.endMin)} · ${c.courtName} · ${c.coachName}${c.level ? ` · ${c.level.name}` : ''} · ${c.occupancy}${c.alert ? ` · ${c.alert}` : ''}`}
       style={{ borderLeftColor: c.level?.color ?? undefined }}
-      className={`flex flex-1 flex-col gap-0.5 rounded-[6px] border border-l-4 px-1.5 py-1 text-left shadow-card transition-colors hover:border-line-strong ${
+      className={`flex min-w-0 flex-1 flex-col gap-0.5 break-words rounded-[6px] border border-l-[3px] px-1 py-1 text-left shadow-card transition-colors hover:border-line-strong ${
         c.forming ? 'border-dashed border-line-strong bg-surface-2' : 'border-line bg-surface'
       }`}
     >
