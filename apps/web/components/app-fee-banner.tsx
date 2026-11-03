@@ -42,12 +42,13 @@ function CopyValue({ label, value }: { label: string; value: string }) {
 }
 
 function PaymentDetails({ bank, concept }: { bank: AppFeeBank | null; concept: string }) {
-  if (!bank) return <p className="mt-1">Escríbenos y te pasamos los datos para la transferencia.</p>
+  if (!bank) return <p className="mt-1">Escríbenos y te pasamos los datos para el pago.</p>
   return (
     <div className="mt-1.5 flex flex-col gap-1 text-body">
       <span>Titular: <span className="font-medium">{bank.holder}</span></span>
       <CopyValue label="IBAN" value={bank.iban} />
       <CopyValue label="Concepto" value={concept} />
+      {bank.bizum && <CopyValue label="O por Bizum al" value={bank.bizum} />}
     </div>
   )
 }
@@ -94,7 +95,7 @@ export function AppFeeBanner({ status, bank, clubName, canNotify }: AppFeeBanner
 
   const notifyButton = canNotify && (
     <Button size="sm" variant="secondary" onClick={notify} loading={sending} className="w-full sm:w-auto">
-      Ya he hecho la transferencia
+      Ya he pagado
     </Button>
   )
 
@@ -103,17 +104,17 @@ export function AppFeeBanner({ status, bank, clubName, canNotify }: AppFeeBanner
       <Notice tone={status.overdue && !status.notified ? 'danger' : 'warn'} icon={<Landmark />} className="mb-4 print:hidden">
         <p className="font-medium">Cuota de ePadel School pendiente: {status.label} · {amount}</p>
         {status.notified ? (
-          <p className="mt-1">Nos has avisado de la transferencia. Este aviso se quitará cuando la recibamos.</p>
+          <p className="mt-1">Nos has avisado del pago. Este aviso se quitará cuando lo recibamos.</p>
         ) : (
           <>
             {status.locked && canNotify && (
               <p className="mt-1 font-medium">
                 Panel bloqueado por falta de pago: puedes ver tus datos, pero no dar altas, apuntar cobros ni cambiar clases
-                hasta que nos avises de la transferencia. Tus alumnos y monitores siguen usando la app con normalidad.
+                hasta que nos avises del pago. Tus alumnos y monitores siguen usando la app con normalidad.
               </p>
             )}
             <p className="mt-1">
-              {status.overdue ? `Vencida desde el ${due}.` : `Págala antes del ${due}.`}{bank && ' Haz una transferencia con estos datos:'}
+              {status.overdue ? `Vencida desde el ${due}.` : `Págala antes del ${due}.`}{bank && (bank.bizum ? ' Haz una transferencia o un Bizum con estos datos:' : ' Haz una transferencia con estos datos:')}
             </p>
             {status.overdue && lockDay && !status.locked && (
               <p className="mt-1">Si no nos llega aviso, desde el {lockDay} no podrás dar altas, apuntar cobros ni cambiar clases.</p>
@@ -141,7 +142,7 @@ export function AppFeeBanner({ status, bank, clubName, canNotify }: AppFeeBanner
         }
       >
         <div className="text-body text-ink-2">
-          <p>Haz la transferencia y pulsa «Ya he hecho la transferencia».</p>
+          <p>Haz el pago y pulsa «Ya he pagado».</p>
           {lockDay && !status.locked && (
             <p className="mt-1.5">
               Si no, desde el {lockDay} podrás seguir viendo tus datos, pero no dar altas, apuntar cobros ni cambiar clases.

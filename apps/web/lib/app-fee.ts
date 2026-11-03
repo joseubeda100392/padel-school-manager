@@ -9,7 +9,7 @@ import { monthsLabel } from '@/lib/payment-concept'
 export const APP_FEE_DUE_DAY = 5
 export const APP_FEE_REMINDER_AFTER_DAYS = 6
 export const APP_FEE_LOCK_AFTER_DAYS = 11
-// «Ya he hecho la transferencia» frena la ventana y el bloqueo solo estos días:
+// «Ya he pagado» frena la ventana y el bloqueo solo estos días:
 // si no llega el dinero (no lo marcamos pagado), vuelven.
 export const APP_FEE_NOTICE_VALID_DAYS = 5
 
@@ -29,7 +29,7 @@ export interface AppFeeStatus {
   lockDate: string | null
 }
 
-export interface AppFeeBank { holder: string; iban: string }
+export interface AppFeeBank { holder: string; iban: string; bizum: string | null }
 
 const MADRID_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' })
 
@@ -97,7 +97,7 @@ export function appFeeStatus(plan: AppFeePlan, records: AppFeeRecord[], today: s
 export function appFeeBank(): AppFeeBank | null {
   const holder = process.env.APP_FEE_HOLDER?.trim()
   const iban = process.env.APP_FEE_IBAN?.trim()
-  return holder && iban ? { holder, iban } : null
+  return holder && iban ? { holder, iban, bizum: process.env.APP_FEE_BIZUM?.trim() || null } : null
 }
 
 export async function loadAppFee(admin: SupabaseClient, clubId: string) {

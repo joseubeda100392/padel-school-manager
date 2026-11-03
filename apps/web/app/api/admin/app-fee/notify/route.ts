@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/utils'
 // Buzón de contacto de ePadel School, el mismo de las solicitudes de demo de la web.
 const NOTIFY_TO = ['contacto@epadelschool.com']
 
-// El admin del club avisa de que ha hecho la transferencia de los meses pendientes.
+// El admin del club avisa de que ha pagado (transferencia o Bizum) los meses pendientes.
 // Solo deja constancia (notified_at); la cuota la da por pagada el super admin.
 export async function POST() {
   const supabase = createClient()
@@ -49,10 +49,10 @@ export async function POST() {
   const total = formatCurrency(Math.round(Number(plan.amount) * months.length * 100))
   await sendEmail({
     to: NOTIFY_TO,
-    subject: `${clubName} dice que ha transferido la cuota (${label}, ${total})`,
-    html: `<p><b>${escapeHtml(clubName)}</b> ha pulsado «Ya he hecho la transferencia».</p>
+    subject: `${clubName} dice que ha pagado la cuota (${label}, ${total})`,
+    html: `<p><b>${escapeHtml(clubName)}</b> ha pulsado «Ya he pagado» (transferencia o Bizum).</p>
 <p>Meses: ${escapeHtml(label)}<br>Importe: ${escapeHtml(total)}<br>Avisó: ${escapeHtml(caller.name ?? '')} (${escapeHtml(caller.email ?? '')})</p>
-<p>Cuando llegue al banco, márcala como pagada en <a href="https://epadelschool.app/dashboard/clubs">Clubes → Cuota de la app</a>.</p>`,
+<p>Cuando te llegue, márcala como pagada en <a href="https://epadelschool.app/dashboard/clubs">Clubes → Cuota de la app</a>.</p>`,
   }).catch(e => console.error('[app-fee] correo de aviso', caller.club_id, e))
 
   return NextResponse.json({ ok: true, months })

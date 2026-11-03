@@ -46,7 +46,7 @@ export function AppFeeAdmin({ rows }: { rows: AppFeeClubRow[] }) {
 
   return (
     <Card>
-      <CardHeader title="Cuota de la app" description="Lo que paga cada club por transferencia. Marca el mes cuando llegue al banco." />
+      <CardHeader title="Cuota de la app" description="Lo que paga cada club por transferencia o Bizum. Marca el mes cuando te llegue." />
       <ul className="divide-y divide-line">
         {rows.map(r => (
           <li key={r.clubId} className="flex flex-col gap-2 px-4 py-3 sm:px-5">
@@ -71,7 +71,7 @@ export function AppFeeAdmin({ rows }: { rows: AppFeeClubRow[] }) {
             {r.pending.map(p => (
               <div key={p.month} className="flex flex-wrap items-center gap-2">
                 <span className="text-body text-ink-2">{monthsLabel([p.month])}</span>
-                {p.notified ? <Badge tone="warn">Dice que ha transferido</Badge> : p.overdue ? <Badge tone="danger">Vencida</Badge> : <Badge tone="neutral">Pendiente</Badge>}
+                {p.notified ? <Badge tone="warn">Dice que ha pagado</Badge> : p.overdue ? <Badge tone="danger">Vencida</Badge> : <Badge tone="neutral">Pendiente</Badge>}
                 <Button size="sm" variant="secondary" loading={busy === `${r.clubId}:${p.month}`} onClick={() => save(`${r.clubId}:${p.month}`, { clubId: r.clubId, month: p.month, paid: true })} className="w-full sm:w-auto">
                   Marcar pagada
                 </Button>
