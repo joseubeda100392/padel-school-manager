@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { AppFeeAdmin, type AppFeeClubRow } from '@/components/clubs/app-fee-admin'
-import { dueDateOf, madridToday, pendingAppFeeMonths, type AppFeeRecord } from '@/lib/app-fee'
+import { appFeeStatus, dueDateOf, madridToday, pendingAppFeeMonths, recentlyNotifiedMonths, type AppFeeRecord } from '@/lib/app-fee'
 
 const planLabel: Record<string, string> = {
   trial: 'Trial',
@@ -38,7 +38,7 @@ export default async function ClubsPage() {
   const [{ data: clubs }, { data: userCounts }, { data: feePlans }, { data: feePayments }] = await Promise.all([
     admin.from('clubs').select('id, name, slug, plan, is_active, created_at, network:networks(id, name)').order('created_at', { ascending: false }),
     admin.from('users').select('club_id').not('club_id', 'is', null),
-    admin.from('app_fee_plans').select('club_id, start_month, amount, first_due_date'),
+    admin.from('app_fee_plans').select('club_id, start_month, amount, first_due_date, lock_when_overdue'),
     admin.from('app_fee_payments').select('club_id, month, notified_at, paid_at'),
   ])
 
@@ -46,7 +46,7 @@ export default async function ClubsPage() {
   const feeRows: AppFeeClubRow[] = (feePlans ?? []).map((plan: any) => {
     const records = (feePayments ?? []).filter((p: any) => p.club_id === plan.club_id) as AppFeeRecord[]
     const pending = pendingAppFeeMonths(plan, records, today)
-    const notified = new Set(records.filter(r => r.notified_at && !r.paid_at).map(r => r.month.slice(0, 7)))
+    const notified = recentlyNotifiedMonths(records, today)
     const paid = records.filter(r => r.paid_at).map(r => r.month.slice(0, 7)).sort()
     return {
       clubId: plan.club_id,
@@ -56,6 +56,8 @@ export default async function ClubsPage() {
       pending: pending.map(m => ({ month: m, overdue: today > dueDateOf(m, plan), notified: notified.has(m) })),
       lastPaid: paid.at(-1) ?? null,
       notStarted: plan.start_month.slice(0, 7) > today.slice(0, 7),
+      lockWhenOverdue: !!plan.lock_when_overdue,
+      locked: !!appFeeStatus(plan, records, today)?.locked,
     }
   })
 

@@ -53,6 +53,42 @@ describe('appFeeStatus', () => {
   })
 })
 
+describe('ventana y solo lectura', () => {
+  const nov = { start_month: '2026-11-01', amount: 99 }
+
+  it('la ventana sale desde el día 11', () => {
+    expect(appFeeStatus(nov, [], '2026-11-10')!.reminder).toBe(false)
+    expect(appFeeStatus(nov, [], '2026-11-11')!.reminder).toBe(true)
+  })
+
+  it('solo lectura desde el día 16 y solo si el club lo tiene activado', () => {
+    expect(appFeeStatus(nov, [], '2026-11-20')!.locked).toBe(false)
+    const lock = { ...nov, lock_when_overdue: true }
+    expect(appFeeStatus(lock, [], '2026-11-15')!.locked).toBe(false)
+    expect(appFeeStatus(lock, [], '2026-11-16')!.locked).toBe(true)
+  })
+
+  it('avisar de la transferencia quita la ventana y el solo lectura', () => {
+    const lock = { ...nov, lock_when_overdue: true }
+    const s = appFeeStatus(lock, [{ month: '2026-11-01', notified_at: '2026-11-17T10:00:00Z', paid_at: null }], '2026-11-20')!
+    expect([s.reminder, s.locked]).toEqual([false, false])
+  })
+
+  it('el aviso de transferencia caduca a los 5 días si no se marca pagado', () => {
+    const lock = { ...nov, lock_when_overdue: true }
+    const rec = [{ month: '2026-11-01', notified_at: '2026-11-17T10:00:00Z', paid_at: null }]
+    expect(appFeeStatus(lock, rec, '2026-11-22')!.notified).toBe(true)
+    const s = appFeeStatus(lock, rec, '2026-11-23')!
+    expect([s.notified, s.reminder, s.locked]).toEqual([false, true, true])
+  })
+
+  it('el primer plazo de R3 también retrasa la ventana', () => {
+    const r3 = { ...plan, first_due_date: '2026-11-05' }
+    expect(appFeeStatus(r3, [], '2026-11-10')!.reminder).toBe(false)
+    expect(appFeeStatus(r3, [], '2026-11-11')!.reminder).toBe(true)
+  })
+})
+
 describe('madridToday', () => {
   it('usa la fecha de Madrid, no la UTC', () => {
     expect(madridToday(new Date('2026-10-31T23:30:00Z'))).toBe('2026-11-01')

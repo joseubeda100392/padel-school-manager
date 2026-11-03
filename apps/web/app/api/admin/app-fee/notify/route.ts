@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
-import { loadAppFee, madridToday, pendingAppFeeMonths } from '@/lib/app-fee'
+import { loadAppFee, madridToday, pendingAppFeeMonths, recentlyNotifiedMonths } from '@/lib/app-fee'
 import { escapeHtml, sendEmail } from '@/lib/email'
 import { monthsLabel } from '@/lib/payment-concept'
 import { formatCurrency } from '@/lib/utils'
@@ -25,9 +25,10 @@ export async function POST() {
 
   const { plan, records } = await loadAppFee(admin, caller.club_id)
   if (!plan) return NextResponse.json({ error: 'Tu club no tiene cuota de la app' }, { status: 400 })
-  const months = pendingAppFeeMonths(plan, records, madridToday())
+  const today = madridToday()
+  const months = pendingAppFeeMonths(plan, records, today)
   if (!months.length) return NextResponse.json({ ok: true, months: [] })
-  const alreadyNotified = new Set(records.filter(r => r.notified_at).map(r => r.month.slice(0, 7)))
+  const alreadyNotified = recentlyNotifiedMonths(records, today)
   if (months.every(m => alreadyNotified.has(m))) return NextResponse.json({ ok: true, months })
 
   const now = new Date().toISOString()

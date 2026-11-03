@@ -74,7 +74,11 @@ export function DashboardShell({ children, clubName, role, userName, features, s
       }
     >
       {appFee && <AppFeeBanner status={appFee.status} bank={appFee.bank} clubName={clubName ?? ''} canNotify={appFee.canNotify} />}
-      {children}
+      {appFee?.status.locked && appFee.canNotify ? (
+        // Cuota sin pagar con el bloqueo activado: el admin navega y consulta,
+        // pero todos los botones y campos del panel quedan desactivados.
+        <fieldset disabled className="m-0 min-w-0 border-0 p-0">{children}</fieldset>
+      ) : children}
     </AppShell>
   )
 }

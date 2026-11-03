@@ -16,6 +16,8 @@ export interface AppFeeClubRow {
   pending: { month: string; overdue: boolean; notified: boolean }[]
   lastPaid: string | null
   notStarted: boolean
+  lockWhenOverdue: boolean
+  locked: boolean
 }
 
 // Super admin: qué cuotas de la app debe cada club y confirmar las transferencias.
@@ -24,13 +26,13 @@ export function AppFeeAdmin({ rows }: { rows: AppFeeClubRow[] }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  async function setPaid(clubId: string, month: string, paid: boolean) {
-    setBusy(`${clubId}:${month}`)
+  async function save(key: string, payload: Record<string, unknown>) {
+    setBusy(key)
     setError('')
     const res = await fetch('/api/superadmin/app-fee', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clubId, month, paid }),
+      body: JSON.stringify(payload),
     }).catch(() => null)
     if (!res?.ok) {
       const body = await res?.json().catch(() => null)
@@ -54,12 +56,23 @@ export function AppFeeAdmin({ rows }: { rows: AppFeeClubRow[] }) {
                 {formatCurrency(Math.round(r.amount * 100))}/mes · desde {monthsLabel([r.startMonth])}
               </span>
               {r.notStarted ? <Badge tone="neutral">Empieza en {monthsLabel([r.startMonth])}</Badge> : !r.pending.length && <Badge tone="success">Al día</Badge>}
+              {r.locked && <Badge tone="danger">Panel bloqueado</Badge>}
             </div>
+            <label className="flex items-start gap-2 text-meta text-ink-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0"
+                checked={r.lockWhenOverdue}
+                disabled={busy === `${r.clubId}:lock`}
+                onChange={e => save(`${r.clubId}:lock`, { clubId: r.clubId, lockWhenOverdue: e.target.checked })}
+              />
+              <span>Bloquear su panel si pasan más de 10 días del vencimiento sin pagar (desmárcalo solo para hacer una excepción)</span>
+            </label>
             {r.pending.map(p => (
               <div key={p.month} className="flex flex-wrap items-center gap-2">
                 <span className="text-body text-ink-2">{monthsLabel([p.month])}</span>
                 {p.notified ? <Badge tone="warn">Dice que ha transferido</Badge> : p.overdue ? <Badge tone="danger">Vencida</Badge> : <Badge tone="neutral">Pendiente</Badge>}
-                <Button size="sm" variant="secondary" loading={busy === `${r.clubId}:${p.month}`} onClick={() => setPaid(r.clubId, p.month, true)} className="w-full sm:w-auto">
+                <Button size="sm" variant="secondary" loading={busy === `${r.clubId}:${p.month}`} onClick={() => save(`${r.clubId}:${p.month}`, { clubId: r.clubId, month: p.month, paid: true })} className="w-full sm:w-auto">
                   Marcar pagada
                 </Button>
               </div>
@@ -67,7 +80,7 @@ export function AppFeeAdmin({ rows }: { rows: AppFeeClubRow[] }) {
             {r.lastPaid && (
               <div className="flex flex-wrap items-center gap-2 text-meta text-ink-3">
                 <span>Último mes pagado: {monthsLabel([r.lastPaid])}</span>
-                <Button size="sm" variant="ghost" loading={busy === `${r.clubId}:${r.lastPaid}`} onClick={() => setPaid(r.clubId, r.lastPaid!, false)}>
+                <Button size="sm" variant="ghost" loading={busy === `${r.clubId}:${r.lastPaid}`} onClick={() => save(`${r.clubId}:${r.lastPaid}`, { clubId: r.clubId, month: r.lastPaid, paid: false })}>
                   Deshacer
                 </Button>
               </div>

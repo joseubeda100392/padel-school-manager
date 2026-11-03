@@ -15,12 +15,20 @@ export async function POST(req: NextRequest) {
   const { data: caller } = await admin.from('users').select('role').eq('id', user.id).single()
   if (caller?.role !== 'super_admin') return NextResponse.json({ error: 'Solo super admin' }, { status: 403 })
 
-  const { data: body, error: badRequest } = await parseBody(req, z.object({
-    clubId: z.string().uuid(),
-    month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
-    paid: z.boolean(),
-  }))
+  const { data: body, error: badRequest } = await parseBody(req, z.union([
+    z.object({ clubId: z.string().uuid(), month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/), paid: z.boolean() }),
+    z.object({ clubId: z.string().uuid(), lockWhenOverdue: z.boolean() }),
+  ]))
   if (badRequest) return badRequest
+
+  if ('lockWhenOverdue' in body) {
+    const { data, error } = await admin.from('app_fee_plans').update({ lock_when_overdue: body.lockWhenOverdue }).eq('club_id', body.clubId).select('club_id')
+    if (error || !data?.length) {
+      if (error) console.error('[app-fee] interruptor de bloqueo', body, error)
+      return NextResponse.json({ error: error ? 'No se pudo guardar' : 'Ese club no tiene cuota de la app' }, { status: error ? 500 : 400 })
+    }
+    return NextResponse.json({ ok: true })
+  }
 
   const { data: plan } = await admin.from('app_fee_plans').select('amount').eq('club_id', body.clubId).maybeSingle()
   if (!plan) return NextResponse.json({ error: 'Ese club no tiene cuota de la app' }, { status: 400 })
