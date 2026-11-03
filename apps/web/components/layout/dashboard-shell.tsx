@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { InstallBanner } from '@/components/install-banner'
 import { PushNotificationProvider } from '@/components/push-notification-provider'
+import { AppFeeBanner } from '@/components/app-fee-banner'
+import type { AppFeeBank, AppFeeStatus } from '@/lib/app-fee'
 import type { ClubFeatures } from '@/lib/get-club-features'
 import { AppShell } from './app-shell'
 import { adminNav } from './nav-config'
@@ -19,9 +21,10 @@ interface DashboardShellProps {
   network?: SwitcherNetwork
   currentClubId?: string
   alsoCoach?: boolean
+  appFee?: { status: AppFeeStatus; bank: AppFeeBank | null; canNotify: boolean }
 }
 
-export function DashboardShell({ children, clubName, role, userName, features, saActiveClub, network, currentClubId, alsoCoach }: DashboardShellProps) {
+export function DashboardShell({ children, clubName, role, userName, features, saActiveClub, network, currentClubId, alsoCoach, appFee }: DashboardShellProps) {
   const router = useRouter()
   const isSuperAdmin = role === 'super_admin'
   const managingClub = isSuperAdmin && !!saActiveClub && !!clubName
@@ -70,6 +73,7 @@ export function DashboardShell({ children, clubName, role, userName, features, s
         </>
       }
     >
+      {appFee && <AppFeeBanner status={appFee.status} bank={appFee.bank} clubName={clubName ?? ''} canNotify={appFee.canNotify} />}
       {children}
     </AppShell>
   )

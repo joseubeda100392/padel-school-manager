@@ -11,6 +11,8 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
+import { AppFeeAdmin, type AppFeeClubRow } from '@/components/clubs/app-fee-admin'
+import { dueDateOf, madridToday, pendingAppFeeMonths, type AppFeeRecord } from '@/lib/app-fee'
 
 const planLabel: Record<string, string> = {
   trial: 'Trial',
@@ -33,10 +35,29 @@ export default async function ClubsPage() {
   const { data: dbUser } = await admin.from('users').select('role').eq('id', user.id).single()
   if (dbUser?.role !== 'super_admin') redirect('/dashboard')
 
-  const [{ data: clubs }, { data: userCounts }] = await Promise.all([
+  const [{ data: clubs }, { data: userCounts }, { data: feePlans }, { data: feePayments }] = await Promise.all([
     admin.from('clubs').select('id, name, slug, plan, is_active, created_at, network:networks(id, name)').order('created_at', { ascending: false }),
     admin.from('users').select('club_id').not('club_id', 'is', null),
+    admin.from('app_fee_plans').select('club_id, start_month, amount, first_due_date'),
+    admin.from('app_fee_payments').select('club_id, month, notified_at, paid_at'),
   ])
+
+  const today = madridToday()
+  const feeRows: AppFeeClubRow[] = (feePlans ?? []).map((plan: any) => {
+    const records = (feePayments ?? []).filter((p: any) => p.club_id === plan.club_id) as AppFeeRecord[]
+    const pending = pendingAppFeeMonths(plan, records, today)
+    const notified = new Set(records.filter(r => r.notified_at && !r.paid_at).map(r => r.month.slice(0, 7)))
+    const paid = records.filter(r => r.paid_at).map(r => r.month.slice(0, 7)).sort()
+    return {
+      clubId: plan.club_id,
+      clubName: clubs?.find((c: any) => c.id === plan.club_id)?.name ?? plan.club_id,
+      amount: Number(plan.amount),
+      startMonth: plan.start_month.slice(0, 7),
+      pending: pending.map(m => ({ month: m, overdue: today > dueDateOf(m, plan), notified: notified.has(m) })),
+      lastPaid: paid.at(-1) ?? null,
+      notStarted: plan.start_month.slice(0, 7) > today.slice(0, 7),
+    }
+  })
 
   const countMap: Record<string, number> = {}
   userCounts?.forEach((u: any) => {
@@ -55,6 +76,8 @@ export default async function ClubsPage() {
           </Link>
         }
       />
+
+      <AppFeeAdmin rows={feeRows} />
 
       <Card className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de clubs">
         <table className="w-full min-w-[600px]">

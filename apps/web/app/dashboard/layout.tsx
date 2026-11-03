@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { getCoordinatorNetwork } from '@/lib/network'
+import { appFeeBank, appFeeStatus, loadAppFee, madridToday } from '@/lib/app-fee'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -33,16 +34,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const effectiveClubId = saActiveClub ?? (role !== 'super_admin' ? clubId : undefined)
 
-  const [clubData, features, network] = await Promise.all([
+  const [clubData, features, network, appFee] = await Promise.all([
     effectiveClubId
       ? admin.from('clubs').select('name').eq('id', effectiveClubId).single()
       : Promise.resolve({ data: null }),
     getClubFeatures(effectiveClubId),
     role === 'admin' ? getCoordinatorNetwork(admin, user.id) : Promise.resolve(null),
+    effectiveClubId ? loadAppFee(admin, effectiveClubId) : Promise.resolve(null),
   ])
 
   const clubName = (clubData?.data as any)?.name ?? undefined
   const userName = dbProfile?.name ?? user.user_metadata?.name ?? undefined
+  const feeStatus = appFee?.plan ? appFeeStatus(appFee.plan, appFee.records, madridToday()) : null
 
   return (
     <DashboardShell
@@ -54,6 +57,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       network={network ? { name: network.name, clubs: network.clubs } : undefined}
       currentClubId={effectiveClubId}
       alsoCoach={role === 'admin' && (dbProfile as any)?.also_coach === true}
+      appFee={feeStatus ? { status: feeStatus, bank: appFeeBank(), canNotify: role === 'admin' } : undefined}
     >
       {children}
     </DashboardShell>

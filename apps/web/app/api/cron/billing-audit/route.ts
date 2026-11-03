@@ -3,10 +3,10 @@ import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
+import { sendEmail } from '@/lib/email'
 import { findBillingDiscrepancies, type AuditClub, type BillingDiscrepancy } from '@/lib/billing-audit'
 
 const REPORT_TO = ['joseubeda10@gmail.com']
-const REPORT_FROM = 'ePadel School <notificaciones@epadelschool.com>'
 const PAGE = 1000
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 
@@ -62,17 +62,10 @@ function reportHtml(items: BillingDiscrepancy[]): string {
 }
 
 async function sendReportEmail(items: BillingDiscrepancy[]): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) throw new Error('Falta RESEND_API_KEY')
   const subject = items.length
     ? `Cobros: ${items.length} descuadre${items.length === 1 ? '' : 's'} para revisar`
     : 'Cobros: todo cuadra'
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: REPORT_FROM, to: REPORT_TO, subject, html: reportHtml(items) }),
-  })
-  if (!res.ok) throw new Error(`Resend respondió ${res.status}: ${await res.text()}`)
+  await sendEmail({ to: REPORT_TO, subject, html: reportHtml(items) })
 }
 
 // Solo lee y avisa, nunca corrige: cada descuadre lo revisa una persona.
