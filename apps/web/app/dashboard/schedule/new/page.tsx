@@ -42,7 +42,10 @@ export default function NewSchedulePage() {
       fetch('/api/admin/coaches').then(r => r.json()),
       fetch('/api/admin/levels').then(r => r.json()),
       fetch('/api/admin/club-features').then(r => r.json()).catch(() => ({})),
-    ]).then(([courtsData, coachesData, levelsData, featData]) => {
+      fetch('/api/admin/schedules/next-code').then(r => r.json()).catch(() => ({})),
+    ]).then(([courtsData, coachesData, levelsData, featData, codeData]) => {
+      // Solo si el admin no ha escrito ya un código mientras cargaba.
+      if (codeData?.code) setForm(f => (f.code ? f : { ...f, code: codeData.code }))
       if (courtsData.courts) setCourts(courtsData.courts)
       if (coachesData.coaches) setCoaches(coachesData.coaches)
       if (levelsData.levels) setLevels(levelsData.levels)
@@ -147,7 +150,7 @@ export default function NewSchedulePage() {
             </Field>
           </div>
 
-          <Field label="Código del grupo" hint="Opcional. El nombre con el que el club conoce el grupo, por ejemplo GP015. Sale en el Cuadrante.">
+          <Field label="Código del grupo" hint="Opcional. El nombre con el que el club conoce el grupo, por ejemplo GP015. Sale en el Cuadrante. Se propone el siguiente al último que usa el club; puedes cambiarlo.">
             <Input value={form.code} maxLength={20} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="GP015" autoComplete="off" />
           </Field>
 
