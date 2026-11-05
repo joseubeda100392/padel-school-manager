@@ -60,7 +60,11 @@ function lastClassOnOrBefore(startTime: string, date: string): string {
   return d.toISOString().slice(0, 10)
 }
 
-export default async function StudentDetailPage({ params }: { params: { id: string } }) {
+export default async function StudentDetailPage({ params, searchParams }: { params: { id: string }; searchParams: { desde?: string } }) {
+  // Vuelve a la clase desde la que se abrió (solo rutas de clases del panel).
+  const back = searchParams.desde && /^\/dashboard\/schedule\/[0-9a-f-]{36}$/.test(searchParams.desde)
+    ? { href: searchParams.desde, label: 'Clase' }
+    : { href: '/dashboard/students', label: 'Usuarios' }
   const admin = getAdminClient()
   const supabase = createClient()
   const currentUser = await getAuthUser()
@@ -144,7 +148,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   if (studentError || !student) {
     return (
       <div className="mx-auto w-full max-w-4xl space-y-4">
-        <PageHeader title="Ficha del usuario" back={{ href: '/dashboard/students', label: 'Usuarios' }} />
+        <PageHeader title="Ficha del usuario" back={back} />
         <Notice tone="danger" icon={<CircleAlert />}>
           <p className="font-medium">No se ha podido cargar el usuario</p>
           <p className="text-meta">{studentError?.message ?? 'No encontrado'}</p>
@@ -209,7 +213,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <DevError errors={[makeupsError?.message]} />
-      <PageHeader title="Ficha del usuario" back={{ href: '/dashboard/students', label: 'Usuarios' }} />
+      <PageHeader title="Ficha del usuario" back={back} />
 
       {actsAsStudent && <ScheduledBajaNotice studentId={student.id as string} groups={bajaGroups} />}
 

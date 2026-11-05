@@ -18,6 +18,29 @@ import type { AvailableGroup } from '@/lib/available-groups'
 import { dayBefore, madridToday } from '@/lib/enrollment-window'
 import { getDayOfWeek, formatCurrency } from '@/lib/utils'
 import { CollectFeeSheet } from '@/components/collect-fee-sheet'
+import { EuroInput } from '@/components/ui/euro-input'
+import Link from 'next/link'
+import { isPlaceholderEmail } from '@/lib/login-identifier'
+
+// Nombre que lleva a la ficha del alumno (y vuelve a esta clase) y su
+// teléfono para llamar sin pasar por Usuarios.
+function StudentLink({ student, scheduleId }: { student: { id: string; name: string; email: string; phone?: string | null }; scheduleId: string }) {
+  return (
+    <>
+      <Link
+        href={`/dashboard/students/${student.id}?desde=${encodeURIComponent(`/dashboard/schedule/${scheduleId}`)}`}
+        className="block truncate text-[0.9375rem] font-medium text-ink underline-offset-2 hover:underline"
+      >
+        {student.name}
+      </Link>
+      <p className="truncate text-meta text-ink-3">
+        {student.phone && <a href={`tel:${student.phone.replace(/\s/g, '')}`} className="text-ink-2 underline-offset-2 hover:underline">{student.phone}</a>}
+        {student.phone && !isPlaceholderEmail(student.email) && ' · '}
+        {!isPlaceholderEmail(student.email) && student.email}
+      </p>
+    </>
+  )
+}
 
 interface Enrollment {
   id: string
@@ -29,7 +52,7 @@ interface Enrollment {
   status: string
   start_date?: string | null
   end_date?: string | null
-  student: { id: string; name: string; email: string }
+  student: { id: string; name: string; email: string; phone?: string | null }
 }
 
 interface CourtPricing {
@@ -514,8 +537,7 @@ export default function GroupEnrollment({
                 <div key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-4 opacity-80 sm:px-5">
                   <Avatar name={e.student.name} />
                   <div className="min-w-0 flex-1 basis-40">
-                    <p className="truncate text-[0.9375rem] font-medium text-ink">{e.student.name}</p>
-                    <p className="truncate text-meta text-ink-3">{e.student.email}</p>
+                    <StudentLink student={e.student} scheduleId={scheduleId} />
                   </div>
                   <Badge tone="neutral">
                     <CalendarX className="h-3.5 w-3.5" aria-hidden />
@@ -530,8 +552,7 @@ export default function GroupEnrollment({
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <Avatar name={e.student.name} />
                   <div className="min-w-0 flex-1 basis-40">
-                    <p className="truncate text-[0.9375rem] font-medium text-ink">{e.student.name}</p>
-                    <p className="truncate text-meta text-ink-3">{e.student.email}</p>
+                    <StudentLink student={e.student} scheduleId={scheduleId} />
                     {(isPendingBaja || isPendingAlta) && (
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {isPendingBaja && (
@@ -553,13 +574,11 @@ export default function GroupEnrollment({
                   <div className="flex flex-wrap items-center gap-2">
                     {enablePayments && (editingPriceId === e.id ? (
                       <div className="flex items-center gap-1">
-                        <Input
-                          type="text"
-                          inputMode="decimal"
+                        <EuroInput
+                          cents={editingPriceValue}
+                          onCents={setEditingPriceValue}
                           aria-label="Cuota mensual en euros"
                           onFocus={e => e.target.select()}
-                          value={editingPriceValue === 0 ? '' : String(editingPriceValue / 100)}
-                          onChange={(ev) => setEditingPriceValue(Math.round(Number(ev.target.value) * 100))}
                           className="w-24 tabular-nums"
                           autoFocus
                         />
@@ -585,13 +604,11 @@ export default function GroupEnrollment({
 
                     {enableClassValidation && enablePayments && (editingPerClassId === e.id ? (
                       <div className="flex items-center gap-1">
-                        <Input
-                          type="text"
-                          inputMode="decimal"
+                        <EuroInput
+                          cents={editingPerClassValue}
+                          onCents={setEditingPerClassValue}
                           aria-label="Precio por clase en euros"
                           onFocus={ev => ev.target.select()}
-                          value={editingPerClassValue === 0 ? '' : String(editingPerClassValue / 100)}
-                          onChange={(ev) => setEditingPerClassValue(Math.round(Number(ev.target.value) * 100))}
                           className="w-24 tabular-nums"
                           autoFocus
                         />
@@ -840,14 +857,10 @@ export default function GroupEnrollment({
           )}
           {enablePayments && (
             <Field label="Precio al mes (€)" className="w-full sm:w-32">
-              <Input
-                type="text"
-                inputMode="numeric"
+              <EuroInput
+                cents={monthlyPrice}
+                onCents={c => { setMonthlyPrice(c); setSelectedTariff('') }}
                 onFocus={e => e.target.select()}
-                min={0}
-                step={0.5}
-                value={monthlyPrice / 100}
-                onChange={(e) => { setMonthlyPrice(Math.round(Number(e.target.value) * 100)); setSelectedTariff('') }}
                 className="tabular-nums"
               />
             </Field>

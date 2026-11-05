@@ -17,6 +17,11 @@ import { Stat } from '@/components/ui/list'
 import { UnpaidList } from '@/app/dashboard/payments/unpaid-list'
 import { MonthNavigator } from '@/app/dashboard/payments/month-navigator'
 import { DepositList } from './deposit-list'
+import { StudentSearch } from './student-search'
+import Link from 'next/link'
+import { Receipt } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
+import { isPlaceholderEmail } from '@/lib/login-identifier'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
 const TZ = 'Europe/Madrid'
@@ -44,7 +49,7 @@ export default async function CajaPage({ searchParams }: { searchParams: { month
   const monthLabel = `${MONTHS[month0]} ${year}`
 
   const since = new Date(Date.now() - 36 * 3600 * 1000).toISOString()
-  const [pending, { data: recent }, { data: students }] = await Promise.all([
+  const [pending, { data: recent }, { data: students }, { data: allStudents }] = await Promise.all([
     features.enable_payments
       ? loadPendingFees(admin, clubId, year, month0, billingStartDate, todaySpain)
       : Promise.resolve({ items: [], error: null, billingActive: false }),
@@ -65,6 +70,13 @@ export default async function CajaPage({ searchParams }: { searchParams: { month
           .or('role.eq.student,also_student.eq.true')
           .order('name')
       : Promise.resolve({ data: [] as any[] }),
+    admin
+      .from('users')
+      .select('id, name, email, phone')
+      .eq('club_id', clubId)
+      .eq('is_active', true)
+      .or('role.eq.student,also_student.eq.true')
+      .order('name'),
   ])
 
   // «Hoy» en hora de Madrid.
@@ -106,11 +118,20 @@ export default async function CajaPage({ searchParams }: { searchParams: { month
                     {' · '}{PAYMENT_METHODS[(p.metadata?.method ?? 'cash') as keyof typeof PAYMENT_METHODS]?.label ?? 'Efectivo'}
                     {' · '}<span className="font-medium text-ink">{formatCurrency(p.amount)}</span>
                   </span>
+                  <Link href={`/ticket/${p.id}`} target="_blank" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+                    <Receipt className="h-4 w-4" aria-hidden />
+                    Ticket
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
         </CardBody>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader title="Buscar alumno" description="Sus cuotas, su fianza y lo que ha pagado." />
+        <StudentSearch students={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: isPlaceholderEmail(s.email) ? null : s.email, phone: s.phone ?? null }))} />
       </Card>
 
       {features.enable_payments && (

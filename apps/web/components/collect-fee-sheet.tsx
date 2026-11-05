@@ -10,6 +10,7 @@ import { Notice } from '@/components/ui/feedback'
 import { billingMonthStr, feeMonthOptions } from '@/lib/fee-months'
 import { formatCurrency } from '@/lib/utils'
 import type { InClubMethod } from '@/lib/payment-method'
+import { centsToEurosText, eurosToCents } from '@/lib/money'
 
 export interface CollectFeeEnrollment {
   id: string
@@ -18,11 +19,8 @@ export interface CollectFeeEnrollment {
   monthly_price: number
 }
 
-const toEuros = (cents: number) => (cents / 100).toFixed(2).replace('.', ',').replace(/,00$/, '')
-const toCents = (text: string) => {
-  const n = Number(text.trim().replace(',', '.'))
-  return text.trim() === '' || !Number.isFinite(n) || n < 0 ? null : Math.round(n * 100)
-}
+const toEuros = centsToEurosText
+const toCents = eurosToCents
 
 // Cobro en el club de la cuota de un grupo: qué meses (siempre en orden, el
 // primero es el más antiguo que debe), cuánto y cómo. Se usa desde Pagos y

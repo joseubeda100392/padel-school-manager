@@ -5,6 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { canVoidPayment, previousPaidUntil, type VoidInfo } from '@/lib/payment-void'
+import { CASHIER_ROLE, canCollectFees } from '@/lib/cashier'
 
 type Admin = ReturnType<typeof getAdminClient>
 
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const admin = getAdminClient()
   const { data: caller } = await admin.from('users').select('role, club_id, name').eq('id', user.id).single()
-  if (!caller || !['admin', 'super_admin'].includes(caller.role)) {
+  if (!caller || !canCollectFees(caller.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -33,6 +34,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .single()
   if (!payment || (caller.role !== 'super_admin' && payment.club_id !== caller.club_id)) {
     return NextResponse.json({ error: 'Cobro no encontrado' }, { status: 404 })
+  }
+  // El cobrador solo deshace sus propios cobros de cuotas, por si se equivocó.
+  if (caller.role === CASHIER_ROLE && (payment.type !== 'fixed_group_month' || (payment.metadata as any)?.collected_by !== user.id)) {
+    return NextResponse.json({ error: 'Solo puedes anular las cuotas que has cobrado tú. Para otras, avisa al club.' }, { status: 403 })
   }
   if (!canVoidPayment(payment)) {
     return NextResponse.json({

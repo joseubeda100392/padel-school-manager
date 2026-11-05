@@ -16,6 +16,7 @@ import { List } from '@/components/ui/list'
 import { useConfirm } from '@/components/ui/confirm'
 import { MoveGroupPanel } from '@/components/move-group-panel'
 import { madridToday } from '@/lib/enrollment-window'
+import { EuroInput } from '@/components/ui/euro-input'
 
 interface Enrollment {
   id: string
@@ -150,13 +151,11 @@ export function StudentEnrollments({
 
               {editingId === e.id ? (
                 <div className="flex items-center gap-1">
-                  <Input
-                    type="text"
-                    inputMode="decimal"
+                  <EuroInput
+                    cents={editingPrice}
+                    onCents={setEditingPrice}
                     aria-label="Cuota mensual en euros"
                     onFocus={e => e.target.select()}
-                    value={editingPrice === 0 ? '' : String(editingPrice / 100)}
-                    onChange={(ev) => setEditingPrice(Math.round(Number(ev.target.value) * 100))}
                     className="w-24 tabular-nums"
                     autoFocus
                   />

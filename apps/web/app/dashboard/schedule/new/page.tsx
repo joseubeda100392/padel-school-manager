@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card'
 import { Field, Input, Select } from '@/components/ui/field'
 import { Notice } from '@/components/ui/feedback'
 import { createClient } from '@/lib/supabase/client'
+import { EuroInput } from '@/components/ui/euro-input'
 
 export default function NewSchedulePage() {
   const [courts, setCourts] = useState<any[]>([])
@@ -274,14 +275,10 @@ export default function NewSchedulePage() {
               </div>
 
               <Field label="Precio por clase (€)" hint="Deja el campo vacío para usar el precio general del club.">
-                <Input
-                  type="text"
-                  inputMode="numeric"
+                <EuroInput
+                  cents={form.price_cents}
+                  onCents={c => setForm({ ...form, price_cents: c })}
                   onFocus={e => e.target.select()}
-                  min={0}
-                  step={0.5}
-                  value={form.price_cents === 0 ? '' : form.price_cents / 100}
-                  onChange={e => setForm({ ...form, price_cents: Math.round(Number(e.target.value) * 100) })}
                   placeholder="Precio general del club"
                   className="tabular-nums"
                 />

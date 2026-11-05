@@ -102,7 +102,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
       .order('class_date'),
     admin
       .from('group_enrollments')
-      .select('id, monthly_price, price_per_class_cents, court_pricing, discount_classes_pending, paid_until, status, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, current_level_id)')
+      .select('id, monthly_price, price_per_class_cents, court_pricing, discount_classes_pending, paid_until, status, start_date, end_date, student:users!group_enrollments_student_id_fkey(id, name, email, phone, current_level_id)')
       .eq('schedule_id', params.id)
       // Las terminadas ('ended') solo para el historial: el roster de abajo se
       // filtra por la fecha que se está viendo, así que en una fecha pasada
@@ -337,7 +337,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
             status: e.status,
             start_date: e.start_date,
             end_date: e.end_date,
-            student: { id: e.student?.id, name: e.student?.name, email: e.student?.email },
+            student: { id: e.student?.id, name: e.student?.name, email: e.student?.email, phone: e.student?.phone ?? null },
           }))}
           initialExclusions={exclusionsByEnrollment}
           availableStudents={(allStudents ?? []).map((s: any) => ({ id: s.id, name: s.name, email: s.email }))}

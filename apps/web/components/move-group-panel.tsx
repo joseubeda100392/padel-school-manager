@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Select } from '@/components/ui/field'
 import { useConfirm } from '@/components/ui/confirm'
 import { StartDatePicker } from '@/components/start-date-picker'
+import { EuroInput } from '@/components/ui/euro-input'
 
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('es-ES')
 
@@ -105,12 +106,10 @@ export function MoveGroupPanel({
         </Select>
         <StartDatePicker value={date} onChange={setDate} todayLabel="Desde ya" />
         <label className="flex items-center gap-1.5 text-meta text-ink-2">
-          <Input
-            type="text"
-            inputMode="decimal"
+          <EuroInput
+            cents={price}
+            onCents={setPrice}
             onFocus={ev => ev.target.select()}
-            value={price === 0 ? '' : String(price / 100)}
-            onChange={(ev) => setPrice(Math.round(Number(ev.target.value) * 100))}
             className="w-24"
             aria-label="Cuota en el grupo nuevo"
           />
