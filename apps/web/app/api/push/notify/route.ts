@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
@@ -28,7 +29,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
-    const clubId = adminProfile.club_id
+    // Siempre a un solo club: el del admin o, para el superadmin, el club que
+    // tiene abierto. Sin club no se envía (antes iba a los alumnos de todos).
+    const clubId: string | null = adminProfile.role === 'super_admin'
+      ? cookies().get('sa_active_club')?.value ?? null
+      : adminProfile.club_id
+    if (!clubId) {
+      return NextResponse.json({ error: 'Elige primero el club al que quieres enviar el aviso.' }, { status: 400 })
+    }
 
     const { title, body, url, target, levelId }: {
       title: string
@@ -46,12 +54,12 @@ export async function POST(req: NextRequest) {
 
     if (target === 'all') {
       let q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true).limit(10000)
-      const { data } = await (clubId ? q.eq('club_id', clubId) : q)
+      const { data } = await q.eq('club_id', clubId)
       userIds = (data ?? []).map((u: any) => u.id)
 
     } else if (target === 'level' && levelId) {
       let q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true).eq('current_level_id', levelId).limit(10000)
-      const { data } = await (clubId ? q.eq('club_id', clubId) : q)
+      const { data } = await q.eq('club_id', clubId)
       userIds = (data ?? []).map((u: any) => u.id)
 
     } else if (target === 'payment_pending') {
@@ -66,9 +74,7 @@ export async function POST(req: NextRequest) {
         .or(`paid_until.is.null,paid_until.lt.${endOfMonth}`)
         .limit(10000)
 
-      if (clubId) q = q.eq('club_id', clubId)
-
-      const { data } = await q
+      const { data } = await q.eq('club_id', clubId)
       userIds = [...new Set((data ?? []).map((e: any) => e.student_id))]
 
     } else if (target === 'bag_pending') {
@@ -78,8 +84,7 @@ export async function POST(req: NextRequest) {
         .or('balance_60.gt.0,balance_90.gt.0')
         .limit(10000)
 
-      if (clubId) q = q.eq('club_id', clubId)
-      const { data } = await q
+      const { data } = await q.eq('club_id', clubId)
       userIds = (data ?? []).map((b: any) => b.user_id)
     }
 
