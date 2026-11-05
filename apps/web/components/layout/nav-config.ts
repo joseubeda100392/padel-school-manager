@@ -144,6 +144,16 @@ export function coachNav({ features }: { features?: ClubFeatures }): AppNav {
   )
 }
 
+// Cobrador: solo la Caja (cobrar mensualidades, fianzas y su caja del día).
+export function cashierNav(): AppNav {
+  return build(
+    undefined,
+    [{ title: 'Caja', items: [{ href: '/caja', description: 'Cobrar mensualidades y fianzas', label: 'Cobrar', icon: CreditCard, exact: true }] }],
+    ['/caja'],
+    '/caja/mas',
+  )
+}
+
 export function adminNav({ features, isSuperAdmin, networkName }: { features?: ClubFeatures; isSuperAdmin: boolean; networkName?: string }): AppNav {
   return build(
     features,

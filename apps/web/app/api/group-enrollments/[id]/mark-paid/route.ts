@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { nextPaidUntilForEnrollment } from '@/lib/billing-cycle'
 import { IN_CLUB_METHODS } from '@/lib/payment-method'
 import { MAX_FEE_MONTHS, billingMonthStr, splitAmount } from '@/lib/fee-months'
+import { CASHIER_ROLE, canCollectFees } from '@/lib/cashier'
 
 const bodySchema = z.object({
   method: z.enum(IN_CLUB_METHODS).default('cash'),
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const admin = getAdminClient()
   const { data: adminUser } = await admin.from('users').select('role, club_id').eq('id', user.id).single()
-  if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
+  if (!adminUser || !canCollectFees(adminUser.role)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
@@ -43,7 +44,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (enrollmentErr) return NextResponse.json({ error: 'Error al leer la inscripción: ' + enrollmentErr.message }, { status: 500 })
   if (!enrollment) return NextResponse.json({ error: 'Inscripción no encontrada' }, { status: 404 })
 
-  if (adminUser.role !== 'super_admin' && enrollment.club_id && enrollment.club_id !== adminUser.club_id) {
+  // El cobrador, como el admin, solo cobra en su club; una inscripción sin
+  // club solo la cobra un admin (datos antiguos).
+  if (adminUser.role !== 'super_admin' && (enrollment.club_id ? enrollment.club_id !== adminUser.club_id : adminUser.role === CASHIER_ROLE)) {
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
   }
 
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     type: 'fixed_group_month',
     status: 'succeeded',
     metadata: {
-      enrollment_id: params.id, method, paid_until: until,
+      enrollment_id: params.id, method, paid_until: until, collected_by: user.id,
       prev_paid_until: i === 0 ? enrollment.paid_until : coveredUntil[i - 1],
       ...(until.slice(0, 7) > thisMonth ? { advance: true } : {}),
       ...(i === 0 && discountCents > 0 ? { discount_applied_cents: discountCents, discount_classes: pendingDiscount } : {}),

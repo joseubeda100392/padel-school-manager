@@ -12,6 +12,7 @@ import { DevError } from '@/components/dev-error'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { currentBillingMonth, lastDayOfMonthStr } from '@/lib/billing-cycle'
 import { loadMonthPayments } from '@/lib/payments-month'
+import { loadPendingFees } from '@/lib/pending-fees'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
 import { CalendarClock, CircleAlert, Printer } from 'lucide-react'
@@ -35,7 +36,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   const billingStartDate: string | null = (clubConfigRow as any)?.config?.billing_start_date ?? null
-  const billingActive = !billingStartDate || todaySpain >= billingStartDate
 
   // Por defecto (sin ?month=) no abrir en el mes de calendario real, sino en
   // el mes que ya toca facturar — a menos de 5 días de fin de mes, el mes de
@@ -50,16 +50,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const selectedMonth = selectedDate.getMonth()
   const monthLabel = `${MONTHS[selectedMonth]} ${selectedYear}`
 
-  const [monthPayments, unpaidResult] = await Promise.all([
+  const [monthPayments, pending] = await Promise.all([
     loadMonthPayments(admin, clubId, selectedYear, selectedMonth),
-    billingActive
-      ? admin.rpc('get_pending_payments', {
-          p_club_id: clubId ?? null,
-          p_year: selectedYear,
-          p_month: selectedMonth + 1,
-        })
-      : Promise.resolve({ data: [] as any[], error: null }),
+    loadPendingFees(admin, clubId, selectedYear, selectedMonth, billingStartDate, todaySpain),
   ])
+  const { billingActive, items: unpaid, error: errUnpaid } = pending
 
   const { data: pendingCharges } = clubId
     ? await admin
@@ -75,29 +70,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: { m
   const totalCount = monthPayments.count
   const payments = [...allPayments].sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 200)
 
-  const errUnpaid = (unpaidResult as any).error ?? null
   const total = allPayments.reduce((acc, p: any) => p.status === 'succeeded' ? acc + p.amount : acc, 0)
   const transactionCount = totalCount
   const listIsTruncated = transactionCount > payments.length
 
-  const rawUnpaid: any[] = billingActive ? ((unpaidResult.data as any[]) ?? []) : []
-  const pendingAmount = rawUnpaid.reduce((acc, u: any) => acc + (u.monthly_price ?? 0), 0)
+  const pendingAmount = unpaid.reduce((acc, u: any) => acc + (u.monthly_price ?? 0), 0)
   const generatedAmount = total + pendingAmount
-  const billingStart = billingStartDate ? new Date(billingStartDate + 'T00:00:00') : null
-  // Para cobrar desde aquí hace falta saber desde cuándo paga (primer mes sin paid_until).
-  const { data: unpaidStarts } = rawUnpaid.length
-    ? await admin.from('group_enrollments').select('id, start_date').in('id', rawUnpaid.map((u: any) => u.id))
-    : { data: [] as { id: string; start_date: string | null }[] }
-  const startById = new Map((unpaidStarts ?? []).map((e) => [e.id, e.start_date]))
-  const unpaid = (billingStart
-    ? rawUnpaid.map((item) => {
-        const monthsSinceBilling =
-          (selectedYear - billingStart.getFullYear()) * 12 +
-          (selectedMonth - billingStart.getMonth()) + 1
-        return { ...item, months_overdue: Math.min(item.months_overdue, monthsSinceBilling) }
-      })
-    : rawUnpaid
-  ).map((item) => ({ ...item, start_date: startById.get(item.id) ?? null }))
 
   return (
     <div className="space-y-6">

@@ -39,6 +39,7 @@ const roleLabel: Record<string, string> = {
   student: 'Alumno',
   coach: 'Monitor',
   admin: 'Admin',
+  cashier: 'Cobrador',
 }
 
 const statusBadge: Record<string, { tone: 'success' | 'warn' | 'danger' | 'neutral'; Icon: typeof CircleCheck }> = {

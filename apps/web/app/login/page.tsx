@@ -93,7 +93,7 @@ export default function LoginPage() {
       // Sin MFA configurado → acceso directo al dashboard
     }
 
-    window.location.replace(role === 'student' ? '/student' : role === 'coach' ? '/coach' : '/dashboard')
+    window.location.replace(role === 'student' ? '/student' : role === 'coach' ? '/coach' : role === 'cashier' ? '/caja' : '/dashboard')
   }
 
   return (

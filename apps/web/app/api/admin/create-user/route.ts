@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     email: z.string().email(),
     name: z.string().min(1).max(200),
     phone: z.string().max(30).nullish(),
-    role: z.enum(['student', 'coach', 'admin']),
+    role: z.enum(['student', 'coach', 'admin', 'cashier']),
     levelId: z.string().uuid().nullish(),
     tempPassword: z.string().min(6).max(100),
     clubIdOverride: z.string().uuid().optional(),

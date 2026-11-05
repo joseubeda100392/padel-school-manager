@@ -26,6 +26,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!role || role === 'student') redirect('/student')
   if (role === 'coach') redirect('/coach')
+  if (role === 'cashier') redirect('/caja')
+  if (role !== 'admin' && role !== 'super_admin') redirect('/login')
 
   const cookieStore = cookies()
   const saActiveClub = role === 'super_admin'

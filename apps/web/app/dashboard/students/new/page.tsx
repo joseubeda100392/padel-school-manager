@@ -17,7 +17,7 @@ export default function NewStudentPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [role, setRole] = useState<'student' | 'coach' | 'admin'>('student')
+  const [role, setRole] = useState<'student' | 'coach' | 'admin' | 'cashier'>('student')
   const [levelId, setLevelId] = useState('')
   const [levels, setLevels] = useState<any[]>([])
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
@@ -110,10 +110,11 @@ export default function NewStudentPage() {
             </Field>
 
             <Field label="Rol">
-              <Select value={role} onChange={(e) => setRole(e.target.value as 'student' | 'coach' | 'admin')}>
+              <Select value={role} onChange={(e) => setRole(e.target.value as 'student' | 'coach' | 'admin' | 'cashier')}>
                 <option value="student">Alumno</option>
                 <option value="coach">Monitor</option>
                 {isSuperAdmin && <option value="admin">Admin</option>}
+                <option value="cashier">Cobrador (solo cobra mensualidades y fianzas)</option>
               </Select>
             </Field>
 

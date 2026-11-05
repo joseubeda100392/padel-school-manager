@@ -28,7 +28,8 @@ interface UnpaidItem {
   months_overdue: number
 }
 
-export function UnpaidList({ items, monthLabel, monthEnd }: { items: UnpaidItem[]; monthLabel: string; monthEnd: string }) {
+// canEditPrice: el cobrador ve la cuota pero no la cambia (solo el importe al cobrar).
+export function UnpaidList({ items, monthLabel, monthEnd, canEditPrice = true }: { items: UnpaidItem[]; monthLabel: string; monthEnd: string; canEditPrice?: boolean }) {
   const router = useRouter()
   const [list, setList] = useState(items)
   const [collectId, setCollectId] = useState<string | null>(null)
@@ -163,15 +164,19 @@ export function UnpaidList({ items, monthLabel, monthEnd }: { items: UnpaidItem[
                       </div>
                     ) : (
                       <div>
-                        <button
-                          type="button"
-                          onClick={() => { setEditingId(e.id); setEditingPrice(e.monthly_price) }}
-                          className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-label tabular-nums text-warn-ink hover:bg-warn-soft"
-                          aria-label={`Editar cuota mensual, ahora ${formatCurrency(e.monthly_price)}`}
-                        >
-                          {formatCurrency(e.monthly_price)}/mes
-                          <Pencil className="h-3.5 w-3.5" aria-hidden />
-                        </button>
+                        {canEditPrice ? (
+                          <button
+                            type="button"
+                            onClick={() => { setEditingId(e.id); setEditingPrice(e.monthly_price) }}
+                            className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2 text-label tabular-nums text-warn-ink hover:bg-warn-soft"
+                            aria-label={`Editar cuota mensual, ahora ${formatCurrency(e.monthly_price)}`}
+                          >
+                            {formatCurrency(e.monthly_price)}/mes
+                            <Pencil className="h-3.5 w-3.5" aria-hidden />
+                          </button>
+                        ) : (
+                          <p className="inline-flex min-h-11 items-center text-label tabular-nums text-warn-ink">{formatCurrency(e.monthly_price)}/mes</p>
+                        )}
                         {isAccumulated ? (
                           <p className="text-meta font-medium tabular-nums text-danger-ink">
                             {e.months_overdue} meses · Total: {formatCurrency(totalOwed)}

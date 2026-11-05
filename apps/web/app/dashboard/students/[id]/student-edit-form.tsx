@@ -156,6 +156,7 @@ export function StudentEditForm({ student, isSuperAdmin = false, enablePrivateLe
             <option value="student">Alumno</option>
             <option value="coach">Monitor</option>
             <option value="admin">Admin</option>
+            <option value="cashier">Cobrador (solo cobra mensualidades y fianzas)</option>
           </Select>
         </Field>
         {form.role === 'coach' && (

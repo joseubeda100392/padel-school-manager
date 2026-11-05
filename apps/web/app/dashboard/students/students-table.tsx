@@ -17,6 +17,7 @@ const roleLabel: Record<string, string> = {
   student: 'Alumno',
   coach: 'Monitor',
   admin: 'Admin',
+  cashier: 'Cobrador',
 }
 
 type EnrollmentSummary = { total: number; id: string | null }
@@ -42,6 +43,7 @@ const TABS = [
   { value: 'student', label: 'Alumnos' },
   { value: 'coach', label: 'Monitores' },
   { value: 'admin', label: 'Admins' },
+  { value: 'cashier', label: 'Cobradores' },
 ]
 
 export default function StudentsTable({ students, levelMap, enrollmentMap, defaultTab = 'student', enableDeposit = false }: Props) {

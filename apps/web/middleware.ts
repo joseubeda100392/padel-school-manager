@@ -37,8 +37,9 @@ export async function middleware(request: NextRequest) {
   const isDashboard = path.startsWith('/dashboard')
   const isStudentArea = path.startsWith('/student')
   const isCoachArea = path.startsWith('/coach')
+  const isCashierArea = path.startsWith('/caja')
 
-  if ((isDashboard || isStudentArea || isCoachArea) && !user) {
+  if ((isDashboard || isStudentArea || isCoachArea || isCashierArea) && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -61,9 +62,13 @@ export async function middleware(request: NextRequest) {
     if (isStudentArea && role === 'coach') {
       return NextResponse.redirect(new URL('/coach', request.url))
     }
+    if ((isDashboard || isStudentArea || isCoachArea) && role === 'cashier') {
+      return NextResponse.redirect(new URL('/caja', request.url))
+    }
     if (path === '/') {
       if (role === 'student') return NextResponse.redirect(new URL('/student', request.url))
       if (role === 'coach') return NextResponse.redirect(new URL('/coach', request.url))
+      if (role === 'cashier') return NextResponse.redirect(new URL('/caja', request.url))
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
@@ -77,6 +82,7 @@ export const config = {
     '/dashboard/:path*',
     '/student/:path*',
     '/coach/:path*',
+    '/caja/:path*',
     '/login/:path*',
   ],
 }

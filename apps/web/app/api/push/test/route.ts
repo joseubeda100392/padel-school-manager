@@ -5,7 +5,7 @@ import { getAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/rate-limit'
 import { sendPushToUsers } from '@/lib/push'
 
-const HOME_BY_ROLE: Record<string, string> = { student: '/student', coach: '/coach', admin: '/dashboard', super_admin: '/dashboard' }
+const HOME_BY_ROLE: Record<string, string> = { student: '/student', coach: '/coach', admin: '/dashboard', super_admin: '/dashboard', cashier: '/caja' }
 
 // "Enviarme un aviso de prueba": solo a uno mismo, para comprobar que los
 // avisos llegan a su móvil (lo primero que se pide cuando alguien dice que no
