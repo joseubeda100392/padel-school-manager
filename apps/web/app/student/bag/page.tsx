@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/utils'
 import { PayButton } from '@/components/pay-button'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
-import { Minus, Package, Plus } from 'lucide-react'
+import { Gift, Minus, Package, Plus } from 'lucide-react'
 import { formatLongDate } from '@/lib/format-date'
 import { Card, SectionTitle } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/feedback'
@@ -22,6 +22,7 @@ function describeTx(tx: { reason: string | null; booking_id?: string | null; boo
   if (/^Falta cancelada/.test(reason)) return { title: 'Falta anulada: al final vas a clase', href: undefined }
   const booking = Array.isArray(tx.booking) ? tx.booking[0] : tx.booking
   if (tx.booking_id && booking?.class_date) {
+    if (reason.startsWith('Cortesía')) return { title: `Clase de cortesía · ${formatLongDate(booking.class_date, { weekday: false })}`, href: '/student/schedule#clases-sueltas' }
     const title = reason === 'Cancelación de clase'
       ? `Clase suelta cancelada · ${formatLongDate(booking.class_date, { weekday: false })}`
       : reason.replace(/\d{4}-\d{2}-\d{2}/g, (d) => formatLongDate(d, { weekday: false }))
@@ -180,22 +181,25 @@ export default async function StudentBagPage() {
             <List>
               {(transactions ?? []).map(tx => {
                 const plus = tx.delta > 0
+                const free = tx.delta === 0
                 return (
                   <ListRow
                     key={tx.id}
                     leading={
-                      <span aria-hidden className={`flex h-9 w-9 items-center justify-center rounded-full ${plus ? 'bg-accent-soft text-accent-ink' : 'bg-ink/[0.05] text-ink-3'}`}>
-                        {plus ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                      <span aria-hidden className={`flex h-9 w-9 items-center justify-center rounded-full ${plus || free ? 'bg-accent-soft text-accent-ink' : 'bg-ink/[0.05] text-ink-3'}`}>
+                        {free ? <Gift className="h-4 w-4" /> : plus ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
                       </span>
                     }
                     title={describeTx(tx).title}
                     href={describeTx(tx).href}
                     subtitle={`${formatLongDate(tx.created_at, { weekday: false })}${tx.class_duration ? ` · clase de ${durationLabel(tx.class_duration)}` : ''}`}
-                    trailing={
+                    trailing={free ? (
+                      <span className="text-meta font-semibold text-accent-ink">Sin coste</span>
+                    ) : (
                       <span className={`text-[0.9375rem] font-semibold tabular-nums ${plus ? 'text-accent-ink' : 'text-ink-2'}`}>
                         <span className="sr-only">{plus ? 'Entra' : 'Sale'} </span>{plus ? `+${tx.delta}` : `−${Math.abs(tx.delta)}`}
                       </span>
-                    }
+                    )}
                   />
                 )
               })}

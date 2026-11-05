@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/confirm'
 
@@ -47,9 +48,13 @@ export function BagHistoryList({ initial, canDelete }: { initial: Tx[]; canDelet
           <li key={t.id} className="flex min-h-11 items-center justify-between gap-2 text-body">
             <span className="min-w-0 truncate text-ink-2">{t.reason || 'Sin motivo'}</span>
             <div className="flex shrink-0 items-center gap-1">
-              <span className={`text-label tabular-nums ${t.delta > 0 ? 'text-accent-ink' : 'text-danger-ink'}`}>
-                {t.delta > 0 ? '+' : ''}{t.delta}
-              </span>
+              {t.delta === 0 ? (
+                <Badge tone="success">Cortesía</Badge>
+              ) : (
+                <span className={`text-label tabular-nums ${t.delta > 0 ? 'text-accent-ink' : 'text-danger-ink'}`}>
+                  {t.delta > 0 ? '+' : ''}{t.delta}
+                </span>
+              )}
               {canDelete && (
                 <Button
                   size="icon"

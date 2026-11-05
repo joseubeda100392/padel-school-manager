@@ -5,7 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { madridMinutesOfDay } from '@/lib/madrid-time'
-import { COURTESY_NOTE } from '@/lib/booking-courtesy'
+import { COURTESY_NOTE, recordCourtesy } from '@/lib/booking-courtesy'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -171,10 +171,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (courtesy) {
-    // La función la deja pendiente de pago al no cobrar bolsa: se confirma.
+    // La función la deja pendiente de pago al no cobrar bolsa: se confirma y
+    // se apunta en el historial de su bolsa (0 clases, ligado a la reserva:
+    // si se anula, el apunte se va con ella).
     const { error: confirmErr } = await admin.from('bookings').update({ status: 'confirmed', notes: COURTESY_NOTE }).eq('id', result.booking_id)
-    if (confirmErr) {
-      console.error('[bookings/spot] courtesy confirm failed:', confirmErr.message)
+    const txErr = confirmErr ?? await recordCourtesy(admin, studentId, effectiveClubId ?? null, result.booking_id, classDate)
+    if (txErr) {
+      console.error('[bookings/spot] courtesy failed:', txErr.message)
+      await admin.from('bag_transactions').delete().eq('booking_id', result.booking_id)
       await admin.from('bookings').delete().eq('id', result.booking_id)
       return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
     }
