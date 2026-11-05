@@ -71,7 +71,10 @@ export default function MasterWeeklyCalendar({ schedules, readOnly = false, show
                     {formatTime(s.start_time)} – {formatTime(s.end_time)}
                   </p>
                   {s.forming && <Badge tone="warn" className="mt-1">En formación · {s.students?.length ?? 0} interesados</Badge>}
-                  {showChanges && !s.forming && s.max_students > 0 && (
+                  {s.endsOn && !s.forming && (
+                    <p className="mt-0.5 text-meta font-medium tabular-nums text-ink-3">Hasta el {shortDate(s.endsOn)}</p>
+                  )}
+                  {showChanges && !s.endsOn && !s.forming && s.max_students > 0 && (
                     <p className={`mt-0.5 text-meta tabular-nums ${freeAtMonthEnd(s) > 0 ? 'font-medium text-accent-ink' : 'text-ink-3'}`}>
                       {freeAtMonthEnd(s) > 0
                         ? `${freeAtMonthEnd(s)} plaza${freeAtMonthEnd(s) > 1 ? 's' : ''} libre${freeAtMonthEnd(s) > 1 ? 's' : ''} a fin de mes`

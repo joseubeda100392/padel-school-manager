@@ -8,7 +8,7 @@ import MasterWeeklyCalendar from './master-weekly-calendar'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
-import { madridToday, rosterForMonth, upcomingMonths } from '@/lib/enrollment-window'
+import { endsWithinMonth, madridToday, rosterForMonth, upcomingMonths } from '@/lib/enrollment-window'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const PLANNABLE_MONTHS = 6
@@ -56,8 +56,12 @@ export default async function MasterSchedulePage({ searchParams }: { searchParam
         students: roster.map(({ entry, change }) => ({ name: entry.student.name as string, change })),
         // Grupo en formación: sus nombres son los interesados (status 'pending').
         forming: s.is_active === false,
+        endsOn: endsWithinMonth(s.recurrence_end_date, month),
       }
     })
+    // La versión vieja de un grupo cambiado desde una fecha se queda sin
+    // alumnos y acaba dentro del mes: no se enseña, solo liaría.
+    .filter((s: any) => !(s.endsOn && s.students.length === 0))
 
   return (
     <div className="space-y-6">

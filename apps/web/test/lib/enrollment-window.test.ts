@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isActiveOn, peakOccupancyFrom, dayBefore, firstOfNextMonth, rosterForMonth, upcomingMonths } from '@/lib/enrollment-window'
+import { isActiveOn, peakOccupancyFrom, dayBefore, firstOfNextMonth, rosterForMonth, upcomingMonths, endsWithinMonth } from '@/lib/enrollment-window'
 
 describe('isActiveOn', () => {
   it('counts both ends of the window as inside', () => {
@@ -76,5 +76,17 @@ describe('rosterForMonth', () => {
 describe('upcomingMonths', () => {
   it('rolls over the year', () => {
     expect(upcomingMonths('2026-11-15', 3)).toEqual(['2026-11', '2026-12', '2027-01'])
+  })
+})
+
+describe('endsWithinMonth', () => {
+  it('devuelve el último día si la clase acaba dentro del mes', () => {
+    expect(endsWithinMonth('2026-11-09', '2026-11')).toBe('2026-11-09')
+    expect(endsWithinMonth('2026-11-30', '2026-11')).toBe('2026-11-30')
+  })
+
+  it('null si sigue después del mes o no tiene fin', () => {
+    expect(endsWithinMonth('2026-12-01', '2026-11')).toBeNull()
+    expect(endsWithinMonth(null, '2026-11')).toBeNull()
   })
 })

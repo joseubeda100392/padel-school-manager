@@ -64,3 +64,13 @@ export function upcomingMonths(today: string, count: number): string[] {
   const [y, m] = today.split('-').map(Number)
   return Array.from({ length: count }, (_, i) => new Date(Date.UTC(y, m - 1 + i, 1)).toISOString().slice(0, 7))
 }
+
+// Último día de una clase que se repite si cae dentro del mes ('YYYY-MM'),
+// p. ej. la versión vieja de un grupo cambiado desde una fecha; si sigue
+// después del mes, null.
+export function endsWithinMonth(recurrenceEndDate: string | null | undefined, month: string): string | null {
+  if (!recurrenceEndDate) return null
+  const [y, m] = month.split('-').map(Number)
+  const last = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
+  return recurrenceEndDate <= last ? recurrenceEndDate : null
+}

@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import MasterWeeklyCalendar from '@/app/dashboard/schedule/master/master-weekly-calendar'
 import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { PageHeader } from '@/components/ui/page-header'
-import { madridToday, rosterForMonth } from '@/lib/enrollment-window'
+import { endsWithinMonth, madridToday, rosterForMonth } from '@/lib/enrollment-window'
 
 export default async function CoachMasterCalendarPage() {
   const supabase = createClient()
@@ -47,7 +47,8 @@ export default async function CoachMasterCalendarPage() {
     ...s,
     students: rosterForMonth(bySchedule[s.id] ?? [], today.slice(0, 7), today)
       .map(({ entry, change }) => ({ name: entry.student.name as string, change })),
-  }))
+    endsOn: endsWithinMonth(s.recurrence_end_date, today.slice(0, 7)),
+  })).filter((s: any) => !(s.endsOn && s.students.length === 0))
 
   return (
     <div className="space-y-6">
