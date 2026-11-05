@@ -5,6 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { isActiveOn } from '@/lib/enrollment-window'
+import { CLUB_CANCELLED_REASON, cancelBookingsOn } from '@/lib/schedule-from-date'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -41,25 +42,43 @@ export async function POST(req: NextRequest) {
     .eq('schedule_id', scheduleId)
     .eq('status', 'active')
 
-  if (!enrollments?.length) return NextResponse.json({ ok: true, credited: 0 })
+  // Reservas puntuales y listas de espera de ese día: la clase no se da, así
+  // que se anulan y se devuelve a la bolsa la clase que gastaron.
+  const clubId = (schedule as any).club_id ?? null
+  const { cancelled: bookingsCancelled, paidByCard } = await cancelBookingsOn(admin, scheduleId, date, clubId, `Clase cancelada ${date}`)
+  await admin.from('class_waitlist').delete().eq('schedule_id', scheduleId).eq('class_date', date)
 
-  const { data: existingExclusions } = await admin
-    .from('schedule_exclusions')
-    .select('group_enrollment_id')
-    .in('group_enrollment_id', enrollments.map(e => e.id))
-    .eq('excluded_date', date)
+  const { data: existingExclusions } = enrollments?.length
+    ? await admin
+        .from('schedule_exclusions')
+        .select('id, group_enrollment_id')
+        .in('group_enrollment_id', enrollments.map(e => e.id))
+        .eq('excluded_date', date)
+    : { data: [] as { id: string; group_enrollment_id: string }[] }
 
-  const alreadyExcluded = new Set((existingExclusions ?? []).map((x: any) => x.group_enrollment_id))
+  // Quien ya había avisado de falta ya tiene su clase en la bolsa: no se le
+  // suma otra, pero su hueco deja de estar publicado y la falta pasa a ser
+  // «cancelada por el club» (así tampoco cuenta en las horas del monitor).
+  const alreadyAbsent = existingExclusions ?? []
+  if (alreadyAbsent.length) {
+    const { error: updErr } = await admin.from('schedule_exclusions')
+      .update({ reason: CLUB_CANCELLED_REASON, publish_spot: false })
+      .in('id', alreadyAbsent.map(x => x.id))
+    if (updErr) return NextResponse.json({ error: 'Error al registrar la cancelación' }, { status: 500 })
+  }
+
+  const alreadyExcluded = new Set(alreadyAbsent.map(x => x.group_enrollment_id))
   // Solo quien está en el grupo ese día (ni altas a futuro ni salidas ya pasadas).
-  const toProcess = enrollments.filter(e => !alreadyExcluded.has(e.id) && isActiveOn(e, date))
+  const toProcess = (enrollments ?? []).filter(e => !alreadyExcluded.has(e.id) && isActiveOn(e, date))
+  const summary = { alreadyAbsent: alreadyAbsent.length, bookingsCancelled, paidByCard }
 
-  if (!toProcess.length) return NextResponse.json({ ok: true, credited: 0 })
+  if (!toProcess.length) return NextResponse.json({ ok: true, credited: 0, ...summary })
 
   const { error: insertErr } = await admin.from('schedule_exclusions').insert(
     toProcess.map(e => ({
       group_enrollment_id: e.id,
       excluded_date: date,
-      reason: 'Clase cancelada por el club',
+      reason: CLUB_CANCELLED_REASON,
       publish_spot: false,
       created_by: user.id,
     }))
@@ -92,5 +111,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, credited })
+  return NextResponse.json({ ok: true, credited, ...summary })
 }

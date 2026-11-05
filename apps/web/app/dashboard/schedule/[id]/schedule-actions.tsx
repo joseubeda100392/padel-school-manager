@@ -8,6 +8,7 @@ import { Sheet } from '@/components/ui/sheet'
 import { useConfirm } from '@/components/ui/confirm'
 import { Field, Input, Select } from '@/components/ui/field'
 import { dayBefore, madridToday } from '@/lib/enrollment-window'
+import { formatLongDate } from '@/lib/format-date'
 
 const fmt = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -27,6 +28,7 @@ export function ScheduleActions({ scheduleId, nextDate, recurring = false, fixed
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelMsg, setCancelMsg] = useState('')
+  const cancelDateLabel = formatLongDate(nextDate).toLowerCase()
   const [showEnd, setShowEnd] = useState(false)
   const [endWhen, setEndWhen] = useState<'month_end' | 'other'>('month_end')
   const [endOther, setEndOther] = useState('')
@@ -93,9 +95,11 @@ export function ScheduleActions({ scheduleId, nextDate, recurring = false, fixed
     setCancelling(false)
     setShowCancelModal(false)
     if (res.ok) {
-      setCancelMsg(creditBags
-        ? `Sesión cancelada. +1 clase añadida a la bolsa de ${json.credited} alumnos.`
-        : 'Sesión cancelada sin crédito a bolsas.')
+      const parts = [creditBags ? `+1 clase en la bolsa de ${json.credited} alumno${json.credited === 1 ? '' : 's'}` : 'sin sumar clases a la bolsa']
+      if (json.alreadyAbsent) parts.push(`${json.alreadyAbsent} ya había${json.alreadyAbsent === 1 ? '' : 'n'} avisado de falta (ya tenía${json.alreadyAbsent === 1 ? '' : 'n'} su clase)`)
+      if (json.bookingsCancelled) parts.push(`${json.bookingsCancelled} reserva${json.bookingsCancelled === 1 ? '' : 's'} puntual${json.bookingsCancelled === 1 ? '' : 'es'} anulada${json.bookingsCancelled === 1 ? '' : 's'} con su clase devuelta`)
+      if (json.paidByCard) parts.push(`${json.paidByCard} pagada${json.paidByCard === 1 ? '' : 's'} con tarjeta: devuelve el dinero aparte`)
+      setCancelMsg(`Sesión del ${cancelDateLabel} cancelada: ${parts.join(' · ')}. No cuenta en las horas del monitor.`)
     } else {
       toast.error(json.error ?? 'No se ha podido cancelar la sesión. Vuelve a intentarlo.')
     }
@@ -127,15 +131,15 @@ export function ScheduleActions({ scheduleId, nextDate, recurring = false, fixed
       <Sheet
         open={showCancelModal}
         onClose={() => setShowCancelModal(false)}
-        title="Cancelar sesión"
-        description="¿Por qué cancelas esta sesión? Esto determina si los alumnos recuperan la clase en su bolsa."
+        title={`Cancelar la sesión del ${cancelDateLabel}`}
+        description="Solo ese día. Nadie podrá apuntarse, se anulan las reservas puntuales (se les devuelve la clase) y no cuenta en las horas del monitor. Quien ya avisó de falta ya tiene su clase en la bolsa."
         footer={
           <div className="flex w-full flex-col gap-2">
             <Button size="lg" onClick={() => handleCancelSession(true)} disabled={cancelling}>
-              La clase no se da: +1 en la bolsa de cada alumno
+              Cancelar y sumar 1 clase a quien no avisó
             </Button>
             <Button variant="secondary" size="lg" onClick={() => handleCancelSession(false)} disabled={cancelling}>
-              Error al crear la clase: sin crédito a bolsas
+              Cancelar sin sumar clases
             </Button>
             <Button variant="ghost" onClick={() => setShowCancelModal(false)}>
               Volver

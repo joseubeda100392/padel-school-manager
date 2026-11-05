@@ -424,7 +424,14 @@ export default function GroupEnrollment({
     setFaltaLoading(false)
   }
 
-  async function handleDeleteExclusion(enrollmentId: string, exclusionId: string) {
+  async function handleDeleteExclusion(enrollmentId: string, exclusionId: string, studentName: string, excludedDate: string) {
+    // Junto a «Publicada»: es fácil pulsarla sin querer y le quita la clase de la bolsa.
+    if (!(await confirm({
+      title: `¿Quitar la falta de ${studentName} del ${new Date(excludedDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}?`,
+      description: 'Volverá a contar que viene a clase ese día y se le descontará de la bolsa la clase que se le sumó. Para que nadie se apunte a su plaza, pulsa «Publicada» en vez de esto.',
+      confirmLabel: 'Quitar falta',
+      destructive: true,
+    }))) return
     const res = await fetch('/api/schedule-exclusions', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -781,7 +788,7 @@ export default function GroupEnrollment({
                         )}
                         <button
                           type="button"
-                          onClick={() => handleDeleteExclusion(e.id, x.id)}
+                          onClick={() => handleDeleteExclusion(e.id, x.id, e.student?.name ?? 'este alumno', x.excluded_date)}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-full text-danger-ink hover:bg-danger-soft"
                           aria-label="Eliminar falta"
                           title="Eliminar falta"

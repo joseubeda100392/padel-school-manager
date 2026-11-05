@@ -11,6 +11,7 @@ import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
 import { dateStr as buildDateStr } from '@/lib/billing-cycle'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 import { isActiveOn } from '@/lib/enrollment-window'
+import { CLUB_CANCELLED_REASON } from '@/lib/schedule-from-date'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -199,11 +200,14 @@ export async function DELETE(req: NextRequest) {
 
   const { data: exclusion } = await admin
     .from('schedule_exclusions')
-    .select('id, excluded_date, group_enrollment_id')
+    .select('id, excluded_date, group_enrollment_id, reason')
     .eq('id', exclusionId)
     .single()
 
   if (!exclusion) return NextResponse.json({ error: 'Falta no encontrada' }, { status: 404 })
+  if (exclusion.reason === CLUB_CANCELLED_REASON) {
+    return NextResponse.json({ error: 'El club ha cancelado esta clase: no hay clase ese día.' }, { status: 400 })
+  }
 
   const { data: enrollment } = await admin
     .from('group_enrollments')

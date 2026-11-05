@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+// Motivo de las faltas que pone «Cancelar sesión»: las horas del monitor lo
+// usan para no contar esa clase como dada.
+export const CLUB_CANCELLED_REASON = 'Clase cancelada por el club'
+
 // Lo que pasa con lo "posterior" de una clase cuando cambia o se quita a
 // partir de un día. lastDay es el último día de la versión vieja: lo de ese
 // día y antes no se toca nunca.
@@ -16,11 +20,32 @@ export async function cancelBookingsAfter(
     .eq('schedule_id', scheduleId)
     .not('class_date', 'is', null)
     .gt('class_date', lastDay)
-  const ids = (later ?? []).map(b => b.id)
-  const paidByCard = (later ?? []).filter(b => b.source === 'pay_per_class' && b.status !== 'cancelled').length
+  return cancelBookingRows(admin, later ?? [], fallbackClubId, reason)
+}
+
+// Lo mismo para un solo día (sesión cancelada por el club).
+export async function cancelBookingsOn(
+  admin: SupabaseClient, scheduleId: string, date: string, fallbackClubId: string | null, reason: string,
+): Promise<{ cancelled: number; paidByCard: number }> {
+  const { data: rows } = await admin
+    .from('bookings')
+    .select('id, club_id, source, status')
+    .eq('schedule_id', scheduleId)
+    .eq('class_date', date)
+  return cancelBookingRows(admin, rows ?? [], fallbackClubId, reason)
+}
+
+async function cancelBookingRows(
+  admin: SupabaseClient,
+  rows: { id: string; club_id: string | null; source: string; status: string }[],
+  fallbackClubId: string | null,
+  reason: string,
+): Promise<{ cancelled: number; paidByCard: number }> {
+  const ids = rows.map(b => b.id)
+  const paidByCard = rows.filter(b => b.source === 'pay_per_class' && b.status !== 'cancelled').length
   if (!ids.length) return { cancelled: 0, paidByCard: 0 }
 
-  const clubByBooking = new Map((later ?? []).map(b => [b.id, b.club_id]))
+  const clubByBooking = new Map(rows.map(b => [b.id, b.club_id]))
   const { data: debits } = await admin
     .from('bag_transactions')
     .select('user_id, delta, class_duration, booking_id')

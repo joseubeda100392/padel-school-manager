@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getDayOfWeek } from '@/lib/utils'
+import { CLUB_CANCELLED_REASON } from '@/lib/schedule-from-date'
 
 // Horas/importe pendientes de pagar a un profesor: suma la duración de
 // todas las sesiones confirmadas como "dadas" desde el final del último
@@ -172,7 +173,7 @@ export async function calculateCoachScheduledMonthlyHours(
         .from('schedule_exclusions')
         .select('group_enrollment_id, excluded_date')
         .in('group_enrollment_id', enrollmentIds)
-        .eq('reason', 'Clase cancelada por el club')
+        .eq('reason', CLUB_CANCELLED_REASON)
         .gte('excluded_date', monthStart)
         .lte('excluded_date', rangeEnd)
       for (const c of cancellations ?? []) {
