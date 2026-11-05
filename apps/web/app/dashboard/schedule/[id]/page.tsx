@@ -26,6 +26,7 @@ import { formatLongDate } from '@/lib/format-date'
 import { loadAvailableGroups } from '@/lib/available-groups'
 import { schedulesWithHistory } from '@/lib/schedule-history'
 import { COACH_USERS_FILTER } from '@/lib/coach-role'
+import { spotSourceOf } from '@/lib/booking-courtesy'
 
 const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 const TZ = 'Europe/Madrid'
@@ -93,7 +94,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
     // Simplified join: avoid nested currentLevel:levels that can fail silently
     admin
       .from('bookings')
-      .select('id, status, source, class_date, student_id, student:users!bookings_student_id_fkey(name, email, avatar_url)')
+      .select('id, status, source, notes, class_date, student_id, student:users!bookings_student_id_fkey(name, email, avatar_url)')
       .eq('schedule_id', params.id)
       .neq('status', 'cancelled')
       .not('class_date', 'is', null)
@@ -362,7 +363,7 @@ export default async function ScheduleDetailPage({ params, searchParams }: { par
           <SpotBookingsList
             bookings={spotBookings.map((b: any) => ({
               id: b.id,
-              source: b.source,
+              source: spotSourceOf(b),
               class_date: b.class_date,
               student: b.student ? { name: b.student.name, email: b.student.email } : null,
             }))}

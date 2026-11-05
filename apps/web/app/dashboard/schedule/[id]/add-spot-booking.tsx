@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -24,6 +24,7 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [showList, setShowList] = useState(false)
+  const [courtesy, setCourtesy] = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -55,7 +56,7 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
     const res = await fetch('/api/admin/bookings/spot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scheduleId, studentId: selectedStudent.id, classDate: date, clubId }),
+      body: JSON.stringify({ scheduleId, studentId: selectedStudent.id, classDate: date, clubId, courtesy }),
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) {
@@ -63,12 +64,15 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
       setSaving(false)
       return
     }
-    if (typeof json.newBalance === 'number') {
+    if (json.courtesy) {
+      toast.success('Apuntado de cortesía: no se le ha descontado ninguna clase')
+    } else if (typeof json.newBalance === 'number') {
       toast.success(`Clase descontada de su bolsa · saldo restante: ${json.newBalance}`)
     }
     setQ('')
     setSelectedStudent(null)
     setDate(nextDate)
+    setCourtesy(false)
     setSaving(false)
     router.refresh()
   }
@@ -108,6 +112,14 @@ export function AdminAddSpotBooking({ scheduleId, nextDate, availableStudents, c
         <Button onClick={handleAdd} disabled={saving || !selectedStudent} loading={saving} className="w-full sm:w-auto">
           Añadir alumno
         </Button>
+      </div>
+      <div className="mt-3 flex items-start gap-3 rounded-control bg-surface-2 px-4 py-3">
+        <input type="checkbox" id={`courtesy-${scheduleId}`} checked={courtesy}
+          onChange={(e) => { setCourtesy(e.target.checked); setError('') }}
+          className="mt-0.5 h-5 w-5 rounded border-line-strong text-accent-ink focus:ring-accent-ink" />
+        <label htmlFor={`courtesy-${scheduleId}`} className="text-label text-ink">
+          Sin descontar clase <span className="font-normal text-ink-3">(prueba o cortesía: no se toca su bolsa y queda marcada como «Cortesía»)</span>
+        </label>
       </div>
       {error && <p role="alert" className="mt-2 text-meta font-medium text-danger-ink">{error}</p>}
     </div>

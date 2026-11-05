@@ -16,16 +16,16 @@ type SpotBooking = {
   student: { name: string; email: string } | null
 }
 
-const sourceLabel: Record<string, string> = { bag: 'Crédito bolsa', pay_per_class: 'Pago único', admin: 'Admin' }
+const sourceLabel: Record<string, string> = { bag: 'Crédito bolsa', pay_per_class: 'Pago único', admin: 'Admin', courtesy: 'Cortesía' }
 
 export function SpotBookingsList({ bookings }: { bookings: SpotBooking[] }) {
   const confirm = useConfirm()
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  async function handleDelete(bookingId: string) {
+  async function handleDelete(bookingId: string, source: string) {
     if (!(await confirm({
       title: '¿Cancelar esta reserva puntual?',
-      description: 'Se devolverá el crédito al alumno.',
+      description: source === 'bag' || source === 'pay_per_class' ? 'Se devolverá el crédito al alumno.' : 'No se devuelve nada a su bolsa: no se le descontó.',
       confirmLabel: 'Cancelar reserva',
       destructive: true,
     }))) return
@@ -62,12 +62,12 @@ export function SpotBookingsList({ bookings }: { bookings: SpotBooking[] }) {
           </div>
           <div className="text-right">
             <p className="text-label text-ink-2">{formatLongDate(b.class_date)}</p>
-            <Badge tone="neutral" className="mt-0.5">{sourceLabel[b.source] ?? b.source}</Badge>
+            <Badge tone={b.source === 'courtesy' ? 'success' : 'neutral'} className="mt-0.5">{sourceLabel[b.source] ?? b.source}</Badge>
           </div>
           <Button
             variant="danger-ghost"
             size="icon"
-            onClick={() => handleDelete(b.id)}
+            onClick={() => handleDelete(b.id, b.source)}
             loading={deleting === b.id}
             aria-label={`Cancelar reserva de ${b.student?.name ?? 'alumno'}`}
           >

@@ -5,6 +5,7 @@ import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { madridMinutesOfDay } from '@/lib/madrid-time'
+import { COURTESY_NOTE } from '@/lib/booking-courtesy'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -22,9 +23,16 @@ export async function POST(req: NextRequest) {
     studentId: z.string().uuid(),
     classDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     clubId: z.string().uuid().nullable().optional(),
+    courtesy: z.boolean().optional(),
   }))
   if (badRequest) return badRequest
-  const { scheduleId, studentId, classDate, clubId } = body
+  const { scheduleId, studentId, classDate, clubId, courtesy = false } = body
+  // Clase de prueba o de cortesía: sin bolsa ni pago. Solo el club (admin o
+  // superadmin), nunca un monitor, y queda marcada para que no sea un regalo
+  // en silencio.
+  if (courtesy && caller.role === 'coach') {
+    return NextResponse.json({ error: 'Solo el club puede apuntar a alguien sin descontar clase' }, { status: 403 })
+  }
 
   if (caller.role !== 'super_admin') {
     const [{ data: scheduleCheck }, { data: studentCheck }] = await Promise.all([
@@ -147,7 +155,7 @@ export async function POST(req: NextRequest) {
     p_student_id: studentId,
     p_class_date: classDate,
     p_club_id: effectiveClubId ?? null,
-    p_charge_bag: !requiresPayment,
+    p_charge_bag: !courtesy && !requiresPayment,
     p_reason: `Plaza libre del ${classDate} (añadida por ${caller.role === 'coach' ? 'monitor' : 'admin'})`,
   })
 
@@ -156,7 +164,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
   }
   if (result?.error) {
-    return NextResponse.json({ error: result.error }, { status: 409 })
+    const noBag = /bolsa/i.test(result.error) && caller.role !== 'coach'
+    return NextResponse.json({
+      error: noBag ? 'No le quedan clases en la bolsa. Si es de prueba o cortesía, marca «Sin descontar clase».' : result.error,
+    }, { status: 409 })
+  }
+
+  if (courtesy) {
+    // La función la deja pendiente de pago al no cobrar bolsa: se confirma.
+    const { error: confirmErr } = await admin.from('bookings').update({ status: 'confirmed', notes: COURTESY_NOTE }).eq('id', result.booking_id)
+    if (confirmErr) {
+      console.error('[bookings/spot] courtesy confirm failed:', confirmErr.message)
+      await admin.from('bookings').delete().eq('id', result.booking_id)
+      return NextResponse.json({ error: 'Error al crear la reserva' }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, bookingId: result.booking_id, courtesy: true })
   }
 
   return NextResponse.json({ ok: true, bookingId: result.booking_id, newBalance: result.new_balance ?? undefined })
