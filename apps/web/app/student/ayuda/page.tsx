@@ -117,7 +117,7 @@ export default async function AyudaPage() {
           <Section id="avisos" title="Avisos en el móvil">
             <p>Con los avisos activados te llega al momento al móvil:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
-              {features.enable_spots && <li>🎾 cuando se libera un hueco de tu nivel;</li>}
+              {features.enable_spots && <li>🎾 cuando se libera un hueco de tu nivel (puedes apagarlo cuando ya no busques hueco con «Avisarme de huecos libres», arriba en Huecos);</li>}
               {waitlist && <li>🎾 cuando entras en una clase desde la reserva;</li>}
               {features.enable_chat && <li>💬 cuando el club te escribe por el chat;</li>}
               <li>💳 y ⏰ los recordatorios de cuota, de clases en la bolsa y de clase al día siguiente.</li>

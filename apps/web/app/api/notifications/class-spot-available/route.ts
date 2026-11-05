@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
     .eq('role', 'student')
     .eq('is_active', true)
     .not('push_token', 'is', null)
+    .eq('spot_alerts', true)
 
   if (schedule.club_id) query = query.eq('club_id', schedule.club_id)
   if (schedule.level_id) query = query.eq('current_level_id', schedule.level_id)

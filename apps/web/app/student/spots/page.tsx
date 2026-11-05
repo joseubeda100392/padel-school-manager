@@ -9,6 +9,7 @@ import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { getHolidaySet } from '@/lib/club-holidays'
 import { canTakeSpot, parseLowerLevelMap } from '@/lib/spot-levels'
 import { getMonthOccurrences, loadStudentSpots } from '@/lib/student-spots'
+import { SpotAlertsToggle } from './spot-alerts-toggle'
 
 type Attendee = { name: string; level: string | null }
 
@@ -45,7 +46,7 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
   const [{ data: userRow }, { data: myEnrollments }, { data: bag }, { data: mySpotBookings }] = await Promise.all([
     admin
       .from('users')
-      .select('current_level_id, club_id, is_external, club:clubs(features, config)')
+      .select('current_level_id, club_id, is_external, spot_alerts, club:clubs(features, config)')
       .eq('id', user.id)
       .single(),
     admin
@@ -218,6 +219,8 @@ export default async function StudentSpotsPage({ searchParams }: { searchParams:
         <h1 className="font-display text-title text-ink sm:text-display">Huecos libres</h1>
         <p className="mt-1 text-body text-ink-2">Plazas libres de tu nivel para recuperar una falta o jugar más.</p>
       </header>
+
+      <SpotAlertsToggle initial={(userRow as any)?.spot_alerts !== false} />
 
       <SpotsClient
         spots={allSpots}

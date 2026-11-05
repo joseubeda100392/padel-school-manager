@@ -4,67 +4,11 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
-import { sendPushToUsers } from '@/lib/push'
 import { processWaitlist } from '@/lib/waitlist'
-import { parseLowerLevelMap, studentLevelsForClass } from '@/lib/spot-levels'
-import { formatTime } from '@/lib/utils'
+import { notifySpotAvailable } from '@/lib/spot-alerts'
 import { sanitizeDbError } from '@/lib/sanitize-error'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 import { isActiveOn } from '@/lib/enrollment-window'
-
-async function notifySpotAvailable(admin: ReturnType<typeof getAdminClient>, scheduleId: string, excludedDate: string) {
-  try {
-    const { data: scheduleData } = await admin
-      .from('schedules')
-      .select('start_time, club_id, level_id, court:courts(name), level:levels(name)')
-      .eq('id', scheduleId)
-      .single()
-
-    const { data: enrolledRows } = await admin
-      .from('group_enrollments')
-      .select('student_id')
-      .eq('schedule_id', scheduleId)
-      .eq('status', 'active')
-
-    // Ni los del grupo fijo ni quien ya tiene plaza puntual ese día: a ellos
-    // el hueco no les sirve.
-    const { data: bookedRows } = await admin
-      .from('bookings')
-      .select('student_id')
-      .eq('schedule_id', scheduleId)
-      .eq('class_date', excludedDate)
-      .neq('status', 'cancelled')
-    const excludedIds = new Set([...(enrolledRows ?? []), ...(bookedRows ?? [])].map((e: any) => e.student_id))
-    const clubId = (scheduleData as any)?.club_id
-    const levelId = (scheduleData as any)?.level_id
-
-    let q = admin.from('users').select('id').eq('role', 'student').eq('is_active', true)
-    if (clubId) q = q.eq('club_id', clubId)
-    if (levelId) {
-      const { data: clubCfg } = clubId ? await admin.from('clubs').select('config').eq('id', clubId).single() : { data: null }
-      q = q.in('current_level_id', studentLevelsForClass(levelId, parseLowerLevelMap((clubCfg as any)?.config)))
-    }
-    const { data: candidates } = await q
-    const targetIds = (candidates ?? []).map((u: any) => u.id).filter((id: string) => !excludedIds.has(id))
-
-    if (!targetIds.length || !scheduleData) return
-
-    const sc = scheduleData as any
-    const startDt = new Date(sc.start_time)
-    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-    const timeStr = formatTime(startDt)
-    const levelName = sc.level?.name ? ` · ${sc.level.name}` : ''
-    const dateLabel = new Date(excludedDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
-
-    await sendPushToUsers(targetIds, {
-      title: '🎾 ¡Hueco libre disponible!',
-      body: `${dayNames[startDt.getDay()]} ${dateLabel} a las ${timeStr}${levelName} — ${sc.court?.name ?? ''}`,
-      url: '/student/spots',
-    }, 'spot_available')
-  } catch {
-    // No interrumpir la respuesta si falla el push
-  }
-}
 
 // Una plaza publicada va primero a quien esté en reserva ese día; si nadie
 // entra, se anuncia como hueco libre al nivel, como siempre.

@@ -4,14 +4,13 @@ import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
-import { sendPushToUsers } from '@/lib/push'
 import { processWaitlist } from '@/lib/waitlist'
-import { parseLowerLevelMap, studentLevelsForClass } from '@/lib/spot-levels'
-import { formatTime, getScheduleDateTimeInMadrid } from '@/lib/utils'
+import { getScheduleDateTimeInMadrid } from '@/lib/utils'
 import { dateStr as buildDateStr } from '@/lib/billing-cycle'
 import { getHolidaySet, HOLIDAY_ERROR } from '@/lib/club-holidays'
 import { isActiveOn } from '@/lib/enrollment-window'
 import { CLUB_CANCELLED_REASON } from '@/lib/schedule-from-date'
+import { notifySpotAvailable } from '@/lib/spot-alerts'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -141,49 +140,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data, publishedSpot: true, excludedDate: dateStr })
   }
 
-  try {
-    const { data: enrolledIds } = await admin
-      .from('group_enrollments')
-      .select('student_id')
-      .eq('schedule_id', scheduleId)
-      .eq('status', 'active')
-
-    // Ni los del grupo fijo ni quien ya tiene plaza puntual ese día: a ellos
-    // el hueco no les sirve.
-    const { data: bookedRows } = await admin
-      .from('bookings')
-      .select('student_id')
-      .eq('schedule_id', scheduleId)
-      .eq('class_date', dateStr)
-      .neq('status', 'cancelled')
-    const excludedIds = new Set([...(enrolledIds ?? []), ...(bookedRows ?? [])].map((e: any) => e.student_id))
-    const scheduleLevelId = (schedule as any).level_id ?? null
-    const notifyLevels = scheduleLevelId ? studentLevelsForClass(scheduleLevelId, parseLowerLevelMap((clubRow as any)?.config)) : []
-
-    const q = admin.from('users').select('id, current_level_id').eq('role', 'student').eq('is_active', true)
-    const { data: candidates } = await (clubId ? q.eq('club_id', clubId) : q)
-    const targetIds = (candidates ?? [])
-      .filter((u: any) => !excludedIds.has(u.id))
-      .filter((u: any) => !scheduleLevelId || !u.current_level_id || notifyLevels.includes(u.current_level_id))
-      .map((u: any) => u.id)
-
-    if (targetIds.length > 0) {
-      const sc = schedule as any
-      const startDt = new Date(sc.start_time)
-      const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-      const timeStr = formatTime(startDt)
-      const levelName = sc.level?.name ? ` · ${sc.level.name}` : ''
-      const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
-
-      await sendPushToUsers(targetIds, {
-        title: '🎾 ¡Hueco libre disponible!',
-        body: `${dayNames[startDt.getDay()]} ${dateLabel} a las ${timeStr}${levelName} — ${sc.court?.name ?? ''}`,
-        url: '/student/spots',
-      }, 'spot_available')
-    }
-  } catch {
-    // no interrumpir la respuesta si falla el push
-  }
+  await notifySpotAvailable(admin, scheduleId, dateStr)
 
   return NextResponse.json({ data, publishedSpot: true, excludedDate: dateStr })
 }
