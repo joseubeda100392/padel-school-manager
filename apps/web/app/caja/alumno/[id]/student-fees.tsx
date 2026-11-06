@@ -1,12 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Banknote, Phone, Receipt } from 'lucide-react'
+import { Banknote, Phone } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { CollectFeeSheet } from '@/components/collect-fee-sheet'
 import { VoidPaymentButton } from '@/components/void-payment-button'
@@ -15,6 +14,7 @@ import { paymentConcept } from '@/lib/payment-concept'
 import { PAYMENT_METHODS } from '@/lib/payment-method'
 import { formatCurrency, formatTime, getDayOfWeek } from '@/lib/utils'
 import { formatLongDate } from '@/lib/format-date'
+import { TicketLink } from '@/components/ticket-link'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -158,10 +158,7 @@ export function StudentFees({ meId, student, showDeposit, monthEnd, enrollments,
                   </div>
                   <span className={`text-label tabular-nums ${voided ? 'text-ink-3 line-through' : 'text-ink'}`}>{formatCurrency(p.amount)}</span>
                   {voided && <Badge tone="neutral">Anulado</Badge>}
-                  <Link href={`/ticket/${p.id}`} target="_blank" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                    <Receipt className="h-4 w-4" aria-hidden />
-                    Ticket
-                  </Link>
+                  <TicketLink payment={p} />
                   {canUndo && (
                     <VoidPaymentButton paymentId={p.id} type={p.type} concept={concept.title} amount={p.amount} studentName={student.name} />
                   )}

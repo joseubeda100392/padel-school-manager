@@ -12,6 +12,7 @@ import { Field, Input, Select } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/feedback'
 import { VoidPaymentButton } from '@/components/void-payment-button'
 import { canVoidPayment } from '@/lib/payment-void'
+import { TicketLink } from '@/components/ticket-link'
 
 type StatusTone = 'success' | 'warn' | 'danger' | 'neutral'
 
@@ -221,9 +222,12 @@ export default function PaymentsTable({ payments }: { payments: any[] }) {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2">{formatDate(p.created_at)}</td>
                       <td className="px-4 py-3 text-right sm:px-5">
-                        {canVoidPayment(p) && (
-                          <VoidPaymentButton paymentId={p.id} type={p.type} concept={[paymentConcept(p).title, paymentConcept(p).detail].filter(Boolean).join(' · ')} amount={p.amount} studentName={p.user?.name} />
-                        )}
+                        <div className="flex items-center justify-end gap-1">
+                          <TicketLink payment={p} />
+                          {canVoidPayment(p) && (
+                            <VoidPaymentButton paymentId={p.id} type={p.type} concept={[paymentConcept(p).title, paymentConcept(p).detail].filter(Boolean).join(' · ')} amount={p.amount} studentName={p.user?.name} />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

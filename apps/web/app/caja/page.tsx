@@ -18,9 +18,7 @@ import { UnpaidList } from '@/app/dashboard/payments/unpaid-list'
 import { MonthNavigator } from '@/app/dashboard/payments/month-navigator'
 import { DepositList } from './deposit-list'
 import { StudentSearch } from './student-search'
-import Link from 'next/link'
-import { Receipt } from 'lucide-react'
-import { buttonVariants } from '@/components/ui/button'
+import { TicketLink } from '@/components/ticket-link'
 import { isPlaceholderEmail } from '@/lib/login-identifier'
 
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -118,10 +116,7 @@ export default async function CajaPage({ searchParams }: { searchParams: { month
                     {' · '}{PAYMENT_METHODS[(p.metadata?.method ?? 'cash') as keyof typeof PAYMENT_METHODS]?.label ?? 'Efectivo'}
                     {' · '}<span className="font-medium text-ink">{formatCurrency(p.amount)}</span>
                   </span>
-                  <Link href={`/ticket/${p.id}`} target="_blank" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                    <Receipt className="h-4 w-4" aria-hidden />
-                    Ticket
-                  </Link>
+                  <TicketLink payment={{ id: p.id, status: 'succeeded' }} />
                 </li>
               ))}
             </ul>

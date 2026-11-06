@@ -34,6 +34,7 @@ import { madridDayOfWeek } from '@/lib/madrid-time'
 import { VoidPaymentButton } from '@/components/void-payment-button'
 import { canVoidPayment } from '@/lib/payment-void'
 import { isPlaceholderEmail } from '@/lib/login-identifier'
+import { TicketLink } from '@/components/ticket-link'
 
 const roleLabel: Record<string, string> = {
   student: 'Alumno',
@@ -429,9 +430,12 @@ export default async function StudentDetailPage({ params, searchParams }: { para
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-body tabular-nums text-ink-2">{formatDate(p.created_at)}</td>
                         <td className="px-4 py-3 text-right sm:px-5">
-                          {canVoid && canVoidPayment(p) && (
-                            <VoidPaymentButton paymentId={p.id} type={p.type} concept={[concept.title, concept.detail].filter(Boolean).join(' · ')} amount={p.amount} />
-                          )}
+                          <div className="flex items-center justify-end gap-1">
+                            <TicketLink payment={p} />
+                            {canVoid && canVoidPayment(p) && (
+                              <VoidPaymentButton paymentId={p.id} type={p.type} concept={[concept.title, concept.detail].filter(Boolean).join(' · ')} amount={p.amount} />
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
