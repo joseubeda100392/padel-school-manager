@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
     .eq('redsys_order_id', order)
     .single()
 
-  if (!payment) return NextResponse.json({ error: 'Solicitud no válida' }, { status: 400 })
+  if (!payment) {
+    console.error('[webhook] aviso de Redsys de un pedido que no existe:', order, 'respuesta', responseCode)
+    return NextResponse.json({ error: 'Solicitud no válida' }, { status: 400 })
+  }
 
   // Resolver la clave secreta del club (fallback a env var global)
   let secretKey = process.env.REDSYS_SECRET_KEY ?? ''
@@ -48,6 +51,7 @@ export async function POST(req: NextRequest) {
   // Verificar firma con la clave del club
   const valid = verifySignature(secretKey, order, merchantParameters, signature)
   if (!valid) {
+    console.error('[webhook] firma de Redsys no válida, pedido', order, 'pago', payment.id, 'club', payment.club_id)
     return NextResponse.json({ error: 'Solicitud no válida' }, { status: 400 })
   }
 

@@ -27,6 +27,7 @@ const securityHeaders = [
 const nextConfig = {
   transpilePackages: ['@padel/db', '@padel/types'],
   experimental: {
+    instrumentationHook: true,
     staleTimes: {
       dynamic: 120,
       static: 300,

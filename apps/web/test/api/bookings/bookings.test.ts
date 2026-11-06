@@ -114,8 +114,15 @@ describe('POST /api/bookings', () => {
   it('returns booking data on success', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } })
 
+    const noBookingsQ: Record<string, unknown> = {
+      select: vi.fn(() => noBookingsQ),
+      eq: vi.fn(() => noBookingsQ),
+      neq: vi.fn(() => noBookingsQ),
+      then: (resolve: (v: unknown) => unknown) => resolve({ data: [], error: null }),
+    }
     mockFrom
       .mockReturnValueOnce(chainQ({ data: null, error: null })) // schedules → no schedule (skip overlap)
+      .mockReturnValueOnce(noBookingsQ)                         // bookings overlap query → none
     mockRpc.mockResolvedValue({ data: { booking_id: 'bk-1', new_balance: 4 }, error: null })
 
     const res = await POST(json({ scheduleId: '00000000-0000-0000-0000-000000000001' }))

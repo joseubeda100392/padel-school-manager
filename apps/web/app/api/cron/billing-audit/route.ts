@@ -3,10 +3,9 @@ import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { sendPushToUsers } from '@/lib/push'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, INTERNAL_REPORT_TO as REPORT_TO } from '@/lib/email'
 import { findBillingDiscrepancies, type AuditClub, type BillingDiscrepancy } from '@/lib/billing-audit'
 
-const REPORT_TO = ['joseubeda10@gmail.com']
 const PAGE = 1000
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 

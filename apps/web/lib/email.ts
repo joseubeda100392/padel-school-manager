@@ -1,5 +1,6 @@
 // Correos internos (a nosotros, no a los clubs) por Resend.
 export const EMAIL_FROM = 'ePadel School <notificaciones@epadelschool.com>'
+export const INTERNAL_REPORT_TO = ['joseubeda10@gmail.com']
 
 export async function sendEmail({ to, subject, html }: { to: string[]; subject: string; html: string }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
