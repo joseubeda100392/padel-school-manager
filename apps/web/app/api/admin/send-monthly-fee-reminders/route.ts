@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { madridDayOfWeek } from '@/lib/madrid-time'
 import { createClient } from '@supabase/supabase-js'
 import { formatTime } from '@/lib/utils'
 import { currentBillingMonth, lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     .filter((e: any) => e.student?.push_token)
     .map((e: any) => {
       const start = new Date(e.schedule?.start_time)
-      const day = days[start.getDay()]
+      const day = days[madridDayOfWeek(start)]
       const hour = formatTime(start)
       const price = (e.monthly_price / 100).toFixed(2)
       return {

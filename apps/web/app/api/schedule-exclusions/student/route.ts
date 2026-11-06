@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { madridDayOfWeek } from '@/lib/madrid-time'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validate'
 import { createClient } from '@/lib/supabase/server'
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 
 
   const base = new Date(schedule.start_time)
-  if (classDt.getDay() !== base.getDay()) {
+  if (madridDayOfWeek(classDt) !== madridDayOfWeek(base)) {
     return NextResponse.json({ error: 'La fecha no corresponde al día de la clase' }, { status: 400 })
   }
   if (dateStr < new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(base)) {

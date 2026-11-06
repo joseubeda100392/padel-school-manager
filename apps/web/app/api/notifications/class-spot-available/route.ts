@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { madridDayOfWeek } from '@/lib/madrid-time'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { formatTime } from '@/lib/utils'
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   const startTime = new Date(schedule.start_time)
   const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-  const day = dayNames[startTime.getDay()]
+  const day = dayNames[madridDayOfWeek(startTime)]
   const hour = formatTime(startTime)
   const court = (schedule.court as any)?.name ?? 'Pista'
 

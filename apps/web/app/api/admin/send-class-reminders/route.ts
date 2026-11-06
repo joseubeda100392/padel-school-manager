@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { formatTime } from '@/lib/utils'
+import { madridDateStr, madridDayOfWeek } from '@/lib/madrid-time'
+import { addDays } from '@/lib/app-fee'
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-cron-secret')
@@ -13,10 +15,9 @@ export async function POST(req: NextRequest) {
   const admin = getAdminClient()
 
   const TZ = 'Europe/Madrid'
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  const tomorrowDow = tomorrow.getDay()
-  const tomorrowDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(tomorrow)
+  // Mañana en España (el servidor va en UTC): mediodía de hoy en España + 1 día.
+  const tomorrowDateStr = addDays(madridDateStr(), 1)
+  const tomorrowDow = madridDayOfWeek(new Date(`${tomorrowDateStr}T12:00:00Z`))
 
   const { data: schedules } = await admin
     .from('schedules')
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     .limit(2000)
 
   const tomorrowSchedules = (schedules ?? []).filter((s: any) => {
-    if (new Date(s.start_time).getDay() !== tomorrowDow) return false
+    if (madridDayOfWeek(s.start_time) !== tomorrowDow) return false
     const scheduleStartDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(s.start_time))
     if (scheduleStartDate > tomorrowDateStr) return false
     if (s.recurrence_end_date && s.recurrence_end_date < tomorrowDateStr) return false

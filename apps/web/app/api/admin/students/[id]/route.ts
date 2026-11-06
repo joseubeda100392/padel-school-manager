@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { madridDateStr } from '@/lib/madrid-time'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 
@@ -33,7 +34,7 @@ export async function DELETE(
     // --- Baja lógica ---
     const { error } = await admin
       .from('users')
-      .update({ is_active: false, end_date: new Date().toISOString().split('T')[0] })
+      .update({ is_active: false, end_date: madridDateStr() })
       .eq('id', userId)
     if (error) return NextResponse.json({ error: 'Error al desactivar el usuario' }, { status: 500 })
 

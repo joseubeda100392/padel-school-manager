@@ -14,6 +14,7 @@ import { RealtimeRefresh } from '@/components/realtime-refresh'
 import { getClubFeatures } from '@/lib/get-club-features'
 import { lastDayOfMonthStr, dateStr } from '@/lib/billing-cycle'
 import { getHolidaySet } from '@/lib/club-holidays'
+import { getUpcomingOccurrences as getClassDates } from '@/lib/next-class'
 import { firstOfNextMonth, isActiveOn } from '@/lib/enrollment-window'
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -26,18 +27,8 @@ function getUpcomingOccurrences(
   maxDateStr: string | null = null,
   holidaySet: Set<string> = new Set(),
 ): { dateStr: string; label: string; canRegister: boolean; overrideTime: string | null }[] {
-  const base = new Date(startTime)
-  const now = new Date()
-  const first = new Date(now)
-  first.setHours(base.getHours(), base.getMinutes(), 0, 0)
-  const diff = (base.getDay() - now.getDay() + 7) % 7
-  first.setDate(now.getDate() + (diff === 0 && first <= now ? 7 : diff))
-  while (first < base) first.setDate(first.getDate() + 7)
-
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(first)
-    d.setDate(d.getDate() + i * 7)
-    const dateStr = d.toISOString().split('T')[0]
+  return getClassDates(startTime, new Date(), count).map(d => {
+    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(d)
     const hoursUntil = (d.getTime() - Date.now()) / 3600000
     const label = new Date(dateStr + 'T12:00:00').toLocaleDateString('es-ES', {
       weekday: 'long', day: 'numeric', month: 'long',

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { madridDayOfWeek } from '@/lib/madrid-time'
 import { sendPushToUsers } from '@/lib/push'
 import { canTakeSpot, parseLowerLevelMap } from '@/lib/spot-levels'
 import { formatTime } from '@/lib/utils'
@@ -38,7 +39,7 @@ export async function notifySpotAvailable(admin: SupabaseClient, scheduleId: str
     const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
     await sendPushToUsers(targetIds, {
       title: '🎾 ¡Hueco libre disponible!',
-      body: `${DAY_NAMES[startDt.getDay()]} ${dateLabel} a las ${formatTime(startDt)}${levelName} — ${(sc as any).court?.name ?? ''}`,
+      body: `${DAY_NAMES[madridDayOfWeek(startDt)]} ${dateLabel} a las ${formatTime(startDt)}${levelName} — ${(sc as any).court?.name ?? ''}`,
       url: '/student/spots',
     }, 'spot_available')
   } catch (err) {

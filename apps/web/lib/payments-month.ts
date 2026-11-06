@@ -1,5 +1,7 @@
 import type { getAdminClient } from '@/lib/supabase/admin'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
+import { madridStartOfDay } from '@/lib/madrid-time'
+import { firstOfNextMonth } from '@/lib/enrollment-window'
 
 type Admin = ReturnType<typeof getAdminClient>
 
@@ -27,8 +29,10 @@ export function isPaidPayment(p: { status?: string | null }) {
 // pagó, para que un adelanto no infle un mes y vacíe el siguiente. Los pagos
 // antiguos sin ese campo, y el resto de tipos, cuentan por fecha de pago.
 export async function loadMonthPayments(admin: Admin, clubId: string | null, year: number, month0: number) {
-  const startOfMonth = new Date(year, month0, 1).toISOString()
-  const endOfMonth = new Date(year, month0 + 1, 0, 23, 59, 59, 999).toISOString()
+  // Límites del mes en hora de España (el servidor va en UTC).
+  const firstDay = `${year}-${String(month0 + 1).padStart(2, '0')}-01`
+  const startOfMonth = madridStartOfDay(firstDay).toISOString()
+  const endOfMonth = new Date(madridStartOfDay(firstOfNextMonth(firstDay)).getTime() - 1).toISOString()
   const targetPaidUntil = lastDayOfMonthStr(year, month0)
 
   function withClub<T extends { eq: (col: string, val: string) => T }>(query: T): T {

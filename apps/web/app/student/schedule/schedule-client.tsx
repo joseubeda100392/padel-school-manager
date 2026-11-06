@@ -82,7 +82,7 @@ export function StudentScheduleClient({ items, cancellationHours, enablePayments
   ), [items])
 
   const [selectedDate, setSelectedDate] = useState<string | null>(
-    initialDate ?? events.find(e => e.dateStr >= todayStr)?.dateStr ?? null
+    initialDate ?? events.map(e => e.dateStr).filter(d => d >= todayStr).sort()[0] ?? null
   )
 
   const eventCounts = useMemo(() => {

@@ -41,7 +41,6 @@ export default async function CoachClassDetailPage({ params, searchParams }: { p
 
   if (!schedule) notFound()
 
-  const today = new Date().toISOString().split('T')[0]
   const TZ = 'Europe/Madrid'
   const todaySpain = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date())
   // Si venimos de una celda concreta del calendario semanal (?date=), mostrar

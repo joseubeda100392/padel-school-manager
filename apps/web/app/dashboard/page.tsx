@@ -20,6 +20,7 @@ import { HomeBand } from '@/components/ui/home-band'
 import { PageHeader } from '@/components/ui/page-header'
 import { formatLongDate } from '@/lib/format-date'
 import { COACH_USERS_FILTER } from '@/lib/coach-role'
+import { madridDateStr, madridDayOfWeek } from '@/lib/madrid-time'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
@@ -51,7 +52,8 @@ export default async function DashboardPage() {
   const filter = (q: any) => clubId ? q.eq('club_id', clubId) : q
 
   const now = new Date()
-  const currentMonthLabel = `${MONTHS[now.getMonth()]} ${now.getFullYear()}`
+  const [nowYear, nowMonth] = madridDateStr(now).split('-').map(Number)
+  const currentMonthLabel = `${MONTHS[nowMonth - 1]} ${nowYear}`
   const todayLabel = formatLongDate(now)
 
   // Fetch club config first to gate billing RPCs
@@ -82,11 +84,11 @@ export default async function DashboardPage() {
     filter(admin.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true)),
     admin.rpc('count_classes_today', { p_club_id: clubId ?? null }),
     billingActive
-      ? admin.rpc('count_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 })
+      ? admin.rpc('count_pending_payments', { p_club_id: clubId ?? null, p_year: nowYear, p_month: nowMonth })
       : Promise.resolve({ data: 0, error: null }),
     filter(admin.from('users').select('id,name,email,created_at,avatar_url').eq('role', 'student').eq('is_active', true).order('created_at', { ascending: false }).limit(5)),
     billingActive
-      ? admin.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: now.getFullYear(), p_month: now.getMonth() + 1 })
+      ? admin.rpc('get_pending_payments', { p_club_id: clubId ?? null, p_year: nowYear, p_month: nowMonth })
       : Promise.resolve({ data: [] as any[], error: null }),
     getClubFeatures(clubId ?? undefined),
     filter(admin.from('payments').select('amount, type').eq('status', 'succeeded')),
@@ -186,7 +188,7 @@ export default async function DashboardPage() {
             ) : (
               <List className="mt-3 border-t border-line">
                 {unpaidList.slice(0, 6).map((e: any) => {
-                  const dow = e.start_time ? new Date(e.start_time).getDay() : null
+                  const dow = e.start_time ? madridDayOfWeek(e.start_time) : null
                   return (
                     <ListRow
                       key={e.id}

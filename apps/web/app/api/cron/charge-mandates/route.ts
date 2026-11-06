@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { madridDateStr } from '@/lib/madrid-time'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { generateOrderId, chargeMit } from '@/lib/redsys'
 import { applyMandateItems, loadMandateItems, nextChargeDate, type MandateItem } from '@/lib/mandate-charge'
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = getAdminClient()
-  const today = new Date().toISOString().split('T')[0]
+  const today = madridDateStr()
 
   const { data: mandates } = await admin
     .from('payment_mandates')

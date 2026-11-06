@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
       const nextMonthYear = todayMonth0 + 1 > 11 ? todayY + 1 : todayY
       productDesc = `Cuota grupo fijo ${MONTH_NAMES[nextMonth0]} ${nextMonthYear} (adelantada)`
     } else {
-      productDesc = `Cuota grupo fijo ${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
+      productDesc = `Cuota grupo fijo ${MONTH_NAMES[todayMonth0]} ${todayY}`
     }
 
   } else if (type === 'tournament') {

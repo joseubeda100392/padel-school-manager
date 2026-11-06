@@ -19,3 +19,21 @@ export function madridMinutesOfDay(value: Date | string): number {
 export function madridDayOfWeek(value: Date | string): number {
   return parts(value).weekday
 }
+
+const DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' })
+
+// Fecha (AAAA-MM-DD) de España de un instante. El servidor va en UTC: entre las 00:00 y las 01:00/02:00
+// de España, new Date().toISOString() todavía da el día anterior.
+export function madridDateStr(value: Date | string = new Date()): string {
+  return DATE.format(new Date(value))
+}
+
+// Primer instante (00:00 en España) de un día AAAA-MM-DD, como Date.
+export function madridStartOfDay(dateStr: string): Date {
+  const guess = new Date(`${dateStr}T00:00:00Z`)
+  for (const offsetHours of [1, 2]) {
+    const candidate = new Date(guess.getTime() - offsetHours * 3600000)
+    if (madridDateStr(candidate) === dateStr && madridMinutesOfDay(candidate) === 0) return candidate
+  }
+  return guess
+}

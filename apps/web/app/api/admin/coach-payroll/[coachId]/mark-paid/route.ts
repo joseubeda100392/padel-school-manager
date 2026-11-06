@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
+import { madridDateStr } from '@/lib/madrid-time'
 import { createClient } from '@/lib/supabase/server'
 import { getAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
@@ -38,7 +39,7 @@ export async function POST(_req: NextRequest, { params }: { params: { coachId: s
     return NextResponse.json({ error: 'Este profesor no tiene tarifa por hora configurada' }, { status: 400 })
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = madridDateStr()
 
   const { error } = await admin.from('coach_payouts').insert({
     coach_id: params.coachId,
