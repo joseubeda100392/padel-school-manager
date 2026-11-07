@@ -1,0 +1,15 @@
+name: Revisión de pagos con tarjeta con Redsys
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  reconcile-payments:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call reconcile-payments
+        run: |
+          curl -sf -X POST "https://epadelschool.app/api/cron/reconcile-payments" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

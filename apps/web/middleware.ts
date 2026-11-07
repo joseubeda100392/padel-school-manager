@@ -84,5 +84,8 @@ export const config = {
     '/coach/:path*',
     '/caja/:path*',
     '/login/:path*',
+    // Solo para renovar la sesión al volver de Redsys (la página consulta el pago del alumno).
+    '/pay/success',
+    '/pay/error',
   ],
 }

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CircleCheck, TriangleAlert } from 'lucide-react'
+import { CircleCheck, Clock, TriangleAlert } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 
 export function ResultScreen({
@@ -8,13 +8,17 @@ export function ResultScreen({
   description,
   action,
 }: {
-  tone: 'success' | 'danger'
+  tone: 'success' | 'pending' | 'danger'
   title: string
   description: string
   action?: { href: string; label: string }
 }) {
-  const Icon = tone === 'success' ? CircleCheck : TriangleAlert
-  const iconClass = tone === 'success' ? 'bg-accent-soft text-accent-ink' : 'bg-danger-soft text-danger-ink'
+  const Icon = { success: CircleCheck, pending: Clock, danger: TriangleAlert }[tone]
+  const iconClass = {
+    success: 'bg-accent-soft text-accent-ink',
+    pending: 'bg-warn-soft text-warn-ink',
+    danger: 'bg-danger-soft text-danger-ink',
+  }[tone]
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-10 text-center">

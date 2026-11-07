@@ -466,8 +466,8 @@ export async function POST(req: NextRequest) {
     DS_MERCHANT_ORDER: orderId,
     DS_MERCHANT_CURRENCY: '978',
     DS_MERCHANT_MERCHANTURL: `${appUrl}/api/payments/webhook`,
-    DS_MERCHANT_URLOK: `${appUrl}/pay/success`,
-    DS_MERCHANT_URLKO: `${appUrl}/pay/error`,
+    DS_MERCHANT_URLOK: `${appUrl}/pay/success?order=${orderId}`,
+    DS_MERCHANT_URLKO: `${appUrl}/pay/error?order=${orderId}`,
     DS_MERCHANT_PRODUCTDESCRIPTION: productDesc,
   })
 

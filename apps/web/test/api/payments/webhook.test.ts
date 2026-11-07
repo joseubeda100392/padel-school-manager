@@ -144,6 +144,52 @@ describe('POST /api/payments/webhook', () => {
     expect(json.already_processed).toBe(true)
   })
 
+  it('un rechazo no reabre un pago que la revisión dio por abandonado', async () => {
+    vi.mocked(parseRedsysResponse).mockReturnValue({ Ds_Order: 'ORD001', Ds_Response: '9999' } as any)
+    vi.mocked(verifySignature).mockReturnValue(true)
+    vi.mocked(isPaymentSuccessful).mockReturnValue(false)
+
+    const chain = chainable()
+    vi.mocked(chain.single as any)
+      .mockResolvedValueOnce({ data: { ...BASE_PAYMENT, status: 'failed', metadata: { abandoned: true } }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null })
+    mockFrom.mockReturnValue(chain)
+
+    const res = await POST(makeRequest({ Ds_MerchantParameters: 'p', Ds_Signature: 's' }))
+    expect((await res.json()).already_processed).toBe(true)
+  })
+
+  it('un cobro avisado tarde reabre un pago que la revisión dio por abandonado', async () => {
+    vi.mocked(parseRedsysResponse).mockReturnValue({ Ds_Order: 'ORD001', Ds_Response: '0000' } as any)
+    vi.mocked(verifySignature).mockReturnValue(true)
+    vi.mocked(isPaymentSuccessful).mockReturnValue(true)
+
+    const lookup = chainable()
+    vi.mocked(lookup.single as any)
+      .mockResolvedValueOnce({ data: { ...BASE_PAYMENT, type: 'tournament', metadata: { abandoned: true } , status: 'failed' }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null })
+    const eqCalls: unknown[][] = []
+    const updateChain: Record<string, any> = {
+      eq: vi.fn((...args: unknown[]) => { eqCalls.push(args); return updateChain }),
+      select: vi.fn().mockResolvedValue({ data: [{ id: 'pay-1' }], error: null }),
+    }
+    const update = vi.fn(() => updateChain)
+    mockFrom
+      .mockReturnValueOnce(lookup)
+      .mockReturnValueOnce(lookup)
+      .mockReturnValueOnce({ update })
+
+    const res = await POST(makeRequest({ Ds_MerchantParameters: 'p', Ds_Signature: 's' }))
+    expect(res.status).toBe(200)
+    expect((await res.json()).ok).toBe(true)
+    const [[patch]] = update.mock.calls as unknown as [[any]]
+    expect(patch.status).toBe('succeeded')
+    expect(patch.metadata.abandoned).toBeUndefined()
+    expect(patch.metadata.reopened_after_abandon).toBe(true)
+    expect(eqCalls).toContainEqual(['status', 'failed'])
+    expect(eqCalls).toContainEqual(['metadata->>abandoned', 'true'])
+  })
+
   it('returns ok:false for a failed payment (response code non-zero)', async () => {
     vi.mocked(parseRedsysResponse).mockReturnValue({ Ds_Order: 'ORD001', Ds_Response: '9999' } as any)
     vi.mocked(verifySignature).mockReturnValue(true)

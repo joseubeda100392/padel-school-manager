@@ -5,6 +5,7 @@ import { StudentShell } from '@/components/layout/student-shell'
 import { DEFAULT_FEATURES, parseClubFeatures } from '@/lib/get-club-features'
 import { TermsGate } from './terms-gate'
 import { PasswordChangeGate } from './password-change-gate'
+import { PendingPaymentNotice } from './pending-payment-notice'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
@@ -12,7 +13,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (!user) redirect('/login')
 
   const admin = getAdminClient()
-  const [{ data: userData, error: userError }, { data: bag }, { count: unreadCount }] = await Promise.all([
+  const [{ data: userData, error: userError }, { data: bag }, { count: unreadCount }, { data: confirming }] = await Promise.all([
     admin
       .from('users')
       .select('role, also_student, is_external, name, club_id, clubs(name, slug, features), force_password_change, terms_accepted_at')
@@ -20,6 +21,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       .single(),
     admin.from('class_bag').select('balance_60, balance_90').eq('user_id', user.id).single(),
     admin.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false),
+    admin.from('payments').select('amount').eq('user_id', user.id).eq('status', 'pending').eq('metadata->>returned_ok', 'true'),
   ])
 
   if (userError) console.error('[student/layout] users query failed:', userError.message)
@@ -59,6 +61,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       isAlsoCoach={role === 'coach'}
       clubSlug={clubSlug}
     >
+      <PendingPaymentNotice amounts={(confirming ?? []).map(p => p.amount)} />
       {children}
     </StudentShell>
   )

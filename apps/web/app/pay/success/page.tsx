@@ -1,12 +1,6 @@
-import { ResultScreen } from '../result-screen'
+export const dynamic = 'force-dynamic'
+import { PaymentReturn } from '../payment-return'
 
-export default function PaySuccessPage() {
-  return (
-    <ResultScreen
-      tone="success"
-      title="Pago completado"
-      description="Tu pago se ha procesado correctamente."
-      action={{ href: '/student', label: 'Volver a la app' }}
-    />
-  )
+export default function PaySuccessPage({ searchParams }: { searchParams: { order?: string } }) {
+  return <PaymentReturn order={searchParams.order} fallback="success" />
 }

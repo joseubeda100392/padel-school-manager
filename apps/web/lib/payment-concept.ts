@@ -54,7 +54,9 @@ export function paymentConcept(p: PaymentLike): { title: string; detail: string 
     ].filter(Boolean)
     // Un pago con tarjeta que no llegó a cobrarse no tiene mes: el mes se
     // apunta cuando el banco confirma.
-    const unfinished = p.status === 'pending' ? 'Pago con tarjeta sin terminar' : p.status === 'failed' ? 'Pago con tarjeta rechazado' : null
+    const unfinished = p.status === 'pending' || (p.status === 'failed' && (meta as { abandoned?: boolean }).abandoned)
+      ? 'Pago con tarjeta sin terminar'
+      : p.status === 'failed' ? 'Pago con tarjeta rechazado' : null
     return {
       title: covered.length ? `Cuota de ${monthsLabel(covered)}` : unfinished ?? 'Cuota mensual',
       detail: details.length ? details.join(' · ') : null,
@@ -80,6 +82,10 @@ const UNFINISHED_AFTER_MS = 60 * 60 * 1000
 
 export function paymentStatus(p: { status?: string | null; created_at: string; metadata?: Record<string, any> | null }, now = Date.now()): { key: string; label: string } {
   if (p.status === 'refunded' && p.metadata?.voided) return { key: 'voided', label: 'Anulado' }
+  // Abandonado: la revisión con Redsys vio que el alumno no terminó el pago.
+  if (p.status === 'failed' && p.metadata?.abandoned) return { key: 'unfinished', label: 'Sin terminar' }
+  // Cobrado en Redsys sin aviso, pero con algo raro (importe, domiciliación): lo revisa José.
+  if (p.status === 'pending' && p.metadata?.redsys_check?.review) return { key: 'pending', label: 'A revisar' }
   switch (p.status) {
     case 'succeeded': return { key: 'succeeded', label: 'Cobrado' }
     case 'failed': return { key: 'failed', label: 'Fallido' }

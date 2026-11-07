@@ -1,0 +1,384 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { isPaymentSuccessful } from '@/lib/redsys'
+import { sendPushToUsers } from '@/lib/push'
+import { resetEnrollmentDiscountAfterPayment } from '@/lib/enrollment-discount'
+import { nextPaidUntilForEnrollment } from '@/lib/billing-cycle'
+import { applyMandateItems, loadMandateItems, nextChargeDate, type MandateItem } from '@/lib/mandate-charge'
+
+export interface SettlementResult {
+  status: number
+  body: Record<string, unknown>
+}
+
+const reply = (body: Record<string, unknown>, init?: { status: number }): SettlementResult => ({ status: init?.status ?? 200, body })
+
+// Aplica la respuesta de Redsys a un pago: lo marca cobrado o fallido y entrega
+// lo pagado (cuota, bono, reserva...). La usan el aviso de Redsys (webhook), la
+// pantalla de vuelta del pago y la revisión periódica, así que tiene que ser
+// repetible: solo el primero que pasa el pago de 'pending' aplica los efectos.
+export async function settleRedsysPayment(
+  adminSupabase: SupabaseClient,
+  payment: any,
+  response: { responseCode: string; identifier?: string | null; extraMetadata?: Record<string, unknown> },
+): Promise<SettlementResult> {
+  const { responseCode } = response
+  const success = isPaymentSuccessful(responseCode)
+
+  // Un pago que la revisión dio por abandonado (2 h sin terminar) se reabre si
+  // Redsys avisa después de que lo cobró: el dinero ya está cobrado.
+  const reopenAbandoned = success && payment.status === 'failed' && payment.metadata?.abandoned === true
+
+  // Idempotencia: Redsys puede retransmitir el IPN; solo el primer aviso aplica efectos
+  if (payment.status !== 'pending' && !reopenAbandoned) {
+    return reply({ ok: true, already_processed: true })
+  }
+
+  // Se guarda el código de respuesta de Redsys siempre (éxito o fallo) — sin
+  // esto, ante un pago fallido no hay forma de saber después si fue un
+  // rechazo real del banco (fondos, CVV...) o un error técnico/de
+  // configuración nuestro (firma, parámetro mal enviado...): ambos casos se
+  // veían igual, solo como "failed".
+  const { abandoned: _abandoned, ...previous } = payment.metadata ?? {}
+  const meta = {
+    ...(reopenAbandoned ? { ...previous, reopened_after_abandon: true } : payment.metadata ?? {}),
+    ...(response.extraMetadata ?? {}),
+    redsys_response_code: responseCode,
+  }
+  let claim = adminSupabase
+    .from('payments')
+    .update({
+      status: success ? 'succeeded' : 'failed',
+      metadata: meta,
+    })
+    .eq('id', payment.id)
+  claim = reopenAbandoned ? claim.eq('status', 'failed').eq('metadata->>abandoned', 'true') : claim.eq('status', 'pending')
+  const { data: claimed } = await claim.select('id')
+
+  if (!claimed || claimed.length === 0) {
+    return reply({ ok: true, already_processed: true })
+  }
+
+  if (!success) return reply({ ok: false })
+
+  // Si el efecto (reserva/crédito/etc.) falla tras el claim, revertir a 'pending'
+  // para que el próximo reintento de Redsys pueda reprocesarlo en vez de quedar
+  // marcado 'succeeded' sin haber entregado lo pagado.
+  const revertToPending = () =>
+    adminSupabase.from('payments').update({ status: 'pending' }).eq('id', payment.id).eq('status', 'succeeded')
+
+  if (payment.type === 'single_class' && meta.booking_id) {
+    // Clase particular: la reserva ya existe (la creó el admin en 'pending'),
+    // el pago solo la confirma — nunca se crea una reserva nueva aquí, así
+    // que no hace falta re-chequear aforo (era 1 plaza para esta persona).
+    const { data: confirmedRows, error: confirmErr } = await adminSupabase
+      .from('bookings')
+      .update({ status: 'confirmed', source: 'pay_per_class' })
+      .eq('id', meta.booking_id)
+      .eq('status', 'pending')
+      .select('id')
+    if (confirmErr) {
+      console.error('[webhook] private lesson booking confirm failed:', confirmErr.message)
+      await revertToPending()
+      return reply({ error: 'booking_failed' }, { status: 500 })
+    }
+    // 0 filas afectadas = la reserva ya estaba confirmada (ej. el alumno
+    // pagó dos veces desde dos pestañas/sesiones de Redsys distintas). El
+    // dinero ya se ha cobrado igual en ambos casos — no se puede rechazar
+    // el pago a estas alturas — pero queda constancia para que el club
+    // revise si hay que reembolsar el duplicado.
+    if (!confirmedRows || confirmedRows.length === 0) {
+      console.error('[webhook] private lesson booking already confirmed — possible double payment, payment', payment.id, 'booking', meta.booking_id)
+    }
+
+  } else if (payment.type === 'single_class' && meta.schedule_id) {
+    if (meta.exclusion_id) {
+      await adminSupabase
+        .from('schedule_exclusions')
+        .update({ publish_spot: false, spot_taken: true })
+        .eq('id', meta.exclusion_id)
+    }
+
+    if (meta.class_date) {
+      // Aforo comprobado de forma atómica (bloqueo de la fila de schedules) —
+      // evita que dos pagos simultáneos superen max_students, y que alguien
+      // pague su plaza individual sobre una fecha ya cubierta por "clase
+      // entera". El dinero ya se ha cobrado en Redsys en este punto: si la
+      // clase ya está completa/cubierta no se puede simplemente rechazar el
+      // pago, así que se deja constancia en el pago y se avisa al admin para
+      // que lo resuelva a mano (reembolso, contactar al alumno, etc.).
+      const { data: rpcResult, error: rpcErr } = await adminSupabase.rpc('book_paid_class_spot', {
+        p_schedule_id: meta.schedule_id,
+        p_student_id: payment.user_id,
+        p_class_date: meta.class_date,
+        p_whole_class: meta.whole_class ?? false,
+      })
+
+      if (rpcErr) {
+        console.error('[webhook] single_class booking RPC failed:', rpcErr.message)
+        await revertToPending()
+        return reply({ error: 'booking_failed' }, { status: 500 })
+      }
+
+      if (rpcResult?.error) {
+        console.error('[webhook] single_class capacity conflict:', rpcResult.error, 'payment', payment.id)
+        await adminSupabase
+          .from('payments')
+          .update({ metadata: { ...meta, capacity_conflict: rpcResult.error } })
+          .eq('id', payment.id)
+
+        const { data: admins } = await adminSupabase
+          .from('users')
+          .select('id')
+          .eq('club_id', payment.club_id)
+          .in('role', ['admin', 'super_admin'])
+        const adminIds = (admins ?? []).map((a) => a.id)
+        if (adminIds.length) {
+          await sendPushToUsers(adminIds, {
+            title: 'Conflicto de aforo — pago ya cobrado',
+            body: `Un alumno ha pagado una clase para el ${meta.class_date} que ya está completa/cubierta. Revisa el pago ${payment.id} para gestionar el reembolso.`,
+          }, 'admin_message')
+        }
+        // No se revierte a pending: el cobro en Redsys ya se hizo y es
+        // definitivo, revertir el status aquí no deshace el cargo real.
+      }
+    } else {
+      // Camino de compatibilidad si algún día llega sin class_date (no
+      // ocurre en los flujos actuales de la app): comportamiento anterior,
+      // sin chequeo de aforo.
+      const { data: existing } = await adminSupabase
+        .from('bookings')
+        .select('id')
+        .eq('schedule_id', meta.schedule_id)
+        .eq('student_id', payment.user_id)
+        .neq('status', 'cancelled')
+        .maybeSingle()
+
+      if (!existing) {
+        const { error: bookingErr } = await adminSupabase.from('bookings').insert({
+          schedule_id: meta.schedule_id,
+          student_id: payment.user_id,
+          status: 'confirmed',
+          source: 'pay_per_class',
+          club_id: payment.club_id ?? null,
+          class_date: null,
+        })
+        if (bookingErr) {
+          console.error('[webhook] single_class booking failed:', bookingErr.message)
+          await revertToPending()
+          return reply({ error: 'booking_failed' }, { status: 500 })
+        }
+      }
+    }
+
+  } else if (payment.type === 'private_lesson_pack') {
+    const classesToAdd = meta.classes_per_pack ?? 0
+    const dur: '60' | '90' = meta.pack_type === '90' ? '90' : '60'
+    const { data: buyerRow } = await adminSupabase.from('users').select('is_external').eq('id', payment.user_id).single()
+    const isExternal = (buyerRow as any)?.is_external === true
+    const bucket = `${dur}${meta.private_premium ? '_premium' : ''}${isExternal ? '_external' : ''}`
+
+    const { data: rpcResult, error: rpcErr } = await adminSupabase.rpc('credit_private_bag', {
+      p_user_id: payment.user_id,
+      p_club_id: payment.club_id ?? null,
+      p_delta: classesToAdd,
+      p_bucket: bucket,
+      p_reason: `Compra de bono de particular — ${classesToAdd} clases`,
+    })
+    if (rpcErr || rpcResult?.error) {
+      console.error('[webhook] private_lesson_pack credit failed:', rpcErr?.message ?? rpcResult?.error)
+      await revertToPending()
+      return reply({ error: 'credit_failed' }, { status: 500 })
+    }
+
+  } else if (payment.type === 'class_pack') {
+    const classesToAdd = meta.classes_per_pack ?? 10
+    const packType: '60' | '90' = meta.pack_type === '90' ? '90' : '60'
+
+    const { error: rpcErr } = await adminSupabase.rpc('credit_class_bag', {
+      p_user_id: payment.user_id,
+      p_club_id: payment.club_id ?? null,
+      p_delta: classesToAdd,
+      p_pack_type: packType,
+      p_reason: `Compra de bono — ${classesToAdd} clases`,
+    })
+    if (rpcErr) {
+      console.error('[webhook] class_pack credit_class_bag failed:', rpcErr.message)
+      await revertToPending()
+      return reply({ error: 'credit_failed' }, { status: 500 })
+    }
+
+  } else if (payment.type === 'fixed_group_month' && Array.isArray(meta.items) && meta.items.length) {
+    // Cuota de varios grupos en un solo pago: cada grupo avanza el mes o los
+    // meses que se calcularon al crear el pago (metadata.items).
+    try {
+      await applyMandateItems(adminSupabase, payment.user_id, meta.items as MandateItem[])
+    } catch (err) {
+      console.error('[webhook] fixed_group_month (varios grupos) enrollment update failed:', err)
+      await revertToPending()
+      return reply({ error: 'enrollment_update_failed' }, { status: 500 })
+    }
+    const lastPaidUntil = (meta.items as MandateItem[]).map(i => i.paid_until).sort().at(-1)
+    await adminSupabase.from('payments').update({ metadata: { ...meta, paid_until: lastPaidUntil } }).eq('id', payment.id)
+
+  } else if (payment.type === 'fixed_group_month' && meta.enrollment_id) {
+    // Igual para pago normal y adelanto: un mes más a partir de lo que YA
+    // tiene cubierto (paid_until), o del mes de start_date si es su primer
+    // pago — nunca a partir de la fecha de hoy. Antes un pago normal tardío
+    // (ej. primer pago de alguien dado de alta desde el día 1, pagando el
+    // día 28) se saltaba al mes siguiente sin cobrar nunca el mes en curso
+    // (caso real: 204€ de septiembre nunca cobrados en R3 Mejorada). Ver
+    // nextPaidUntilForEnrollment en lib/billing-cycle.ts.
+    const { data: currentEnrollment } = await adminSupabase
+      .from('group_enrollments')
+      .select('paid_until, start_date')
+      .eq('id', meta.enrollment_id)
+      .single()
+    const paidUntil = nextPaidUntilForEnrollment(currentEnrollment?.paid_until ?? null, currentEnrollment?.start_date ?? null)
+    const { error: enrollErr } = await adminSupabase
+      .from('group_enrollments')
+      .update({ paid_until: paidUntil })
+      .eq('id', meta.enrollment_id)
+      .eq('student_id', payment.user_id)
+    if (enrollErr) {
+      console.error('[webhook] fixed_group_month enrollment update failed:', enrollErr.message)
+      await revertToPending()
+      return reply({ error: 'enrollment_update_failed' }, { status: 500 })
+    }
+
+    // Guardar qué mes cubre este pago en concreto (no solo en el enrollment,
+    // que puede cambiar con pagos posteriores) — el panel de Pagos lo usa
+    // para contabilizar la cuota en el mes que corresponde de verdad, no en
+    // el mes en que se pagó (relevante con adelantos, o con un pago normal
+    // hecho en los últimos días de mes que ya salta al siguiente).
+    await adminSupabase.from('payments').update({ metadata: { ...meta, paid_until: paidUntil } }).eq('id', payment.id)
+
+    // Descuento puntual, no permanente: se cobró este mes ya con el precio
+    // rebajado, se resetea para que el siguiente vuelva al precio normal.
+    // Nunca debe tirar abajo la confirmación de un pago ya cobrado — si
+    // falla, se registra y se sigue; el pago ya está bien procesado arriba.
+    try {
+      await resetEnrollmentDiscountAfterPayment(adminSupabase, meta.enrollment_id)
+    } catch (err) {
+      console.error('[webhook] resetEnrollmentDiscountAfterPayment failed:', err)
+    }
+
+  } else if (payment.type === 'tournament' && meta.tournament_id) {
+    const { data: existing } = await adminSupabase
+      .from('tournament_registrations')
+      .select('id')
+      .eq('tournament_id', meta.tournament_id)
+      .eq('student_id', payment.user_id)
+      .maybeSingle()
+    if (!existing) {
+      const { error: regErr } = await adminSupabase.from('tournament_registrations').insert({
+        tournament_id: meta.tournament_id,
+        student_id: payment.user_id,
+      })
+      if (regErr) {
+        console.error('[webhook] tournament registration failed:', regErr.message)
+        await revertToPending()
+        return reply({ error: 'registration_failed' }, { status: 500 })
+      }
+    }
+
+  } else if (payment.type === 'mandate_init' && meta.mandate_id) {
+    const identifier = response.identifier ?? null
+    if (!identifier) {
+      console.error('[webhook] mandate_init: Redsys no devolvió Ds_Merchant_Identifier para mandate', meta.mandate_id)
+      await revertToPending()
+      return reply({ error: 'mandate_identifier_missing' }, { status: 500 })
+    }
+    const { data: mandate } = await adminSupabase
+      .from('payment_mandates')
+      .select('day_of_month')
+      .eq('id', meta.mandate_id)
+      .single()
+    const dayOfMonth = mandate?.day_of_month ?? 1
+    const now = new Date()
+    const nextChargeAt = nextChargeDate(dayOfMonth, now)
+    const { error: mandateErr } = await adminSupabase
+      .from('payment_mandates')
+      .update({
+        ...(identifier ? { redsys_identifier: identifier } : {}),
+        status: 'active',
+        last_charged_at: now.toISOString(),
+        next_charge_at: nextChargeAt,
+        updated_at: now.toISOString(),
+      })
+      .eq('id', meta.mandate_id)
+    if (mandateErr) {
+      console.error('[webhook] mandate_init mandate update failed:', mandateErr.message)
+      await revertToPending()
+      return reply({ error: 'mandate_update_failed' }, { status: 500 })
+    }
+
+    // Cada grupo avanza el mes que pagó este cobro (metadata.items). Los
+    // cobros de alta creados antes de guardar items se recalculan ahora.
+    try {
+      const items: MandateItem[] = Array.isArray(meta.items)
+        ? meta.items
+        : await loadMandateItems(adminSupabase, { userId: payment.user_id, clubId: payment.club_id, mode: 'init' })
+      await applyMandateItems(adminSupabase, payment.user_id, items)
+      if (items[0]) {
+        await adminSupabase.from('payments').update({ metadata: { ...meta, items, paid_until: items[0].paid_until } }).eq('id', payment.id)
+      }
+    } catch (err) {
+      console.error('[webhook] mandate_init enrollment update failed:', err)
+    }
+
+  } else if (payment.type === 'manual_charge' && meta.charge_id) {
+    // Cargo suelto pagado con tarjeta. Si el club lo anuló mientras el alumno
+    // pagaba, el dinero ya está cobrado: se marca pagado igual.
+    const { data: paid, error: chargeErr } = await adminSupabase
+      .from('student_charges')
+      .update({ status: 'paid', paid_method: 'card', paid_at: new Date().toISOString(), payment_id: payment.id })
+      .eq('id', meta.charge_id)
+      .in('status', ['pending', 'cancelled'])
+      .select('id')
+    if (chargeErr) {
+      console.error('[webhook] manual_charge update failed:', chargeErr.message)
+      await revertToPending()
+      return reply({ error: 'Error al marcar el cargo' }, { status: 500 })
+    }
+    if (!paid?.length) {
+      console.error('[webhook] manual_charge ya estaba pagado — posible pago doble, payment', payment.id, 'charge', meta.charge_id)
+    }
+
+  } else if (payment.type === 'intensivo_group' && meta.intensivo_group_id) {
+    const { data: schedules } = await adminSupabase
+      .from('schedules')
+      .select('id, start_time')
+      .eq('intensivo_group_id', meta.intensivo_group_id)
+      .eq('is_active', true)
+      .order('start_time')
+    const classDates: string[] = meta.class_dates ?? []
+    const sortedSchedules = (schedules ?? []).sort((a, b) => a.start_time.localeCompare(b.start_time))
+    for (let i = 0; i < sortedSchedules.length; i++) {
+      const s = sortedSchedules[i]
+      const { data: existing } = await adminSupabase
+        .from('bookings')
+        .select('id')
+        .eq('schedule_id', s.id)
+        .eq('student_id', payment.user_id)
+        .neq('status', 'cancelled')
+        .maybeSingle()
+      if (!existing) {
+        const { error: iBookingErr } = await adminSupabase.from('bookings').insert({
+          schedule_id: s.id,
+          student_id: payment.user_id,
+          status: 'confirmed',
+          source: 'pay_per_class',
+          club_id: payment.club_id ?? null,
+          class_date: classDates[i] ?? null,
+        })
+        if (iBookingErr) {
+          console.error('[webhook] intensivo_group booking failed:', iBookingErr.message)
+          await revertToPending()
+          return reply({ error: 'intensivo_booking_failed' }, { status: 500 })
+        }
+      }
+    }
+  }
+
+  return reply({ ok: true })
+}
