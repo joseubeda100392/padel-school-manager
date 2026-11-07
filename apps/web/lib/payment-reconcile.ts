@@ -29,6 +29,14 @@ export function decideReconcile(
   status: RedsysOrderStatus,
   now: Date,
 ): { decision: Decision; detail: string | null } {
+  // Los cobros de domiciliación los aplica su propio cron (charge-mandates),
+  // no el aviso de Redsys: si uno se queda a medias, lo revisa José a mano.
+  if (payment.type === 'mandate_charge') {
+    const young = now.getTime() - new Date(payment.created_at).getTime() < ABANDON_AFTER_MS
+    return young && status.outcome !== 'paid' && status.outcome !== 'denied'
+      ? { decision: 'wait', detail: null }
+      : { decision: 'review', detail: `cobro de domiciliación a medias (Redsys: ${status.outcome})` }
+  }
   if (status.outcome === 'paid') {
     if (status.amount !== null && Number(status.amount) !== Number(payment.amount)) {
       return { decision: 'review', detail: `importe en Redsys ${status.amount} y en la app ${payment.amount}` }

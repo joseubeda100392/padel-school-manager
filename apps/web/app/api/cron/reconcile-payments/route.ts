@@ -24,14 +24,13 @@ function isAuthorized(req: NextRequest): boolean {
 
 interface Line { payment: any; result: ReconcileResult }
 
-function reportHtml(paid: Line[], review: Line[], errors: Line[]): string {
+function reportHtml(paid: Line[], review: Line[]): string {
   const row = ({ payment, result }: Line) =>
     `<li>${escapeHtml(payment.user?.name ?? payment.user_id)} · ${(payment.amount / 100).toFixed(2)} € · pedido ${escapeHtml(payment.redsys_order_id)} · ${escapeHtml(payment.created_at.slice(0, 16).replace('T', ' '))} UTC${result.detail ? ` · ${escapeHtml(result.detail)}` : ''}</li>`
   const block = (title: string, lines: Line[]) => (lines.length ? `<h3>${title}</h3><ul>${lines.map(row).join('')}</ul>` : '')
   return `<div style="font-family:sans-serif">
 ${block('Cobrados por Redsys sin aviso (ya aplicados en la app)', paid)}
 ${block('Cobrados que hay que revisar a mano', review)}
-${block('Errores al consultar (se reintenta en la próxima pasada)', errors)}
 </div>`
 }
 
@@ -81,12 +80,14 @@ export async function POST(req: NextRequest) {
       url: '/student/pagos',
     }, 'payment_succeeded').catch(e => console.error('[reconcile-payments] aviso al alumno:', e))
   }
-  if (paid.length || review.length || errors.length) {
-    if (errors.length) console.error('[reconcile-payments] errores:', errors.map(l => `${l.payment.redsys_order_id}: ${l.result.detail}`))
+  // Los errores van al resumen de errores del servidor (lib/error-alerts.ts), no
+  // a este email: si Redsys cae, no llega un correo cada 10 minutos.
+  if (errors.length) console.error('[reconcile-payments] errores al consultar a Redsys:', errors.map(l => `${l.payment.redsys_order_id}: ${l.result.detail}`))
+  if (paid.length || review.length) {
     await sendEmail({
       to: INTERNAL_REPORT_TO,
-      subject: `Pagos con tarjeta: ${paid.length} cobrados sin aviso de Redsys${review.length ? `, ${review.length} a revisar` : ''}${errors.length ? `, ${errors.length} con error` : ''}`,
-      html: reportHtml(paid, review, errors),
+      subject: `Pagos con tarjeta: ${paid.length} cobrados sin aviso de Redsys${review.length ? `, ${review.length} a revisar` : ''}`,
+      html: reportHtml(paid, review),
     }).catch(e => console.error('[reconcile-payments] email:', e))
   }
 

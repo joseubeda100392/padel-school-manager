@@ -58,6 +58,13 @@ describe('decideReconcile', () => {
   it('alta de domiciliación cobrada sin aviso: a revisar (falta el identificador de la tarjeta)', () => {
     expect(decideReconcile({ ...fee, type: 'mandate_init' }, st('paid', { amount: '6800' }), now).decision).toBe('review')
   })
+  it('cobro de domiciliación a medias: nunca se aplica solo, a revisar', () => {
+    const mit = { ...fee, type: 'mandate_charge' }
+    expect(decideReconcile(mit, st('paid', { amount: '6800' }), now).decision).toBe('review')
+    expect(decideReconcile(mit, st('denied'), now).decision).toBe('review')
+    expect(decideReconcile(mit, st('open'), now).decision).toBe('wait')
+    expect(decideReconcile(mit, st('missing'), new Date(new Date(fee.created_at).getTime() + ABANDON_AFTER_MS)).decision).toBe('review')
+  })
   it('denegado: se cierra como fallido aunque sea reciente', () => {
     expect(decideReconcile(fee, st('denied'), now).decision).toBe('settle')
   })
