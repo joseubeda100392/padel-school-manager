@@ -114,7 +114,8 @@ export function PayButton({ type, enrollmentId, allGroups, advance, packType, pr
         {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
         {loading ? 'Abriendo el pago seguro' : label}
       </button>
-      {error && <p role="alert" className="mt-1.5 text-meta font-medium text-danger-ink">{error}</p>}
+      {/* w-0 min-w-full: el mensaje toma el ancho del botón y salta de línea, sin ensanchar la tarjeta */}
+      {error && <p role="alert" className="mt-1.5 w-0 min-w-full text-meta font-medium text-danger-ink">{error}</p>}
     </div>
   )
 }

@@ -14,6 +14,7 @@ import {
 import { rateLimit } from '@/lib/rate-limit'
 import { lastDayOfMonthStr } from '@/lib/billing-cycle'
 import { loadStudentFeeItems, type MandateItem } from '@/lib/mandate-charge'
+import { CONFIRMATION_MINUTES } from '@/lib/payment-reconcile'
 import { madridMinutesOfDay } from '@/lib/madrid-time'
 import { getClassOccupancy } from '@/lib/waitlist'
 
@@ -30,6 +31,23 @@ export async function POST(req: NextRequest) {
   if (rl) return rl
 
   const admin = getAdminClient()
+
+  // Evitar cobros dobles: si Redsys ya dio por bueno un pago suyo y aún se está
+  // confirmando, no se abre otro. Solo las últimas 24 h, para que un pago que
+  // se quede a revisar a mano no bloquee al alumno para siempre.
+  const { data: confirming, error: confirmingErr } = await admin.from('payments')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('status', 'pending')
+    .eq('metadata->>returned_ok', 'true')
+    .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+    .limit(1)
+  if (confirmingErr) console.error('[create-order] comprobar pagos en confirmación:', confirmingErr.message)
+  if (confirming?.length) {
+    return NextResponse.json({
+      error: `Tienes un pago confirmándose con el banco. En unos ${CONFIRMATION_MINUTES} minutos como mucho estará listo; no hace falta que vuelvas a pagar.`,
+    }, { status: 409 })
+  }
 
   const { data: userProfile } = await admin
     .from('users')

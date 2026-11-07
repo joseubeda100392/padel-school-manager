@@ -55,7 +55,9 @@ export async function PaymentReturn({ order, fallback }: { order?: string; fallb
   if (outcome === 'paid' || (outcome === 'unknown' && fallback === 'success')) {
     return <ResultScreen tone="success" title="Pago completado" description="Tu pago se ha procesado correctamente." action={BACK} />
   }
-  if (outcome === 'pending') {
+  // Por la pantalla de error (canceló, tarjeta rechazada...) nunca se dice
+  // «confirmando»: si Redsys aún no lo ha cerrado, es que no lo terminó.
+  if (outcome === 'pending' && fallback === 'success') {
     return (
       <>
         <AutoRefresh />

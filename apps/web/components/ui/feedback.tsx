@@ -53,11 +53,12 @@ export function Notice({
   return (
     <div
       role={tone === 'danger' ? 'alert' : 'status'}
-      className={cn('flex items-start gap-3 rounded-control border px-3.5 py-3 text-body', tones[tone], className)}
+      className={cn('flex flex-wrap items-start gap-3 rounded-control border px-3.5 py-3 text-body sm:flex-nowrap', tones[tone], className)}
     >
       {icon && <span aria-hidden className="mt-0.5 shrink-0 [&_svg]:h-[18px] [&_svg]:w-[18px]">{icon}</span>}
       <div className="min-w-0 flex-1">{children}</div>
-      {action && <div className="shrink-0">{action}</div>}
+      {/* En el móvil el botón va en su propia línea, bajo el texto (alineado con él si hay icono). */}
+      {action && <div className={cn('basis-full sm:basis-auto sm:shrink-0', icon && 'pl-[30px] sm:pl-0')}>{action}</div>}
     </div>
   )
 }
